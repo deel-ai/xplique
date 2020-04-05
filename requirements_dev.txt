@@ -1,0 +1,9 @@
+docutils
+Markdown
+mkdocs
+mkdocs-material==4.6.3
+Pygments
+pylint
+pymdown-extensions
+pytest
+numkdoc

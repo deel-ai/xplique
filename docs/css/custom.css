@@ -1,0 +1,41 @@
+:root {
+    --primary: #3f51b5;
+    --synthax-blue: #3b78e7;
+    --synthax-red: #ec407a;
+}
+
+html {
+    font-size: 115%;
+}
+
+.md-typeset ul li p {
+    margin: 0;
+}
+
+li {
+    list-style: none;
+}
+
+.autodoc-signature > em:first-of-type {
+    font-style: normal;
+    font-weight: bold;
+    color: var(--primary);
+}
+
+h2 code {
+    color: var(--synthax-red) !important;
+}
+
+h4 code {
+    color: var(--synthax-blue) !important;
+    font-weight: bold !important;
+    background-color: rgba(31,31,31, 0.05) !important;
+    padding: 5px !important;
+    border-radius: 2px !important;
+    cursor: pointer !important;
+    font-size: 95% !important;
+}
+
+.admonition {
+    font-size: 95% !important;
+}

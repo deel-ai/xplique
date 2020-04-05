@@ -1,0 +1,11 @@
+language: python
+
+python: 3.6
+
+install:
+  - pip install -r requirements.txt
+  - pip install -r requirements_dev.txt
+
+script:
+  - python -m pylint --generated-members=cv2 xplique
+  - pytest tests

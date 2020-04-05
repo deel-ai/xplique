@@ -1,0 +1,9 @@
+[MASTER]
+disable=
+    C0114, # missing-module-docstring
+    W0221, # overriding method with *args
+    R0914, # allow multiples local variables
+
+[FORMAT]
+max-line-length=100
+max-args=8

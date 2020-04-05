@@ -1,0 +1,47 @@
+site_name: Xplique
+
+nav:
+  - Home: index.md
+  - Api:
+    - Saliency: api/saliency.md
+    - Gradient Input: api/gradient_input.md
+    - Integrated Gradient: api/integrated_gradients.md
+    - SmoothGrad: api/smoothgrad.md
+    - Grad-CAM: api/grad_cam.md
+
+theme:
+  name: "material"
+  logo: "./assets/logo_x.svg"
+  palette:
+    primary: 'white'
+    accent: 'indigo'
+
+plugins:
+  - numkdoc
+  - search
+
+markdown_extensions:
+  - footnotes
+  - extra
+  - admonition
+  - pymdownx.arithmatex
+  - codehilite
+  - toc:
+        permalink: true
+
+extra_css:
+  - css/custom.css
+
+extra_javascript:
+  - https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js
+  - js/custom.js
+
+repo_name: 'aniti/Xplique'
+repo_url: 'https://github.com/napolar/xplique'
+
+extra:
+  social:
+    - type: 'github'
+      link: 'https://github.com/napolar'
+    - type: 'twitter'
+      link: 'https://twitter.com/napoolar'
