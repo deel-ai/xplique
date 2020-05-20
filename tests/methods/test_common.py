@@ -1,6 +1,7 @@
 import numpy as np
 
-from xplique.methods import (Saliency, GradientInput, IntegratedGradients, SmoothGrad, GradCAM)
+from xplique.methods import (Saliency, GradientInput, IntegratedGradients, SmoothGrad, GradCAM,
+                             Occlusion)
 from xplique.methods.base import BaseExplanation
 from ..utils import generate_data, generate_model
 
@@ -19,6 +20,7 @@ def test_common():
         SmoothGrad(model, output_layer_index),
         IntegratedGradients(model, output_layer_index),
         GradCAM(model, output_layer_index),
+        Occlusion(model, output_layer_index),
     ]
 
     for method in methods:
@@ -50,6 +52,7 @@ def test_batch_size():
             SmoothGrad(model, output_layer_index, bs),
             IntegratedGradients(model, output_layer_index, bs),
             GradCAM(model, output_layer_index, bs),
+            Occlusion(model, output_layer_index, bs),
         ]
 
         for method in methods:
@@ -58,7 +61,7 @@ def test_batch_size():
             except:
                 raise AssertionError(
                     "Explanation failed for method ", method.__class__.__name__,
-                    " batch size ",  bs)
+                    " batch size ", bs)
 
 
 def test_model_caching():
@@ -80,6 +83,7 @@ def test_model_caching():
         SmoothGrad(model, output_layer_index),
         IntegratedGradients(model, output_layer_index),
         GradCAM(model, output_layer_index),
+        Occlusion(model, output_layer_index),
     ]
 
     # check that the key is now in the cache
