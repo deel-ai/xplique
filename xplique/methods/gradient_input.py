@@ -31,7 +31,7 @@ class GradientInput(BaseExplanation):
         Returns
         -------
         explanations : ndarray (N, W, H)
-            Explanations computed.
+            Gradients x Inputs, with the same shape as the inputs.
         """
         return GradientInput.compute(self.model, inputs, labels, self.batch_size)
 
@@ -56,7 +56,7 @@ class GradientInput(BaseExplanation):
         Returns
         -------
         gradients_inputs : tf.Tensor (N, W, H, C)
-            Explanation computed, with the same shape as the inputs.
+            Gradients x Inputs, with the same shape as the inputs.
         """
         gradients = BaseExplanation._batch_gradient(model, inputs, labels, batch_size)
         gradients_inputs = tf.multiply(gradients, inputs)

@@ -63,7 +63,7 @@ class GradCAM(BaseExplanation):
         Returns
         -------
         grad_cam : ndarray (N, W, H)
-            Explanations computed, with the same shape as the inputs except for the channels.
+            Grad-CAM explanations, same shape as the inputs except for the channels.
         """
         inputs = tf.cast(inputs, tf.float32)
         labels = tf.cast(labels, tf.float32)

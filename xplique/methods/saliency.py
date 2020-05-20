@@ -42,7 +42,7 @@ class Saliency(BaseExplanation):
         Returns
         -------
         explanations : ndarray (N, W, H)
-            Explanations computed.
+            Saliency maps.
         """
         return Saliency.compute(self.model, inputs, labels, self.batch_size)
 
@@ -67,12 +67,12 @@ class Saliency(BaseExplanation):
         Returns
         -------
         saliency_map : tf.Tensor (N, W, H, C)
-            Explanation computed, with the same shape as the inputs.
+            Saliency maps.
         """
         gradients = BaseExplanation._batch_gradient(model, inputs, labels, batch_size)
         gradients = tf.abs(gradients)
 
-        # if the image is a RGB, take the maximum magnitude across the channels
+        # if the image is a RGB, take the maximum magnitude across the channels (see Ref.)
         if len(gradients.shape) == 4:
             gradients = tf.reduce_max(gradients, axis=-1)
 

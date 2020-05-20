@@ -61,7 +61,7 @@ class SmoothGrad(BaseExplanation):
         Returns
         -------
         explanations : ndarray (N, W, H)
-            Explanations computed.
+            Smoothed gradients, same shape as the inputs.
         """
         return SmoothGrad.compute(self.model,
                                   inputs,
@@ -69,26 +69,6 @@ class SmoothGrad(BaseExplanation):
                                   self.batch_size,
                                   nb_samples=self.nb_samples,
                                   noise=self.noise)
-
-    @staticmethod
-    @lru_cache()
-    def get_noisy_mask(shape, noise):
-        """
-        Create a random noise mask of the specified shape.
-
-        Parameters
-        ----------
-        shape : tuple
-            Desired shape, dimension of one sample.
-        noise : float
-            Scalar, noise used as standard deviation of a normal law centered on zero.
-
-        Returns
-        -------
-        noisy_mask : ndarray
-            Noise mask of the specified shape.
-        """
-        return np.random.normal(0, noise, shape).astype(np.float32)
 
     @staticmethod
     def compute(model, inputs, labels, batch_size, nb_samples, noise):
@@ -115,7 +95,7 @@ class SmoothGrad(BaseExplanation):
         Returns
         -------
         smoothed_gradients : tf.Tensor (N, W, H, C)
-            Explanation computed, with the same shape as the inputs.
+            Smoothed gradients, same shape as the inputs.
         """
         smoothed_gradients = None
 
@@ -138,6 +118,26 @@ class SmoothGrad(BaseExplanation):
                 [smoothed_gradients, batch_gradients], axis=0)
 
         return smoothed_gradients
+
+    @staticmethod
+    @lru_cache()
+    def get_noisy_mask(shape, noise):
+        """
+        Create a random noise mask of the specified shape.
+
+        Parameters
+        ----------
+        shape : tuple
+            Desired shape, dimension of one sample.
+        noise : float
+            Scalar, noise used as standard deviation of a normal law centered on zero.
+
+        Returns
+        -------
+        noisy_mask : ndarray
+            Noise mask of the specified shape.
+        """
+        return np.random.normal(0, noise, shape).astype(np.float32)
 
     @staticmethod
     @tf.function

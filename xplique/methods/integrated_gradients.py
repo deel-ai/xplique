@@ -61,8 +61,8 @@ class IntegratedGradients(BaseExplanation):
 
         Returns
         -------
-        explanations : ndarray (N, W, H)
-            Explanations computed.
+        explanations : ndarray (N, W, H, C)
+            Integrated gradients, same shape as the inputs.
         """
         return IntegratedGradients.compute(self.model,
                                            inputs,
@@ -70,26 +70,6 @@ class IntegratedGradients(BaseExplanation):
                                            self.batch_size,
                                            steps=self.steps,
                                            baseline_value=self.baseline_value)
-
-    @staticmethod
-    @lru_cache()
-    def get_baseline(shape, baseline_value):
-        """
-        Create the baseline point using a scalar value to fill the desired shape.
-
-        Parameters
-        ----------
-        shape : tuple
-            Desired shape, dimension of one sample.
-        baseline_value : float
-            Value defining the baseline state.
-
-        Returns
-        -------
-        baseline_point : ndarray
-            A baseline point of the specified shape.
-        """
-        return tf.ones(shape) * baseline_value
 
     @staticmethod
     def compute(model, inputs, labels, batch_size, steps, baseline_value):
@@ -115,8 +95,8 @@ class IntegratedGradients(BaseExplanation):
 
         Returns
         -------
-        integrated_gradients : tf.Tensor (N, W, H, C)
-            Explanation computed, with the same shape as the inputs.
+        explanations : tf.Tensor (N, W, H, C)
+            Integrated gradients, same shape as the inputs.
         """
 
         integrated_gradients = None
@@ -147,6 +127,26 @@ class IntegratedGradients(BaseExplanation):
                 tf.concat([integrated_gradients, batch_integrated_gradients], axis=0)
 
         return integrated_gradients
+
+    @staticmethod
+    @lru_cache()
+    def get_baseline(shape, baseline_value):
+        """
+        Create the baseline point using a scalar value to fill the desired shape.
+
+        Parameters
+        ----------
+        shape : tuple
+            Desired shape, dimension of one sample.
+        baseline_value : float
+            Value defining the baseline state.
+
+        Returns
+        -------
+        baseline_point : ndarray
+            A baseline point of the specified shape.
+        """
+        return tf.ones(shape) * baseline_value
 
     @staticmethod
     @tf.function
