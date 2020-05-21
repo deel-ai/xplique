@@ -10,3 +10,4 @@ from .smoothgrad import SmoothGrad
 from .occlusion import Occlusion
 from .guided_backpropagation import GuidedBackprop
 from .deconvnet import DeconvNet
+from .grad_cam_pp import GradCAMPP

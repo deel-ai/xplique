@@ -1,7 +1,7 @@
 import numpy as np
 
 from xplique.methods import (Saliency, GradientInput, IntegratedGradients, SmoothGrad, GradCAM,
-                             Occlusion, GuidedBackprop, DeconvNet)
+                             Occlusion, GuidedBackprop, DeconvNet, GradCAMPP)
 from xplique.methods.base import BaseExplanation
 from ..utils import generate_data, generate_model
 
@@ -23,6 +23,7 @@ def test_common():
         Occlusion(model, output_layer_index),
         GuidedBackprop(model, output_layer_index),
         DeconvNet(model, output_layer_index),
+        GradCAMPP(model, output_layer_index),
     ]
 
     for method in methods:
@@ -57,6 +58,7 @@ def test_batch_size():
             Occlusion(model, output_layer_index, bs),
             GuidedBackprop(model, output_layer_index, bs),
             DeconvNet(model, output_layer_index, bs),
+            GradCAMPP(model, output_layer_index, bs),
         ]
 
         for method in methods:
@@ -90,6 +92,7 @@ def test_model_caching():
         Occlusion(model, output_layer_index),
         GuidedBackprop(model, output_layer_index),
         DeconvNet(model, output_layer_index),
+        GradCAMPP(model, output_layer_index),
     ]
 
     # check that the key is now in the cache
