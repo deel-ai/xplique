@@ -32,7 +32,7 @@ class BaseExplanation:
         self.target_layer = model.layers[output_layer_index]
         # sanity check, output layer before softmax
         try:
-            if self.target_layer.activation == softmax:
+            if self.target_layer.activation.__name__ == softmax.__name__:
                 warnings.warn("Output is after softmax, it is recommended to "
                               "use the layer before.")
         except AttributeError:
