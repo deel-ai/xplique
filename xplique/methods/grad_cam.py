@@ -27,9 +27,8 @@ class GradCAM(BaseExplanation):
     batch_size : int, optional
         Number of samples to explain at once, if None compute all at once.
     conv_layer : int or string or None
-        Layer to target for grad-cam algorithm, if int, will be be interpreted as layer index,
-        if string will look for the layer name
-        Number of samples to explain at once, if None compute all at once.
+        Layer to target for Grad-CAM algorithm, if int, will be be interpreted as layer index,
+        if string will look for the layer name.
     """
 
     def __init__(self, model, output_layer_index=-1, batch_size=32, conv_layer=None):
@@ -49,7 +48,7 @@ class GradCAM(BaseExplanation):
 
     def explain(self, inputs, labels):
         """
-        Compute grad-CAM and resize explanations to match inputs.
+        Compute Grad-CAM and resize explanations to match inputs shape.
 
         Parameters
         ----------
@@ -137,9 +136,9 @@ class GradCAM(BaseExplanation):
         with tf.GradientTape(watch_accessed_variables=False) as tape:
             tape.watch(inputs)
             feature_map_activations, predictions = model(inputs)
-            loss = tf.reduce_sum(tf.multiply(predictions, labels), axis=-1)
+            score = tf.reduce_sum(tf.multiply(predictions, labels), axis=-1)
 
-        feature_map_gradients = tape.gradient(loss, feature_map_activations)
+        feature_map_gradients = tape.gradient(score, feature_map_activations)
         feature_map_weights = tf.reduce_mean(feature_map_gradients, axis=(1, 2))
         # reshape to apply a gradient weight to each feature map
         feature_map_weights = tf.reshape(feature_map_weights,
