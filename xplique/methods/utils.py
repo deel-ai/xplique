@@ -106,13 +106,17 @@ def override_relu_gradient(model, relu_policy):
     """
 
     def clone_func(layer):
+
         if is_relu(layer):
             return Activation(relu_policy)
 
-        if has_relu_activation(layer):
-            layer.activation = relu_policy
+        # avoid modification of the original model
+        clone_layer = layer.__class__.from_config(layer.get_config())
 
-        return layer
+        if has_relu_activation(layer):
+            clone_layer.activation = relu_policy
+
+        return clone_layer
 
     model_commuted = clone_model(model, clone_function=clone_func)
 
