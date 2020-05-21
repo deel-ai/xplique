@@ -9,3 +9,4 @@ from .integrated_gradients import IntegratedGradients
 from .smoothgrad import SmoothGrad
 from .occlusion import Occlusion
 from .guided_backpropagation import GuidedBackprop
+from .deconvnet import DeconvNet

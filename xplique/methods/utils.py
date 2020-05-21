@@ -53,6 +53,31 @@ def guided_relu(inputs):
 
     return tf.nn.relu(inputs), grad_func
 
+@tf.custom_gradient
+def deconv_relu(inputs):
+    """
+    DeconvNet activation function.
+    Act like a relu during forward pass, but allows only positive gradients to pass through
+    during backprop.
+
+    Parameters
+    ----------
+    inputs : tf.Tensor
+        Input tensor
+
+    Returns
+    -------
+    output : tf.Tensor
+        Tensor, output or relu transformation.
+    grad_func : function
+        Gradient function for DeconvNet relu.
+    """
+
+    def grad_func(grads):
+        return tf.nn.relu(grads)
+
+    return tf.nn.relu(inputs), grad_func
+
 
 def is_relu(layer):
     """
