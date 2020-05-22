@@ -1,5 +1,7 @@
 :root {
     --primary: #3f51b5;
+    --dark: #313131;
+
     --synthax-blue: #3b78e7;
     --synthax-red: #ec407a;
 }
@@ -14,6 +16,7 @@ html {
 
 li {
     list-style: none;
+    margin-bottom: 0 !important;
 }
 
 .autodoc-signature > em:first-of-type {
@@ -38,4 +41,9 @@ h4 code {
 
 .admonition {
     font-size: 95% !important;
+}
+
+img[alt*="Colab"] {
+  transform: translateY(3px);
+  padding-left: 5px;
 }

@@ -22,23 +22,6 @@ map (width $\cdot$ height).
 Notice that the size of the explanation depends on the size (height, width) of the last feature map, 
 so we have to interpolate in order to find the same dimensions as the input.
 
-## Grad-CAM Variations
-
-In the appendix of the original paper [^1] the authors experiments differents procedure for the 
-backward pass of ReLU. These two modifications are named Guided-ReLU and Deconv-ReLU.
-
-* **Guided-ReLU** are inspired from Springenberg et al., where to compute the weight $\alpha_k^c$ we 
-  only take the positive gradients of the positive activations 
-  ($\frac{ \partial{y^c} } { \partial{A_{ij}}} > 0$ and $A_{ij}^k > 0$).
- 
-* **Deconv-ReLU** are inspired from Zeiler and Fergus, where to compute the weight $\alpha_k^c$ we 
-  only take the positive gradients ($\frac{ \partial{y^c} } { \partial{A_{ij}}} > 0$).
-  
-!!! tip
-    As specified in the original paper, the best results are generally obtained by 
-    using the Guided-ReLU (see Appendix, B.2 table 3[^1]). That's why the Grad-CAM Api will use this variant
-    by default.
-
 ## Examples
 
 Using Grad-CAM default variants, Guided ReLU
@@ -55,12 +38,12 @@ explanations = method.explain(images, labels)
 
 Using Grad-CAM procedure as described in the original paper
 ```python
-from Xplique import GradCAM, GradCAMVariants
+from Xplique import GradCAM
 
 # load images, labels and model
 # ...
 
-method = GradCAM(model, variant=GradCAMVariants.BACKWD_RELU)
+method = GradCAM(model)
 explanations = method.explain(images, labels)
 ```
 
