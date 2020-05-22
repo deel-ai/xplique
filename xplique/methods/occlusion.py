@@ -77,7 +77,7 @@ class Occlusion(BaseExplanation):
     def compute(model, inputs, labels, batch_size, patch_size,
                 patch_stride, occlusion_value):
         """
-        Compute Integrated Gradients for a batch of samples.
+        Compute Occlusion sensitivity for a batch of samples.
 
         Parameters
         ----------
