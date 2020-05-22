@@ -72,33 +72,6 @@ class BaseExplanation:
         return self.explain(inputs, labels)
 
     @staticmethod
-    def compute(model, inputs, labels, batch_size, *params):
-        """
-        Compute the explanation on the given samples.
-
-        Parameters
-        ----------
-        model : tf.keras.Model
-            Model used for computing explanations.
-        inputs : ndarray (N, W, H, C)
-            Batch of input samples , with N number of samples, W & H the sample dimensions,
-            and C the number of channels.
-        labels : ndarray (N, L)
-            One hot encoded labels to compute for each sample, with N the number of samples, and L
-            the number of classes.
-        batch_size : int, optional
-            Number of samples to explain at once, if None compute all at once.
-        params : optional
-            Each method has its own specific parameters that will be expected as arguments.
-
-        Returns
-        -------
-        explanations : tf.Tensor (N, W, H)
-            Explanations computed.
-        """
-        raise NotImplementedError()
-
-    @staticmethod
     @tf.function
     def _gradient(model, inputs, labels):
         """
