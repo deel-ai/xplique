@@ -12,7 +12,7 @@ from .base import BaseExplanation
 
 class GradCAM(BaseExplanation):
     """
-    Used to compute the different possible variants of the Grad-CAM visualization method.
+    Used to compute the Grad-CAM visualization method.
 
     Ref. Grad-CAM: Visual Explanations from Deep Networks via Gradient-based Localization (2016).
     https://arxiv.org/abs/1610.02391
@@ -40,7 +40,7 @@ class GradCAM(BaseExplanation):
         elif isinstance(conv_layer, str):
             self.conv_layer = model.get_layer(conv_layer)
         else:
-            # assuming default procedure : the last conv layer
+            # No conv_layer specified, assuming default procedure : the last conv layer
             self.conv_layer = next(
                 layer for layer in model.layers[::-1] if hasattr(layer, 'filters'))
 
@@ -67,7 +67,7 @@ class GradCAM(BaseExplanation):
         inputs = tf.cast(inputs, tf.float32)
         labels = tf.cast(labels, tf.float32)
 
-        grad_cams = GradCAM.compute(self.model, inputs, labels, self.batch_size)
+        grad_cams = self.compute(self.model, inputs, labels, self.batch_size)
 
         # as Grad-CAM is based on the last convolutionnal layer, the explanation output has the
         # same dimensions as this layer, we need to resize the size of the explanations to match
@@ -96,7 +96,7 @@ class GradCAM(BaseExplanation):
 
         Returns
         -------
-        grad_cam : ndarray (N, CW, CH)
+        grad_cam : tf.Tensor (N, ConvWidth, ConvHeight)
             Explanation computed, with CW & CH the dimensions of the conv layer.
         """
         grad_cams = None
@@ -104,7 +104,10 @@ class GradCAM(BaseExplanation):
 
         for x_batch, y_batch in tf.data.Dataset.from_tensor_slices((inputs, labels)).batch(
                 batch_size):
-            batch_grad_cams = GradCAM.gradient(model, x_batch, y_batch)
+
+            batch_feature_maps, batch_gradients = GradCAM.gradient(model, x_batch, y_batch)
+            batch_weights = GradCAM.compute_weights(batch_gradients)
+            batch_grad_cams = GradCAM.apply_weights(batch_weights, batch_feature_maps)
 
             grad_cams = batch_grad_cams if grad_cams is None else tf.concat(
                 [grad_cams, batch_grad_cams], axis=0)
@@ -115,7 +118,7 @@ class GradCAM(BaseExplanation):
     @tf.function
     def gradient(model, inputs, labels):
         """
-        Apply a single pass procedure to compute Grad-CAM.
+        Compute the gradient with respect to the conv_layer.
 
         Parameters
         ----------
@@ -130,24 +133,60 @@ class GradCAM(BaseExplanation):
 
         Returns
         -------
-        grad_cam : tf.Tensor (N, CW, CH)
-            Explanation computed, with CW & CH the dimensions of the conv layer.
+        feature_maps : tf.Tensor (N, ConvWidth, ConvHeight, Filters)
+            Activations for the target convolution layer.
+        feature_maps_gradients : tf.Tensor (N, ConvWidth, ConvHeight, Filters)
+            Gradients for the target convolution layer.
         """
         with tf.GradientTape(watch_accessed_variables=False) as tape:
             tape.watch(inputs)
-            feature_map_activations, predictions = model(inputs)
+            feature_maps, predictions = model(inputs)
             score = tf.reduce_sum(tf.multiply(predictions, labels), axis=-1)
 
-        feature_map_gradients = tape.gradient(score, feature_map_activations)
-        feature_map_weights = tf.reduce_mean(feature_map_gradients, axis=(1, 2))
-        # reshape to apply a gradient weight to each feature map
-        feature_map_weights = tf.reshape(feature_map_weights,
-                                         (feature_map_weights.shape[0], 1, 1,
-                                          feature_map_weights.shape[-1]))
+        feature_maps_gradients = tape.gradient(score, feature_maps)
 
-        grad_cams = tf.reduce_sum(
-            tf.multiply(feature_map_activations, feature_map_weights),
-            axis=-1)
-        grad_cams = tf.nn.relu(grad_cams)
+        return feature_maps, feature_maps_gradients
 
-        return grad_cams
+    @staticmethod
+    @tf.function
+    def compute_weights(feature_maps_gradients):
+        """
+        Compute the weights according to Grad-CAM procedure.
+
+        Parameters
+        ----------
+        feature_maps_gradients : tf.Tensor (N, ConvWidth, ConvHeight, Filters)
+            Gradients for the target convolution layer.
+
+        Returns
+        -------
+        weights : tf.Tensor (N, 1, 1, Filters)
+            Weights for each feature maps.
+        """
+
+        weights = tf.reduce_mean(feature_maps_gradients, axis=(1, 2))
+        weights = tf.reshape(weights, (weights.shape[0], 1, 1, weights.shape[-1]))
+
+        return weights
+
+    @staticmethod
+    @tf.function
+    def apply_weights(weights, feature_maps):
+        """
+        Apply the weights to the feature maps and sum them, and follow it by az ReLU.
+
+        Parameters
+        ----------
+        weights : tf.Tensor (N, 1, 1, Filters)
+            Weights for each feature maps.
+        feature_maps : tf.Tensor (N, ConvWidth, ConvHeight, Filters)
+            Activations for the target convolution layer.
+
+        Returns
+        -------
+        weighted_feature_maps : tf.Tensor (N, ConvWidth, ConvHeight)
+        """
+        weighted_feature_maps = tf.reduce_sum(tf.multiply(feature_maps, weights), axis=-1)
+        weighted_feature_maps = tf.nn.relu(weighted_feature_maps)
+
+        return weighted_feature_maps
