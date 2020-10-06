@@ -2,11 +2,10 @@
 Module related to Grad-CAM++ method
 """
 
-import cv2
-import numpy as np
 import tensorflow as tf
 
 from .grad_cam import GradCAM
+from .utils import sanitize_input_output
 
 
 class GradCAMPP(GradCAM):
@@ -34,89 +33,45 @@ class GradCAMPP(GradCAM):
     # zero, then the nominator will also be zero).
     EPSILON = tf.constant(1e-4)
 
+    @sanitize_input_output
     def explain(self, inputs, labels):
         """
         Compute Grad-CAM++ and resize explanations to match inputs shape.
 
         Parameters
         ----------
-        inputs : ndarray (N, W, H, C)
+        inputs : tf.tensor (N, W, H, C)
             Input samples, with N number of samples, W & H the sample dimensions, and C the
             number of channels.
-        labels : ndarray(N, L)
+        labels : tf.tensor (N, L)
             One hot encoded labels to compute for each sample, with N the number of samples, and L
             the number of classes.
 
         Returns
         -------
-        grad_cam_pp : ndarray (N, W, H)
+        grad_cam_pp : tf.tensor (N, W, H)
             Grad-CAM++ explanations, same shape as the inputs except for the channels.
         """
-        inputs = tf.cast(inputs, tf.float32)
-        labels = tf.cast(labels, tf.float32)
-
-        grad_cams_pp = GradCAMPP.compute(self.model, inputs, labels, self.batch_size)
-
-        input_shape = self.model.input.shape[1:3]
-        grad_cams_pp = np.array(
-            [cv2.resize(np.array(grad_cam_pp), (*input_shape,)) for grad_cam_pp in grad_cams_pp])
-
-        return grad_cams_pp
-
-    @staticmethod
-    def compute(model, inputs, labels, batch_size):
-        """
-        Compute the Grad-CAM++ explanations of the given samples.
-
-        Parameters
-        ----------
-        model : tf.keras.Model
-            Model used for computing explanations.
-        inputs : ndarray (N, W, H, C)
-            Batch of input samples , with N number of samples, W & H the sample dimensions,
-            and C the number of channels.
-        labels : ndarray (N, L)
-            One hot encoded labels to compute for each sample, with N the number of samples, and L
-            the number of classes.
-
-        Returns
-        -------
-        grad_cam : tf.Tensor (N, ConvWidth, ConvHeight)
-            Explanation computed, with CW & CH the dimensions of the conv layer.
-        """
-        grad_cams_pp = None
-        batch_size = batch_size if batch_size is not None else len(inputs)
-
-        for x_batch, y_batch in tf.data.Dataset.from_tensor_slices((inputs, labels)).batch(
-                batch_size):
-            batch_activations, batch_gradients = GradCAM.gradient(model, x_batch, y_batch)
-            batch_weights = GradCAMPP.compute_weights(batch_activations, batch_gradients)
-            batch_grad_cams_pp = GradCAM.apply_weights(batch_weights, batch_activations)
-
-            grad_cams_pp = batch_grad_cams_pp if grad_cams_pp is None else tf.concat(
-                [grad_cams_pp, batch_grad_cams_pp], axis=0)
-
-        return grad_cams_pp
+        return self.compute(self.model, inputs, labels, self.batch_size)
 
     @staticmethod
     @tf.function
-    def compute_weights(feature_maps, feature_maps_gradients):
+    def compute_weights(feature_maps_gradients, feature_maps):
         """
-        Compute the weights according to Grad-CAM procedure.
+        Compute the weights according to Grad-CAM++ procedure.
 
         Parameters
         ----------
-        feature_maps : tf.Tensor (N, ConvWidth, ConvHeight, Filters)
-            Activations for the target convolution layer.
-        feature_maps_gradients : tf.Tensor (N, ConvWidth, ConvHeight, Filters)
+        feature_maps_gradients : tf.Tensor (N, CW, CH, Filters)
             Gradients for the target convolution layer.
+        feature_maps : tf.Tensor (N, CW, CH, Filters)
+            Activations for the target convolution layer.
 
         Returns
         -------
         weights : tf.Tensor (N, 1, 1, Filters)
             Weights for each feature maps.
         """
-
         feature_maps_gradients_square = tf.pow(feature_maps_gradients, 2)
         feature_maps_gradients_cube = tf.pow(feature_maps_gradients, 3)
 
