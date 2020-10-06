@@ -17,31 +17,28 @@ help:
 	@echo "make doc"
 	@echo "       build mkdoc documentation"
 
-
 prepare-dev:
-	sudo apt-get install python3.6 python3-pip && python3.6 -m pip install virtualenv
-	virtualenv --no-site-packages venv
-	make venv
+	python3 -m pip install virtualenv
+	python3 -m virtualenv venv
+	venv
 	pip install -r requirements.txt
 	pip install -r requirements_dev.txt
-
 
 venv:
 	. venv/bin/activate
 
-
 test: venv
-	$(PYTHON) -m pytest tests
-
+	$(PYTHON) -m tox
 
 test-disable-gpu: venv
-	CUDA_VISIBLE_DEVICES=-1 $(PYTHON) -m pytest tests
-
+	CUDA_VISIBLE_DEVICES=-1 $(PYTHON) -m tox
 
 lint: venv
-	$(PYTHON) -m pylint --generated-members=cv2 xplique
-
+	$(PYTHON) -m pylint xplique
 
 doc: venv
 	$(PYTHON) -m mkdocs build
 	$(PYTHON) -m mkdocs gh-deploy
+
+serve-doc: venv
+	$(PYTHON) -m mkdocs serve
