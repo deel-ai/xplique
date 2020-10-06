@@ -15,7 +15,6 @@ def sanitize_input_output(explanation_method):
     explanation_method : function
         Function to wrap, should return an tf.tensor.
     """
-
     def sanitize(self, inputs, labels, *args):
         inputs = tf.cast(inputs, tf.float32)
         labels = tf.cast(labels, tf.float32)
@@ -46,7 +45,6 @@ def guided_relu(inputs):
     grad_func : function
         Gradient function for guided relu.
     """
-
     def grad_func(grads):
         gate_activation = tf.cast(inputs > 0.0, tf.float32)
         return tf.nn.relu(grads) * gate_activation
@@ -72,7 +70,6 @@ def deconv_relu(inputs):
     grad_func : function
         Gradient function for DeconvNet relu.
     """
-
     def grad_func(grads):
         return tf.nn.relu(grads)
 
@@ -107,7 +104,6 @@ def has_relu_activation(layer):
     Returns
     -------
     has_relu: bool
-
     """
     if not hasattr(layer, 'activation'):
         return False
@@ -129,7 +125,6 @@ def override_relu_gradient(model, relu_policy):
     -------
     model_commuted : tf.keras.model
     """
-
     def clone_func(layer):
 
         if is_relu(layer):

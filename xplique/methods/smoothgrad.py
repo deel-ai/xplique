@@ -79,10 +79,10 @@ class SmoothGrad(BaseExplanation):
         ----------
         model : tf.keras.Model
             Model used for computing explanations.
-        inputs : ndarray (N, W, H, C)
+        inputs : tf.tensor (N, W, H, C)
             Input samples, with N number of samples, W & H the sample dimensions, and C the
             number of channels.
-        labels : ndarray(N, L)
+        labels : tf.tensor (N, L)
             One hot encoded labels to compute for each sample, with N the number of samples, and L
             the number of classes.
         batch_size : int
@@ -147,10 +147,10 @@ class SmoothGrad(BaseExplanation):
 
         Parameters
         ----------
-        inputs : ndarray (N, W, H, C)
+        inputs : tf.tensor (N, W, H, C)
             Input samples, with N number of samples, W & H the sample dimensions, and C the
             number of channels.
-        labels : ndarray(N, L)
+        labels : tf.tensor (N, L)
             One hot encoded labels to compute for each sample, with N the number of samples, and L
             the number of classes.
         nb_samples : int
@@ -162,9 +162,9 @@ class SmoothGrad(BaseExplanation):
 
         Returns
         -------
-        noisy_inputs : ndarray (N * S, W, H, C)
+        noisy_inputs : tf.tensor (N * S, W, H, C)
             Duplicated inputs with noisy mask applied.
-        labels : ndarray (N * S, L)
+        labels : tf.tensor (N * S, L)
             Duplicated labels.
         """
         noisy_inputs = tf.repeat(tf.expand_dims(inputs, axis=1), repeats=nb_samples, axis=1)

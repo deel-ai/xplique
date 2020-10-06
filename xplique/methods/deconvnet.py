@@ -40,7 +40,7 @@ class DeconvNet(BaseExplanation):
         inputs : ndarray (N, W, H, C)
             Input samples, with N number of samples, W & H the sample dimensions, and C the
             number of channels.
-        labels : ndarray(N, L)
+        labels : ndarray (N, L)
             One hot encoded labels to compute for each sample, with N the number of samples, and L
             the number of classes.
 
@@ -60,10 +60,10 @@ class DeconvNet(BaseExplanation):
         ----------
         model : tf.keras.Model
             Model used for computing explanations.
-        inputs : ndarray (N, W, H, C)
+        inputs : tf.tensor (N, W, H, C)
             Input samples, with N number of samples, W & H the sample dimensions, and C the
             number of channels.
-        labels : ndarray(N, L)
+        labels : tf.tensor (N, L)
             One hot encoded labels to compute for each sample, with N the number of samples, and L
             the number of classes.
         batch_size : int
