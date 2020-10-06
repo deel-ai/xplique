@@ -13,7 +13,7 @@ setup(
     author_email="thomas.fel@brown.edu",
     # url="https://github.com/napolar",
     license="MIT",
-    install_requires=['tensorflow>=2.1.0', 'numpy', 'opencv-python>=4.1.0'],
+    install_requires=['tensorflow>=2.1.0', 'numpy'],
     extras_require={
         "tests": ["pytest", "pylint"],
         "docs": ["mkdocs", "mkdocs-material", "numkdoc"],
