@@ -2,8 +2,6 @@
 Module related to SmoothGrad method
 """
 
-from functools import lru_cache
-
 import numpy as np
 import tensorflow as tf
 
@@ -120,7 +118,6 @@ class SmoothGrad(BaseExplanation):
         return smoothed_gradients
 
     @staticmethod
-    @lru_cache()
     def get_noisy_mask(shape, noise):
         """
         Create a random noise mask of the specified shape.
