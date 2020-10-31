@@ -2,7 +2,6 @@
 Module related to Occlusion sensitivity method
 """
 
-from functools import lru_cache
 from math import ceil
 
 import numpy as np
@@ -38,7 +37,7 @@ class Occlusion(BaseExplanation):
     """
 
     def __init__(self, model, output_layer_index=-1, batch_size=32, patch_size=(3, 3),
-                 patch_stride=(2, 2), occlusion_value=0.5):
+                 patch_stride=(3, 3), occlusion_value=0.5):
         super().__init__(model, output_layer_index, batch_size)
 
         self.patch_size = patch_size if isinstance(patch_size, tuple) else (patch_size, patch_size)
@@ -104,29 +103,26 @@ class Occlusion(BaseExplanation):
             Occlusion sensitivity, same shape as the inputs, except for the channels.
         """
         sensitivity = None
+        batch_size = batch_size or len(inputs)
 
         masks = Occlusion.get_masks((*inputs.shape[1:],), patch_size, patch_stride)
         baseline_scores = tf.reduce_sum(model.predict(inputs, batch_size=batch_size) * labels,
                                         axis=-1)
 
-        # re-evaluate batch size to take into account the synthetic inputs created
-        synthetic_batch_size = max(1, batch_size // len(masks)) if batch_size is not None else len(
-            inputs)
-
         for x_batch, y_batch, baseline in tf.data.Dataset.from_tensor_slices(
-                (inputs, labels, baseline_scores)).batch(synthetic_batch_size):
+                (inputs, labels, baseline_scores)).batch(batch_size):
 
             occluded_inputs, repeated_labels = Occlusion.apply_masks(x_batch, y_batch, masks,
                                                                      occlusion_value)
-            batch_sensitivity = Occlusion.compute_sensitivity(model, baseline, occluded_inputs,
-                                                              repeated_labels, masks)
+            occluded_scores = BaseExplanation._batch_predictions(model, occluded_inputs,
+                                                                 repeated_labels, batch_size)
+            batch_sensitivity = Occlusion.compute_sensitivity(baseline, occluded_scores, masks)
             sensitivity = batch_sensitivity if sensitivity is None else \
                 tf.concat([sensitivity, batch_sensitivity], axis=0)
 
         return sensitivity
 
     @staticmethod
-    @lru_cache()
     def get_masks(input_shape, patch_size, patch_stride):
         """
         Create all the possible patches for the given configuration.
@@ -201,20 +197,16 @@ class Occlusion(BaseExplanation):
 
     @staticmethod
     @tf.function
-    def compute_sensitivity(model, baseline_scores, occluded_inputs, repeated_labels, masks):
+    def compute_sensitivity(baseline_scores, occluded_scores, masks):
         """
-        Compute the sensitivity score for a set of occluded inputs
+        Compute the sensitivity score given the score of the occluded inputs
 
         Parameters
         ----------
-        model : tf.keras.Model
-            Model used for computing explanations.
         baseline_scores : tf.tensor (N)
             Score obtained with the original inputs (not occluded)
-        occluded_inputs : tensor (N * M, W, H, C)
-            All the occluded combinations for each inputs.
-        repeated_labels : tensor (N * M, L)
-            Unchanged label for each occluded inputs.
+        occluded_scores : tensor (N * M, W, H, C)
+            The score of the occluded combinations for the class of interest.
         masks : tf.tensor
             The boolean occlusion masks, with 1 as occluded.
 
@@ -224,8 +216,6 @@ class Occlusion(BaseExplanation):
             Value reflecting the effect of each occlusion patchs on the output
         """
         baseline_scores = tf.expand_dims(baseline_scores, axis=-1)
-
-        occluded_scores = tf.reduce_sum(model(occluded_inputs) * repeated_labels, axis=-1)
         occluded_scores = tf.reshape(occluded_scores, (-1, len(masks)))
 
         score_delta = occluded_scores - baseline_scores

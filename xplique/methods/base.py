@@ -132,3 +132,63 @@ class BaseExplanation:
             gradients = BaseExplanation._gradient(model, inputs, labels)
 
         return gradients
+
+    @staticmethod
+    @tf.function
+    def _predictions(model, inputs, labels):
+        """
+        Compute predictions scores, only for the label class, for a batch of samples.
+
+        Parameters
+        ----------
+        model : tf.keras.Model
+            Model used for computing predictions.
+        inputs : tf.tensor (N, W, H, C)
+            Input samples, with N number of samples, W & H the sample dimensions, and C the
+            number of channels.
+        labels : tf.tensor (N, L)
+            One hot encoded labels to compute for each sample, with N the number of samples, and L
+            the number of classes.
+
+        Returns
+        -------
+        scores : tf.tensor (N)
+            Predictions scores computed, only for the label class.
+        """
+        scores = tf.reduce_sum(model(inputs) * labels, axis=-1)
+        return scores
+
+    @staticmethod
+    def _batch_predictions(model, inputs, labels, batch_size):
+        """
+        Compute predictions scores, only for the label class, for the samples passed. Take care
+        of splitting in multiple batches if batch_size is specified.
+
+        Parameters
+        ----------
+        model : tf.keras.Model
+            Model used for computing predictions score.
+        inputs : tf.tensor (N, W, H, C)
+            Input samples, with N number of samples, W & H the sample dimensions, and C the
+            number of channels.
+        labels : tf.tensor (N, L)
+            One hot encoded labels to compute for each sample, with N the number of samples, and L
+            the number of classes.
+        batch_size : int, optional
+            Number of samples to predict at once, if None compute all at once.
+
+        Returns
+        -------
+        scores : tf.tensor (N)
+            Predictions scores computed, only for the label class.
+        """
+        if batch_size is not None:
+            dataset = tf.data.Dataset.from_tensor_slices((inputs, labels))
+            scores = tf.concat([
+                BaseExplanation._predictions(model, x_batch, y_batch)
+                for x_batch, y_batch in dataset.batch(batch_size)
+            ], axis=0)
+        else:
+            scores = BaseExplanation._predictions(model, inputs, labels)
+
+        return scores
