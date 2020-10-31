@@ -9,7 +9,7 @@ from ..utils import generate_data, generate_model
 def test_common():
     """Test applied to all the methods"""
 
-    input_shape, nb_labels, samples = ((32, 32, 3), 10, 100)
+    input_shape, nb_labels, samples = ((32, 32, 3), 10, 20)
     x, y = generate_data(input_shape, nb_labels, samples)
     model = generate_model(input_shape, nb_labels)
     output_layer_index = -2
@@ -40,7 +40,7 @@ def test_common():
 def test_batch_size():
     """Ensure the functioning of methods for special batch size cases"""
 
-    input_shape, nb_labels, samples = ((10, 10, 3), 5, 50)
+    input_shape, nb_labels, samples = ((10, 10, 3), 5, 20)
     x, y = generate_data(input_shape, nb_labels, samples)
     model = generate_model(input_shape, nb_labels)
     output_layer_index = -2
