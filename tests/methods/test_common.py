@@ -29,7 +29,7 @@ def test_common():
     for method in methods:
         explanations = method.explain(x, y)
 
-        # all explanation must have an explain and single_batch method
+        # all explanation must have an explain and compute method
         assert hasattr(method, 'explain')
         assert hasattr(method, 'compute')
 
