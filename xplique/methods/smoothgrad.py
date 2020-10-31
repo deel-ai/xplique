@@ -96,18 +96,16 @@ class SmoothGrad(BaseExplanation):
             Smoothed gradients, same shape as the inputs.
         """
         smoothed_gradients = None
-
-        # re-evaluate batch_size to take into account the synthetic inputs that we create
-        synthetic_batch_size = max(1, batch_size // nb_samples) if batch_size is not None else len(
-            inputs)
+        batch_size = batch_size or len(inputs)
 
         for x_batch, y_batch in tf.data.Dataset.from_tensor_slices((inputs, labels)).batch(
-                synthetic_batch_size):
+                batch_size):
             noisy_mask = SmoothGrad.get_noisy_mask((nb_samples, *x_batch.shape[1:]), noise)
             noisy_inputs, noisy_labels = SmoothGrad.apply_noise(x_batch, y_batch, nb_samples,
                                                                 noisy_mask)
             # compute the gradient of each noisy samples generated
-            gradients = BaseExplanation._gradient(model, noisy_inputs, noisy_labels)
+            gradients = BaseExplanation._batch_gradient(model, noisy_inputs, noisy_labels,
+                                                        batch_size)
             # group by inputs and compute the average gradient
             gradients = tf.reshape(gradients, (-1, nb_samples, *gradients.shape[1:]))
             batch_gradients = tf.reduce_mean(gradients, axis=1)
