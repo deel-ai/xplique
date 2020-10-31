@@ -11,7 +11,7 @@ def test_output_shape():
     nb_labels = 10
 
     for input_shape in input_shapes:
-        x, y = generate_data(input_shape, nb_labels, 100)
+        x, y = generate_data(input_shape, nb_labels, 20)
         model = generate_model(input_shape, nb_labels)
 
         method = Occlusion(model, -2)
