@@ -8,3 +8,4 @@ pymdown-extensions
 pytest
 numkdoc
 tox
+bump2version

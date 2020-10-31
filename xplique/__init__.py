@@ -7,4 +7,6 @@ quickly compute explanations on a large set of data.
 
 """
 
+VERSION = '0.0.1'
+
 from . import methods
