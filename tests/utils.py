@@ -1,6 +1,6 @@
 import numpy as np
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense, Conv2D, Activation, Dropout, Flatten, MaxPooling2D
+from tensorflow.keras.layers import Dense, Conv2D, Activation, Dropout, Flatten, MaxPooling2D, Input
 from tensorflow.keras.utils import to_categorical
 
 def generate_data(x_shape=(32, 32, 3), num_labels=10, samples=100):
@@ -11,9 +11,9 @@ def generate_data(x_shape=(32, 32, 3), num_labels=10, samples=100):
 
 def generate_model(input_shape=(32, 32, 3), output_shape=10):
     model = Sequential()
+    model.add(Input(shape=input_shape))
     model.add(Conv2D(16, kernel_size=(3, 3),
-                     activation='relu',
-                     input_shape=input_shape))
+                     activation='relu'))
     model.add(Conv2D(32, (3, 3), activation='relu'))
     model.add(MaxPooling2D(pool_size=(2, 2)))
     model.add(Dropout(0.25))
