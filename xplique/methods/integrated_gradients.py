@@ -97,22 +97,20 @@ class IntegratedGradients(BaseExplanation):
             Integrated gradients, same shape as the inputs.
         """
         integrated_gradients = None
-
-        # re-evaluate batch_size to take into account the synthetic inputs that we create
-        synthetic_batch_size = max(1, batch_size // steps) if batch_size is not None else len(
-            inputs)
+        batch_size = batch_size or len(inputs)
+        baseline = IntegratedGradients.get_baseline((*model.input.shape[1:],), baseline_value)
 
         for x_batch, y_batch in tf.data.Dataset.from_tensor_slices((inputs, labels)).batch(
-                synthetic_batch_size):
-            baseline = IntegratedGradients.get_baseline((*model.input.shape[1:],), baseline_value)
+                batch_size):
             # create the paths for every sample (interpolated points from baseline to sample)
             interpolated_inputs, interpolated_labels = IntegratedGradients.get_interpolated_points(
-                x_batch, y_batch, steps,
-                baseline)
+                x_batch, y_batch, steps, baseline)
 
             # compute the gradient for each paths
-            interpolated_gradients = BaseExplanation._gradient(model, interpolated_inputs,
-                                                               interpolated_labels)
+            interpolated_gradients = BaseExplanation._batch_gradient(model,
+                                                                     interpolated_inputs,
+                                                                     interpolated_labels,
+                                                                     batch_size)
             interpolated_gradients = tf.reshape(interpolated_gradients,
                                                 (-1, steps, *interpolated_gradients.shape[1:]))
 
