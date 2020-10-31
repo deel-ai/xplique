@@ -81,16 +81,16 @@ class BaseExplanation:
         ----------
         model : tf.keras.Model
             Model used for computing gradient.
-        inputs : ndarray (N, W, H, C)
+        inputs : tf.tensor (N, W, H, C)
             Input samples, with N number of samples, W & H the sample dimensions, and C the
             number of channels.
-        labels : ndarray(N, L)
+        labels : tf.tensor (N, L)
             One hot encoded labels to compute for each sample, with N the number of samples, and L
             the number of classes.
 
         Returns
         -------
-        gradients : tensor (N, W, H, C)
+        gradients : tf.tensor (N, W, H, C)
             Gradients computed, with the same shape as the inputs.
         """
         with tf.GradientTape(watch_accessed_variables=False) as tape:
@@ -108,10 +108,10 @@ class BaseExplanation:
         ----------
         model : tf.keras.Model
             Model used for computing gradient.
-        inputs : ndarray (N, W, H, C)
+        inputs : tf.tensor (N, W, H, C)
             Input samples, with N number of samples, W & H the sample dimensions, and C the
             number of channels.
-        labels : ndarray(N, L)
+        labels : tf.tensor (N, L)
             One hot encoded labels to compute for each sample, with N the number of samples, and L
             the number of classes.
         batch_size : int, optional
@@ -119,10 +119,9 @@ class BaseExplanation:
 
         Returns
         -------
-        gradients : tensor (N, W, H, C)
+        gradients : tf.tensor (N, W, H, C)
             Gradients computed, with the same shape as the inputs.
         """
-
         if batch_size is not None:
             dataset = tf.data.Dataset.from_tensor_slices((inputs, labels))
             gradients = tf.concat([

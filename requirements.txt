@@ -1,3 +1,2 @@
-numpy>=1.18
-opencv-python>=4.1.0
+numpy<1.19.0,>=1.16.0
 tensorflow>=2.1.0

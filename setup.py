@@ -6,14 +6,14 @@ with open("README.md") as fh:
 setup(
     name="Xplique",
     version="0.0.1",
-    description="Fast generation of explanations for Tensorflow",
+    description="Explanations toolbox for Tensorflow 2",
     long_description=README,
     long_description_content_type="text/markdown",
     author="Thomas FEL",
-    author_email="thomas.fel@irt-saintexupery.com",
+    author_email="thomas.fel@brown.edu",
     # url="https://github.com/napolar",
     license="MIT",
-    install_requires=['tensorflow>=2.1.0', 'numpy', 'opencv-python>=4.1.0'],
+    install_requires=['tensorflow>=2.1.0', 'numpy<1.19.0,>=1.16.0'],
     extras_require={
         "tests": ["pytest", "pylint"],
         "docs": ["mkdocs", "mkdocs-material", "numkdoc"],

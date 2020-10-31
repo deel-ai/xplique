@@ -2,8 +2,6 @@
 Module related to Integrated Gradients method
 """
 
-from functools import lru_cache
-
 import tensorflow as tf
 
 from .base import BaseExplanation
@@ -55,7 +53,7 @@ class IntegratedGradients(BaseExplanation):
         inputs : ndarray (N, W, H, C)
             Input samples, with N number of samples, W & H the sample dimensions, and C the
             number of channels.
-        labels : ndarray(N, L)
+        labels : ndarray (N, L)
             One hot encoded labels to compute for each sample, with N the number of samples, and L
             the number of classes.
 
@@ -80,10 +78,10 @@ class IntegratedGradients(BaseExplanation):
         ----------
         model : tf.keras.Model
             Model used for computing explanations.
-        inputs : ndarray (N, W, H, C)
+        inputs : tf.tensor (N, W, H, C)
             Input samples, with N number of samples, W & H the sample dimensions, and C the
             number of channels.
-        labels : ndarray(N, L)
+        labels : tf.tensor (N, L)
             One hot encoded labels to compute for each sample, with N the number of samples, and L
             the number of classes.
         batch_size : int
@@ -98,7 +96,6 @@ class IntegratedGradients(BaseExplanation):
         explanations : tf.Tensor (N, W, H, C)
             Integrated gradients, same shape as the inputs.
         """
-
         integrated_gradients = None
 
         # re-evaluate batch_size to take into account the synthetic inputs that we create
@@ -129,7 +126,6 @@ class IntegratedGradients(BaseExplanation):
         return integrated_gradients
 
     @staticmethod
-    @lru_cache()
     def get_baseline(shape, baseline_value):
         """
         Create the baseline point using a scalar value to fill the desired shape.
@@ -143,7 +139,7 @@ class IntegratedGradients(BaseExplanation):
 
         Returns
         -------
-        baseline_point : ndarray
+        baseline_point : tf.tensor
             A baseline point of the specified shape.
         """
         return tf.ones(shape) * baseline_value
@@ -156,22 +152,22 @@ class IntegratedGradients(BaseExplanation):
 
         Parameters
         ----------
-        inputs : ndarray (N, W, H, C)
+        inputs : tf.tensor (N, W, H, C)
             Input samples, with N number of samples, W & H the sample dimensions, and C the
             number of channels.
-        labels : ndarray(N, L)
+        labels : tf.tensor (N, L)
             One hot encoded labels to compute for each sample, with N the number of samples, and L
             the number of classes.
         steps : int
             Number of points to interpolate between the baseline and the desired point.
-        baseline : ndarray or tensor (W, H, C)
+        baseline : tf.tensor (W, H, C)
             Baseline point, start of the path.
 
         Returns
         -------
-        interpolated_inputs : tensor (N * Steps, W, H, C)
+        interpolated_inputs : tf.tensor (N * Steps, W, H, C)
             Interpolated path for each inputs.
-        interpolated_labels : tensor (N * Steps, L)
+        interpolated_labels : tf.tensor (N * Steps, L)
             Unchanged label for each interpolated points.
         """
         alpha = tf.reshape(tf.linspace(0.0, 1.0, steps), (1, -1, 1, 1, 1))
@@ -196,12 +192,12 @@ class IntegratedGradients(BaseExplanation):
 
         Parameters
         ----------
-        gradients : ndarray or tensor (N, S, W, H, C)
+        gradients : tf.tensor (N, S, W, H, C)
             Gradients obtained for each of the S steps for each of the N samples.
 
         Returns
         -------
-        integrated_gradients : tensor (N, W, H, C)
+        integrated_gradients : tf.tensor (N, W, H, C)
         """
         trapezoidal_gradients = gradients[:, :-1] + gradients[:, 1:]
         averaged_gradients = tf.reduce_mean(trapezoidal_gradients, axis=1) * 0.5

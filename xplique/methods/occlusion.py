@@ -83,10 +83,10 @@ class Occlusion(BaseExplanation):
         ----------
         model : tf.keras.Model
             Model used for computing explanations.
-        inputs : ndarray (N, W, H, C)
+        inputs : tf.tensor (N, W, H, C)
             Input samples, with N number of samples, W & H the sample dimensions, and C the
             number of channels.
-        labels : ndarray(N, L)
+        labels : tf.tensor (N, L)
             One hot encoded labels to compute for each sample, with N the number of samples, and L
             the number of classes.
         batch_size : int
@@ -142,7 +142,7 @@ class Occlusion(BaseExplanation):
 
         Returns
         -------
-        occlusion_masks : boolean ndarray
+        occlusion_masks : tf.tensor (N, W, H, C)
             The boolean occlusion masks, with 1 as occluded.
         """
         masks = []
@@ -168,22 +168,22 @@ class Occlusion(BaseExplanation):
 
         Parameters
         ----------
-        inputs : ndarray (N, W, H, C)
+        inputs : tf.tensor (N, W, H, C)
             Input samples, with N number of samples, W & H the sample dimensions, and C the
             number of channels.
-        labels : ndarray(N, L)
+        labels : tf.tensor(N, L)
             One hot encoded labels to compute for each sample, with N the number of samples, and L
             the number of classes.
-        masks : boolean ndarray (M, W, H, C)
+        masks : tf.tensor (M, W, H, C)
             The boolean occlusion masks, with 1 as occluded.
         occlusion_value : float, optional
             Value used as occlusion.
 
         Returns
         -------
-        occluded_inputs : tensor (N * M, W, H, C)
+        occluded_inputs : tf.tensor (N * M, W, H, C)
             All the occluded combinations for each inputs.
-        repeated_labels : tensor (N * M, L)
+        repeated_labels : tf.tensor (N * M, L)
             Unchanged label for each occluded inputs.
         """
         occluded_inputs = tf.expand_dims(inputs, axis=1)
@@ -203,24 +203,24 @@ class Occlusion(BaseExplanation):
     @tf.function
     def compute_sensitivity(model, baseline_scores, occluded_inputs, repeated_labels, masks):
         """
-        Compute the sensitivy score for a set of occluded inputs
+        Compute the sensitivity score for a set of occluded inputs
 
         Parameters
         ----------
         model : tf.keras.Model
             Model used for computing explanations.
-        baseline_scores : ndarray (N)
+        baseline_scores : tf.tensor (N)
             Score obtained with the original inputs (not occluded)
         occluded_inputs : tensor (N * M, W, H, C)
             All the occluded combinations for each inputs.
         repeated_labels : tensor (N * M, L)
             Unchanged label for each occluded inputs.
-        masks : boolean ndarray
+        masks : tf.tensor
             The boolean occlusion masks, with 1 as occluded.
 
         Returns
         -------
-        sensitivity : tensor (N, W, H, C)
+        sensitivity : tf.tensor (N, W, H, C)
             Value reflecting the effect of each occlusion patchs on the output
         """
         baseline_scores = tf.expand_dims(baseline_scores, axis=-1)

@@ -2,12 +2,11 @@
 Module related to Grad-CAM method
 """
 
-import cv2
-import numpy as np
 import tensorflow as tf
 from tensorflow.keras.models import Model  # pylint: disable=import-error
 
 from .base import BaseExplanation
+from .utils import sanitize_input_output
 
 
 class GradCAM(BaseExplanation):
@@ -46,6 +45,7 @@ class GradCAM(BaseExplanation):
 
         self.model = Model(model.input, [self.conv_layer.output, self.target_layer.output])
 
+    @sanitize_input_output
     def explain(self, inputs, labels):
         """
         Compute Grad-CAM and resize explanations to match inputs shape.
@@ -64,22 +64,10 @@ class GradCAM(BaseExplanation):
         grad_cam : ndarray (N, W, H)
             Grad-CAM explanations, same shape as the inputs except for the channels.
         """
-        inputs = tf.cast(inputs, tf.float32)
-        labels = tf.cast(labels, tf.float32)
+        return self.compute(self.model, inputs, labels, self.batch_size)
 
-        grad_cams = self.compute(self.model, inputs, labels, self.batch_size)
-
-        # as Grad-CAM is based on the last convolutionnal layer, the explanation output has the
-        # same dimensions as this layer, we need to resize the size of the explanations to match
-        # the size of the inputs
-        input_shape = self.model.input.shape[1:3]
-        grad_cams = np.array(
-            [cv2.resize(np.array(grad_cam), (*input_shape,)) for grad_cam in grad_cams])
-
-        return grad_cams
-
-    @staticmethod
-    def compute(model, inputs, labels, batch_size):
+    @classmethod
+    def compute(cls, model, inputs, labels, batch_size):
         """
         Compute the Grad-CAM explanations of the given samples.
 
@@ -87,32 +75,38 @@ class GradCAM(BaseExplanation):
         ----------
         model : tf.keras.Model
             Model used for computing explanations.
-        inputs : ndarray (N, W, H, C)
+        inputs : tf.tensor (N, W, H, C)
             Batch of input samples , with N number of samples, W & H the sample dimensions,
             and C the number of channels.
-        labels : ndarray (N, L)
+        labels : tf.tensor (N, L)
             One hot encoded labels to compute for each sample, with N the number of samples, and L
             the number of classes.
 
         Returns
         -------
-        grad_cam : tf.Tensor (N, ConvWidth, ConvHeight)
+        grad_cam : tf.Tensor (N, CW, CH)
             Explanation computed, with CW & CH the dimensions of the conv layer.
         """
         grad_cams = None
-        batch_size = batch_size if batch_size is not None else len(inputs)
+        batch_size = batch_size if batch_size is not None else len(inputs) # wtf ?
 
         for x_batch, y_batch in tf.data.Dataset.from_tensor_slices((inputs, labels)).batch(
                 batch_size):
 
             batch_feature_maps, batch_gradients = GradCAM.gradient(model, x_batch, y_batch)
-            batch_weights = GradCAM.compute_weights(batch_gradients)
+            batch_weights = cls.compute_weights(batch_gradients, batch_feature_maps)
             batch_grad_cams = GradCAM.apply_weights(batch_weights, batch_feature_maps)
 
             grad_cams = batch_grad_cams if grad_cams is None else tf.concat(
                 [grad_cams, batch_grad_cams], axis=0)
 
-        return grad_cams
+        # as Grad-CAM is based on the last convolutionnal layer, the explanation output has the
+        # same dimensions as this layer, we need to resize the size of the explanations to match
+        # the size of the inputs
+        input_shape = model.input.shape[1:3]
+        grad_cams = tf.image.resize(grad_cams[..., tf.newaxis], (*input_shape,))
+
+        return grad_cams[..., 0]
 
     @staticmethod
     @tf.function
@@ -149,7 +143,7 @@ class GradCAM(BaseExplanation):
 
     @staticmethod
     @tf.function
-    def compute_weights(feature_maps_gradients):
+    def compute_weights(feature_maps_gradients, feature_maps):
         """
         Compute the weights according to Grad-CAM procedure.
 
@@ -157,13 +151,15 @@ class GradCAM(BaseExplanation):
         ----------
         feature_maps_gradients : tf.Tensor (N, ConvWidth, ConvHeight, Filters)
             Gradients for the target convolution layer.
+        feature_maps : tf.Tensor (N, CW, CH, Filters)
+            Activations for the target convolution layer. Not used for Grad-CAM.
 
         Returns
         -------
         weights : tf.Tensor (N, 1, 1, Filters)
             Weights for each feature maps.
         """
-
+        # pylint: disable=unused-argument
         weights = tf.reduce_mean(feature_maps_gradients, axis=(1, 2))
         weights = tf.reshape(weights, (weights.shape[0], 1, 1, weights.shape[-1]))
 

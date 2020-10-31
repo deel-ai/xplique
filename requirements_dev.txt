@@ -7,3 +7,4 @@ pylint
 pymdown-extensions
 pytest
 numkdoc
+tox
