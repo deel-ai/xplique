@@ -2,8 +2,6 @@
 Module related to Integrated Gradients method
 """
 
-from functools import lru_cache
-
 import tensorflow as tf
 
 from .base import BaseExplanation
@@ -128,7 +126,6 @@ class IntegratedGradients(BaseExplanation):
         return integrated_gradients
 
     @staticmethod
-    @lru_cache()
     def get_baseline(shape, baseline_value):
         """
         Create the baseline point using a scalar value to fill the desired shape.

@@ -143,7 +143,7 @@ class GradCAM(BaseExplanation):
 
     @staticmethod
     @tf.function
-    def compute_weights(feature_maps_gradients, feature_maps=None):
+    def compute_weights(feature_maps_gradients, feature_maps):
         """
         Compute the weights according to Grad-CAM procedure.
 
@@ -159,6 +159,7 @@ class GradCAM(BaseExplanation):
         weights : tf.Tensor (N, 1, 1, Filters)
             Weights for each feature maps.
         """
+        # pylint: disable=unused-argument
         weights = tf.reduce_mean(feature_maps_gradients, axis=(1, 2))
         weights = tf.reshape(weights, (weights.shape[0], 1, 1, weights.shape[-1]))
 
