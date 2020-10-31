@@ -68,8 +68,8 @@ class SmoothGrad(BaseExplanation):
                                   nb_samples=self.nb_samples,
                                   noise=self.noise)
 
-    @staticmethod
-    def compute(model, inputs, labels, batch_size, nb_samples, noise):
+    @classmethod
+    def compute(cls, model, inputs, labels, batch_size, nb_samples, noise):
         """
         Compute SmoothGrad for a batch of samples.
 
@@ -108,10 +108,10 @@ class SmoothGrad(BaseExplanation):
                                                         batch_size)
             # group by inputs and compute the average gradient
             gradients = tf.reshape(gradients, (-1, nb_samples, *gradients.shape[1:]))
-            batch_gradients = tf.reduce_mean(gradients, axis=1)
+            reduced_gradients = cls.reduce_gradients(gradients)
 
-            smoothed_gradients = batch_gradients if smoothed_gradients is None else tf.concat(
-                [smoothed_gradients, batch_gradients], axis=0)
+            smoothed_gradients = reduced_gradients if smoothed_gradients is None else tf.concat(
+                [smoothed_gradients, reduced_gradients], axis=0)
 
         return smoothed_gradients
 
@@ -151,7 +151,7 @@ class SmoothGrad(BaseExplanation):
         nb_samples : int
             Number of replications for each samples.
         noisy_mask : ndarray (S, W, H, C)
-            Mask of random noise to apply on a set of interpolations points. With S the number of*
+            Mask of random noise to apply on a set of interpolations points. With S the number of
             samples, W & H the sample dimensions and C the number of channels.
 
 
@@ -170,3 +170,22 @@ class SmoothGrad(BaseExplanation):
         labels = tf.reshape(labels, (-1, *labels.shape[2:]))
 
         return noisy_inputs, labels
+
+    @staticmethod
+    @tf.function
+    def reduce_gradients(gradients):
+        """
+        Average the gradients obtained on each noisy samples.
+
+        Parameters
+        ----------
+        gradients : tf.tensor (N, S, W, H, C)
+            Gradients to reduce for each of the S samples of each of the N samples. SmoothGrad use
+            an average of all the gradients.
+
+        Returns
+        -------
+        reduced_gradients : tf.tensor (N, W, H, C)
+            Single saliency map for each input.
+        """
+        return tf.reduce_mean(gradients, axis=1)
