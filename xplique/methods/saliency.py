@@ -12,8 +12,8 @@ class Saliency(BaseExplanation):
     """
     Used to compute the absolute gradient of the output relative to the input.
 
-    Ref. Deep Inside Convolutional Networks: Visualising Image Classification Models and Saliency
-    Maps (2013).
+    Ref. Simonyan & al., Deep Inside Convolutional Networks: Visualising Image Classification
+    Models and Saliency Maps (2013).
     https://arxiv.org/abs/1312.6034
 
     Notes

@@ -12,7 +12,8 @@ class GradCAMPP(GradCAM):
     """
     Used to compute the Grad-CAM++ visualization method.
 
-    Ref. Grad-CAM++: Improved Visual Explanations for Deep Convolutional Networks (2017).
+    Ref. Chattopadhyay & al., Grad-CAM++: Improved Visual Explanations for Deep Convolutional
+    Networks (2017).
     https://arxiv.org/abs/1710.11063
 
     Parameters

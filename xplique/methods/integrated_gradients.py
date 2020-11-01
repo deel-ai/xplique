@@ -13,8 +13,8 @@ class IntegratedGradients(BaseExplanation):
     Used to compute the Integrated Gradients, by cumulating the gradients along a path from a
     baseline to the desired point.
 
-    Ref. Axiomatic Attribution for Deep Networks (2017).
-    https://arxiv.org/abs/1703.01365
+    Ref. Sundararajan & al., Axiomatic Attribution for Deep Networks (2017).
+    http://proceedings.mlr.press/v70/sundararajan17a/sundararajan17a.pdf
 
     Notes
     -----

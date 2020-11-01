@@ -13,7 +13,8 @@ class GradCAM(BaseExplanation):
     """
     Used to compute the Grad-CAM visualization method.
 
-    Ref. Grad-CAM: Visual Explanations from Deep Networks via Gradient-based Localization (2016).
+    Ref. Selvaraju & al., Grad-CAM: Visual Explanations from Deep Networks via Gradient-based
+    Localization (2016).
     https://arxiv.org/abs/1610.02391
 
     Parameters
