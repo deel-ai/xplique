@@ -7,6 +7,7 @@ from .gradient_input import GradientInput
 from .grad_cam import GradCAM
 from .integrated_gradients import IntegratedGradients
 from .smoothgrad import SmoothGrad
+from .vargrad import VarGrad
 from .occlusion import Occlusion
 from .guided_backpropagation import GuidedBackprop
 from .deconvnet import DeconvNet
