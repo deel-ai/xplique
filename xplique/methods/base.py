@@ -38,12 +38,13 @@ class BaseExplanation:
         except AttributeError:
             pass
 
-        if (id(model), output_layer_index) not in BaseExplanation._cache_models:
+        if (id(model), model.input_shape, output_layer_index) not in BaseExplanation._cache_models:
             # reconfigure the model to use the specified output, and store it
-            BaseExplanation._cache_models[(id(model), output_layer_index)] \
+            BaseExplanation._cache_models[(id(model), model.input_shape, output_layer_index)] \
                 = Model(model.input, self.target_layer.output)
 
-        self.model = BaseExplanation._cache_models[(id(model), output_layer_index)]
+        self.model = BaseExplanation._cache_models[(id(model), model.input_shape,
+                                                    output_layer_index)]
         self.batch_size = batch_size
 
     def explain(self, inputs, labels):

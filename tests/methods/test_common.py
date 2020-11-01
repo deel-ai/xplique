@@ -77,7 +77,7 @@ def test_model_caching():
     output_layer_index = -2
 
     # the key used for caching is the following tuple
-    cache_key = (id(model), output_layer_index)
+    cache_key = (id(model), model.input_shape, output_layer_index)
 
     cache_len_before = len(BaseExplanation._cache_models.keys())  # pylint: disable=protected-access
 
