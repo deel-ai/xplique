@@ -12,7 +12,7 @@ class GuidedBackprop(BaseExplanation):
     ReLU's non linearities, allowing only the positive gradients from positive activations to pass
     through.
 
-    Ref. Striving for Simplicity: The All Convolutional Net (2014).
+    Ref. Tobias & al., Striving for Simplicity: The All Convolutional Net (2014).
     https://arxiv.org/abs/1412.6806
 
     Parameters

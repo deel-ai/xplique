@@ -16,7 +16,7 @@ class Occlusion(BaseExplanation):
     Used to compute the Occlusion sensitivity method, sweep a patch that occludes pixels over the
     images and use the variations of the model prediction to deduce critical areas.
 
-    Ref. Visualizing and Understanding Convolutional Networks (2014).
+    Ref. Zeiler & al., Visualizing and Understanding Convolutional Networks (2013).
     https://arxiv.org/abs/1311.2901
 
     Parameters

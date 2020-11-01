@@ -14,13 +14,8 @@ class SmoothGrad(BaseExplanation):
     Used to compute the SmoothGrad, by averaging Saliency maps of noisy samples centered on the
     original sample.
 
-    Ref. SmoothGrad: removing noise by adding noise (2017).
+    Ref. Smilkov & al., SmoothGrad: removing noise by adding noise (2017).
     https://arxiv.org/abs/1706.03825
-
-    Notes
-    -----
-    in order to speed up SmoothGrad computation as much as possible, a "noise mask" is generated
-    once and then reused for each samples.
 
     Parameters
     ----------

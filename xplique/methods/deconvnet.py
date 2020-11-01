@@ -12,7 +12,7 @@ class DeconvNet(BaseExplanation):
     ReLU's non linearities, allowing only the positive gradients (even from negative inputs) to
     pass through.
 
-    Ref. Visualizing and Understanding Convolutional Networks (2013).
+    Ref. Zeiler & al., Visualizing and Understanding Convolutional Networks (2013).
     https://arxiv.org/abs/1311.2901
 
     Parameters
