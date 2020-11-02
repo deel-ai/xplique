@@ -1,7 +1,8 @@
 docutils
 Markdown
 mkdocs
-mkdocs-material==4.6.3
+#mkdocs-material==4.6.3
+mkdocs-material
 Pygments
 pylint
 pymdown-extensions

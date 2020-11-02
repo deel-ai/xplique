@@ -1,8 +1,12 @@
 site_name: Xplique
 
+google_analytics:
+  - G-GL9J9G2YCD
+  - auto
+
 nav:
   - Home: index.md
-  - Api:
+  - Attributions methods:
     - Saliency: api/saliency.md
     - Gradient Input: api/gradient_input.md
     - Occlusion sensitivity: api/occlusion_sensitivity.md
@@ -12,10 +16,15 @@ nav:
 
 theme:
   name: "material"
-  logo: "./assets/logo_x.svg"
+  logo: assets/logo_x.svg
+  favicon: assets/logo_x.svg
   palette:
-    primary: 'white'
-    accent: 'indigo'
+    - scheme: default
+      primary: white
+      accent: indigo
+      toggle:
+        icon: material/toggle-switch
+        name: Switch to light mode
 
 plugins:
   - numkdoc
@@ -29,6 +38,13 @@ markdown_extensions:
   - codehilite
   - toc:
         permalink: true
+  - def_list
+  - pymdownx.tasklist:
+        custom_checkbox: true
+        clickable_checkbox: true
+  - pymdownx.emoji:
+      emoji_index: !!python/name:materialx.emoji.twemoji
+      emoji_generator: !!python/name:materialx.emoji.to_svg
 
 extra_css:
   - css/custom.css
@@ -37,12 +53,6 @@ extra_javascript:
   - https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js
   - js/custom.js
 
-repo_name: 'aniti/Xplique'
+repo_name: 'napolar/xplique'
 repo_url: 'https://github.com/napolar/xplique'
 
-extra:
-  social:
-    - type: 'github'
-      link: 'https://github.com/napolar'
-    - type: 'twitter'
-      link: 'https://twitter.com/napoolar'
