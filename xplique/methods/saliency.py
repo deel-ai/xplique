@@ -23,6 +23,15 @@ class Saliency(BaseExplanation):
     However it is not uncommon to find definitions that don't apply the L1 norm, in this case one
     can simply calculate the gradient relative to the input using the BaseExplanation method.
 
+    Parameters
+    ----------
+    model : tf.keras.Model
+        Model used for computing explanations.
+    output_layer_index : int, optional
+        Index of the output layer, default to the last layer, it is recommended to use the layer
+        before Softmax (often '-2').
+    batch_size : int, optional
+        Number of samples to explain at once, if None compute all at once.
     """
 
     @sanitize_input_output

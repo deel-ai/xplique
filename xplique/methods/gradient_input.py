@@ -12,6 +12,16 @@ class GradientInput(BaseExplanation):
     """
     Used to compute elementwise product between the saliency maps of Simonyan et al. and the
     input (Gradient x Input).
+
+    Parameters
+    ----------
+    model : tf.keras.Model
+        Model used for computing explanations.
+    output_layer_index : int, optional
+        Index of the output layer, default to the last layer, it is recommended to use the layer
+        before Softmax (often '-2').
+    batch_size : int, optional
+        Number of samples to explain at once, if None compute all at once.
     """
 
     @sanitize_input_output
