@@ -41,4 +41,4 @@ doc: venv
 	$(PYTHON) -m mkdocs gh-deploy
 
 serve-doc: venv
-	$(PYTHON) -m mkdocs serve
+	CUDA_VISIBLE_DEVICES=-1 $(PYTHON) -m mkdocs serve
