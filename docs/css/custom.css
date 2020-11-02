@@ -51,3 +51,20 @@ img[alt*="Colab"] {
   transform: translateY(3px);
   padding-left: 5px;
 }
+
+.md-typeset .task-list-control [type=checkbox]:checked+.task-list-indicator::before {
+    background: var(--primary) !important;
+}
+
+.md-typeset ul li, .md-typeset ol li {
+    margin-bottom: .4em !important;
+}
+
+h2.numkdoc ~ p:not(.footnote),
+h2.numkdoc ~ ul:not(.footnote),
+h2.numkdoc ~ ul li ul:not(.footnote),
+h2.numkdoc ~ ul li:not(.footnote){
+    --margin : 0.06em;
+    margin-bottom: var(--margin) !important;
+    margin-top: var(--margin) !important;
+}
