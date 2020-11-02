@@ -9,10 +9,15 @@ nav:
   - Attributions methods:
     - Saliency: api/saliency.md
     - Gradient Input: api/gradient_input.md
-    - Occlusion sensitivity: api/occlusion_sensitivity.md
+    - Occlusion sensitivity: api/occlusion.md
     - Integrated Gradient: api/integrated_gradients.md
     - SmoothGrad: api/smoothgrad.md
     - Grad-CAM: api/grad_cam.md
+    - Grad-CAM++: api/grad_cam_pp.md
+    - DeconvNet: api/deconvnet.md
+    - Guided Backprop: api/guided_backpropagation.md
+    - SquareGrad: api/square_grad.md
+    - VarGrad: api/vargrad.md
 
 theme:
   name: "material"
