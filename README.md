@@ -26,7 +26,7 @@ by maximizing an input.
 
 The package is released under [MIT license](https://choosealicense.com/licenses/mit).
 
-![Example of Attributions Methods results](./assets/samples.png)
+![Example of Attributions Methods results](./docs/assets/samples.png)
 
 ## Contents
 
