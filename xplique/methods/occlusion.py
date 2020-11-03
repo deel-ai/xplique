@@ -29,7 +29,7 @@ class Occlusion(BaseExplanation):
     batch_size : int, optional
         Number of samples to explain at once, if None compute all at once.
     patch_size : tuple (int, int) or int, optional
-        Size of the patches to apply, if integer then assume an hypercube..
+        Size of the patches to apply, if integer then assume an hypercube.
     patch_stride : tuple (int, int) or int, optional
         Stride between two patches, if integer then assume an hypercube.
     occlusion_value : float, optional
@@ -205,7 +205,7 @@ class Occlusion(BaseExplanation):
         ----------
         baseline_scores : tf.tensor (N)
             Score obtained with the original inputs (not occluded)
-        occluded_scores : tensor (N * M, W, H, C)
+        occluded_scores : tensor (N * M)
             The score of the occluded combinations for the class of interest.
         masks : tf.tensor
             The boolean occlusion masks, with 1 as occluded.
