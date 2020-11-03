@@ -10,6 +10,7 @@ nav:
     - Saliency: api/saliency.md
     - Gradient Input: api/gradient_input.md
     - Occlusion sensitivity: api/occlusion.md
+    - Rise: api/rise.md
     - Integrated Gradient: api/integrated_gradients.md
     - SmoothGrad: api/smoothgrad.md
     - Grad-CAM: api/grad_cam.md

@@ -1,7 +1,8 @@
 import numpy as np
 
 from xplique.methods import (Saliency, GradientInput, IntegratedGradients, SmoothGrad, VarGrad,
-                             SquareGrad, GradCAM, Occlusion, GuidedBackprop, DeconvNet, GradCAMPP)
+                             SquareGrad, GradCAM, Occlusion, Rise, GuidedBackprop, DeconvNet,
+                             GradCAMPP)
 from xplique.methods.base import BaseExplanation
 from ..utils import generate_data, generate_model
 
@@ -23,6 +24,7 @@ def test_common():
         IntegratedGradients(model, output_layer_index),
         GradCAM(model, output_layer_index),
         Occlusion(model, output_layer_index),
+        Rise(model, output_layer_index),
         GuidedBackprop(model, output_layer_index),
         DeconvNet(model, output_layer_index),
         GradCAMPP(model, output_layer_index),
@@ -60,6 +62,7 @@ def test_batch_size():
             IntegratedGradients(model, output_layer_index, bs),
             GradCAM(model, output_layer_index, bs),
             Occlusion(model, output_layer_index, bs),
+            Rise(model, output_layer_index, bs),
             GuidedBackprop(model, output_layer_index, bs),
             DeconvNet(model, output_layer_index, bs),
             GradCAMPP(model, output_layer_index, bs),
@@ -96,6 +99,7 @@ def test_model_caching():
         IntegratedGradients(model, output_layer_index),
         GradCAM(model, output_layer_index),
         Occlusion(model, output_layer_index),
+        Rise(model, output_layer_index),
         GuidedBackprop(model, output_layer_index),
         DeconvNet(model, output_layer_index),
         GradCAMPP(model, output_layer_index),
