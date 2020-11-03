@@ -30,5 +30,5 @@ explanations = method.explain(images, labels)
 
 {{xplique.methods.occlusion.Occlusion}}
 
-[^1]:[Ref. Visualizing and Understanding Convolutional Networks (2014).](https://arxiv.org/abs/1311.2901)
+[^1]: [Visualizing and Understanding Convolutional Networks (2014).](https://arxiv.org/abs/1311.2901)
 [^2]: [Towards better understanding of gradient-based attribution methods for Deep Neural Networks](https://arxiv.org/abs/1711.06104)
