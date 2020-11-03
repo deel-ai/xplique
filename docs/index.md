@@ -85,12 +85,12 @@ explanations = method.explain(images, labels)
 * [x] Guided Backprop        [ 📚<sup>Api</sup> ](./api/guided_backpropagation.md)  [📄<sup>arxiv</sup>](https://arxiv.org/abs/1412.6806)
 * [x] Integrated Gradients   [ 📚<sup>Api</sup> ](./api/integrated_gradients.md)    [📄<sup>arxiv</sup>](https://arxiv.org/abs/1703.01365)
 * [x] Occlusion              [ 📚<sup>Api</sup> ](./api/occlusion.md)               [📄<sup>arxiv</sup>](https://arxiv.org/abs/1311.2901)
+* [x] Rise                   [ 📚<sup>Api</sup> ](./api/rise.md)                    [📄<sup>arxiv</sup>](https://arxiv.org/abs/1806.07421)  
 * [x] Saliency               [ 📚<sup>Api</sup> ](./api/saliency.md)                [📄<sup>arxiv</sup>](https://arxiv.org/abs/1312.6034)
 * [x] SmoothGrad             [ 📚<sup>Api</sup> ](./api/smoothgrad.md)              [📄<sup>arxiv</sup>](https://arxiv.org/abs/1706.03825)
 * [x] SquareGrad             [ 📚<sup>Api</sup> ](./api/square_grad.md)             [📄<sup>arxiv</sup>](https://arxiv.org/abs/1806.10758)
 * [x] VarGrad                [ 📚<sup>Api</sup> ](./api/vargrad.md)                 [📄<sup>arxiv</sup>](https://arxiv.org/abs/1810.03292)
 * [ ] Ablation-CAM  
-* [ ] Rise     
 * [ ] Xray
 
 ### Metrics
