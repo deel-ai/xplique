@@ -5,7 +5,7 @@ Module related to Integrated Gradients method
 import tensorflow as tf
 
 from .base import BaseExplanation
-from .utils import sanitize_input_output
+from .utils import sanitize_input_output, repeat_labels
 
 
 class IntegratedGradients(BaseExplanation):
@@ -103,13 +103,15 @@ class IntegratedGradients(BaseExplanation):
         for x_batch, y_batch in tf.data.Dataset.from_tensor_slices((inputs, labels)).batch(
                 batch_size):
             # create the paths for every sample (interpolated points from baseline to sample)
-            interpolated_inputs, interpolated_labels = IntegratedGradients.get_interpolated_points(
-                x_batch, y_batch, steps, baseline)
+            interpolated_inputs = IntegratedGradients.get_interpolated_points(
+                x_batch, steps, baseline)
+            repeated_labels = repeat_labels(y_batch, steps)
+
 
             # compute the gradient for each paths
             interpolated_gradients = BaseExplanation._batch_gradient(model,
                                                                      interpolated_inputs,
-                                                                     interpolated_labels,
+                                                                     repeated_labels,
                                                                      batch_size)
             interpolated_gradients = tf.reshape(interpolated_gradients,
                                                 (-1, steps, *interpolated_gradients.shape[1:]))
@@ -144,7 +146,7 @@ class IntegratedGradients(BaseExplanation):
 
     @staticmethod
     @tf.function
-    def get_interpolated_points(inputs, labels, steps, baseline):
+    def get_interpolated_points(inputs, steps, baseline):
         """
         Create a path from baseline to sample for every samples.
 
@@ -153,9 +155,6 @@ class IntegratedGradients(BaseExplanation):
         inputs : tf.tensor (N, W, H, C)
             Input samples, with N number of samples, W & H the sample dimensions, and C the
             number of channels.
-        labels : tf.tensor (N, L)
-            One hot encoded labels to compute for each sample, with N the number of samples, and L
-            the number of classes.
         steps : int
             Number of points to interpolate between the baseline and the desired point.
         baseline : tf.tensor (W, H, C)
@@ -165,8 +164,6 @@ class IntegratedGradients(BaseExplanation):
         -------
         interpolated_inputs : tf.tensor (N * Steps, W, H, C)
             Interpolated path for each inputs.
-        interpolated_labels : tf.tensor (N * Steps, L)
-            Unchanged label for each interpolated points.
         """
         alpha = tf.reshape(tf.linspace(0.0, 1.0, steps), (1, -1, 1, 1, 1))
 
@@ -174,13 +171,9 @@ class IntegratedGradients(BaseExplanation):
         interpolated_inputs = tf.repeat(interpolated_inputs, repeats=steps, axis=1)
         interpolated_inputs = baseline + alpha * (interpolated_inputs - baseline)
 
-        interpolated_labels = tf.expand_dims(labels, axis=1)
-        interpolated_labels = tf.repeat(interpolated_labels, repeats=steps, axis=1)
-
         interpolated_inputs = tf.reshape(interpolated_inputs, (-1, *interpolated_inputs.shape[2:]))
-        interpolated_labels = tf.reshape(interpolated_labels, (-1, *interpolated_labels.shape[2:]))
 
-        return interpolated_inputs, interpolated_labels
+        return interpolated_inputs
 
     @staticmethod
     @tf.function

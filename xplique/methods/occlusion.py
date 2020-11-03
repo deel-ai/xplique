@@ -207,7 +207,7 @@ class Occlusion(BaseExplanation):
             Score obtained with the original inputs (not occluded)
         occluded_scores : tensor (N * M)
             The score of the occluded combinations for the class of interest.
-        masks : tf.tensor
+        masks : tf.tensor (N, W, H, C)
             The boolean occlusion masks, with 1 as occluded.
 
         Returns
