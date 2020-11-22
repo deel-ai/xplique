@@ -28,7 +28,7 @@ class BaseExplanation:
     # share the reconfigured models between the methods if possible
     _cache_models = {}
 
-    def __init__(self, model, output_layer_index=-1, batch_size=32):
+    def __init__(self, model, output_layer_index=-1, batch_size=64):
         self.target_layer = model.layers[output_layer_index]
         # sanity check, output layer before softmax
         try:
@@ -63,7 +63,7 @@ class BaseExplanation:
 
         Returns
         -------
-        grad_cam : ndarray (N, W, H)
+        explanations : ndarray (N, W, H)
             Explanations computed, with the same shape as the inputs except for the channels.
         """
         raise NotImplementedError()
