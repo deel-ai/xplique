@@ -20,9 +20,8 @@ help:
 prepare-dev:
 	python3 -m pip install virtualenv
 	python3 -m virtualenv venv
-	venv
-	pip install -r requirements.txt
-	pip install -r requirements_dev.txt
+	$(PYTHON) -m pip install -r requirements.txt
+	$(PYTHON) -m pip install -r requirements_dev.txt
 
 venv:
 	. venv/bin/activate
