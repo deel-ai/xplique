@@ -10,3 +10,4 @@ quickly compute explanations on a large set of data.
 __version__ = '0.0.1'
 
 from . import methods
+from . import concepts

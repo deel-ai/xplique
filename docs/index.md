@@ -76,7 +76,7 @@ explanations = method.explain(images, labels)
 
 ## Core features
 
-### Methods
+### Attributions Methods
 
 * [x] [ Deconvolution ](./api/deconvnet.md)[^1]
 * [x] [ Grad-CAM ](./api/grad_cam.md)[^2]
@@ -92,6 +92,11 @@ explanations = method.explain(images, labels)
 * [x] [ VarGrad ](./api/vargrad.md)[^11]
 * [ ] Ablation-CAM  
 * [ ] Xray
+
+### Concept-based
+
+* [x] [ Concept Activation Vector ](./api/cav.md)[^12]
+* [x] [ Testing with Concept Activation Vector ](./api/tcav.md)[^12]
 
 ### Metrics
 
@@ -116,3 +121,4 @@ explanations = method.explain(images, labels)
 [^9]: [SmoothGrad: removing noise by adding noise (2017).](https://arxiv.org/abs/1706.03825)
 [^10]: [A Benchmark for Interpretability Methods in Deep Neural Networks (2019).](https://arxiv.org/abs/1806.10758)
 [^11]: [Sanity check for Saliency map (2018).](https://arxiv.org/abs/1810.03292)
+[^12]: [Interpretability Beyond Feature Attribution: Quantitative Testing with Concept Activation Vectors (TCAV) (2018).](https://arxiv.org/abs/1711.11279)
