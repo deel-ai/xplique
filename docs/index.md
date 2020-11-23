@@ -78,18 +78,18 @@ explanations = method.explain(images, labels)
 
 ### Methods
 
-* [x] Deconvolution          [ 📚<sup>Api</sup> ](./api/deconvnet.md)               [📄<sup>arxiv</sup>](https://arxiv.org/abs/1311.2901)
-* [x] Grad-CAM               [ 📚<sup>Api</sup> ](./api/grad_cam.md)                [📄<sup>arxiv</sup>](https://arxiv.org/abs/1610.02391)
-* [x] Grad-CAM++             [ 📚<sup>Api</sup> ](./api/grad_cam_pp.md)             [📄<sup>arxiv</sup>](https://arxiv.org/abs/1710.11063)
-* [x] Gradient Input         [ 📚<sup>Api</sup> ](./api/gradient_input.md)          [📄<sup>arxiv</sup>](https://arxiv.org/abs/1711.06104)
-* [x] Guided Backprop        [ 📚<sup>Api</sup> ](./api/guided_backpropagation.md)  [📄<sup>arxiv</sup>](https://arxiv.org/abs/1412.6806)
-* [x] Integrated Gradients   [ 📚<sup>Api</sup> ](./api/integrated_gradients.md)    [📄<sup>arxiv</sup>](https://arxiv.org/abs/1703.01365)
-* [x] Occlusion              [ 📚<sup>Api</sup> ](./api/occlusion.md)               [📄<sup>arxiv</sup>](https://arxiv.org/abs/1311.2901)
-* [x] Rise                   [ 📚<sup>Api</sup> ](./api/rise.md)                    [📄<sup>arxiv</sup>](https://arxiv.org/abs/1806.07421)  
-* [x] Saliency               [ 📚<sup>Api</sup> ](./api/saliency.md)                [📄<sup>arxiv</sup>](https://arxiv.org/abs/1312.6034)
-* [x] SmoothGrad             [ 📚<sup>Api</sup> ](./api/smoothgrad.md)              [📄<sup>arxiv</sup>](https://arxiv.org/abs/1706.03825)
-* [x] SquareGrad             [ 📚<sup>Api</sup> ](./api/square_grad.md)             [📄<sup>arxiv</sup>](https://arxiv.org/abs/1806.10758)
-* [x] VarGrad                [ 📚<sup>Api</sup> ](./api/vargrad.md)                 [📄<sup>arxiv</sup>](https://arxiv.org/abs/1810.03292)
+* [x] [ Deconvolution ](./api/deconvnet.md)[^1]
+* [x] [ Grad-CAM ](./api/grad_cam.md)[^2]
+* [x] [ Grad-CAM++ ](./api/grad_cam_pp.md)[^3]
+* [x] [ Gradient Input ](./api/gradient_input.md)[^4]
+* [x] [ Guided Backprop ](./api/guided_backpropagation.md)[^5]
+* [x] [ Integrated Gradients ](./api/integrated_gradients.md)[^6]
+* [x] [ Occlusion ](./api/occlusion.md)[^1]
+* [x] [ Rise ](./api/rise.md)[^7]
+* [x] [ Saliency ](./api/saliency.md)[^8]
+* [x] [ SmoothGrad ](./api/smoothgrad.md)[^9]
+* [x] [ SquareGrad ](./api/square_grad.md)[^10]
+* [x] [ VarGrad ](./api/vargrad.md)[^11]
 * [ ] Ablation-CAM  
 * [ ] Xray
 
@@ -104,3 +104,15 @@ explanations = method.explain(images, labels)
 ### Feature Visualization
 
 * [ ] Vanilla
+
+[^1]: [Visualizing and Understanding Convolutional Networks (2013).](https://arxiv.org/abs/1311.2901)
+[^2]: [Visual Explanations from Deep Networks via Gradient-based Localization (2016).](https://arxiv.org/abs/1610.02391)
+[^3]: [Grad-CAM++: Improved Visual Explanations for Deep Convolutional Networks (2017).](https://arxiv.org/abs/1710.11063)
+[^4]: [Not Just a Black Box: Learning Important Features Through Propagating Activation Differences (2016).](https://arxiv.org/abs/1605.01713)
+[^5]: [Striving for Simplicity: The All Convolutional Net (2014).](https://arxiv.org/abs/1412.6806)
+[^6]: [Axiomatic Attribution for Deep Networks (2017).](https://arxiv.org/abs/1703.01365)
+[^7]: [RISE: Randomized Input Sampling for Explanation of Black-box Models (2018).](https://arxiv.org/abs/1806.07421)
+[^8]: [Deep Inside Convolutional Networks: Visualising Image Classification Models and Saliency Maps (2013).](https://arxiv.org/abs/1312.6034)
+[^9]: [SmoothGrad: removing noise by adding noise (2017).](https://arxiv.org/abs/1706.03825)
+[^10]: [A Benchmark for Interpretability Methods in Deep Neural Networks (2019).](https://arxiv.org/abs/1806.10758)
+[^11]: [Sanity check for Saliency map (2018).](https://arxiv.org/abs/1810.03292)
