@@ -170,7 +170,7 @@ class GradCAM(BaseExplanation):
     @tf.function
     def apply_weights(weights, feature_maps):
         """
-        Apply the weights to the feature maps and sum them, and follow it by az ReLU.
+        Apply the weights to the feature maps and sum them, and follow it by a ReLU.
 
         Parameters
         ----------
