@@ -13,7 +13,7 @@ input.
 
 More precisely, the explanation $\phi_x$ for an input $x$, for a given class $c$ is defined as
 
-$$ \phi_x = \Big{|}\frac{\partial{S_c(x)}}{\partial{x}}\Big{|} $$
+$$ \phi_x = \Big{\|} \frac{\partial{S_c(x)}}{\partial{x}} \Big{\|} $$
 
 with $S_c$ the unormalized class score (layer before softmax).
 
