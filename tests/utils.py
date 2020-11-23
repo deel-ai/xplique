@@ -12,13 +12,13 @@ def generate_data(x_shape=(32, 32, 3), num_labels=10, samples=100):
 def generate_model(input_shape=(32, 32, 3), output_shape=10):
     model = Sequential()
     model.add(Input(shape=input_shape))
-    model.add(Conv2D(16, kernel_size=(3, 3),
+    model.add(Conv2D(4, kernel_size=(3, 3),
                      activation='relu'))
-    model.add(Conv2D(32, (3, 3), activation='relu'))
+    model.add(Conv2D(4, (3, 3), activation='relu'))
     model.add(MaxPooling2D(pool_size=(2, 2)))
     model.add(Dropout(0.25))
     model.add(Flatten())
-    model.add(Dense(32, activation='relu'))
+    model.add(Dense(4, activation='relu'))
     model.add(Dropout(0.1))
     model.add(Dense(output_shape))
     model.add(Activation('softmax'))

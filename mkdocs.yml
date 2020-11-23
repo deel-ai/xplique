@@ -19,6 +19,9 @@ nav:
     - Guided Backprop: api/guided_backpropagation.md
     - SquareGrad: api/square_grad.md
     - VarGrad: api/vargrad.md
+  - Concept based:
+    - Cav: api/cav.md
+    - Tcav: api/tcav.md
 
 theme:
   name: "material"
