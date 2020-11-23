@@ -16,7 +16,10 @@ explanations.
 
 More precisely, the explanation $\phi_x$ for an input $x$, for a given class $c$ is defined as
 
-$$ \phi_x = \mathbb{E}_{\epsilon \tilde\ \mathcal{N}(0, \sigma^2)} \Big{[} \frac { \partial{S_c(x + \epsilon)} } { \partial{x + \epsilon} } \Big{]} $$
+$$ \phi_x = \underset{\xi ~\sim~ \mathcal{N}(0, \sigma^2)}{\mathbb{E}}
+            \Big{[}
+             \frac { \partial{S_c(x + \xi)} } { \partial{x} } 
+             \Big{]} $$
 
 with $S_c$ the unormalized class score (layer before softmax). The $\sigma$ in the formula is controlled using the noise
 parameter, and the expectation is estimated using multiple samples.
