@@ -1,14 +1,14 @@
 import numpy as np
 
-from xplique.methods import (Saliency, GradientInput, IntegratedGradients, SmoothGrad, VarGrad,
-                             SquareGrad, GradCAM, Occlusion, Rise, GuidedBackprop, DeconvNet,
-                             GradCAMPP)
-from xplique.methods.base import BaseExplanation
+from xplique.attributions import (Saliency, GradientInput, IntegratedGradients, SmoothGrad, VarGrad,
+                                  SquareGrad, GradCAM, Occlusion, Rise, GuidedBackprop, DeconvNet,
+                                  GradCAMPP)
+from xplique.attributions.base import BaseExplanation
 from ..utils import generate_data, generate_model
 
 
 def test_common():
-    """Test applied to all the methods"""
+    """Test applied to all the attributions"""
 
     input_shape, nb_labels, samples = ((32, 32, 3), 10, 20)
     x, y = generate_data(input_shape, nb_labels, samples)
@@ -42,7 +42,7 @@ def test_common():
 
 
 def test_batch_size():
-    """Ensure the functioning of methods for special batch size cases"""
+    """Ensure the functioning of attributions for special batch size cases"""
 
     input_shape, nb_labels, samples = ((10, 10, 3), 5, 20)
     x, y = generate_data(input_shape, nb_labels, samples)

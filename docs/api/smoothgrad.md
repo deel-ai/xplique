@@ -27,7 +27,7 @@ parameter, and the expectation is estimated using multiple samples.
 ## Example
 
 ```python
-from xplique.methods import SmoothGrad
+from xplique.attributions import SmoothGrad
 
 # load images, labels and model
 # ...
@@ -36,6 +36,6 @@ method = SmoothGrad(model, nb_samples=50, noise=0.5)
 explanations = method.explain(images, labels)
 ```
 
-{{xplique.methods.smoothgrad.SmoothGrad}}
+{{xplique.attributions.smoothgrad.SmoothGrad}}
 
 [^1]: [SmoothGrad: removing noise by adding noise (2017)](https://arxiv.org/abs/1706.03825)

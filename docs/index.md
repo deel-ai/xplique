@@ -36,7 +36,7 @@ The package is released under [MIT license](https://choosealicense.com/licenses/
 - [Install](#installing) <br>
 - [Get started](#get-started) <br>
 - [Core features](#core-features) <br>
-    - [Methods](#methods) <br>
+    - [Attributions Methods](#attributions-methods) <br>
     - [Metrics](#metrics) <br>
     - [Feature Visualization](#feature-visualization) <br>
 - [Notebooks](#notebooks) <br>
@@ -60,7 +60,7 @@ let's start with a simple example, by computing Grad-CAM for several images (or 
 on a trained model.
 
 ```python
-from xplique.methods import GradCAM
+from xplique.attributions import GradCAM
 
 # load images, labels and model
 # ...

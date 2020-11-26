@@ -29,7 +29,7 @@ and improved performance. (see the paper below for a comparison of the methods[^
 ## Example
 
 ```python
-from xplique.methods import IntegratedGradients
+from xplique.attributions import IntegratedGradients
 
 # load images, labels and model
 # ...
@@ -38,7 +38,7 @@ method = IntegratedGradients(model, steps=50, baseline_value=0.0)
 explanations = method.explain(images, labels)
 ```
 
-{{xplique.methods.integrated_gradients.IntegratedGradients}}
+{{xplique.attributions.integrated_gradients.IntegratedGradients}}
 
 [^1]: [Axiomatic Attribution for Deep Networks](https://arxiv.org/abs/1703.01365)
 [^2]: [Computing Linear Restrictions of Neural Networks](https://arxiv.org/abs/1908.06214)

@@ -18,7 +18,7 @@ $$ \phi_i = S_c(x) - S_c(x_{[x_i = \bar{x}]}) $$
 ## Example
 
 ```python
-from xplique.methods import Occlusion
+from xplique.attributions import Occlusion
 
 # load images, labels and model
 # ...
@@ -28,7 +28,7 @@ method = Occlusion(model, patch_size=(10, 10),
 explanations = method.explain(images, labels)
 ```
 
-{{xplique.methods.occlusion.Occlusion}}
+{{xplique.attributions.occlusion.Occlusion}}
 
 [^1]: [Visualizing and Understanding Convolutional Networks (2014).](https://arxiv.org/abs/1311.2901)
 [^2]: [Towards better understanding of gradient-based attribution methods for Deep Neural Networks](https://arxiv.org/abs/1711.06104)

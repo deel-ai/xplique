@@ -1,5 +1,5 @@
 """
-Explanations methods availables
+Attributions methods availables
 """
 
 from .saliency import Saliency

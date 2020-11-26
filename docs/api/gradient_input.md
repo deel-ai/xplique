@@ -24,7 +24,7 @@ with $S_c$ the unormalized class score (layer before softmax).
 ## Example
 
 ```python
-from xplique.methods import GradientInput
+from xplique.attributions import GradientInput
 
 # load images, labels and model
 # ...
@@ -33,7 +33,7 @@ method = GradientInput(model)
 explanations = method.explain(images, labels)
 ```
 
-{{xplique.methods.gradient_input.GradientInput}}
+{{xplique.attributions.gradient_input.GradientInput}}
 
 [^1]: [Not Just a Black Box: Learning Important Features Through Propagating Activation Differences](https://arxiv.org/abs/1605.01713)
 [^2]: [Learning Important Features Through Propagating Activation Differences](https://arxiv.org/abs/1704.02685)

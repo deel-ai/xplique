@@ -20,7 +20,7 @@ with $S_c$ the unormalized class score (layer before softmax).
 ## Example
 
 ```python
-from xplique.methods import Saliency
+from xplique.attributions import Saliency
 
 # load images, labels and model
 # ...
@@ -29,6 +29,6 @@ method = Saliency(model)
 explanations = method.explain(images, labels)
 ```
 
-{{xplique.methods.saliency.Saliency}}
+{{xplique.attributions.saliency.Saliency}}
 
 [^1]:[Deep Inside Convolutional Networks: Visualising Image Classification Models and Saliency Maps](https://arxiv.org/abs/1312.6034)
