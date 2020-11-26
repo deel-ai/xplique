@@ -1,6 +1,6 @@
 import numpy as np
 
-from xplique.methods import Occlusion
+from xplique.attributions import Occlusion
 from ..utils import generate_data, generate_model
 
 

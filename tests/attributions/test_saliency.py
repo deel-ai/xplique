@@ -1,4 +1,4 @@
-from xplique.methods import Saliency
+from xplique.attributions import Saliency
 from ..utils import generate_data, generate_model
 
 

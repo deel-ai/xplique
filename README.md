@@ -33,7 +33,7 @@ The package is released under [MIT license](https://choosealicense.com/licenses/
 - [Install](#installing) <br>
 - [Get started](#get-started) <br>
 - [Core features](#core-features) <br>
-    - [Methods](#methods) <br>
+    - [Attributions Methods](#methods) <br>
     - [Metrics](#metrics) <br>
     - [Feature Visualization](#feature-visualization) <br>
 - [Notebooks](#notebooks) <br>
@@ -57,7 +57,7 @@ let's start with a simple example, by computing Grad-CAM for several images (or 
 on a trained model.
 
 ```python
-from xplique.methods import GradCAM
+from xplique.attributions import GradCAM
 
 # load images, labels and model
 # ...
@@ -73,7 +73,7 @@ explanations = method.explain(images, labels)
 
 ## Core features
 
-### Methods
+### Attributions Methods
 
 * [x] Deconvolution          [ 📚<sup>Api</sup> ](https://napolar.github.io/xplique/api/deconvnet.md)               [📄<sup>arxiv</sup>](https://arxiv.org/abs/1311.2901)
 * [x] Grad-CAM               [ 📚<sup>Api</sup> ](https://napolar.github.io/xplique/api/grad_cam.md)                [📄<sup>arxiv</sup>](https://arxiv.org/abs/1610.02391)

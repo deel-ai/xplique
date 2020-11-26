@@ -1,6 +1,6 @@
 import tensorflow.keras.backend as K
 
-from xplique.methods import GradCAMPP
+from xplique.attributions import GradCAMPP
 from ..utils import generate_data, generate_model
 
 

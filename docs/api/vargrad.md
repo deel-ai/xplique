@@ -11,7 +11,7 @@ parameter.
 ## Example
 
 ```python
-from xplique.methods import VarGrad
+from xplique.attributions import VarGrad
 
 # load images, labels and model
 # ...

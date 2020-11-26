@@ -1,4 +1,4 @@
-from xplique.methods import GradientInput
+from xplique.attributions import IntegratedGradients
 from ..utils import generate_data, generate_model
 
 
@@ -9,10 +9,10 @@ def test_output_shape():
     nb_labels = 10
 
     for input_shape in input_shapes:
-        x, y = generate_data(input_shape, nb_labels, 100)
+        x, y = generate_data(input_shape, nb_labels, 10)
         model = generate_model(input_shape, nb_labels)
 
-        method = GradientInput(model, -2)
+        method = IntegratedGradients(model, -2, steps=100)
         outputs = method.explain(x, y)
 
         assert x.shape == outputs.shape

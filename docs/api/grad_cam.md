@@ -26,7 +26,7 @@ so we have to interpolate in order to find the same dimensions as the input.
 ## Example
 
 ```python
-from xplique.methods import GradCAM
+from xplique.attributions import GradCAM
 
 # load images, labels and model
 # ...
@@ -35,6 +35,6 @@ method = GradCAM(model)
 explanations = method.explain(images, labels)
 ```
 
-{{xplique.methods.grad_cam.GradCAM}}
+{{xplique.attributions.grad_cam.GradCAM}}
 
 [^1]: [Visual Explanations from Deep Networks via Gradient-based Localization (2016).](https://arxiv.org/abs/1610.02391)

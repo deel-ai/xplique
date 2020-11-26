@@ -19,7 +19,7 @@ $$ \phi_i = \frac{1}{\mathbb{E}[m] N} \sum_{i=0}^N S_c(x \odot m_i) m_i $$
 ## Example
 
 ```python
-from xplique.methods import Rise
+from xplique.attributions import Rise
 
 # load images, labels and model
 # ...
@@ -28,6 +28,6 @@ method = Rise(model, nb_samples=80, granularity=6, preservation_probability=0.5)
 explanations = method.explain(images, labels)
 ```
 
-{{xplique.methods.rise.Rise}}
+{{xplique.attributions.rise.Rise}}
 
 [^1]: [RISE: Randomized Input Sampling for Explanation of Black-box Models (2018)](https://arxiv.org/abs/1806.07421)

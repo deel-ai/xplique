@@ -1,4 +1,4 @@
-from xplique.methods import Rise
+from xplique.attributions import Rise
 from ..utils import generate_data, generate_model
 
 
