@@ -5,7 +5,7 @@ Module related to Integrated Gradients method
 import tensorflow as tf
 
 from .base import BaseExplanation
-from .utils import sanitize_input_output, repeat_labels
+from ..utils import sanitize_input_output, repeat_labels
 
 
 class IntegratedGradients(BaseExplanation):

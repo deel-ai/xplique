@@ -6,7 +6,7 @@ import tensorflow as tf
 from tensorflow.keras.models import Model  # pylint: disable=import-error
 
 from .base import BaseExplanation
-from .utils import sanitize_input_output
+from ..utils import sanitize_input_output
 
 
 class GradCAM(BaseExplanation):

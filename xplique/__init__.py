@@ -11,3 +11,4 @@ __version__ = '0.0.1'
 
 from . import methods
 from . import concepts
+from . import utils

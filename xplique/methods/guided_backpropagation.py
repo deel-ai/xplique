@@ -3,7 +3,7 @@ Module related to Guided Backpropagation method
 """
 
 from .base import BaseExplanation
-from .utils import sanitize_input_output, guided_relu, override_relu_gradient
+from ..utils import sanitize_input_output, guided_relu, override_relu_gradient
 
 
 class GuidedBackprop(BaseExplanation):
