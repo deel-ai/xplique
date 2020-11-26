@@ -34,6 +34,7 @@ The package is released under [MIT license](https://choosealicense.com/licenses/
 - [Get started](#get-started) <br>
 - [Core features](#core-features) <br>
     - [Attributions Methods](#methods) <br>
+    - [Concept based Methods](#concept-based-methods) <br>
     - [Metrics](#metrics) <br>
     - [Feature Visualization](#feature-visualization) <br>
 - [Notebooks](#notebooks) <br>
@@ -89,6 +90,13 @@ explanations = method.explain(images, labels)
 * [x] VarGrad                [ 📚<sup>Api</sup> ](https://napolar.github.io/xplique/api/vargrad.md)                 [📄<sup>arxiv</sup>](https://arxiv.org/abs/1810.03292)
 * [ ] Ablation-CAM  
 * [ ] Xray
+
+### Concept-based Methods
+
+* [x] [ Concept Activation Vector ](./api/cav.md)[^12]
+* [x] [ Testing with Concept Activation Vector ](./api/tcav.md)[^12]
+* [ ] Robust TCAV 
+* [ ] Automatic Concept Extraction  
 
 ### Metrics
 
