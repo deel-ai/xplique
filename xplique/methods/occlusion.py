@@ -8,7 +8,7 @@ import numpy as np
 import tensorflow as tf
 
 from .base import BaseExplanation
-from .utils import sanitize_input_output
+from ..utils import sanitize_input_output
 
 
 class Occlusion(BaseExplanation):

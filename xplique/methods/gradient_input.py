@@ -5,7 +5,7 @@ Module related to Gradient x Input method
 import tensorflow as tf
 
 from .base import BaseExplanation
-from .utils import sanitize_input_output
+from ..utils import sanitize_input_output
 
 
 class GradientInput(BaseExplanation):

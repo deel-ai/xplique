@@ -3,8 +3,7 @@ Module related to DeconvNet method
 """
 
 from .base import BaseExplanation
-from .utils import sanitize_input_output, deconv_relu, override_relu_gradient
-
+from ..utils import override_relu_gradient, deconv_relu, sanitize_input_output
 
 class DeconvNet(BaseExplanation):
     """

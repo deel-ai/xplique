@@ -6,7 +6,7 @@ import numpy as np
 import tensorflow as tf
 
 from .base import BaseExplanation
-from .utils import sanitize_input_output, repeat_labels
+from ..utils import sanitize_input_output, repeat_labels
 
 
 class SmoothGrad(BaseExplanation):

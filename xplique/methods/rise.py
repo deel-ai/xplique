@@ -5,7 +5,7 @@ Module related to RISE method
 import tensorflow as tf
 
 from .base import BaseExplanation
-from .utils import sanitize_input_output, repeat_labels
+from ..utils import sanitize_input_output, repeat_labels
 
 
 class Rise(BaseExplanation):

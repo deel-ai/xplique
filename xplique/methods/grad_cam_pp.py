@@ -5,7 +5,7 @@ Module related to Grad-CAM++ method
 import tensorflow as tf
 
 from .grad_cam import GradCAM
-from .utils import sanitize_input_output
+from ..utils import sanitize_input_output
 
 
 class GradCAMPP(GradCAM):

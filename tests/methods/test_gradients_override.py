@@ -1,6 +1,7 @@
 import tensorflow as tf
 
-from xplique.methods.utils import guided_relu, override_relu_gradient
+from xplique.utils import guided_relu, override_relu_gradient
+
 
 def test_override_commutation():
     """Ensure we commute correctly differents ReLU activations"""

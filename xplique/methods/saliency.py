@@ -5,7 +5,7 @@ Module related to Saliency maps method
 import tensorflow as tf
 
 from .base import BaseExplanation
-from .utils import sanitize_input_output
+from ..utils import sanitize_input_output
 
 
 class Saliency(BaseExplanation):
