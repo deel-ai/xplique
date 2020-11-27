@@ -123,3 +123,27 @@ def override_relu_gradient(model, relu_policy):
     model_commuted = clone_model(model, clone_function=clone_func)
 
     return model_commuted
+
+def find_layer(model, layer):
+    """
+    Find a layer in a model either by his name or by his index.
+
+    Parameters
+    ----------
+    model : tf.keras.Model
+        Model on which to search.
+    layer : str or int
+        Layer name or layer index
+
+    Returns
+    -------
+    layer : tf.keras.Layer
+        Layer found
+    """
+    if isinstance(layer, str):
+        return model.get_layer(layer)
+    elif isinstance(layer, int):
+        return model.layers[layer]
+    else:
+        raise ValueError(f"Could not find any layer {layer}.")
+
