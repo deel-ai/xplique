@@ -10,4 +10,5 @@ __version__ = '0.0.1'
 
 from . import attributions
 from . import concepts
+from . import features_visualizations
 from . import utils
