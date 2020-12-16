@@ -25,3 +25,10 @@ def generate_model(input_shape=(32, 32, 3), output_shape=10):
     model.compile(loss='categorical_crossentropy', optimizer='sgd')
 
     return model
+
+
+def almost_equal(arr1, arr2, epsilon=1e-6):
+    """Ensure two array are almost equal at an epsilon"""
+    return np.sum(np.abs(arr1 - arr2)) < epsilon
+
+
