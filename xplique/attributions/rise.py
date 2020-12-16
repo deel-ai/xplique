@@ -30,7 +30,7 @@ class Rise(BaseExplanation):
     granularity : int, optional
         Size of the grid used to generate the scaled-down masks. Masks are then rescale to
         input_size + scaled-down size and cropped to input_size.
-    preservation_probability: float, optional
+    preservation_probability : float, optional
         Probability of preservation for each pixel (or the percentage of non-masked pixels in
         each masks), also the expectation value of the mask.
     """
@@ -91,7 +91,7 @@ class Rise(BaseExplanation):
         granularity : int
             Size of the grid used to generate the scaled-down masks. Masks are then rescale to
             input_size + scaled-down size and cropped to input_size.
-        preservation_probability: float
+        preservation_probability : float
             Probability of preservation for each pixel (or the percentage of non-masked pixels in
             each masks), also the expectation value of the mask.
 
@@ -137,7 +137,7 @@ class Rise(BaseExplanation):
         granularity : int
             Size of the grid used to generate the scaled-down masks. Masks are then rescale to
             input_size + scaled-down size and cropped to input_size.
-        preservation_probability: float
+        preservation_probability : float
             Probability of preservation for each pixel (or the percentage of non-masked pixels in
             each masks), also the expectation value of the mask.
 
