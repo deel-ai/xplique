@@ -6,7 +6,7 @@
 
 <p align="center">
     <a href="https://travis-ci.com/napolar/xplique">
-        <img alt="Build Status" src="https://travis-ci.com/napolar/xplique.svg?token=R9xr216LTFpJW3LYYCaM&branch=master">
+        <img alt="Build Status" src="https://travis-ci.com/fel-thomas/xplique.svg?token=R9xr216LTFpJW3LYYCaM&branch=master">
     </a>
 </p>
 <br>
