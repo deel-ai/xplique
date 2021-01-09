@@ -26,6 +26,7 @@ def guided_relu(inputs):
     grad_func : function
         Gradient function for guided relu.
     """
+
     def grad_func(grads):
         gate_activation = tf.cast(inputs > 0.0, tf.float32)
         return tf.nn.relu(grads) * gate_activation
@@ -52,6 +53,7 @@ def deconv_relu(inputs):
     grad_func : function
         Gradient function for DeconvNet relu.
     """
+
     def grad_func(grads):
         return tf.nn.relu(grads)
 
@@ -107,22 +109,18 @@ def override_relu_gradient(model, relu_policy):
     -------
     model_commuted : tf.keras.model
     """
-    def clone_func(layer):
+    cloned_model = clone_model(model)
+    cloned_model.set_weights(model.get_weights())
 
-        if is_relu(layer):
-            return Activation(relu_policy)
-
-        # avoid modification of the original model
-        clone_layer = layer.__class__.from_config(layer.get_config())
-
+    for layer_id in range(len(cloned_model.layers)):
+        layer = cloned_model.layers[layer_id]
         if has_relu_activation(layer):
-            clone_layer.activation = relu_policy
+            layer.activation = relu_policy
+        elif is_relu(layer):
+            cloned_model.layers[layer_id] = Activation(relu_policy)
 
-        return clone_layer
+    return cloned_model
 
-    model_commuted = clone_model(model, clone_function=clone_func)
-
-    return model_commuted
 
 def find_layer(model, layer):
     """
@@ -142,8 +140,6 @@ def find_layer(model, layer):
     """
     if isinstance(layer, str):
         return model.get_layer(layer)
-    elif isinstance(layer, int):
+    if isinstance(layer, int):
         return model.layers[layer]
-    else:
-        raise ValueError(f"Could not find any layer {layer}.")
-
+    raise ValueError(f"Could not find any layer {layer}.")
