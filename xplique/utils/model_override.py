@@ -72,9 +72,7 @@ def is_relu(layer):
     -------
     is_relu : bool
     """
-    if isinstance(layer, tf.keras.layers.ReLU):
-        return True
-    return False
+    return isinstance(layer, tf.keras.layers.ReLU)
 
 
 def has_relu_activation(layer):
