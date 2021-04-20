@@ -38,8 +38,6 @@ def test_classifier():
     model.compile(loss='binary_crossentropy', optimizer=tf.keras.optimizers.Adam(0.1))
     model.fit(x, y, batch_size=32, epochs=1)
 
-    y_pred = model.predict(x) > 0.5
-
     # the second layer (x -> x^2) make the problem linearly separable
     # the cav vector should be [1, 1]
     positive = []
@@ -60,5 +58,4 @@ def test_classifier():
 
     # the perfect cav vector should be [0.5, 0.5]
     for cav in cavs:
-        assert np.sum(np.abs(cav - [0.5, 0.5])) < 0.05
-
+        assert np.sum(np.abs(cav - [0.5, 0.5])) < 0.1
