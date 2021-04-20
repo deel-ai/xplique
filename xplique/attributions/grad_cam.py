@@ -89,7 +89,7 @@ class GradCAM(BaseExplanation):
             Explanation computed, with CW & CH the dimensions of the conv layer.
         """
         grad_cams = None
-        batch_size = batch_size if batch_size is not None else len(inputs) # wtf ?
+        batch_size = batch_size if batch_size is not None else len(inputs)
 
         for x_batch, y_batch in tf.data.Dataset.from_tensor_slices((inputs, labels)).batch(
                 batch_size):
