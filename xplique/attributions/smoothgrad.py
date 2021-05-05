@@ -96,7 +96,7 @@ class SmoothGrad(BaseExplanation):
         for x_batch, y_batch in tf.data.Dataset.from_tensor_slices((inputs, labels)).batch(
                 batch_size):
             noisy_mask = SmoothGrad.get_noisy_mask((nb_samples, *x_batch.shape[1:]), noise)
-            noisy_inputs = SmoothGrad.apply_noise(x_batch, nb_samples, noisy_mask)
+            noisy_inputs = SmoothGrad.apply_noise(x_batch, noisy_mask)
             repeated_labels = repeat_labels(y_batch, nb_samples)
             # compute the gradient of each noisy samples generated
             gradients = BaseExplanation._batch_gradient(model, noisy_inputs, repeated_labels,
@@ -131,7 +131,7 @@ class SmoothGrad(BaseExplanation):
 
     @staticmethod
     @tf.function
-    def apply_noise(inputs, nb_samples, noisy_mask):
+    def apply_noise(inputs, noisy_mask):
         """
         Duplicate the samples and apply a noisy mask to each of them.
 
@@ -140,8 +140,6 @@ class SmoothGrad(BaseExplanation):
         inputs : tf.tensor (N, W, H, C)
             Input samples, with N number of samples, W & H the sample dimensions, and C the
             number of channels.
-        nb_samples : int
-            Number of replications for each samples.
         noisy_mask : ndarray (S, W, H, C)
             Mask of random noise to apply on a set of interpolations points. With S the number of
             samples, W & H the sample dimensions and C the number of channels.
@@ -151,6 +149,8 @@ class SmoothGrad(BaseExplanation):
         noisy_inputs : tf.tensor (N * S, W, H, C)
             Duplicated inputs with noisy mask applied.
         """
+        nb_samples = len(noisy_mask)
+
         noisy_inputs = tf.repeat(tf.expand_dims(inputs, axis=1), repeats=nb_samples, axis=1)
         noisy_inputs = noisy_inputs + noisy_mask
         noisy_inputs = tf.reshape(noisy_inputs, (-1, *noisy_inputs.shape[2:]))

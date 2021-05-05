@@ -1,5 +1,7 @@
+import tensorflow as tf
+
 from xplique.attributions import SmoothGrad
-from ..utils import generate_data, generate_model
+from ..utils import generate_data, generate_model, almost_equal
 
 
 def test_output_shape():
@@ -16,3 +18,13 @@ def test_output_shape():
         smoothed_gradients = method.explain(x, y)
 
         assert x.shape == smoothed_gradients.shape
+
+
+def test_noisy_mask():
+    """Ensure the inputs generated are not the same as the original"""
+    x = tf.zeros((1, 32, 32, 3), tf.float32)
+    noise = tf.random.normal((4, *x.shape[1:]), dtype=tf.float32)
+
+    x_noisy = SmoothGrad.apply_noise(x, noise)
+
+    assert almost_equal(x_noisy, noise)
