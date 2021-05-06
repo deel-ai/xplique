@@ -154,7 +154,7 @@ class Occlusion(BaseExplanation):
                 mask[x_anchor:x_anchor + patch_size[0], y_anchor:y_anchor + patch_size[1]] = 1
                 masks.append(mask)
 
-        return np.array(masks, dtype=bool)
+        return tf.cast(masks, dtype=tf.bool)
 
     @staticmethod
     @tf.function
