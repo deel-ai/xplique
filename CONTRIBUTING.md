@@ -10,10 +10,10 @@ work is not in vain.
 
 ## Setup
 
-- Clone the repo `git clone https://github.com/deel-ai/xplique.git`
-- Install the dependencies `make prepare-dev && source venv/bin/activate` 
+- Clone the repo `git clone https://github.com/deel-ai/xplique.git`.
+- Install the dependencies `make prepare-dev && source venv/bin/activate`. 
 - You are ready to install the library `pip install -e .` or run the test suite
- `make test` 
+ `make test`.
 
 
 ## Submitting Changes
@@ -24,9 +24,9 @@ your pull request should be accepted quickly.
 
 Something that will increase the chance that your pull request is accepted:
 
-- Write tests
-- Follow the existing coding style
-- Write a [good commit message](https://tbaggery.com/2008/04/19/a-note-about-git-commit-messages.html) (we follow a lowercase convention)
+- Write tests.
+- Follow the existing coding style.
+- Write a [good commit message](https://tbaggery.com/2008/04/19/a-note-about-git-commit-messages.html) (we follow a lowercase convention).
 - For a major fix/feature make sure your PR has an issue and if it doesn't, please create one. This would help discussion with the community, and polishing ideas in case of a new feature.
 
 ## Documentation
