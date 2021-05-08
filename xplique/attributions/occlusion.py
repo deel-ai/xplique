@@ -8,7 +8,7 @@ import numpy as np
 import tensorflow as tf
 
 from .base import BaseExplanation
-from ..utils import sanitize_input_output
+from ..utils import sanitize_input_output, repeat_labels
 
 
 class Occlusion(BaseExplanation):
@@ -112,11 +112,13 @@ class Occlusion(BaseExplanation):
         for x_batch, y_batch, baseline in tf.data.Dataset.from_tensor_slices(
                 (inputs, labels, baseline_scores)).batch(batch_size):
 
-            occluded_inputs, repeated_labels = Occlusion.apply_masks(x_batch, y_batch, masks,
-                                                                     occlusion_value)
-            occluded_scores = BaseExplanation._batch_predictions(model, occluded_inputs,
+            occluded_inputs = Occlusion.apply_masks(x_batch, masks, occlusion_value)
+            repeated_labels = repeat_labels(y_batch, len(masks))
+
+            batch_scores = BaseExplanation._batch_predictions(model, occluded_inputs,
                                                                  repeated_labels, batch_size)
-            batch_sensitivity = Occlusion.compute_sensitivity(baseline, occluded_scores, masks)
+            batch_sensitivity = Occlusion.compute_sensitivity(baseline, batch_scores, masks)
+
             sensitivity = batch_sensitivity if sensitivity is None else \
                 tf.concat([sensitivity, batch_sensitivity], axis=0)
 
@@ -158,7 +160,7 @@ class Occlusion(BaseExplanation):
 
     @staticmethod
     @tf.function
-    def apply_masks(inputs, labels, masks, occlusion_value):
+    def apply_masks(inputs, masks, occlusion_value):
         """
         Given input samples and an occlusion mask template, apply it for every sample.
 
@@ -167,9 +169,6 @@ class Occlusion(BaseExplanation):
         inputs : tf.tensor (N, W, H, C)
             Input samples, with N number of samples, W & H the sample dimensions, and C the
             number of channels.
-        labels : tf.tensor(N, L)
-            One hot encoded labels to compute for each sample, with N the number of samples, and L
-            the number of classes.
         masks : tf.tensor (M, W, H, C)
             The boolean occlusion masks, with 1 as occluded.
         occlusion_value : float, optional
@@ -187,13 +186,9 @@ class Occlusion(BaseExplanation):
         occluded_inputs = occluded_inputs * tf.cast(tf.logical_not(masks), tf.float32) + tf.cast(
             masks, tf.float32) * occlusion_value
 
-        repeated_labels = tf.expand_dims(labels, axis=1)
-        repeated_labels = tf.repeat(repeated_labels, repeats=len(masks), axis=1)
-
         occluded_inputs = tf.reshape(occluded_inputs, (-1, *occluded_inputs.shape[2:]))
-        repeated_labels = tf.reshape(repeated_labels, (-1, *repeated_labels.shape[2:]))
 
-        return occluded_inputs, repeated_labels
+        return occluded_inputs
 
     @staticmethod
     @tf.function
@@ -218,7 +213,7 @@ class Occlusion(BaseExplanation):
         baseline_scores = tf.expand_dims(baseline_scores, axis=-1)
         occluded_scores = tf.reshape(occluded_scores, (-1, len(masks)))
 
-        score_delta = occluded_scores - baseline_scores
+        score_delta = baseline_scores - occluded_scores
         score_delta = tf.reshape(score_delta, (*score_delta.shape, 1, 1, 1))
 
         sensitivity = score_delta * tf.cast(masks, tf.float32)
