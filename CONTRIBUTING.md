@@ -14,6 +14,24 @@ work is not in vain.
 - Install the dependencies `make prepare-dev && source venv/bin/activate`. 
 - You are ready to install the library `pip install -e .` or run the test suite
  `make test`.
+ 
+ 
+## Tests
+
+```
+make test
+```
+In order to launch the test suite, this will run the test suite using tox on the
+whole codebase for all python version. 
+
+```
+tox -e py37 -- -v test/target_file_or_folder
+```
+You can also pass directly through `tox` to specify arguments. For example, to run the tests on a particular module or 
+file for python 3.7.
+
+
+Make sure you run all the tests at least once before opening a pull request.
 
 
 ## Submitting Changes
@@ -24,7 +42,7 @@ your pull request should be accepted quickly.
 
 Something that will increase the chance that your pull request is accepted:
 
-- Write tests.
+- Write tests and ensure that the existing ones pass.
 - Follow the existing coding style.
 - Write a [good commit message](https://tbaggery.com/2008/04/19/a-note-about-git-commit-messages.html) (we follow a lowercase convention).
 - For a major fix/feature make sure your PR has an issue and if it doesn't, please create one. This would help discussion with the community, and polishing ideas in case of a new feature.
