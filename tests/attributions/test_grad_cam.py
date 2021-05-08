@@ -1,7 +1,8 @@
+import numpy as np
 import tensorflow.keras.backend as K
 
 from xplique.attributions import GradCAM
-from ..utils import generate_data, generate_model
+from ..utils import generate_data, generate_model, almost_equal
 
 
 def test_output_shape():
@@ -41,3 +42,43 @@ def test_conv_layer():
     # target a random flatten layer
     gc_flatten = GradCAM(model, conv_layer='flatten')
     assert gc_flatten.conv_layer == flatten_layer
+
+
+def test_weights_computation():
+    """Ensure the grad-cam weights are correct"""
+    activations = np.array([
+        [[1.0, 1.0],
+         [1.0, 1.0]],
+
+        [[1.0, 1.0],
+         [0.0, 0.0]],
+
+        [[1.0, 0.5],
+         [0.0, 0.0]],
+
+        [[0.5, 0.0],
+         [0.0, 0.0]],
+    ])[None, :, :, :]
+    grads = np.array([
+        [[1.0, 1.0],
+         [1.0, 1.0]],
+
+        [[1.0, 1.0],
+         [0.0, 0.0]],
+
+        [[1.0, 0.5],
+         [0.0, 0.0]],
+
+        [[0.5, 0.0],
+         [0.0, 0.0]],
+    ])[None, :, :, :]
+
+    # move so that the filters F are at the end [F, W, H] -> [W, H, F]
+    activations = np.moveaxis(activations, 1, 3)
+    grads = np.moveaxis(grads, 1, 3)
+
+    weights = GradCAM.compute_weights(grads, activations)
+    assert almost_equal(weights[0], [4.0/4.0, 2.0/4.0, 1.5/4.0, 0.5/4.0])
+
+    grad_cam = GradCAM.apply_weights(weights, activations)
+    assert almost_equal(grad_cam, np.sum(activations * weights, -1)) # as we have no negative value
