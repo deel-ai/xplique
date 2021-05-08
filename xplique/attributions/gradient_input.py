@@ -43,10 +43,10 @@ class GradientInput(BaseExplanation):
         explanations : ndarray (N, W, H)
             Gradients x Inputs, with the same shape as the inputs.
         """
-        return GradientInput.compute(self.model, inputs, labels, self.batch_size)
+        return GradientInput._compute(self.model, inputs, labels, self.batch_size)
 
     @staticmethod
-    def compute(model, inputs, labels, batch_size):
+    def _compute(model, inputs, labels, batch_size):
         """
         Compute gradients x inputs for a batch of samples.
 

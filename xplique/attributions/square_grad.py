@@ -32,7 +32,7 @@ class SquareGrad(SmoothGrad):
 
     @staticmethod
     @tf.function
-    def reduce_gradients(gradients):
+    def _reduce_gradients(gradients):
         """
         Reduce the gradients using the square of the gradients obtained on each noisy samples.
 

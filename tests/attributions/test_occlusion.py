@@ -35,10 +35,10 @@ def test_polymorphic_parameters():
 def test_mask_generator():
     """Ensure we generate all the possible masks"""
 
-    assert Occlusion.get_masks((10, 10), (1, 1), (1, 1)).shape == (100, 10, 10)
-    assert Occlusion.get_masks((10, 10), (2, 2), (2, 2)).shape == (25, 10, 10)
-    assert Occlusion.get_masks((10, 10), (2, 2), (3, 3)).shape == (9, 10, 10)
-    assert np.array_equal(Occlusion.get_masks((2, 2), (1, 1), (1, 1)), np.array([
+    assert Occlusion._get_masks((10, 10), (1, 1), (1, 1)).shape == (100, 10, 10)
+    assert Occlusion._get_masks((10, 10), (2, 2), (2, 2)).shape == (25, 10, 10)
+    assert Occlusion._get_masks((10, 10), (2, 2), (3, 3)).shape == (9, 10, 10)
+    assert np.array_equal(Occlusion._get_masks((2, 2), (1, 1), (1, 1)), np.array([
         [
             [1, 0],
             [0, 0]
@@ -63,8 +63,8 @@ def test_apply():
     x = np.ones((1, 2, 2, 1), dtype=np.float32)
     applied_value = 49.0
 
-    masks = Occlusion.get_masks((2, 2, 1), (1, 1), (1, 1))
-    occluded_x = Occlusion.apply_masks(x, masks, applied_value)
+    masks = Occlusion._get_masks((2, 2, 1), (1, 1), (1, 1))
+    occluded_x = Occlusion._apply_masks(x, masks, applied_value)
 
     assert almost_equal(occluded_x[:,:,:,0], np.array([
         [[applied_value, 1.0],
@@ -77,10 +77,10 @@ def test_apply():
          [1.0, applied_value]],
     ]))
 
-    masks = Occlusion.get_masks((2, 2, 1), (2, 2), (2, 2))
-    occluded_x = Occlusion.apply_masks(x, masks, applied_value)
+    masks = Occlusion._get_masks((2, 2, 1), (2, 2), (2, 2))
+    occluded_x = Occlusion._apply_masks(x, masks, applied_value)
 
-    assert almost_equal(occluded_x[:,:,:,0], np.array([
+    assert almost_equal(occluded_x[:, :, :, 0], np.array([
         [[applied_value, applied_value],
          [applied_value, applied_value]]
     ]))
@@ -89,15 +89,15 @@ def test_apply():
 def test_delta_computation():
     """Ensure get correct delta score"""
     baseline_score = np.array([1.0], dtype=np.float32)
-    masks = Occlusion.get_masks((2, 2, 1), (1, 1), (1, 1))
+    masks = Occlusion._get_masks((2, 2, 1), (1, 1), (1, 1))
     scores = np.array([1.0, 0.0, 10.0, -1.0], dtype=np.float32)
 
-    deltas = Occlusion.compute_sensitivity(baseline_score, scores, masks)
+    deltas = Occlusion._compute_sensitivity(baseline_score, scores, masks)
     assert almost_equal(deltas.numpy().flatten(), [0.0, 1.0, -9.0, 2.0])
 
     baseline_score = np.array([10.0], dtype=np.float32)
-    masks = Occlusion.get_masks((2, 2, 1), (2, 2), (2, 2))
+    masks = Occlusion._get_masks((2, 2, 1), (2, 2), (2, 2))
     scores = np.array([5.0], dtype=np.float32)
 
-    deltas = Occlusion.compute_sensitivity(baseline_score, scores, masks)
+    deltas = Occlusion._compute_sensitivity(baseline_score, scores, masks)
     assert almost_equal(deltas, [5.0])

@@ -35,7 +35,7 @@ def test_common():
 
         # all explanation must have an explain and compute method
         assert hasattr(method, 'explain')
-        assert hasattr(method, 'compute')
+        assert hasattr(method, '_compute')
 
         # all explanations returned must be numpy array
         assert isinstance(explanations, np.ndarray)

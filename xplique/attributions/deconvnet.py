@@ -48,10 +48,10 @@ class DeconvNet(BaseExplanation):
         explanations : ndarray (N, W, H)
             Guided Backpropagation maps.
         """
-        return DeconvNet.compute(self.model, inputs, labels, self.batch_size)
+        return DeconvNet._compute(self.model, inputs, labels, self.batch_size)
 
     @staticmethod
-    def compute(model, inputs, labels, batch_size):
+    def _compute(model, inputs, labels, batch_size):
         """
         Compute Guided Backpropagation a batch of samples.
 

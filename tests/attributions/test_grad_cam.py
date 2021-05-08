@@ -77,8 +77,8 @@ def test_weights_computation():
     activations = np.moveaxis(activations, 1, 3)
     grads = np.moveaxis(grads, 1, 3)
 
-    weights = GradCAM.compute_weights(grads, activations)
+    weights = GradCAM._compute_weights(grads, activations)
     assert almost_equal(weights[0], [4.0/4.0, 2.0/4.0, 1.5/4.0, 0.5/4.0])
 
-    grad_cam = GradCAM.apply_weights(weights, activations)
+    grad_cam = GradCAM._apply_weights(weights, activations)
     assert almost_equal(grad_cam, np.sum(activations * weights, -1)) # as we have no negative value

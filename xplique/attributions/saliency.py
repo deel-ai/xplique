@@ -53,10 +53,10 @@ class Saliency(BaseExplanation):
         explanations : ndarray (N, W, H)
             Saliency maps.
         """
-        return Saliency.compute(self.model, inputs, labels, self.batch_size)
+        return Saliency._compute(self.model, inputs, labels, self.batch_size)
 
     @staticmethod
-    def compute(model, inputs, labels, batch_size):
+    def _compute(model, inputs, labels, batch_size):
         """
         Compute saliency maps for a batch of samples.
 

@@ -25,6 +25,6 @@ def test_noisy_mask():
     x = tf.zeros((1, 32, 32, 3), tf.float32)
     noise = tf.random.normal((4, *x.shape[1:]), dtype=tf.float32)
 
-    x_noisy = SmoothGrad.apply_noise(x, noise)
+    x_noisy = SmoothGrad._apply_noise(x, noise)
 
     assert almost_equal(x_noisy, noise)

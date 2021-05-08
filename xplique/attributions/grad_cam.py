@@ -65,10 +65,10 @@ class GradCAM(BaseExplanation):
         grad_cam : ndarray (N, W, H)
             Grad-CAM explanations, same shape as the inputs except for the channels.
         """
-        return self.compute(self.model, inputs, labels, self.batch_size)
+        return GradCAM._compute(self.model, inputs, labels, self.batch_size)
 
     @classmethod
-    def compute(cls, model, inputs, labels, batch_size):
+    def _compute(cls, model, inputs, labels, batch_size):
         """
         Compute the Grad-CAM explanations of the given samples.
 
@@ -94,9 +94,9 @@ class GradCAM(BaseExplanation):
         for x_batch, y_batch in tf.data.Dataset.from_tensor_slices((inputs, labels)).batch(
                 batch_size):
 
-            batch_feature_maps, batch_gradients = GradCAM.gradient(model, x_batch, y_batch)
-            batch_weights = cls.compute_weights(batch_gradients, batch_feature_maps)
-            batch_grad_cams = GradCAM.apply_weights(batch_weights, batch_feature_maps)
+            batch_feature_maps, batch_gradients = GradCAM._gradient(model, x_batch, y_batch)
+            batch_weights = cls._compute_weights(batch_gradients, batch_feature_maps)
+            batch_grad_cams = GradCAM._apply_weights(batch_weights, batch_feature_maps)
 
             grad_cams = batch_grad_cams if grad_cams is None else tf.concat(
                 [grad_cams, batch_grad_cams], axis=0)
@@ -111,7 +111,7 @@ class GradCAM(BaseExplanation):
 
     @staticmethod
     @tf.function
-    def gradient(model, inputs, labels):
+    def _gradient(model, inputs, labels):
         """
         Compute the gradient with respect to the conv_layer.
 
@@ -144,7 +144,7 @@ class GradCAM(BaseExplanation):
 
     @staticmethod
     @tf.function
-    def compute_weights(feature_maps_gradients, feature_maps):
+    def _compute_weights(feature_maps_gradients, feature_maps):
         """
         Compute the weights according to Grad-CAM procedure.
 
@@ -168,7 +168,7 @@ class GradCAM(BaseExplanation):
 
     @staticmethod
     @tf.function
-    def apply_weights(weights, feature_maps):
+    def _apply_weights(weights, feature_maps):
         """
         Apply the weights to the feature maps and sum them, and follow it by a ReLU.
 

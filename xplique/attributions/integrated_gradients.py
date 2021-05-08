@@ -62,15 +62,15 @@ class IntegratedGradients(BaseExplanation):
         explanations : ndarray (N, W, H, C)
             Integrated gradients, same shape as the inputs.
         """
-        return IntegratedGradients.compute(self.model,
-                                           inputs,
-                                           labels,
-                                           self.batch_size,
-                                           steps=self.steps,
-                                           baseline_value=self.baseline_value)
+        return IntegratedGradients._compute(self.model,
+                                            inputs,
+                                            labels,
+                                            self.batch_size,
+                                            steps=self.steps,
+                                            baseline_value=self.baseline_value)
 
     @staticmethod
-    def compute(model, inputs, labels, batch_size, steps, baseline_value):
+    def _compute(model, inputs, labels, batch_size, steps, baseline_value):
         """
         Compute Integrated Gradients for a batch of samples.
 
@@ -98,12 +98,12 @@ class IntegratedGradients(BaseExplanation):
         """
         integrated_gradients = None
         batch_size = batch_size or len(inputs)
-        baseline = IntegratedGradients.get_baseline((*model.input.shape[1:],), baseline_value)
+        baseline = IntegratedGradients._get_baseline((*model.input.shape[1:],), baseline_value)
 
         for x_batch, y_batch in tf.data.Dataset.from_tensor_slices((inputs, labels)).batch(
                 batch_size):
             # create the paths for every sample (interpolated points from baseline to sample)
-            interpolated_inputs = IntegratedGradients.get_interpolated_points(
+            interpolated_inputs = IntegratedGradients._get_interpolated_points(
                 x_batch, steps, baseline)
             repeated_labels = repeat_labels(y_batch, steps)
 
@@ -117,7 +117,7 @@ class IntegratedGradients(BaseExplanation):
                                                 (-1, steps, *interpolated_gradients.shape[1:]))
 
             # average the gradient using trapezoidal rule
-            averaged_gradients = IntegratedGradients.average_gradients(interpolated_gradients)
+            averaged_gradients = IntegratedGradients._average_gradients(interpolated_gradients)
             batch_integrated_gradients = (x_batch - baseline) * averaged_gradients
 
             integrated_gradients = batch_integrated_gradients if integrated_gradients is None else \
@@ -126,7 +126,7 @@ class IntegratedGradients(BaseExplanation):
         return integrated_gradients
 
     @staticmethod
-    def get_baseline(shape, baseline_value):
+    def _get_baseline(shape, baseline_value):
         """
         Create the baseline point using a scalar value to fill the desired shape.
 
@@ -146,7 +146,7 @@ class IntegratedGradients(BaseExplanation):
 
     @staticmethod
     @tf.function
-    def get_interpolated_points(inputs, steps, baseline):
+    def _get_interpolated_points(inputs, steps, baseline):
         """
         Create a path from baseline to sample for every samples.
 
@@ -177,7 +177,7 @@ class IntegratedGradients(BaseExplanation):
 
     @staticmethod
     @tf.function
-    def average_gradients(gradients):
+    def _average_gradients(gradients):
         """
         Average the gradients obtained along the path using trapezoidal rule.
 

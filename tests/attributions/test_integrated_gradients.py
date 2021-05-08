@@ -30,8 +30,8 @@ def test_straighline_path():
     for baseline_value in [0.0, 0.5, 1.0]:
         for input_shape in input_shapes:
             x = np.ones(input_shape, dtype=np.float32) * x_value
-            baseline = IntegratedGradients.get_baseline(x.shape, baseline_value)
-            path = IntegratedGradients.get_interpolated_points(x[None, :], steps, baseline[None, :])
+            baseline = IntegratedGradients._get_baseline(x.shape, baseline_value)
+            path = IntegratedGradients._get_interpolated_points(x[None, :], steps, baseline[None, :])
 
             true_points = np.linspace(baseline_value, x_value, steps, dtype=np.float32)
             true_points = true_points[:, None, None, None] * np.ones(input_shape, dtype=np.float32)
@@ -49,6 +49,6 @@ def test_trapezoidal_rule():
     points = np.array([0.1, 0.4, 0.6, 0.8, 0.9, 1.0, 0.8])
 
     true_trapezoidal = np.trapz(points, dx=1.0 / (len(points)-1))
-    ig_trapezoidal = IntegratedGradients.average_gradients(points[None, :, None])
+    ig_trapezoidal = IntegratedGradients._average_gradients(points[None, :, None])
 
     assert almost_equal(ig_trapezoidal, true_trapezoidal)

@@ -66,16 +66,16 @@ class Rise(BaseExplanation):
         explanations : ndarray (N, W, H)
             RISE maps, same shape as the inputs, except for the channels.
         """
-        return Rise.compute(self.model,
-                            inputs,
-                            labels,
-                            self.batch_size,
-                            self.nb_samples,
-                            self.granularity,
-                            self.preservation_probability)
+        return Rise._compute(self.model,
+                             inputs,
+                             labels,
+                             self.batch_size,
+                             self.nb_samples,
+                             self.granularity,
+                             self.preservation_probability)
 
     @staticmethod
-    def compute(model, inputs, labels, batch_size, nb_samples,
+    def _compute(model, inputs, labels, batch_size, nb_samples,
                 granularity, preservation_probability):
         """
         Compute Occlusion sensitivity for a batch of samples.
@@ -103,18 +103,18 @@ class Rise(BaseExplanation):
         rise_maps = None
         batch_size = batch_size or len(inputs)
 
-        masks = Rise.get_masks((*inputs.shape[1:],), nb_samples, granularity,
+        masks = Rise._get_masks((*inputs.shape[1:],), nb_samples, granularity,
                                preservation_probability)
 
         for x_batch, y_batch in tf.data.Dataset.from_tensor_slices(
                 (inputs, labels)).batch(batch_size):
 
-            masked_inputs = Rise.apply_masks(x_batch, masks)
+            masked_inputs = Rise._apply_masks(x_batch, masks)
             repeated_labels = repeat_labels(y_batch, nb_samples)
 
             predictions = BaseExplanation._batch_predictions(model, masked_inputs,
                                                              repeated_labels, batch_size)
-            scores = Rise.compute_importance(predictions, masks)
+            scores = Rise._compute_importance(predictions, masks)
 
             rise_maps = scores if rise_maps is None else tf.concat([rise_maps, scores], axis=0)
 
@@ -122,7 +122,7 @@ class Rise(BaseExplanation):
 
     @staticmethod
     @tf.function
-    def get_masks(input_shape, nb_samples, granularity, preservation_probability):
+    def _get_masks(input_shape, nb_samples, granularity, preservation_probability):
         """
         Random mask generation. Following the paper, we start by generating random mask in a
         lower dimension. Then, we use bilinear interpolation to upsample the masks and take a
@@ -162,7 +162,7 @@ class Rise(BaseExplanation):
 
     @staticmethod
     @tf.function
-    def apply_masks(inputs, masks):
+    def _apply_masks(inputs, masks):
         """
         Given input samples and masks, apply it for every sample and repeat the labels
 
@@ -190,7 +190,7 @@ class Rise(BaseExplanation):
 
     @staticmethod
     @tf.function
-    def compute_importance(occluded_scores, masks):
+    def _compute_importance(occluded_scores, masks):
         """
         Compute the importance of each pixels for each prediction according to the mask used.
 

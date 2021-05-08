@@ -53,11 +53,11 @@ class GradCAMPP(GradCAM):
         grad_cam_pp : tf.tensor (N, W, H)
             Grad-CAM++ explanations, same shape as the inputs except for the channels.
         """
-        return self.compute(self.model, inputs, labels, self.batch_size)
+        return GradCAMPP._compute(self.model, inputs, labels, self.batch_size)
 
     @staticmethod
     @tf.function
-    def compute_weights(feature_maps_gradients, feature_maps):
+    def _compute_weights(feature_maps_gradients, feature_maps):
         """
         Compute the weights according to Grad-CAM++ procedure.
 
