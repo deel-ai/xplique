@@ -62,59 +62,25 @@ class IntegratedGradients(BaseExplanation):
         explanations : ndarray (N, W, H, C)
             Integrated gradients, same shape as the inputs.
         """
-        return IntegratedGradients._compute(self.model,
-                                            inputs,
-                                            labels,
-                                            self.batch_size,
-                                            steps=self.steps,
-                                            baseline_value=self.baseline_value)
-
-    @staticmethod
-    def _compute(model, inputs, labels, batch_size, steps, baseline_value):
-        """
-        Compute Integrated Gradients for a batch of samples.
-
-        Parameters
-        ----------
-        model : tf.keras.Model
-            Model used for computing explanations.
-        inputs : tf.tensor (N, W, H, C)
-            Input samples, with N number of samples, W & H the sample dimensions, and C the
-            number of channels.
-        labels : tf.tensor (N, L)
-            One hot encoded labels to compute for each sample, with N the number of samples, and L
-            the number of classes.
-        batch_size : int
-            Number of samples to explain at once, if None compute all at once.
-        steps : int
-            Number of points to interpolate between the baseline and the desired point.
-        baseline_value : float
-            Value defining the baseline state.
-
-        Returns
-        -------
-        explanations : tf.Tensor (N, W, H, C)
-            Integrated gradients, same shape as the inputs.
-        """
         integrated_gradients = None
-        batch_size = batch_size or len(inputs)
-        baseline = IntegratedGradients._get_baseline((*model.input.shape[1:],), baseline_value)
+        batch_size = self.batch_size or len(inputs)
+        baseline = IntegratedGradients._get_baseline((*self.model.input.shape[1:],),
+                                                     self.baseline_value)
 
         for x_batch, y_batch in tf.data.Dataset.from_tensor_slices((inputs, labels)).batch(
                 batch_size):
             # create the paths for every sample (interpolated points from baseline to sample)
             interpolated_inputs = IntegratedGradients._get_interpolated_points(
-                x_batch, steps, baseline)
-            repeated_labels = repeat_labels(y_batch, steps)
-
+                x_batch, self.steps, baseline)
+            repeated_labels = repeat_labels(y_batch, self.steps)
 
             # compute the gradient for each paths
-            interpolated_gradients = BaseExplanation._batch_gradient(model,
+            interpolated_gradients = BaseExplanation._batch_gradient(self.model,
                                                                      interpolated_inputs,
                                                                      repeated_labels,
                                                                      batch_size)
             interpolated_gradients = tf.reshape(interpolated_gradients,
-                                                (-1, steps, *interpolated_gradients.shape[1:]))
+                                                (-1, self.steps, *interpolated_gradients.shape[1:]))
 
             # average the gradient using trapezoidal rule
             averaged_gradients = IntegratedGradients._average_gradients(interpolated_gradients)

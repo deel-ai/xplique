@@ -65,37 +65,13 @@ class GradCAM(BaseExplanation):
         grad_cam : ndarray (N, W, H)
             Grad-CAM explanations, same shape as the inputs except for the channels.
         """
-        return GradCAM._compute(self.model, inputs, labels, self.batch_size)
-
-    @classmethod
-    def _compute(cls, model, inputs, labels, batch_size):
-        """
-        Compute the Grad-CAM explanations of the given samples.
-
-        Parameters
-        ----------
-        model : tf.keras.Model
-            Model used for computing explanations.
-        inputs : tf.tensor (N, W, H, C)
-            Batch of input samples , with N number of samples, W & H the sample dimensions,
-            and C the number of channels.
-        labels : tf.tensor (N, L)
-            One hot encoded labels to compute for each sample, with N the number of samples, and L
-            the number of classes.
-
-        Returns
-        -------
-        grad_cam : tf.Tensor (N, CW, CH)
-            Explanation computed, with CW & CH the dimensions of the conv layer.
-        """
         grad_cams = None
-        batch_size = batch_size if batch_size is not None else len(inputs)
+        batch_size = self.batch_size if self.batch_size is not None else len(inputs)
 
         for x_batch, y_batch in tf.data.Dataset.from_tensor_slices((inputs, labels)).batch(
                 batch_size):
-
-            batch_feature_maps, batch_gradients = GradCAM._gradient(model, x_batch, y_batch)
-            batch_weights = cls._compute_weights(batch_gradients, batch_feature_maps)
+            batch_feature_maps, batch_gradients = GradCAM._gradient(self.model, x_batch, y_batch)
+            batch_weights = self._compute_weights(batch_gradients, batch_feature_maps)
             batch_grad_cams = GradCAM._apply_weights(batch_weights, batch_feature_maps)
 
             grad_cams = batch_grad_cams if grad_cams is None else tf.concat(
@@ -104,7 +80,7 @@ class GradCAM(BaseExplanation):
         # as Grad-CAM is based on the last convolutionnal layer, the explanation output has the
         # same dimensions as this layer, we need to resize the size of the explanations to match
         # the size of the inputs
-        input_shape = model.input.shape[1:3]
+        input_shape = self.model.input.shape[1:3]
         grad_cams = tf.image.resize(grad_cams[..., tf.newaxis], (*input_shape,))
 
         return grad_cams[..., 0]

@@ -64,58 +64,20 @@ class Occlusion(BaseExplanation):
         explanations : ndarray (N, W, H)
             Occlusion sensitivity, same shape as the inputs, except for the channels.
         """
-        return Occlusion._compute(self.model,
-                                  inputs,
-                                  labels,
-                                  self.batch_size,
-                                  self.patch_size,
-                                  self.patch_stride,
-                                  self.occlusion_value)
-
-    @staticmethod
-    def _compute(model, inputs, labels, batch_size, patch_size,
-                patch_stride, occlusion_value):
-        """
-        Compute Occlusion sensitivity for a batch of samples.
-
-        Parameters
-        ----------
-        model : tf.keras.Model
-            Model used for computing explanations.
-        inputs : tf.tensor (N, W, H, C)
-            Input samples, with N number of samples, W & H the sample dimensions, and C the
-            number of channels.
-        labels : tf.tensor (N, L)
-            One hot encoded labels to compute for each sample, with N the number of samples, and L
-            the number of classes.
-        batch_size : int
-            Number of samples to explain at once, if None compute all at once.
-        patch_size : tuple (int, int), optional
-            Size of the patches to apply.
-        patch_stride : tuple (int, int), optional
-            Stride between two patches.
-        occlusion_value : float, optional
-            Value used as occlusion.
-
-        Returns
-        -------
-        sensitivity : tf.Tensor (N, W, H, C)
-            Occlusion sensitivity, same shape as the inputs, except for the channels.
-        """
         sensitivity = None
-        batch_size = batch_size or len(inputs)
+        batch_size = self.batch_size or len(inputs)
 
-        masks = Occlusion._get_masks((*inputs.shape[1:],), patch_size, patch_stride)
-        baseline_scores = tf.reduce_sum(model.predict(inputs, batch_size=batch_size) * labels,
+        masks = Occlusion._get_masks((*inputs.shape[1:],), self.patch_size, self.patch_stride)
+        baseline_scores = tf.reduce_sum(self.model.predict(inputs, batch_size=batch_size) * labels,
                                         axis=-1)
 
         for x_batch, y_batch, baseline in tf.data.Dataset.from_tensor_slices(
                 (inputs, labels, baseline_scores)).batch(batch_size):
 
-            occluded_inputs = Occlusion._apply_masks(x_batch, masks, occlusion_value)
+            occluded_inputs = Occlusion._apply_masks(x_batch, masks, self.occlusion_value)
             repeated_labels = repeat_labels(y_batch, len(masks))
 
-            batch_scores = BaseExplanation._batch_predictions(model, occluded_inputs,
+            batch_scores = BaseExplanation._batch_predictions(self.model, occluded_inputs,
                                                                  repeated_labels, batch_size)
             batch_sensitivity = Occlusion._compute_sensitivity(baseline, batch_scores, masks)
 

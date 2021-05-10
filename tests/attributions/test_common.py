@@ -33,9 +33,8 @@ def test_common():
     for method in methods:
         explanations = method.explain(x, y)
 
-        # all explanation must have an explain and compute method
+        # all explanation must have an explain method
         assert hasattr(method, 'explain')
-        assert hasattr(method, '_compute')
 
         # all explanations returned must be numpy array
         assert isinstance(explanations, np.ndarray)

@@ -49,30 +49,5 @@ class GuidedBackprop(BaseExplanation):
         explanations : ndarray (N, W, H)
             Guided Backpropagation maps.
         """
-        return GuidedBackprop._compute(self.model, inputs, labels, self.batch_size)
-
-    @staticmethod
-    def _compute(model, inputs, labels, batch_size):
-        """
-        Compute Guided Backpropagation a batch of samples.
-
-        Parameters
-        ----------
-        model : tf.keras.Model
-            Model used for computing explanations.
-        inputs : tf.tensor (N, W, H, C)
-            Input samples, with N number of samples, W & H the sample dimensions, and C the
-            number of channels.
-        labels : tf.tensor (N, L)
-            One hot encoded labels to compute for each sample, with N the number of samples, and L
-            the number of classes.
-        batch_size : int
-            Number of samples to explain at once, if None compute all at once.
-
-        Returns
-        -------
-        saliency_map : tf.Tensor (N, W, H, C)
-            Guided Backpropagation maps.
-        """
-        gradients = BaseExplanation._batch_gradient(model, inputs, labels, batch_size)
+        gradients = BaseExplanation._batch_gradient(self.model, inputs, labels, self.batch_size)
         return gradients

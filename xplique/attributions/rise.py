@@ -66,53 +66,19 @@ class Rise(BaseExplanation):
         explanations : ndarray (N, W, H)
             RISE maps, same shape as the inputs, except for the channels.
         """
-        return Rise._compute(self.model,
-                             inputs,
-                             labels,
-                             self.batch_size,
-                             self.nb_samples,
-                             self.granularity,
-                             self.preservation_probability)
-
-    @staticmethod
-    def _compute(model, inputs, labels, batch_size, nb_samples,
-                granularity, preservation_probability):
-        """
-        Compute Occlusion sensitivity for a batch of samples.
-
-        Parameters
-        ----------
-        model : tf.keras.Model
-            Model used for computing explanations.
-        batch_size : int
-            Number of samples to explain at once, if None compute all at once.
-        nb_samples : int
-            Number of masks generated for Monte Carlo sampling.
-        granularity : int
-            Size of the grid used to generate the scaled-down masks. Masks are then rescale to
-            input_size + scaled-down size and cropped to input_size.
-        preservation_probability : float
-            Probability of preservation for each pixel (or the percentage of non-masked pixels in
-            each masks), also the expectation value of the mask.
-
-        Returns
-        -------
-        rise_maps : tf.Tensor (N, W, H)
-            RISE maps, same shape as the inputs, except for the channels.
-        """
         rise_maps = None
-        batch_size = batch_size or len(inputs)
+        batch_size = self.batch_size or len(inputs)
 
-        masks = Rise._get_masks((*inputs.shape[1:],), nb_samples, granularity,
-                               preservation_probability)
+        masks = Rise._get_masks((*inputs.shape[1:],), self.nb_samples, self.granularity,
+                               self.preservation_probability)
 
         for x_batch, y_batch in tf.data.Dataset.from_tensor_slices(
                 (inputs, labels)).batch(batch_size):
 
             masked_inputs = Rise._apply_masks(x_batch, masks)
-            repeated_labels = repeat_labels(y_batch, nb_samples)
+            repeated_labels = repeat_labels(y_batch, self.nb_samples)
 
-            predictions = BaseExplanation._batch_predictions(model, masked_inputs,
+            predictions = BaseExplanation._batch_predictions(self.model, masked_inputs,
                                                              repeated_labels, batch_size)
             scores = Rise._compute_importance(predictions, masks)
 

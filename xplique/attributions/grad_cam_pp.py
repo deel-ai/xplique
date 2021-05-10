@@ -5,7 +5,6 @@ Module related to Grad-CAM++ method
 import tensorflow as tf
 
 from .grad_cam import GradCAM
-from ..utils import sanitize_input_output
 
 
 class GradCAMPP(GradCAM):
@@ -33,27 +32,6 @@ class GradCAMPP(GradCAM):
     # Avoid zero division during procedure. (the value is not important, as if the denominator is
     # zero, then the nominator will also be zero).
     EPSILON = tf.constant(1e-4)
-
-    @sanitize_input_output
-    def explain(self, inputs, labels):
-        """
-        Compute Grad-CAM++ and resize explanations to match inputs shape.
-
-        Parameters
-        ----------
-        inputs : tf.tensor (N, W, H, C)
-            Input samples, with N number of samples, W & H the sample dimensions, and C the
-            number of channels.
-        labels : tf.tensor (N, L)
-            One hot encoded labels to compute for each sample, with N the number of samples, and L
-            the number of classes.
-
-        Returns
-        -------
-        grad_cam_pp : tf.tensor (N, W, H)
-            Grad-CAM++ explanations, same shape as the inputs except for the channels.
-        """
-        return GradCAMPP._compute(self.model, inputs, labels, self.batch_size)
 
     @staticmethod
     @tf.function
