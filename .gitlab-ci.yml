@@ -1,0 +1,14 @@
+image: fkrull/multi-python
+
+stages:
+  - test
+
+linting:
+  stage: test
+  script:
+    - tox -e py36-lint,py37-lint,py38-lint
+
+pytest:
+  stage: test
+  script:
+    - tox -e py36,py37,py38
