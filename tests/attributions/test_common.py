@@ -3,8 +3,24 @@ import numpy as np
 from xplique.attributions import (Saliency, GradientInput, IntegratedGradients, SmoothGrad, VarGrad,
                                   SquareGrad, GradCAM, Occlusion, Rise, GuidedBackprop, DeconvNet,
                                   GradCAMPP)
-from xplique.attributions.base import BaseExplanation
+from xplique.attributions.base import BaseExplainer
 from ..utils import generate_data, generate_model
+
+def _default_methods(model, output_layer_index):
+    return [
+        Saliency(model, output_layer_index),
+        GradientInput(model, output_layer_index),
+        SmoothGrad(model, output_layer_index),
+        VarGrad(model, output_layer_index),
+        SquareGrad(model, output_layer_index),
+        IntegratedGradients(model, output_layer_index),
+        GradCAM(model, output_layer_index),
+        Occlusion(model),
+        Rise(model),
+        GuidedBackprop(model, output_layer_index),
+        DeconvNet(model, output_layer_index),
+        GradCAMPP(model, output_layer_index),
+    ]
 
 
 def test_common():
@@ -15,20 +31,7 @@ def test_common():
     model = generate_model(input_shape, nb_labels)
     output_layer_index = -2
 
-    methods = [
-        Saliency(model, output_layer_index),
-        GradientInput(model, output_layer_index),
-        SmoothGrad(model, output_layer_index),
-        VarGrad(model, output_layer_index),
-        SquareGrad(model, output_layer_index),
-        IntegratedGradients(model, output_layer_index),
-        GradCAM(model, output_layer_index),
-        Occlusion(model, output_layer_index),
-        Rise(model, output_layer_index),
-        GuidedBackprop(model, output_layer_index),
-        DeconvNet(model, output_layer_index),
-        GradCAMPP(model, output_layer_index),
-    ]
+    methods = _default_methods(model, output_layer_index)
 
     for method in methods:
         explanations = method.explain(x, y)
@@ -46,7 +49,7 @@ def test_batch_size():
     input_shape, nb_labels, samples = ((10, 10, 3), 5, 20)
     x, y = generate_data(input_shape, nb_labels, samples)
     model = generate_model(input_shape, nb_labels)
-    output_layer_index = -2
+    output_layer_index = -1
 
     batch_sizes = [None, 1, 32]
 
@@ -60,8 +63,8 @@ def test_batch_size():
             SquareGrad(model, output_layer_index, bs),
             IntegratedGradients(model, output_layer_index, bs),
             GradCAM(model, output_layer_index, bs),
-            Occlusion(model, output_layer_index, bs),
-            Rise(model, output_layer_index, bs),
+            Occlusion(model, bs),
+            Rise(model, bs),
             GuidedBackprop(model, output_layer_index, bs),
             DeconvNet(model, output_layer_index, bs),
             GradCAMPP(model, output_layer_index, bs),
@@ -80,33 +83,20 @@ def test_model_caching():
     """Test the caching engine, used to avoid re-tracing"""
 
     model = generate_model()
-    output_layer_index = -2
+    output_layer_index = -1
 
     # the key used for caching is the following tuple
-    cache_key = (id(model), model.input_shape, output_layer_index)
+    cache_key = (id(model.input), id(model.output))
 
-    cache_len_before = len(BaseExplanation._cache_models.keys())  # pylint: disable=protected-access
+    cache_len_before = len(BaseExplainer._cache_models.keys())  # pylint: disable=protected-access
 
-    assert (cache_key not in BaseExplanation._cache_models)  # pylint: disable=protected-access
+    assert (cache_key not in BaseExplainer._cache_models)  # pylint: disable=protected-access
 
-    _ = [
-        Saliency(model, output_layer_index),
-        GradientInput(model, output_layer_index),
-        SmoothGrad(model, output_layer_index),
-        VarGrad(model, output_layer_index),
-        SquareGrad(model, output_layer_index),
-        IntegratedGradients(model, output_layer_index),
-        GradCAM(model, output_layer_index),
-        Occlusion(model, output_layer_index),
-        Rise(model, output_layer_index),
-        GuidedBackprop(model, output_layer_index),
-        DeconvNet(model, output_layer_index),
-        GradCAMPP(model, output_layer_index),
-    ]
+    _ = _default_methods(model, output_layer_index)
 
     # check that the key is now in the cache
-    assert (cache_key in BaseExplanation._cache_models)  # pylint: disable=protected-access
+    assert (cache_key in BaseExplainer._cache_models)  # pylint: disable=protected-access
 
     # ensure that there no more than one key has been added
     assert (len(
-        BaseExplanation._cache_models) == cache_len_before + 1)  # pylint: disable=protected-access
+        BaseExplainer._cache_models) == cache_len_before + 1)  # pylint: disable=protected-access

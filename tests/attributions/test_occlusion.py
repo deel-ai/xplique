@@ -14,7 +14,7 @@ def test_output_shape():
         x, y = generate_data(input_shape, nb_labels, 20)
         model = generate_model(input_shape, nb_labels)
 
-        method = Occlusion(model, -2)
+        method = Occlusion(model)
         sensitivity = method.explain(x, y)
 
         assert x.shape[:3] == sensitivity.shape[:3]
@@ -25,8 +25,8 @@ def test_polymorphic_parameters():
     s = 3
     model = generate_model()
 
-    occlusion_int = Occlusion(model, -2, patch_size=s, patch_stride=s)
-    occlusion_tuple = Occlusion(model, -2, patch_size=(s, s), patch_stride=(s, s))
+    occlusion_int = Occlusion(model, patch_size=s, patch_stride=s)
+    occlusion_tuple = Occlusion(model, patch_size=(s, s), patch_stride=(s, s))
 
     assert occlusion_int.patch_size == occlusion_tuple.patch_size
     assert occlusion_int.patch_stride == occlusion_tuple.patch_stride

@@ -5,11 +5,11 @@ Module related to SmoothGrad method
 import numpy as np
 import tensorflow as tf
 
-from .base import BaseExplanation
+from .base import WhiteBoxExplainer
 from ..utils import sanitize_input_output, repeat_labels
 
 
-class SmoothGrad(BaseExplanation):
+class SmoothGrad(WhiteBoxExplainer):
     """
     Used to compute the SmoothGrad, by averaging Saliency maps of noisy samples centered on the
     original sample.
@@ -66,7 +66,7 @@ class SmoothGrad(BaseExplanation):
             noisy_inputs = SmoothGrad._apply_noise(x_batch, noisy_mask)
             repeated_labels = repeat_labels(y_batch, self.nb_samples)
             # compute the gradient of each noisy samples generated
-            gradients = BaseExplanation._batch_gradient(self.model, noisy_inputs, repeated_labels,
+            gradients = WhiteBoxExplainer._batch_gradient(self.model, noisy_inputs, repeated_labels,
                                                         batch_size)
             # group by inputs and compute the average gradient
             gradients = tf.reshape(gradients, (-1, self.nb_samples, *gradients.shape[1:]))

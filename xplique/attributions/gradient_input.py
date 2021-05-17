@@ -4,11 +4,11 @@ Module related to Gradient x Input method
 
 import tensorflow as tf
 
-from .base import BaseExplanation
+from .base import WhiteBoxExplainer
 from ..utils import sanitize_input_output
 
 
-class GradientInput(BaseExplanation):
+class GradientInput(WhiteBoxExplainer):
     """
     Used to compute elementwise product between the saliency maps of Simonyan et al. and the
     input (Gradient x Input).
@@ -43,7 +43,7 @@ class GradientInput(BaseExplanation):
         explanations : ndarray (N, W, H)
             Gradients x Inputs, with the same shape as the inputs.
         """
-        gradients = BaseExplanation._batch_gradient(self.model, inputs, labels, self.batch_size)
+        gradients = WhiteBoxExplainer._batch_gradient(self.model, inputs, labels, self.batch_size)
         gradients_inputs = tf.multiply(gradients, inputs)
 
         return gradients_inputs

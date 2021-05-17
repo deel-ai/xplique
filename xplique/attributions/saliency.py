@@ -4,11 +4,11 @@ Module related to Saliency maps method
 
 import tensorflow as tf
 
-from .base import BaseExplanation
+from .base import WhiteBoxExplainer
 from ..utils import sanitize_input_output
 
 
-class Saliency(BaseExplanation):
+class Saliency(WhiteBoxExplainer):
     """
     Used to compute the absolute gradient of the output relative to the input.
 
@@ -53,7 +53,7 @@ class Saliency(BaseExplanation):
         explanations : ndarray (N, W, H)
             Saliency maps.
         """
-        gradients = BaseExplanation._batch_gradient(self.model, inputs, labels, self.batch_size)
+        gradients = WhiteBoxExplainer._batch_gradient(self.model, inputs, labels, self.batch_size)
         gradients = tf.abs(gradients)
 
         # if the image is a RGB, take the maximum magnitude across the channels (see Ref.)

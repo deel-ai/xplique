@@ -2,10 +2,10 @@
 Module related to DeconvNet method
 """
 
-from .base import BaseExplanation
+from .base import WhiteBoxExplainer
 from ..utils import override_relu_gradient, deconv_relu, sanitize_input_output
 
-class DeconvNet(BaseExplanation):
+class DeconvNet(WhiteBoxExplainer):
     """
     Used to compute the DeconvNet method, which modifies the classic Saliency procedure on
     ReLU's non linearities, allowing only the positive gradients (even from negative inputs) to
@@ -48,5 +48,5 @@ class DeconvNet(BaseExplanation):
         explanations : ndarray (N, W, H)
             Guided Backpropagation maps.
         """
-        gradients = BaseExplanation._batch_gradient(self.model, inputs, labels, self.batch_size)
+        gradients = WhiteBoxExplainer._batch_gradient(self.model, inputs, labels, self.batch_size)
         return gradients

@@ -2,11 +2,11 @@
 Module related to Guided Backpropagation method
 """
 
-from .base import BaseExplanation
+from .base import WhiteBoxExplainer
 from ..utils import sanitize_input_output, guided_relu, override_relu_gradient
 
 
-class GuidedBackprop(BaseExplanation):
+class GuidedBackprop(WhiteBoxExplainer):
     """
     Used to compute the Guided Backpropagation, which modifies the classic Saliency procedure on
     ReLU's non linearities, allowing only the positive gradients from positive activations to pass
@@ -49,5 +49,5 @@ class GuidedBackprop(BaseExplanation):
         explanations : ndarray (N, W, H)
             Guided Backpropagation maps.
         """
-        gradients = BaseExplanation._batch_gradient(self.model, inputs, labels, self.batch_size)
+        gradients = WhiteBoxExplainer._batch_gradient(self.model, inputs, labels, self.batch_size)
         return gradients

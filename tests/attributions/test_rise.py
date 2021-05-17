@@ -12,7 +12,7 @@ def test_output_shape():
         x, y = generate_data(input_shape, nb_labels, 10)
         model = generate_model(input_shape, nb_labels)
 
-        method = Rise(model, -2, nb_samples=100)
+        method = Rise(model, nb_samples=100)
         rise_maps = method.explain(x, y)
 
         assert x.shape[:-1] == rise_maps.shape

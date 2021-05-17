@@ -7,11 +7,11 @@ from math import ceil
 import numpy as np
 import tensorflow as tf
 
-from .base import BaseExplanation
+from .base import BlackBoxExplainer
 from ..utils import sanitize_input_output, repeat_labels
 
 
-class Occlusion(BaseExplanation):
+class Occlusion(BlackBoxExplainer):
     """
     Used to compute the Occlusion sensitivity method, sweep a patch that occludes pixels over the
     images and use the variations of the model prediction to deduce critical areas.
@@ -23,9 +23,6 @@ class Occlusion(BaseExplanation):
     ----------
     model : tf.keras.Model
         Model used for computing explanations.
-    output_layer_index : int, optional
-        Index of the output layer, default to the last layer, it is recommended to use the layer
-        before Softmax (often '-2').
     batch_size : int, optional
         Number of samples to explain at once, if None compute all at once.
     patch_size : tuple (int, int) or int, optional
@@ -36,9 +33,9 @@ class Occlusion(BaseExplanation):
         Value used as occlusion.
     """
 
-    def __init__(self, model, output_layer_index=-1, batch_size=32, patch_size=(3, 3),
+    def __init__(self, model, batch_size=32, patch_size=(3, 3),
                  patch_stride=(3, 3), occlusion_value=0.5):
-        super().__init__(model, output_layer_index, batch_size)
+        super().__init__(model, batch_size)
 
         self.patch_size = patch_size if isinstance(patch_size, tuple) else (patch_size, patch_size)
         self.patch_stride = patch_stride if isinstance(patch_stride, tuple) \
@@ -77,7 +74,7 @@ class Occlusion(BaseExplanation):
             occluded_inputs = Occlusion._apply_masks(x_batch, masks, self.occlusion_value)
             repeated_labels = repeat_labels(y_batch, len(masks))
 
-            batch_scores = BaseExplanation._batch_predictions(self.model, occluded_inputs,
+            batch_scores = BlackBoxExplainer._batch_predictions(self.model, occluded_inputs,
                                                                  repeated_labels, batch_size)
             batch_sensitivity = Occlusion._compute_sensitivity(baseline, batch_scores, masks)
 

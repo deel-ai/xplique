@@ -4,11 +4,11 @@ Module related to Integrated Gradients method
 
 import tensorflow as tf
 
-from .base import BaseExplanation
+from .base import WhiteBoxExplainer
 from ..utils import sanitize_input_output, repeat_labels
 
 
-class IntegratedGradients(BaseExplanation):
+class IntegratedGradients(WhiteBoxExplainer):
     """
     Used to compute the Integrated Gradients, by cumulating the gradients along a path from a
     baseline to the desired point.
@@ -75,7 +75,7 @@ class IntegratedGradients(BaseExplanation):
             repeated_labels = repeat_labels(y_batch, self.steps)
 
             # compute the gradient for each paths
-            interpolated_gradients = BaseExplanation._batch_gradient(self.model,
+            interpolated_gradients = WhiteBoxExplainer._batch_gradient(self.model,
                                                                      interpolated_inputs,
                                                                      repeated_labels,
                                                                      batch_size)

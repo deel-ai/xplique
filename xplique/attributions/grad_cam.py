@@ -5,11 +5,11 @@ Module related to Grad-CAM method
 import tensorflow as tf
 from tensorflow.keras.models import Model  # pylint: disable=import-error
 
-from .base import BaseExplanation
+from .base import WhiteBoxExplainer
 from ..utils import sanitize_input_output
 
 
-class GradCAM(BaseExplanation):
+class GradCAM(WhiteBoxExplainer):
     """
     Used to compute the Grad-CAM visualization method.
 
@@ -44,7 +44,7 @@ class GradCAM(BaseExplanation):
             self.conv_layer = next(
                 layer for layer in model.layers[::-1] if hasattr(layer, 'filters'))
 
-        self.model = Model(model.input, [self.conv_layer.output, self.target_layer.output])
+        self.model = Model(model.input, [self.conv_layer.output, self.model.output])
 
     @sanitize_input_output
     def explain(self, inputs, labels):

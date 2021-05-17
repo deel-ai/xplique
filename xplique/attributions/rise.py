@@ -4,11 +4,11 @@ Module related to RISE method
 
 import tensorflow as tf
 
-from .base import BaseExplanation
+from .base import BlackBoxExplainer
 from ..utils import sanitize_input_output, repeat_labels
 
 
-class Rise(BaseExplanation):
+class Rise(BlackBoxExplainer):
     """
     Used to compute the RISE method, by probing the model with randomly masked versions of
     the input image and obtaining the corresponding outputs to deduce critical areas.
@@ -20,9 +20,6 @@ class Rise(BaseExplanation):
     ----------
     model : tf.keras.Model
         Model used for computing explanations.
-    output_layer_index : int, optional
-        Index of the output layer, default to the last layer, it is recommended to use the
-        softmax layer.
     batch_size : int, optional
         Number of samples to explain at once, if None compute all at once.
     nb_samples : int, optional
@@ -39,9 +36,9 @@ class Rise(BaseExplanation):
     # zero, then the nominator will also be zero).
     EPSILON = tf.constant(1e-4)
 
-    def __init__(self, model, output_layer_index=-1, batch_size=32, nb_samples=80, granularity=6,
+    def __init__(self, model, batch_size=32, nb_samples=80, granularity=6,
                  preservation_probability=0.5):
-        super().__init__(model, output_layer_index, batch_size)
+        super().__init__(model, batch_size)
 
         self.nb_samples = nb_samples
         self.granularity = granularity
@@ -78,7 +75,7 @@ class Rise(BaseExplanation):
             masked_inputs = Rise._apply_masks(x_batch, masks)
             repeated_labels = repeat_labels(y_batch, self.nb_samples)
 
-            predictions = BaseExplanation._batch_predictions(self.model, masked_inputs,
+            predictions = BlackBoxExplainer._batch_predictions(self.model, masked_inputs,
                                                              repeated_labels, batch_size)
             scores = Rise._compute_importance(predictions, masks)
 
