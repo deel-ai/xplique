@@ -1,7 +1,5 @@
 [MASTER]
 disable=
-    C0114, # missing-module-docstring
-    W0221, # overriding method with *args
     R0903, # allows to expose only one public method
     R0914, # allow multiples local variables
 
