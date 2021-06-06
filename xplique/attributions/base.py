@@ -8,9 +8,9 @@ import warnings
 import tensorflow as tf
 
 
-class BaseExplainer(ABC):
+class BlackBoxExplainer(ABC):
     """
-    Base class for explainers.
+    Base class for Black-Box explainers.
 
     Parameters
     ----------
@@ -25,11 +25,14 @@ class BaseExplainer(ABC):
     _cache_models = {}
 
     def __init__(self, model, batch_size=64):
-        model_key = (id(model.input), id(model.output))
-        if model_key not in BaseExplainer._cache_models:
-            BaseExplainer._cache_models[model_key] = model
+        if isinstance(model, tf.keras.Model):
+            model_key = (id(model.input), id(model.output))
+            if model_key not in BlackBoxExplainer._cache_models:
+                BlackBoxExplainer._cache_models[model_key] = model
+            self.model = BlackBoxExplainer._cache_models[model_key]
+        else:
+            self.model = model
 
-        self.model = BaseExplainer._cache_models[model_key]
         self.batch_size = batch_size
 
     @abstractmethod
@@ -43,7 +46,7 @@ class BaseExplainer(ABC):
         inputs : ndarray (N, W, H, C)
             Input samples, with N number of samples, W & H the sample dimensions, and C the
             number of channels.
-        labels : ndarray(N, L)
+        labels : ndarray (N, L)
             One hot encoded labels to compute for each sample, with N the number of samples, and L
             the number of classes.
 
@@ -57,19 +60,6 @@ class BaseExplainer(ABC):
     def __call__(self, inputs, labels):
         """Explain alias"""
         return self.explain(inputs, labels)
-
-
-class BlackBoxExplainer(BaseExplainer, ABC):
-    """
-    Base class for Black-Box explainers.
-
-    Parameters
-    ----------
-    model : tf.keras.Model
-        Model used for computing explanations.
-    batch_size : int, optional
-        Number of samples to explain at once, if None compute all at once.
-    """
 
     @staticmethod
     @tf.function
