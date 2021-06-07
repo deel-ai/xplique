@@ -1,7 +1,8 @@
+import numpy as np
 import tensorflow.keras.backend as K
 
 from xplique.attributions import GradCAMPP
-from ..utils import generate_data, generate_model
+from ..utils import generate_data, generate_model, almost_equal
 
 
 def test_output_shape():
@@ -41,3 +42,45 @@ def test_conv_layer():
     # target a random flatten layer
     gc_flatten = GradCAMPP(model, conv_layer='flatten')
     assert gc_flatten.conv_layer == flatten_layer
+
+def test_weights_computation():
+    """Ensure the grad-cam++ weights are correct"""
+    activations = np.array([
+        [[1.0, 1.0],
+         [1.0, 1.0]],
+
+        [[1.0, 1.0],
+         [0.0, 0.0]],
+
+        [[0.0, 0.0],
+         [0.0, 0.0]],
+
+        [[0.5, 0.0],
+         [0.0, 0.0]],
+    ], dtype=np.float32)[None, :, :, :]
+    grads = np.array([
+        [[1.0, 1.0],
+         [1.0, 1.0]],
+
+        [[1.0, 1.0],
+         [0.0, 0.0]],
+
+        [[0.0, 0.0],
+         [0.0, 0.0]],
+
+        [[0.5, 0.0],
+         [0.0, 0.0]],
+    ], dtype=np.float32)[None, :, :, :]
+
+    # move so that the filters F are at the end [F, W, H] -> [W, H, F]
+    activations = np.moveaxis(activations, 1, 3)
+    grads = np.moveaxis(grads, 1, 3)
+
+    weights = GradCAMPP._compute_weights(grads, activations)
+    assert almost_equal(weights[0], [4.0 / (2.0 * 4.0 + 4.0) * (4.0 / 4.0),
+                                     2.0 / (2.0 * 2.0  + 1.0) * (2.0 / 4.0),
+                                     0.0,
+                                     0.25/ (2.0 * 0.25 + 0.5**3*0.125) * 0.125], 1e-3)
+
+    grad_cam_pp = GradCAMPP._apply_weights(weights, activations)
+    assert almost_equal(grad_cam_pp, np.sum(activations * weights, -1)) # as we have no negative value

@@ -56,10 +56,7 @@ class GradCAMPP(GradCAM):
         feature_maps_gradients_square = tf.pow(feature_maps_gradients, 2)
         feature_maps_gradients_cube = tf.pow(feature_maps_gradients, 3)
 
-        feature_map_avg = tf.reduce_mean(feature_maps, axis=(1, 2))
-        feature_map_avg = tf.reshape(feature_map_avg,
-                                     (feature_map_avg.shape[0], 1, 1,
-                                      feature_map_avg.shape[-1]))
+        feature_map_avg = tf.reduce_mean(feature_maps, axis=(1, 2), keepdims=True)
 
         nominator = feature_maps_gradients_square
         denominator = 2.0 * feature_maps_gradients_square + \
