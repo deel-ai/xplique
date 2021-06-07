@@ -3,7 +3,7 @@ import numpy as np
 from xplique.attributions import (Saliency, GradientInput, IntegratedGradients, SmoothGrad, VarGrad,
                                   SquareGrad, GradCAM, Occlusion, Rise, GuidedBackprop, DeconvNet,
                                   GradCAMPP)
-from xplique.attributions.base import BaseExplainer
+from xplique.attributions.base import BlackBoxExplainer
 from ..utils import generate_data, generate_model
 
 def _default_methods(model, output_layer_index):
@@ -88,15 +88,16 @@ def test_model_caching():
     # the key used for caching is the following tuple
     cache_key = (id(model.input), id(model.output))
 
-    cache_len_before = len(BaseExplainer._cache_models.keys())  # pylint: disable=protected-access
+    cache_len_before = len(BlackBoxExplainer._cache_models.keys())  # pylint:
+    # disable=protected-access
 
-    assert (cache_key not in BaseExplainer._cache_models)  # pylint: disable=protected-access
+    assert (cache_key not in BlackBoxExplainer._cache_models)  # pylint: disable=protected-access
 
     _ = _default_methods(model, output_layer_index)
 
     # check that the key is now in the cache
-    assert (cache_key in BaseExplainer._cache_models)  # pylint: disable=protected-access
+    assert (cache_key in BlackBoxExplainer._cache_models)  # pylint: disable=protected-access
 
     # ensure that there no more than one key has been added
     assert (len(
-        BaseExplainer._cache_models) == cache_len_before + 1)  # pylint: disable=protected-access
+        BlackBoxExplainer._cache_models) == cache_len_before + 1)  # pylint: disable=protected-access

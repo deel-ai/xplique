@@ -6,6 +6,7 @@ from abc import ABC, abstractmethod
 import warnings
 
 import tensorflow as tf
+from ..utils import find_layer
 
 
 class BlackBoxExplainer(ABC):
@@ -38,8 +39,7 @@ class BlackBoxExplainer(ABC):
     @abstractmethod
     def explain(self, inputs, labels):
         """
-        Compute the explanations of the given samples, take care of sanitizing inputs, returning
-        a ndarray, and splits the calculation into several batches if necessary.
+        Compute the explanations of the given samples.
 
         Parameters
         ----------
@@ -52,8 +52,8 @@ class BlackBoxExplainer(ABC):
 
         Returns
         -------
-        explanations : ndarray (N, W, H)
-            Explanations computed, with the same shape as the inputs except for the channels.
+        explanations : ndarray
+            Explanations computed.
         """
         raise NotImplementedError()
 
@@ -130,16 +130,16 @@ class WhiteBoxExplainer(BlackBoxExplainer, ABC):
     ----------
     model : tf.keras.Model
         Model used for computing explanations.
-    output_layer_index : int, optional
-        Index of the output layer, default to the last layer, it is recommended to use the layer
-        before Softmax (often '-2').
+    output_layer_index : int or string, optional
+        Index or name of the output layer, default to the last layer, it is recommended to use the
+        layer before Softmax.
     batch_size : int, optional
         Number of samples to explain at once, if None compute all at once.
     """
 
-    def __init__(self, model, output_layer_index, batch_size=64):
+    def __init__(self, model, output_layer, batch_size=64):
         # reconfigure the model
-        target_layer = model.layers[output_layer_index]
+        target_layer = find_layer(model, output_layer)
         model = tf.keras.Model(model.input, target_layer.output)
 
         # sanity check, output layer before softmax
