@@ -141,7 +141,7 @@ class Occlusion(BlackBoxExplainer):
             Unchanged label for each occluded inputs.
         """
         occluded_inputs = tf.expand_dims(inputs, axis=1)
-        occluded_inputs = tf.repeat(occluded_inputs, repeats=len(masks), axis=1)
+        occluded_inputs = tf.repeat(occluded_inputs, repeats=masks.shape[0], axis=1)
         occluded_inputs = occluded_inputs * tf.cast(tf.logical_not(masks), tf.float32) + tf.cast(
             masks, tf.float32) * occlusion_value
 
