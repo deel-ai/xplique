@@ -11,3 +11,5 @@ pytest-cov
 numkdoc
 tox
 bump2version
+mypy
+mypy-extensions
