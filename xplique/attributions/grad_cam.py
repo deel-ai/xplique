@@ -3,10 +3,10 @@ Module related to Grad-CAM method
 """
 
 import tensorflow as tf
-from tensorflow.keras.models import Model  # pylint: disable=import-error
 
 from .base import WhiteBoxExplainer
-from ..utils import sanitize_input_output
+from ..utils import sanitize_input_output, find_layer
+from ..types import Tuple, Union, Optional
 
 
 class GradCAM(WhiteBoxExplainer):
@@ -21,50 +21,53 @@ class GradCAM(WhiteBoxExplainer):
 
     Parameters
     ----------
-    model : tf.keras.Model
+    model
         Model used for computing explanations.
-    output_layer_index : int, optional
-        Index of the output layer, default to the last layer, it is recommended to use the layer
-        before Softmax (often '-2').
-    batch_size : int, optional
+    output_layer
+        Layer to target for the output (e.g logits or after softmax), if int, will be be interpreted
+        as layer index, if string will look for the layer name. Default to the last layer, it is
+        recommended to use the layer before Softmax.
+    batch_size
         Number of samples to explain at once, if None compute all at once.
-    conv_layer : int or string or None
+    conv_layer
         Layer to target for Grad-CAM algorithm, if int, will be be interpreted as layer index,
         if string will look for the layer name.
     """
 
-    def __init__(self, model, output_layer_index=-1, batch_size=32, conv_layer=None):
-        super().__init__(model, output_layer_index, batch_size)
+    def __init__(self,
+                 model: tf.keras.Model,
+                 output_layer: Optional[Union[str, int]] = -1,
+                 batch_size: Optional[int] = 32,
+                 conv_layer: Optional[Union[str, int]] = None):
+        super().__init__(model, output_layer, batch_size)
 
         # find the layer to apply grad-cam
-        if isinstance(conv_layer, int):
-            self.conv_layer = model.layers[conv_layer]
-        elif isinstance(conv_layer, str):
-            self.conv_layer = model.get_layer(conv_layer)
+        if conv_layer is not None:
+            self.conv_layer = find_layer(model, conv_layer)
         else:
-            # No conv_layer specified, assuming default procedure : the last conv layer
+            # no conv_layer specified, assuming default procedure : the last conv layer
             self.conv_layer = next(
                 layer for layer in model.layers[::-1] if hasattr(layer, 'filters'))
 
-        self.model = Model(model.input, [self.conv_layer.output, self.model.output])
+        self.model = tf.keras.Model(model.input, [self.conv_layer.output, self.model.output])
 
     @sanitize_input_output
-    def explain(self, inputs, labels):
+    def explain(self,
+                inputs: tf.Tensor,
+                labels: tf.Tensor) -> tf.Tensor:
         """
         Compute Grad-CAM and resize explanations to match inputs shape.
 
         Parameters
         ----------
-        inputs : ndarray (N, W, H, C)
-            Input samples, with N number of samples, W & H the sample dimensions, and C the
-            number of channels.
-        labels : ndarray(N, L)
-            One hot encoded labels to compute for each sample, with N the number of samples, and L
-            the number of classes.
+        inputs
+            Input samples to be explained.
+        labels
+            One-hot encoded labels, one for each sample.
 
         Returns
         -------
-        grad_cam : ndarray (N, W, H)
+        grad_cam
             Grad-CAM explanations, same shape as the inputs except for the channels.
         """
         grad_cams = None
@@ -82,33 +85,34 @@ class GradCAM(WhiteBoxExplainer):
         # as Grad-CAM is based on the last convolutionnal layer, the explanation output has the
         # same dimensions as this layer, we need to resize the size of the explanations to match
         # the size of the inputs
-        input_shape = self.model.input.shape[1:3]
+        input_shape: Tuple[int, int] = inputs.shape[1:3]
         grad_cams = tf.image.resize(grad_cams[..., tf.newaxis], (*input_shape,))
 
         return grad_cams[..., 0]
 
     @staticmethod
     @tf.function
-    def _gradient(model, inputs, labels):
+    def _gradient(model: tf.keras.Model,
+                  inputs: tf.Tensor,
+                  labels: tf.Tensor) -> Tuple[tf.Tensor,
+                                              tf.Tensor]:
         """
         Compute the gradient with respect to the conv_layer.
 
         Parameters
         ----------
-        model : tf.keras.Model
+        model
             Model used for computing explanations.
-        inputs : ndarray (N, W, H, C)
-            Batch of input samples , with N number of samples, W & H the sample dimensions,
-            and C the number of channels.
-        labels : ndarray (N, L)
-            One hot encoded labels to compute for each sample, with N the number of samples, and L
-            the number of classes.
+        inputs
+            Input samples to be explained.
+        labels
+            One-hot encoded labels, one for each sample.
 
         Returns
         -------
-        feature_maps : tf.Tensor (N, ConvWidth, ConvHeight, Filters)
+        feature_maps
             Activations for the target convolution layer.
-        feature_maps_gradients : tf.Tensor (N, ConvWidth, ConvHeight, Filters)
+        feature_maps_gradients
             Gradients for the target convolution layer.
         """
         with tf.GradientTape(watch_accessed_variables=False) as tape:
@@ -122,44 +126,44 @@ class GradCAM(WhiteBoxExplainer):
 
     @staticmethod
     @tf.function
-    def _compute_weights(feature_maps_gradients, feature_maps):
+    def _compute_weights(feature_maps_gradients: tf.Tensor,
+                         feature_maps: tf.Tensor) -> tf.Tensor:
         """
         Compute the weights according to Grad-CAM procedure.
 
         Parameters
         ----------
-        feature_maps_gradients : tf.Tensor (N, ConvWidth, ConvHeight, Filters)
+        feature_maps_gradients
             Gradients for the target convolution layer.
-        feature_maps : tf.Tensor (N, CW, CH, Filters)
+        feature_maps
             Activations for the target convolution layer. Not used for Grad-CAM.
 
         Returns
         -------
-        weights : tf.Tensor (N, 1, 1, Filters)
+        weights
             Weights for each feature maps.
         """
         # pylint: disable=unused-argument
-        weights = tf.reduce_mean(feature_maps_gradients, axis=(1, 2))
-        weights = tf.reshape(weights, (weights.shape[0], 1, 1, weights.shape[-1]))
-
+        weights = tf.reduce_mean(feature_maps_gradients, axis=(1, 2), keepdims=True)
         return weights
 
     @staticmethod
     @tf.function
-    def _apply_weights(weights, feature_maps):
+    def _apply_weights(weights: tf.Tensor,
+                       feature_maps: tf.Tensor) -> tf.Tensor:
         """
-        Apply the weights to the feature maps and sum them, and follow it by a ReLU.
+        Apply the weights to the feature maps, sum them and follow it by a ReLU.
 
         Parameters
         ----------
-        weights : tf.Tensor (N, 1, 1, Filters)
+        weights
             Weights for each feature maps.
-        feature_maps : tf.Tensor (N, ConvWidth, ConvHeight, Filters)
+        feature_maps
             Activations for the target convolution layer.
 
         Returns
         -------
-        weighted_feature_maps : tf.Tensor (N, ConvWidth, ConvHeight)
+        weighted_feature_maps
         """
         weighted_feature_maps = tf.reduce_sum(tf.multiply(feature_maps, weights), axis=-1)
         weighted_feature_maps = tf.nn.relu(weighted_feature_maps)

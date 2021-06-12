@@ -2,11 +2,11 @@
 Module related to SmoothGrad method
 """
 
-import numpy as np
 import tensorflow as tf
 
 from .base import WhiteBoxExplainer
 from ..utils import sanitize_input_output, repeat_labels
+from ..types import Tuple, Union, Optional
 
 
 class SmoothGrad(WhiteBoxExplainer):
@@ -19,41 +19,47 @@ class SmoothGrad(WhiteBoxExplainer):
 
     Parameters
     ----------
-    model : tf.keras.Model
+    model
         Model used for computing explanations.
-    output_layer_index : int, optional
-        Index of the output layer, default to the last layer, it is recommended to use the layer
-        before Softmax (often '-2').
-    batch_size : int, optional
+    output_layer
+        Layer to target for the output (e.g logits or after softmax), if int, will be be interpreted
+        as layer index, if string will look for the layer name. Default to the last layer, it is
+        recommended to use the layer before Softmax.
+    batch_size
         Number of samples to explain at once, if None compute all at once.
-    nb_samples : int, optional
+    nb_samples
         Number of noisy samples generated for the smoothing procedure.
-    noise : float, optional
+    noise
         Scalar, noise used as standard deviation of a normal law centered on zero.
     """
 
-    def __init__(self, model, output_layer_index=-1, batch_size=32, nb_samples=50, noise=0.5):
-        super().__init__(model, output_layer_index, batch_size)
+    def __init__(self,
+                 model: tf.keras.Model,
+                 output_layer: Optional[Union[str, int]] = -1,
+                 batch_size: Optional[int] = 32,
+                 nb_samples: int = 50,
+                 noise: float = 0.2):
+        super().__init__(model, output_layer, batch_size)
         self.nb_samples = nb_samples
         self.noise = noise
 
     @sanitize_input_output
-    def explain(self, inputs, labels):
+    def explain(self,
+                inputs: tf.Tensor,
+                labels: tf.Tensor) -> tf.Tensor:
         """
         Compute SmoothGrad for a batch of samples.
 
         Parameters
         ----------
-        inputs : ndarray (N, W, H, C)
-            Input samples, with N number of samples, W & H the sample dimensions, and C the
-            number of channels.
-        labels : ndarray(N, L)
-            One hot encoded labels to compute for each sample, with N the number of samples, and L
-            the number of classes.
+        inputs
+            Input samples to be explained.
+        labels
+            One-hot encoded labels, one for each sample.
 
         Returns
         -------
-        explanations : ndarray (N, W, H)
+        explanations
             Smoothed gradients, same shape as the inputs.
         """
         smoothed_gradients = None
@@ -78,42 +84,43 @@ class SmoothGrad(WhiteBoxExplainer):
         return smoothed_gradients
 
     @staticmethod
-    def _get_noisy_mask(shape, noise):
+    def _get_noisy_mask(shape: Tuple[int, int, int, int],
+                        noise: float) -> tf.Tensor:
         """
         Create a random noise mask of the specified shape.
 
         Parameters
         ----------
-        shape : tuple
+        shape
             Desired shape, dimension of one sample.
-        noise : float
+        noise
             Scalar, noise used as standard deviation of a normal law centered on zero.
 
         Returns
         -------
-        noisy_mask : ndarray
+        noisy_mask
             Noise mask of the specified shape.
         """
-        return np.random.normal(0, noise, shape).astype(np.float32)
+        return tf.random.normal(shape, 0.0, noise, dtype=tf.float32)
 
     @staticmethod
     @tf.function
-    def _apply_noise(inputs, noisy_mask):
+    def _apply_noise(inputs: tf.Tensor,
+                     noisy_mask: tf.Tensor) -> tf.Tensor:
         """
         Duplicate the samples and apply a noisy mask to each of them.
 
         Parameters
         ----------
-        inputs : tf.tensor (N, W, H, C)
-            Input samples, with N number of samples, W & H the sample dimensions, and C the
-            number of channels.
-        noisy_mask : ndarray (S, W, H, C)
+        inputs
+            Input samples to be explained.
+        noisy_mask
             Mask of random noise to apply on a set of interpolations points. With S the number of
             samples, W & H the sample dimensions and C the number of channels.
 
         Returns
         -------
-        noisy_inputs : tf.tensor (N * S, W, H, C)
+        noisy_inputs
             Duplicated inputs with noisy mask applied.
         """
         nb_samples = len(noisy_mask)
@@ -126,19 +133,18 @@ class SmoothGrad(WhiteBoxExplainer):
 
     @staticmethod
     @tf.function
-    def _reduce_gradients(gradients):
+    def _reduce_gradients(gradients: tf.Tensor) -> tf.Tensor:
         """
         Average the gradients obtained on each noisy samples.
 
         Parameters
         ----------
-        gradients : tf.tensor (N, S, W, H, C)
-            Gradients to reduce for each of the S samples of each of the N samples. SmoothGrad use
-            an average of all the gradients.
+        gradients
+            Gradients to reduce the sampling dimension for each inputs.
 
         Returns
         -------
-        reduced_gradients : tf.tensor (N, W, H, C)
+        reduced_gradients
             Single saliency map for each input.
         """
         return tf.reduce_mean(gradients, axis=1)

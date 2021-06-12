@@ -6,6 +6,7 @@ import tensorflow as tf
 
 from .base import BlackBoxExplainer
 from ..utils import sanitize_input_output, repeat_labels
+from ..types import Callable, Tuple, Optional
 
 
 class Rise(BlackBoxExplainer):
@@ -18,16 +19,16 @@ class Rise(BlackBoxExplainer):
 
     Parameters
     ----------
-    model : tf.keras.Model
+    model
         Model used for computing explanations.
-    batch_size : int, optional
+    batch_size
         Number of samples to explain at once, if None compute all at once.
-    nb_samples : int, optional
+    nb_samples
         Number of masks generated for Monte Carlo sampling.
-    granularity : int, optional
+    granularity
         Size of the grid used to generate the scaled-down masks. Masks are then rescale to
         input_size + scaled-down size and cropped to input_size.
-    preservation_probability : float, optional
+    preservation_probability
         Probability of preservation for each pixel (or the percentage of non-masked pixels in
         each masks), also the expectation value of the mask.
     """
@@ -36,8 +37,12 @@ class Rise(BlackBoxExplainer):
     # zero, then the nominator will also be zero).
     EPSILON = tf.constant(1e-4)
 
-    def __init__(self, model, batch_size=32, nb_samples=80, granularity=6,
-                 preservation_probability=0.5):
+    def __init__(self,
+                 model: Callable,
+                 batch_size: Optional[int] = 32,
+                 nb_samples: int = 4000,
+                 granularity: int = 7,
+                 preservation_probability: float = .5):
         super().__init__(model, batch_size)
 
         self.nb_samples = nb_samples
@@ -45,22 +50,22 @@ class Rise(BlackBoxExplainer):
         self.preservation_probability = preservation_probability
 
     @sanitize_input_output
-    def explain(self, inputs, labels):
+    def explain(self,
+                inputs: tf.Tensor,
+                labels: tf.Tensor) -> tf.Tensor:
         """
         Compute RISE for a batch of samples.
 
         Parameters
         ----------
-        inputs : ndarray (N, W, H, C)
-            Input samples, with N number of samples, W & H the sample dimensions, and C the
-            number of channels.
-        labels : ndarray(N, L)
-            One hot encoded labels to compute for each sample, with N the number of samples, and L
-            the number of classes.
+        inputs
+            Input samples to be explained.
+        labels
+            One-hot encoded labels, one for each sample.
 
         Returns
         -------
-        explanations : ndarray (N, W, H)
+        explanations
             RISE maps, same shape as the inputs, except for the channels.
         """
         rise_maps = None
@@ -85,7 +90,10 @@ class Rise(BlackBoxExplainer):
 
     @staticmethod
     @tf.function
-    def _get_masks(input_shape, nb_samples, granularity, preservation_probability):
+    def _get_masks(input_shape: Tuple[int, int],
+                   nb_samples: int,
+                   granularity: int,
+                   preservation_probability: float) -> tf.Tensor:
         """
         Random mask generation. Following the paper, we start by generating random mask in a
         lower dimension. Then, we use bilinear interpolation to upsample the masks and take a
@@ -93,20 +101,20 @@ class Rise(BlackBoxExplainer):
 
         Parameters
         ----------
-        input_shape : tuple
+        input_shape
             Shape of an input sample.
-        nb_samples : int, optional
+        nb_samples
             Number of masks generated for Monte Carlo sampling.
-        granularity : int
+        granularity
             Size of the grid used to generate the scaled-down masks. Masks are then rescale to
             input_size + scaled-down size and cropped to input_size.
-        preservation_probability : float
+        preservation_probability
             Probability of preservation for each pixel (or the percentage of non-masked pixels in
             each masks), also the expectation value of the mask.
 
         Returns
         -------
-        masks : tf.tensor (N, W, H, 1)
+        masks
             The interpolated masks, with continuous values.
         """
         downsampled_shape = (input_shape[0] // granularity, input_shape[1] // granularity)
@@ -125,21 +133,20 @@ class Rise(BlackBoxExplainer):
 
     @staticmethod
     @tf.function
-    def _apply_masks(inputs, masks):
+    def _apply_masks(inputs: tf.Tensor, masks: tf.Tensor) -> tf.Tensor:
         """
-        Given input samples and masks, apply it for every sample and repeat the labels
+        Given input samples and masks, apply it for every sample and repeat the labels.
 
         Parameters
         ----------
-        inputs : tf.tensor (N, W, H, C)
-            Input samples, with N number of samples, W & H the sample dimensions, and C the
-            number of channels.
-        masks : tf.tensor (M, W, H, 1)
-            Masks with continuous value randomly generated
+        inputs
+            Input samples to be explained.
+        masks
+            Masks with continuous value randomly generated.
 
         Returns
         -------
-        occluded_inputs : tf.tensor (N * M, W, H, C)
+        occluded_inputs
             All the occluded combinations for each inputs.
         """
         occluded_inputs = tf.expand_dims(inputs, axis=1)
@@ -153,20 +160,21 @@ class Rise(BlackBoxExplainer):
 
     @staticmethod
     @tf.function
-    def _compute_importance(occluded_scores, masks):
+    def _compute_importance(occluded_scores: tf.Tensor,
+                            masks: tf.Tensor) -> tf.Tensor:
         """
         Compute the importance of each pixels for each prediction according to the mask used.
 
         Parameters
         ----------
-        occluded_scores : tensor (N * M, W, H, C)
+        occluded_scores
             The score of the occluded combinations for the class of interest.
-        masks : tf.tensor (M, W, H, 1)
+        masks
             The continuous occlusion masks, with 1 as preserved.
 
         Returns
         -------
-        scores : tf.tensor (N, W, H, C)
+        scores
             Value reflecting the contribution of each pixels on the output.
         """
         # group by input and expand

@@ -2,8 +2,12 @@
 Module related to DeconvNet method
 """
 
+import tensorflow as tf
+
 from .base import WhiteBoxExplainer
 from ..utils import override_relu_gradient, deconv_relu, sanitize_input_output
+from ..types import Union, Optional
+
 
 class DeconvNet(WhiteBoxExplainer):
     """
@@ -16,36 +20,40 @@ class DeconvNet(WhiteBoxExplainer):
 
     Parameters
     ----------
-    model : tf.keras.Model
+    model
         Model used for computing explanations.
-    output_layer_index : int, optional
-        Index of the output layer, default to the last layer, it is recommended to use the layer
-        before Softmax (often '-2').
-    batch_size : int, optional
+    output_layer
+        Layer to target for the output (e.g logits or after softmax), if int, will be be interpreted
+        as layer index, if string will look for the layer name. Default to the last layer, it is
+        recommended to use the layer before Softmax.
+    batch_size
         Number of samples to explain at once, if None compute all at once.
     """
 
-    def __init__(self, model, output_layer_index=-1, batch_size=32):
-        super().__init__(model, output_layer_index, batch_size)
+    def __init__(self,
+                 model: tf.keras.Model,
+                 output_layer: Optional[Union[str, int]] = -1,
+                 batch_size: Optional[int] = 32):
+        super().__init__(model, output_layer, batch_size)
         self.model = override_relu_gradient(self.model, deconv_relu)
 
     @sanitize_input_output
-    def explain(self, inputs, labels):
+    def explain(self,
+                inputs: tf.Tensor,
+                labels: tf.Tensor) -> tf.Tensor:
         """
-        Compute Guided Backpropagation a batch of samples.
+        Compute DeconvNet for a batch of samples.
 
         Parameters
         ----------
-        inputs : ndarray (N, W, H, C)
-            Input samples, with N number of samples, W & H the sample dimensions, and C the
-            number of channels.
-        labels : ndarray (N, L)
-            One hot encoded labels to compute for each sample, with N the number of samples, and L
-            the number of classes.
+        inputs
+            Input samples to be explained.
+        labels
+            One-hot encoded labels, one for each sample.
 
         Returns
         -------
-        explanations : ndarray (N, W, H)
+        explanations
             Guided Backpropagation maps.
         """
         gradients = WhiteBoxExplainer._batch_gradient(self.model, inputs, labels, self.batch_size)

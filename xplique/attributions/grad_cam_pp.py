@@ -19,14 +19,15 @@ class GradCAMPP(GradCAM):
 
     Parameters
     ----------
-    model : tf.keras.Model
+    model
         Model used for computing explanations.
-    output_layer_index : int, optional
-        Index of the output layer, default to the last layer, it is recommended to use the layer
-        before Softmax (often '-2').
-    batch_size : int, optional
+    output_layer
+        Layer to target for the output (e.g logits or after softmax), if int, will be be interpreted
+        as layer index, if string will look for the layer name. Default to the last layer, it is
+        recommended to use the layer before Softmax.
+    batch_size
         Number of samples to explain at once, if None compute all at once.
-    conv_layer : int or string or None
+    conv_layer
         Layer to target for Grad-CAM++ algorithm, if int, will be be interpreted as layer index,
         if string will look for the layer name.
     """
@@ -37,20 +38,21 @@ class GradCAMPP(GradCAM):
 
     @staticmethod
     @tf.function
-    def _compute_weights(feature_maps_gradients, feature_maps):
+    def _compute_weights(feature_maps_gradients: tf.Tensor,
+                         feature_maps: tf.Tensor) -> tf.Tensor:
         """
         Compute the weights according to Grad-CAM++ procedure.
 
         Parameters
         ----------
-        feature_maps_gradients : tf.Tensor (N, CW, CH, Filters)
+        feature_maps_gradients
             Gradients for the target convolution layer.
-        feature_maps : tf.Tensor (N, CW, CH, Filters)
+        feature_maps
             Activations for the target convolution layer.
 
         Returns
         -------
-        weights : tf.Tensor (N, 1, 1, Filters)
+        weights
             Weights for each feature maps.
         """
         feature_maps_gradients_square = tf.pow(feature_maps_gradients, 2)

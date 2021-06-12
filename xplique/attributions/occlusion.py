@@ -9,6 +9,7 @@ import tensorflow as tf
 
 from .base import BlackBoxExplainer
 from ..utils import sanitize_input_output, repeat_labels
+from ..types import Callable, Tuple, Union, Optional
 
 
 class Occlusion(BlackBoxExplainer):
@@ -21,20 +22,24 @@ class Occlusion(BlackBoxExplainer):
 
     Parameters
     ----------
-    model : tf.keras.Model
+    model
         Model used for computing explanations.
-    batch_size : int, optional
+    batch_size
         Number of samples to explain at once, if None compute all at once.
-    patch_size : tuple (int, int) or int, optional
+    patch_size
         Size of the patches to apply, if integer then assume an hypercube.
-    patch_stride : tuple (int, int) or int, optional
+    patch_stride
         Stride between two patches, if integer then assume an hypercube.
-    occlusion_value : float, optional
+    occlusion_value
         Value used as occlusion.
     """
 
-    def __init__(self, model, batch_size=32, patch_size=(3, 3),
-                 patch_stride=(3, 3), occlusion_value=0.5):
+    def __init__(self,
+                 model: Callable,
+                 batch_size: Optional[int] = 32,
+                 patch_size: Union[int, Tuple[int, int]] = (3, 3),
+                 patch_stride: Union[int, Tuple[int, int]] = (3, 3),
+                 occlusion_value: float = 0.5):
         super().__init__(model, batch_size)
 
         self.patch_size = patch_size if isinstance(patch_size, tuple) else (patch_size, patch_size)
@@ -43,39 +48,39 @@ class Occlusion(BlackBoxExplainer):
         self.occlusion_value = occlusion_value
 
     @sanitize_input_output
-    def explain(self, inputs, labels):
+    def explain(self,
+                inputs: tf.Tensor,
+                labels: tf.Tensor) -> tf.Tensor:
         """
         Compute Occlusion sensitivity for a batch of samples.
 
         Parameters
         ----------
-        inputs : ndarray (N, W, H, C)
-            Input samples, with N number of samples, W & H the sample dimensions, and C the
-            number of channels.
-        labels : ndarray(N, L)
-            One hot encoded labels to compute for each sample, with N the number of samples, and L
-            the number of classes.
+        inputs
+            Input samples to be explained.
+        labels
+            One-hot encoded labels, one for each sample.
 
         Returns
         -------
-        explanations : ndarray (N, W, H)
+        explanations
             Occlusion sensitivity, same shape as the inputs, except for the channels.
         """
         sensitivity = None
         batch_size = self.batch_size or len(inputs)
 
         masks = Occlusion._get_masks((*inputs.shape[1:],), self.patch_size, self.patch_stride)
-        baseline_scores = tf.reduce_sum(self.model.predict(inputs, batch_size=batch_size) * labels,
-                                        axis=-1)
+        baseline_scores = BlackBoxExplainer._batch_predictions(self.model, inputs, labels,
+                                                               batch_size)
 
         for x_batch, y_batch, baseline in tf.data.Dataset.from_tensor_slices(
                 (inputs, labels, baseline_scores)).batch(batch_size):
 
             occluded_inputs = Occlusion._apply_masks(x_batch, masks, self.occlusion_value)
-            repeated_labels = repeat_labels(y_batch, len(masks))
+            repeated_labels = repeat_labels(y_batch, masks.shape[0])
 
             batch_scores = BlackBoxExplainer._batch_predictions(self.model, occluded_inputs,
-                                                                 repeated_labels, batch_size)
+                                                                repeated_labels, batch_size)
             batch_sensitivity = Occlusion._compute_sensitivity(baseline, batch_scores, masks)
 
             sensitivity = batch_sensitivity if sensitivity is None else \
@@ -84,23 +89,25 @@ class Occlusion(BlackBoxExplainer):
         return sensitivity
 
     @staticmethod
-    def _get_masks(input_shape, patch_size, patch_stride):
+    def _get_masks(input_shape: Tuple[int, int, int],
+                   patch_size: Tuple[int, int],
+                   patch_stride: Tuple[int, int]) -> tf.Tensor:
         """
         Create all the possible patches for the given configuration.
 
         Parameters
         ----------
-        input_shape : tuple
+        input_shape
             Desired shape, dimension of one sample.
-        patch_size : tuple (int, int), optional
+        patch_size
             Size of the patches to apply.
-        patch_stride : tuple (int, int), optional
+        patch_stride
             Stride between two patches.
 
         Returns
         -------
-        occlusion_masks : tf.tensor (N, W, H, C)
-            The boolean occlusion masks, with 1 as occluded.
+        occlusion_masks
+            The boolean occlusion masks, same shape as the inputs, with 1 as occluded.
         """
         masks = []
 
@@ -119,26 +126,25 @@ class Occlusion(BlackBoxExplainer):
 
     @staticmethod
     @tf.function
-    def _apply_masks(inputs, masks, occlusion_value):
+    def _apply_masks(inputs: tf.Tensor,
+                     masks: tf.Tensor,
+                     occlusion_value: float) -> tf.Tensor:
         """
         Given input samples and an occlusion mask template, apply it for every sample.
 
         Parameters
         ----------
-        inputs : tf.tensor (N, W, H, C)
-            Input samples, with N number of samples, W & H the sample dimensions, and C the
-            number of channels.
-        masks : tf.tensor (M, W, H, C)
+        inputs
+            Input samples to be explained.
+        masks
             The boolean occlusion masks, with 1 as occluded.
-        occlusion_value : float, optional
+        occlusion_value
             Value used as occlusion.
 
         Returns
         -------
-        occluded_inputs : tf.tensor (N * M, W, H, C)
+        occluded_inputs
             All the occluded combinations for each inputs.
-        repeated_labels : tf.tensor (N * M, L)
-            Unchanged label for each occluded inputs.
         """
         occluded_inputs = tf.expand_dims(inputs, axis=1)
         occluded_inputs = tf.repeat(occluded_inputs, repeats=masks.shape[0], axis=1)
@@ -151,26 +157,29 @@ class Occlusion(BlackBoxExplainer):
 
     @staticmethod
     @tf.function
-    def _compute_sensitivity(baseline_scores, occluded_scores, masks):
+    def _compute_sensitivity(baseline_scores: tf.Tensor,
+                             occluded_scores: tf.Tensor,
+                             masks: tf.Tensor) -> tf.Tensor:
         """
         Compute the sensitivity score given the score of the occluded inputs
 
         Parameters
         ----------
-        baseline_scores : tf.tensor (N)
-            Score obtained with the original inputs (not occluded)
-        occluded_scores : tensor (N * M)
-            The score of the occluded combinations for the class of interest.
-        masks : tf.tensor (N, W, H, C)
+        baseline_scores
+            Scores obtained with the original inputs (not occluded)
+        occluded_scores
+            Scores of the occluded combinations for the class of
+            interest.
+        masks
             The boolean occlusion masks, with 1 as occluded.
 
         Returns
         -------
-        sensitivity : tf.tensor (N, W, H, C)
+        sensitivity
             Value reflecting the effect of each occlusion patchs on the output
         """
         baseline_scores = tf.expand_dims(baseline_scores, axis=-1)
-        occluded_scores = tf.reshape(occluded_scores, (-1, len(masks)))
+        occluded_scores = tf.reshape(occluded_scores, (-1, masks.shape[0]))
 
         score_delta = baseline_scores - occluded_scores
         score_delta = tf.reshape(score_delta, (*score_delta.shape, 1, 1, 1))
