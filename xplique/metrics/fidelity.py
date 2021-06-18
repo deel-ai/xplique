@@ -3,20 +3,22 @@ Fidelity (or Faithfullness) metrics
 """
 
 from inspect import isfunction
+
 import numpy as np
 import tensorflow as tf
 
+from ..types import Union, Callable, Optional, Tuple
 
-def mu_fidelity(model,
-                inputs,
-                labels,
-                explanations,
-                grid_size=None,
-                subset_percent=0.1,
-                baseline_mode=0.0,
-                nb_samples=200,
-                batch_size=64
-                ):  # pylint: disable=R0913
+def mu_fidelity(model: tf.keras.Model,
+                inputs: tf.Tensor,
+                labels: tf.Tensor,
+                explanations: tf.Tensor,
+                grid_size: Optional[int] = None,
+                subset_percent: float = 0.1,
+                baseline_mode: Union[float, Callable] = 0.0,
+                nb_samples: int = 200,
+                batch_size: int = 64) -> Tuple[float, np.ndarray]:
+                # pylint: disable=R0913
     """
     Used to compute the fidelity correlation metric. This metric ensure there is a correlation
     between a random subset of pixels and their attribution score. For each random subset
@@ -35,35 +37,35 @@ def mu_fidelity(model,
 
     Parameters
     ----------
-    model : tf.keras.Model
+    model
         Model used for computing metric.
-    inputs : ndarray (N, W, H, C)
+    inputs
         Input samples, with N number of samples, W & H the sample dimensions, and C the
         number of channels.
-    labels : ndarray(N, L)
+    labels
         One hot encoded labels for each sample, with N the number of samples, and L
         the number of classes.
-    explanations : ndarray (N, W, H)
+    explanations
         Feature attributions for each samples, with N number of samples, W & H the sample
         dimensions.
-    grid_size : None or int, optional
+    grid_size
         If none, compute the original metric, else cut the image in (grid_size, grid_size) and
         each element of the subset will be a super pixel representing one element of the grid.
         You should use this when dealing with medium / large size images.
-    subset_percent : float, optional
+    subset_percent
         Percent of the image that will be set to baseline.
-    baseline_mode : float or function, optional
+    baseline_mode
         Value of the baseline state, will be called with the a single input if it is a function.
-    nb_samples : int, optional
+    nb_samples
         Number of different subsets to try on each input to measure the correlation.
-    batch_size : int, optional
+    batch_size
         Number of samples to explain at once, if None compute all at once.
 
     Returns
     -------
-    fidelity_score : float
+    fidelity_score
         Metric score.
-    predictions_attributions : ndarray (2, N, nb_samples)
+    predictions_attributions
         Values of each predictions (index 0) and his according attribution sum (index 1) for each
         inputs passed (axis 1).
     """
@@ -107,7 +109,13 @@ def mu_fidelity(model,
     return fidelity_score, predictions_attributions
 
 
-def deletion(model, inputs, labels, explanations, baseline_mode=0.0, steps=10, batch_size=64):
+def deletion(model: tf.keras.Model,
+             inputs: tf.Tensor,
+             labels: tf.Tensor,
+             explanations: tf.Tensor,
+             baseline_mode: Union[float, Callable] = 0.0,
+             steps: int = 10,
+             batch_size: int = 64) -> Tuple[float, np.ndarray]:
     """
     Used to calculate the deletion score. This score measures the decrease of the prediction
     score when removing progressively the most important pixels. Lower is better.
@@ -117,29 +125,29 @@ def deletion(model, inputs, labels, explanations, baseline_mode=0.0, steps=10, b
 
     Parameters
     ----------
-    model : tf.keras.Model
+    model
         Model used for computing metric.
-    inputs : ndarray (N, W, H, C)
+    inputs
         Input samples, with N number of samples, W & H the sample dimensions, and C the
         number of channels.
-    labels : ndarray(N, L)
+    labels
         One hot encoded labels for each sample, with N the number of samples, and L
         the number of classes.
-    explanations : ndarray (N, W, H)
+    explanations
         Feature attributions for each samples, with N number of samples, W & H the sample
         dimensions.
-    baseline_mode : float or function, optional
+    baseline_mode
         Value of the baseline state, will be called with the inputs if it is a function.
-    steps : int, optional
+    steps
         Number of steps between the start and the end state.
-    batch_size : int, optional
+    batch_size
         Number of samples to explain at once, if None compute all at once.
 
     Returns
     -------
-    auc : float
+    auc
         Metric score, area over the deletion curve, lower is better.
-    curve : ndarray (2, steps)
+    curve
         Mean curve of deletion. The first index (0) stores the percentages of
         deletion while the second index (1) gives the average results of the predictions.
     """
@@ -147,7 +155,13 @@ def deletion(model, inputs, labels, explanations, baseline_mode=0.0, steps=10, b
                           batch_size)
 
 
-def insertion(model, inputs, labels, explanations, baseline_mode=0.0, steps=10, batch_size=64):
+def insertion(model: tf.keras.Model,
+              inputs: tf.Tensor,
+              labels: tf.Tensor,
+              explanations: tf.Tensor,
+              baseline_mode: Union[float, Callable] = 0.0,
+              steps: int = 10,
+              batch_size: int = 64) -> Tuple[float, np.ndarray]:
     """
     Used to calculate the insertion score. This score measures the increase of the prediction
     score when adding progressively the most important pixels. Higher is better.
@@ -157,29 +171,29 @@ def insertion(model, inputs, labels, explanations, baseline_mode=0.0, steps=10, 
 
     Parameters
     ----------
-    model : tf.keras.Model
+    model
         Model used for computing metric.
-    inputs : ndarray (N, W, H, C)
+    inputs
         Input samples, with N number of samples, W & H the sample dimensions, and C the
         number of channels.
-    labels : ndarray(N, L)
+    labels
         One hot encoded labels for each sample, with N the number of samples, and L
         the number of classes.
-    explanations : ndarray (N, W, H)
+    explanations
         Feature attributions for each samples, with N number of samples, W & H the sample
         dimensions.
-    baseline_mode : float or function, optional
+    baseline_mode
         Value of the baseline state, will be called with the inputs if it is a function.
-    steps : int, optional
+    steps
         Number of steps between the start and the end state.
-    batch_size : int, optional
+    batch_size
         Number of samples to explain at once, if None compute all at once.
 
     Returns
     -------
-    auc : float
+    auc
         Metric score, area over the insertion curve, higher is better.
-    curve : ndarray (2, steps)
+    curve
         Mean curve of insertion. The first index (0) stores the percentages of
         insertion while the second index (1) gives the average results of the predictions.
     """
@@ -187,39 +201,45 @@ def insertion(model, inputs, labels, explanations, baseline_mode=0.0, steps=10, 
                           batch_size)
 
 
-def _causal_metric(model, inputs, labels, explanations, causal_mode="insertion", baseline_mode=0.0,
-                   steps=10, batch_size=64):
+def _causal_metric(model: tf.keras.Model,
+                   inputs: tf.Tensor,
+                   labels: tf.Tensor,
+                   explanations: tf.Tensor,
+                   causal_mode: str = "deletion",
+                   baseline_mode: Union[float, Callable] = 0.0,
+                   steps: int = 10,
+                   batch_size: int = 64):
     """
     Used to compute the insertion and deletion metrics.
 
     Parameters
     ----------
-    model : tf.keras.Model
+    model
         Model used for computing metric.
-    inputs : ndarray (N, W, H, C)
+    inputs
         Input samples, with N number of samples, W & H the sample dimensions, and C the
         number of channels.
-    labels : ndarray(N, L)
+    labels
         One hot encoded labels for each sample, with N the number of samples, and L
         the number of classes.
-    explanations : ndarray (N, W, H)
+    explanations
         Feature attributions for each samples, with N number of samples, W & H the sample
         dimensions.
-    causal_mode : 'insertion' or 'deletion', optional
+    causal_mode
         If insertion, the path is baseline to original image, for deletion the path is original
         image to baseline.
-    baseline_mode : float or function, optional
+    baseline_mode
         Value of the baseline state, will be called with the inputs if it is a function.
-    steps : int, optional
+    steps
         Number of steps between the start and the end state.
-    batch_size : int, optional
+    batch_size
         Number of samples to explain at once, if None compute all at once.
 
     Returns
     -------
-    auc : float
+    auc
         Metric score, area over the curve.
-    curve : ndarray (2, steps)
+    curve
         Mean curve of insertion/deletion. The first index (0) stores the percentages of
         deletion/insertion while the second index (1) gives the average results of the predictions.
     """
