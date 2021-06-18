@@ -5,6 +5,9 @@ Module related to the Testing of CAVs
 import tensorflow as tf
 import numpy as np
 
+from ..utils import find_layer
+from ..types import Union
+
 
 class Tcav:
     """
@@ -17,43 +20,47 @@ class Tcav:
 
     Parameters
     ----------
-    model : tf.keras.Model
+    model
         Model to extract concept from.
-    target_layer : int or string
+    target_layer
         Index of the target layer or name of the layer.
-    cav : ndarray
+    cav
         Concept Activation Vector, see CAV module.
-    batch_size : int, optional
+    batch_size
         Batch size during the predictions.
     """
 
-    def __init__(self, model, target_layer, cav, batch_size=64):
+    def __init__(self,
+                 model: tf.keras.Model,
+                 target_layer: Union[str, int],
+                 cav: np.array,
+                 batch_size: int = 64):
         self.model = model
         self.cav = tf.cast(cav, tf.float32)
         self.batch_size = batch_size
 
         # configure model bottleneck
-        target_layer = model.get_layer(target_layer).output if isinstance(target_layer, str) else \
-            model.layers[target_layer].output
-        self.multi_head = tf.keras.Model(model.input, [target_layer, model.output])
+        target_layer = find_layer(model, target_layer)
+        self.multi_head = tf.keras.Model(model.input, [target_layer.output, model.output])
 
-    def score(self, inputs, label):
+    def score(self,
+              inputs: tf.Tensor,
+              label: int) -> float:
         """
         Compute and return the Concept Activation Vector (CAV) associated to the dataset and the
         layer targeted.
 
         Parameters
         ----------
-        inputs : ndarray (N, W, H, C)
-            Input samples, with N number of samples, W & H the sample dimensions, and C the
-            number of channels.
-        label : int
+        inputs
+            Input sample on which to test the influence of the concept.
+        label
             Index of the class to test.
 
         Returns
         -------
-        tcav : ndarray
-            Vector of the same shape as the layer output
+        tcav
+            Percentage of sample that contains the concept with a positive impact on the class
         """
 
         directional_derivatives = None
@@ -75,25 +82,28 @@ class Tcav:
 
     @staticmethod
     @tf.function
-    def directional_derivative(multi_head_model, inputs, label, cav):
+    def directional_derivative(multi_head_model: tf.keras.Model,
+                               inputs: tf.Tensor,
+                               label: int,
+                               cav: tf.Tensor) -> tf.Tensor:
         """
         Compute the gradient of the label relative to the activations of the CAV layer.
 
         Parameters
         ----------
-        multi_head_model : tf.keras.Model
+        multi_head_model
             Model reconfigured, first output is the activations of the CAV layer, and the second
             output is the prediction layer.
-        inputs : ndarray (N, W, H, C)
-            Input samples, with N number of samples, W & H the sample dimensions, and C the
-            number of channels.
-        label : int
+        inputs
+            Input sample on which to test the influence of the concept.
+        label
             Index of the class to test.
-        cav : tf.tensor
+        cav
             Concept Activation Vector, same shape as the activations output.
+
         Returns
         -------
-        directional_derivative : tf.tensor
+        directional_derivative
             Directional derivative values of each samples.
         """
         with tf.GradientTape() as tape:

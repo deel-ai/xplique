@@ -9,6 +9,9 @@ from sklearn.linear_model import SGDClassifier
 from sklearn.svm import LinearSVC
 from sklearn.model_selection import train_test_split
 
+from ..utils import find_layer
+from ..types import Union, Callable
+
 
 class Cav: # pylint: disable=too-few-public-methods
     """
@@ -21,32 +24,36 @@ class Cav: # pylint: disable=too-few-public-methods
 
     Parameters
     ----------
-    model : tf.keras.Model
+    model
         Model to extract concept from.
-    target_layer : int or string
+    target_layer
         Index of the target layer or name of the layer.
     classifier : 'SGD' or 'SVM' or Sklearn model, optional
         Default implementation use SGD classifier, SVM give more robust results but the computation
         time is longer.
-    test_fraction : float, optional
+    test_fraction
         Fraction of the dataset used for test
-    batch_size : int, optional
+    batch_size
         Batch size during the activations extraction
-    verbose : boolean, optional
+    verbose
         If true, display information while training the classifier
     """
 
-    def __init__(self, model, target_layer, classifier='SGD', test_fraction=0.2, batch_size=64,
-                 verbose=False):
+    def __init__(self,
+                 model: tf.keras.Model,
+                 target_layer: Union[str, int],
+                 classifier: Union[str, Callable] = 'SGD',
+                 test_fraction: float = 0.2,
+                 batch_size: int = 64,
+                 verbose: bool = False):
         self.model = model
         self.batch_size = batch_size
         self.test_fraction = test_fraction
         self.verbose = verbose
 
         # configure model bottleneck
-        target_layer = model.get_layer(target_layer).output if isinstance(target_layer, str) else \
-            model.layers[target_layer].output
-        self.bottleneck_model = tf.keras.Model(model.input, target_layer)
+        target_layer = find_layer(model, target_layer)
+        self.bottleneck_model = tf.keras.Model(model.input, target_layer.output)
 
         # configure classifier
         if classifier == 'SGD':
@@ -61,21 +68,23 @@ class Cav: # pylint: disable=too-few-public-methods
         else:
             raise ValueError('The classifier passed is invalid.')
 
-    def fit(self, positive_dataset, negative_dataset):
+    def fit(self,
+            positive_dataset: tf.Tensor,
+            negative_dataset: tf.Tensor) -> np.array:
         """
         Compute and return the Concept Activation Vector (CAV) associated to the dataset and the
         layer targeted.
 
         Parameters
         ----------
-        positive_dataset : ndarray (N, W, H, C)
+        positive_dataset
             Dataset of positive samples : samples containing the concept.
-        negative_dataset : ndarray (N, W, H, C)
+        negative_dataset
             Dataset of negative samples : samples without the concept
 
         Returns
         -------
-        cav : ndarray
+        cav
             Vector of the same shape as the layer output
         """
         positive_activations = self.bottleneck_model.predict(positive_dataset,
