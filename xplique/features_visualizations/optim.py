@@ -2,69 +2,69 @@
 Optimisation functions
 """
 
-import numpy as np
 import tensorflow as tf
 
 from ..utils.model_override import override_relu_gradient
+from ..types import Optional, List, Callable, Tuple
 from .preconditioning import fft_image, get_fft_scale, fft_to_rgb, to_valid_rgb
 from .transformations import standard_transformations
+from .objectives import Objective
 
 
-def optimize(objective,
-             optimizer,
-             nb_steps=256,
-             use_fft=True,
-             fft_decay=1.0,
-             std=0.5,
-             regularizers=None,
-             image_normalizer='sigmoid',
-             transformations=standard_transformations,
-             warmup_steps=16,
-             custom_shape=None,
-             save_every=None,
-             ): # pylint: disable=R0913
+def optimize(objective: Objective,
+             optimizer: tf.keras.optimizers.Optimizer,
+             nb_steps: int = 256,
+             use_fft: bool = True,
+             fft_decay: float = 1.0,
+             std: float = 0.5,
+             regularizers: Optional[List[Callable]] = None,
+             image_normalizer: str = 'sigmoid',
+             transformations: Optional[List[Callable]] = standard_transformations,
+             warmup_steps: int = 16,
+             custom_shape: Optional[Tuple] = None,
+             save_every: Optional[int] = None) -> Tuple[tf.Tensor, List[str]]:
+             # pylint: disable=R0913
     """
     Optimise a given objective using gradient ascent.
 
     Parameters
     ----------
-    objective : Objective
+    objective
         Objective object.
-    optimizer : tf.keras.optimizers.Optimizer
+    optimizer
         Optimizer used for gradient ascent.
-    nb_steps : int, optional
+    nb_steps
         Number of iterations.
-    use_fft : bool, optional
+    use_fft
         If true, use fourier preconditioning.
-    fft_decay : float, optional
+    fft_decay
         Control the allowed energy of the high frequency, a high value
         suppresses high frequencies.
-    std : float, optional
+    std
         Standard deviation used for the image initialization (or buffer for fft).
-    regularizers : list of function, optional
+    regularizers
         List of regularizers that are applied on the image and added to the loss.
-    image_normalizer : None, 'sigmoid', 'clip', optional
+    image_normalizer
         Transformation applied to the image after each iterations to ensure the
         pixels are in [0,1].
-    transformations : function, optional
+    transformations
         Transformations applied to the image during optimisation.
-    warmup_steps : bool, optional
+    warmup_steps
         If true, clone the model by replacing the Relu's with Leaky Relu's to
         find a pre-optimised image, allowing the visualization process to get
         started (as the relu could block the flow of gradient).
-    custom_shape : tuple (width, height), optional
+    custom_shape
         If specified, optimizes images of the given size. Often use with
         jittering & scale to optimize bigger images crop by crop.
-    save_every : int, optional
+    save_every
         Define the steps to which we save the optimized images. In any case, the
         last images will be returned.
 
     Returns
     -------
-    images_optimized : ndarray (M, N, W, H, C)
-        Optimized images, with M the number of saving and N the number of
-        objectives.
-    objective_names : list of string (N)
+    images_optimized
+        Optimized images for each objectives.
+    objective_names
         Name of each objectives.
     """
     model, objective_function, objective_names, input_shape = objective.compile()
@@ -106,38 +106,38 @@ def optimize(objective,
             imgs = image_param(inputs)
             images_optimized.append(imgs)
 
-    return np.array(images_optimized), objective_names
+    return images_optimized, objective_names
 
 
 def _get_optimisation_step(
-        objective_function,
-        nb_outputs,
-        image_param,
-        input_shape,
-        transformations=None,
-        regularizers=None):
+        objective_function: Callable,
+        nb_outputs: int,
+        image_param: Callable,
+        input_shape: Tuple,
+        transformations: Optional[Callable] = None,
+        regularizers: Optional[List[Callable]] = None) -> Callable:
     """
     Generate a function that optimize the objective function for a single step.
 
     Parameters
     ----------
-    objective_function : function
+    objective_function
         Function that compute the loss for the objectives given the model
         outputs.
-    nb_outputs : int
+    nb_outputs
         Number of outputs of the model.
-    image_param : function
+    image_param
         Function that map image to a valid rgb.
-    input_shape : tuple (N, W, H, C)
+    input_shape
         Shape of the inputs to optimize.
-    transformations : function, optional
+    transformations
         Transformations applied to the image during optimisation.
-    regularizers : list of function, optional
+    regularizers
         List of regularizers that are applied on the image and added to the loss.
 
     Returns
     -------
-    step_function : function
+    step_function
         Function (model, inputs) to call to optimize the input for one step.
     """
 

@@ -10,6 +10,8 @@ Credit is due to the original Lucid authors.
 import numpy as np
 import tensorflow as tf
 
+from ..types import Tuple
+
 
 imagenet_color_correlation = tf.cast(
       [[0.56282854, 0.58447580, 0.58447580],
@@ -18,20 +20,20 @@ imagenet_color_correlation = tf.cast(
 )
 
 
-def recorrelate_colors(images):
+def recorrelate_colors(images: tf.Tensor) -> tf.Tensor:
     """
     Map uncorrelated colors to 'normal colors' by using empirical color
     correlation matrix of ImageNet (see https://distill.pub/2017/feature-visualization/)
 
     Parameters
     ----------
-    images : tf.tensor (N, W, H, C)
+    images
         Input samples , with N number of samples, W & H the sample dimensions,
         and C the number of channels.
 
     Returns
     -------
-    images : tf.tensor (N, W, H, C)
+    images
         Images recorrelated.
     """
     images_flat = tf.reshape(images, [-1, 3])
@@ -39,22 +41,22 @@ def recorrelate_colors(images):
     return tf.reshape(images_flat, tf.shape(images))
 
 
-def to_valid_rgb(images, normalizer='sigmoid'):
+def to_valid_rgb(images: tf.Tensor, normalizer: str = 'sigmoid') -> tf.Tensor:
     """
     Apply transformations to map tensors to valid rgb images.
 
     Parameters
     ----------
-    images : tf.tensor (N, W, H, C)
+    images
         Input samples, with N number of samples, W & H the sample dimensions,
         and C the number of channels.
-    normalizer : None, 'sigmoid' or 'clip', optional
-        Transformation to apply to map pixels in the range [0, 1].
+    normalizer
+        Transformation to apply to map pixels in the range [0, 1]. Either 'clip' or 'sigmoid'.
 
     Returns
     -------
-    images : tf.tensor (N, W, H, C)
-        Images after transformations
+    images
+        Images after correction
     """
     images = recorrelate_colors(images)
     images = tf.nn.sigmoid(images) if normalizer == 'sigmoid' else images
@@ -62,7 +64,7 @@ def to_valid_rgb(images, normalizer='sigmoid'):
     return images
 
 
-def fft_2d_freq(width, height):
+def fft_2d_freq(width: int, height: int) -> np.ndarray:
     """
     Return the fft samples frequencies for a given width/height.
     As we deal with real values (pixels), the Discrete Fourier Transform is
@@ -71,14 +73,14 @@ def fft_2d_freq(width, height):
 
     Parameters
     ----------
-    width : int
+    width
         Width of the image.
-    height : int
+    height
         Height of the image.
 
     Returns
     -------
-    frequencies : ndarray
+    frequencies
         Array containing the samples frequency bin centers in cycles per pixels
     """
     freq_y = np.fft.fftfreq(height)[:, np.newaxis]
@@ -89,7 +91,7 @@ def fft_2d_freq(width, height):
     return np.sqrt(freq_x**2 + freq_y**2)
 
 
-def get_fft_scale(width, height, decay_power=1.0):
+def get_fft_scale(width: int, height: int, decay_power: float = 1.0) -> tf.Tensor:
     """
     Generate 'scaler' to normalize spectrum energy. Also scale the energy by the
     dimensions to use similar learning rate regardless of image size.
@@ -98,17 +100,17 @@ def get_fft_scale(width, height, decay_power=1.0):
 
     Parameters
     ----------
-    width : int,
+    width
         Width of the image.
-    height : int,
+    height
         Height of the image.
-    decay_power : float, optional
+    decay_power
         Control the allowed energy of the high frequency, a high value
         suppresses high frequencies.
 
     Returns
     -------
-    fft_scale : tf.tensor
+    fft_scale
         Scale factor of the fft spectrum
     """
     frequencies = fft_2d_freq(width, height)
@@ -118,23 +120,23 @@ def get_fft_scale(width, height, decay_power=1.0):
     return tf.convert_to_tensor(fft_scale, dtype=tf.complex64)
 
 
-def fft_to_rgb(shape, buffer, fft_scale):
+def fft_to_rgb(shape: Tuple, buffer: tf.Tensor, fft_scale: tf.Tensor) -> tf.Tensor:
     """
     Convert a fft buffer into images.
 
     Parameters
     ----------
-    shape : tuple (N, W, H, C)
+    shape
         Shape of the images with N number of samples, W & H the sample
         dimensions, and C the number of channels.
-    buffer : tf.tensor
+    buffer
         Image buffer in the fourier basis.
-    fft_scale : tf.tensor
+    fft_scale
         Scale factor of the fft spectrum
 
     Returns
     -------
-    images : tf.tensor (N, W, H, C)
+    images
         Images in the 'pixels' basis.
     """
     batch, width, height, channels = shape
@@ -147,20 +149,20 @@ def fft_to_rgb(shape, buffer, fft_scale):
     return image / 4.0
 
 
-def fft_image(shape, std=0.01):
+def fft_image(shape: Tuple, std: float = 0.01) -> tf.Tensor:
     """
     Generate the preconditioned image buffer
 
     Parameters
     ----------
-    shape : tuple (N, W, H, C)
+    shape
         Shape of the images with N number of samples, W & H the sample
         dimensions, and C the number of channels.
-    std : float, optional
+    std
         Standard deviation of the normal for the buffer initialization
     Returns
     -------
-    buffer : tf.tensor (2, N, C, W, H//2+1)
+    buffer
         Image buffer in the fourier basis.
     """
     batch, width, height, channels = shape
