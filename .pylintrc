@@ -9,3 +9,9 @@ disable=
 [FORMAT]
 max-line-length=100
 max-args=8
+
+[SIMILARITIES]
+min-similarity-lines=6
+ignore-comments=yes
+ignore-docstrings=yes
+ignore-imports=no
