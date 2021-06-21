@@ -5,7 +5,7 @@ with open("README.md") as fh:
 
 setup(
     name="Xplique",
-    version="0.0.1",
+    version="0.1.0",
     description="Explanations toolbox for Tensorflow 2",
     long_description=README,
     long_description_content_type="text/markdown",
