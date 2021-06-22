@@ -1,4 +1,4 @@
-name: Xplique lints
+name: pylint
 
 on: [push, pull_request]
 
