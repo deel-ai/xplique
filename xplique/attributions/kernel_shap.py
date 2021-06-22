@@ -3,10 +3,11 @@ Module related to Kernel SHAP method
 """
 
 import tensorflow as tf
-
+import numpy as np
 from sklearn import linear_model
 
 from .lime import Lime
+from ..types import Callable, Union, Optional
 
 class KernelShap(Lime):
     """
@@ -20,19 +21,19 @@ class KernelShap(Lime):
     https://arxiv.org/abs/1705.07874
     """
     def __init__(self,
-                 model,
+                 model: Callable,
                  batch_size: int = 1,
-                 map_to_interpret_space = None,
+                 map_to_interpret_space: Optional[Callable] = None,
                  nb_samples: int = 800,
-                 batch_pertubed_samples = 64,
-                 ref_values = None):
+                 batch_pertubed_samples: Optional[int] = 64,
+                 ref_values: Optional[np.ndarray] = None):
         """
         Parameters
         ----------
-        model : tf.keras.Model
+        model
             Model that you want to explain.
 
-        map_to_interpret_space : callable, optional
+        map_to_interpret_space
             Function which group an input features which correspond to the same interpretable
             feature (e.g super-pixel).
             It allows to transpose from (resp. to) the original input space to (resp. from)
@@ -49,15 +50,15 @@ class KernelShap(Lime):
             For instance you can use the scikit-image library to defines super pixels on your
             images.
 
-        nb_samples: int
+        nb_samples
             The number of pertubed samples you want to generate for each input sample.
-            Default to 50.
+            Default to 800.
 
-        batch_pertubed_samples: int
+        batch_pertubed_samples
             The batch size to predict the pertubed samples labels value.
-            Default to None (i.e predictions of all the pertubed samples one shot).
+            Default to 64.
 
-        ref_values : ndarray
+        ref_values
             It defines reference value which replaces each feature when the corresponding
             interpretable feature is set to 0.
             It should be provided as: a ndarray (C,)
@@ -84,8 +85,8 @@ class KernelShap(Lime):
     @staticmethod
     @tf.function
     def _kernel_shap_similarity_kernel(
-        _ , __, interpret_sample
-    ):
+        _ , __, interpret_sample: tf.Tensor
+    ) -> tf.Tensor:
         """
         This method compute the similarity between an interpretable pertubed sample and
         the original input (i.e a tf.ones(num_features)).
@@ -98,31 +99,31 @@ class KernelShap(Lime):
 
         if (tf.equal(num_selected_features, tf.constant(0))
             or tf.equal(num_selected_features,num_features)):
-            # weight should be theoretically infinite when
-            # num_selected_features = 0 or num_features
-            # enforcing that trained linear model must satisfy
-            # end-point criteria. In practice, it is sufficient to
-            # make this weight substantially larger so setting this
-            # weight to 1000000 (all other weights are 1).
+            # Theoretically, in that case the weight should be
+            # infinite. However, we will consider it is sufficient to
+            # set this weight to 1000000 (all other weights are 1).
             return tf.constant(1000000.0, dtype=tf.float32)
 
         return tf.constant(1.0, dtype=tf.float32)
 
     @staticmethod
     @tf.function
-    def _kernel_shap_pertub_func(num_features, nb_samples):
+    def _kernel_shap_pertub_func(num_features: Union[int, tf.Tensor],
+                                 nb_samples: int) -> tf.Tensor:
         """
-        Perturbations are sampled by the following process:
-         - Choose k (number of selected features), based on the distribution
-                p(k) = (M - 1) / (k * (M - k))
-            where M is the total number of features in the interpretable space
-         - Randomly select a binary vector with k ones, each sample is equally
-            likely. This is done by generating a random vector of normal
-            values and thresholding based on the top k elements.
-         Since there are M choose k vectors with k ones, this weighted sampling
+        The pertubed instances are sampled that way:
+         - We choose a number of selected features k, considering the distribution
+                p(k) = (nb_features - 1) / (k * (nb_features - k))
+            where nb_features is the total number of features in the interpretable space
+         - Then we randomly select a binary vector with k ones, all the possible sample
+           are equally likely. It is done by generating a random vector with values drawn
+           from a normal distribution and keeping the top k elements which then will be 1
+           and other values are 0.
+         Since there are nb_features choose k vectors with k ones, this weighted sampling
          is equivalent to applying the Shapley kernel for the sample weight,
          defined as:
-                k(M, k) = (M - 1) / (k * (M - k) * (M choose k))
+            k(nb_features, k) = (nb_features - 1)/(k*(nb_features - k)*(nb_features choose k))
+        This trick is the one used in the Captum library: https://github.com/pytorch/captum
         """
         probs_nb_selected_feature = KernelShap._get_probs_nb_selected_feature(
             tf.cast(num_features,dtype=tf.int32))
@@ -145,10 +146,10 @@ class KernelShap(Lime):
 
     @staticmethod
     @tf.function
-    def _get_probs_nb_selected_feature(num_features):
+    def _get_probs_nb_selected_feature(num_features: Union[int, tf.Tensor]) -> tf.Tensor:
         """
         Compute the distribution:
-            p(k) = (num_features - 1) / (k * (num_features - k))
+            p(k) = (nb_features - 1) / (k * (nb_features - k))
         """
         list_features_indexes = tf.range(1,num_features)
         denom = tf.multiply(list_features_indexes,(num_features - list_features_indexes))
