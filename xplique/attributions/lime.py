@@ -430,7 +430,7 @@ class Lime(BlackBoxExplainer):
                 explanation = tf.cast(explanation, dtype=tf.float32)
                 explanations.append(explanation)
 
-        explanations = tf.stack(explanations, axis=0)
+        explanations = tf.ragged.stack(explanations, axis=0)
         # broadcast explanations to match the original inputs shapes
         complete_explanations = tf.map_fn(
             fn= lambda inp: Lime._broadcast_explanation(inp[0],inp[1]),
