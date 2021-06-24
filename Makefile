@@ -1,43 +1,33 @@
-.PHONY: help prepare-dev test test-disable-gpu lint doc serve-doc
+.PHONY: help prepare-dev test test-disable-gpu doc serve-doc
 .DEFAULT: help
-
-PYTHON=venv/bin/python
 
 help:
 	@echo "make prepare-dev"
-	@echo "       prepare development environment, use only once"
+	@echo "       create and prepare development environment, use only once"
 	@echo "make test"
-	@echo "       run tests"
+	@echo "       run tests and linting on py36, py37, py38"
 	@echo "make test-disable-gpu"
-	@echo "       run tests with gpu disabled"
-	@echo "make lint"
-	@echo "       run pylint"
+	@echo "       run test with gpu disabled"
 	@echo "make serve-doc"
 	@echo "       run documentation server for development"
 	@echo "make doc"
-	@echo "       build mkdoc documentation"
+	@echo "       build mkdocs documentation"
 
 prepare-dev:
 	python3 -m pip install virtualenv
-	python3 -m virtualenv venv
-	$(PYTHON) -m pip install -r requirements.txt
-	$(PYTHON) -m pip install -r requirements_dev.txt
+	python3 -m venv xplique_dev_env
+	. xplique_dev_env/bin/activate && pip install -r requirements.txt
+	. xplique_dev_env/bin/activate && pip install -r requirements_dev.txt	
 
-venv:
-	. venv/bin/activate
+test:
+	. xplique_dev_env/bin/activate && tox 
 
-test: venv
-	$(PYTHON) -m tox
+test-disable-gpu:
+	. xplique_dev_env/bin/activate && CUDA_VISIBLE_DEVICES=-1 tox
 
-test-disable-gpu: venv
-	CUDA_VISIBLE_DEVICES=-1 $(PYTHON) -m tox
+doc:
+	. xplique_dev_env/bin/activate && mkdocs build
+	. xplique_dev_env/bin/activate && mkdocs gh-deploy
 
-lint: venv
-	$(PYTHON) -m pylint xplique
-
-doc: venv
-	$(PYTHON) -m mkdocs build
-	$(PYTHON) -m mkdocs gh-deploy
-
-serve-doc: venv
-	CUDA_VISIBLE_DEVICES=-1 $(PYTHON) -m mkdocs serve
+serve-doc:
+	. xplique_dev_env/bin/activate && CUDA_VISIBLE_DEVICES=-1 mkdocs serve
