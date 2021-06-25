@@ -3,8 +3,8 @@ Override relu gradients policy
 """
 
 import tensorflow as tf
-from tensorflow.keras.layers import Activation
-from tensorflow.keras.models import clone_model
+from tensorflow.keras.layers import Activation # pylint: disable=E0611
+from tensorflow.keras.models import clone_model # pylint: disable=E0611
 
 
 @tf.custom_gradient
