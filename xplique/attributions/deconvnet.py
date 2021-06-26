@@ -5,7 +5,7 @@ Module related to DeconvNet method
 import tensorflow as tf
 
 from .base import WhiteBoxExplainer
-from ..utils import override_relu_gradient, deconv_relu, sanitize_input_output
+from ..utils import override_relu_gradient, deconv_relu, sanitize_input_output, batch_gradient
 from ..types import Union, Optional
 
 
@@ -56,5 +56,5 @@ class DeconvNet(WhiteBoxExplainer):
         explanations
             Guided Backpropagation maps.
         """
-        gradients = WhiteBoxExplainer._batch_gradient(self.model, inputs, labels, self.batch_size)
+        gradients = batch_gradient(self.model, inputs, labels, self.batch_size)
         return gradients

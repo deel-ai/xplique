@@ -5,7 +5,7 @@ Module related to Integrated Gradients method
 import tensorflow as tf
 
 from .base import WhiteBoxExplainer
-from ..utils import sanitize_input_output, repeat_labels
+from ..utils import sanitize_input_output, repeat_labels, batch_gradient
 from ..types import Tuple, Union, Optional
 
 
@@ -82,10 +82,8 @@ class IntegratedGradients(WhiteBoxExplainer):
             repeated_labels = repeat_labels(y_batch, self.steps)
 
             # compute the gradient for each paths
-            interpolated_gradients = WhiteBoxExplainer._batch_gradient(self.model,
-                                                                     interpolated_inputs,
-                                                                     repeated_labels,
-                                                                     batch_size)
+            interpolated_gradients = batch_gradient(self.model, interpolated_inputs,
+                                                    repeated_labels, batch_size)
             interpolated_gradients = tf.reshape(interpolated_gradients,
                                                 (-1, self.steps, *interpolated_gradients.shape[1:]))
 

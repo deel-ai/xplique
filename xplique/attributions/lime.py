@@ -10,7 +10,7 @@ from sklearn import linear_model
 from skimage.segmentation import quickshift
 
 from .base import BlackBoxExplainer
-from ..utils import sanitize_input_output
+from ..utils import sanitize_input_output, batch_predictions_one_hot
 from ..types import Callable, Union, Optional, Any
 
 class Lime(BlackBoxExplainer):
@@ -409,7 +409,7 @@ class Lime(BlackBoxExplainer):
 
             # get the labels of pertubed_samples
             samples_labels = tf.map_fn(
-                fn= lambda inp: Lime._batch_predictions(
+                fn= lambda inp: batch_predictions_one_hot(
                     model,
                     inp[0],
                     inp[1],
