@@ -5,7 +5,7 @@ Module related to SmoothGrad method
 import tensorflow as tf
 
 from .base import WhiteBoxExplainer
-from ..utils import sanitize_input_output, repeat_labels
+from ..utils import sanitize_input_output, repeat_labels, batch_gradient
 from ..types import Tuple, Union, Optional
 
 
@@ -72,8 +72,7 @@ class SmoothGrad(WhiteBoxExplainer):
             noisy_inputs = SmoothGrad._apply_noise(x_batch, noisy_mask)
             repeated_labels = repeat_labels(y_batch, self.nb_samples)
             # compute the gradient of each noisy samples generated
-            gradients = WhiteBoxExplainer._batch_gradient(self.model, noisy_inputs, repeated_labels,
-                                                        batch_size)
+            gradients = batch_gradient(self.model, noisy_inputs, repeated_labels, batch_size)
             # group by inputs and compute the average gradient
             gradients = tf.reshape(gradients, (-1, self.nb_samples, *gradients.shape[1:]))
             reduced_gradients = self._reduce_gradients(gradients)

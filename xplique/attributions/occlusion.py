@@ -8,7 +8,7 @@ import numpy as np
 import tensorflow as tf
 
 from .base import BlackBoxExplainer
-from ..utils import sanitize_input_output, repeat_labels
+from ..utils import sanitize_input_output, repeat_labels, batch_predictions_one_hot
 from ..types import Callable, Tuple, Union, Optional
 
 
@@ -70,8 +70,7 @@ class Occlusion(BlackBoxExplainer):
         batch_size = self.batch_size or len(inputs)
 
         masks = Occlusion._get_masks((*inputs.shape[1:],), self.patch_size, self.patch_stride)
-        baseline_scores = BlackBoxExplainer._batch_predictions(self.model, inputs, labels,
-                                                               batch_size)
+        baseline_scores = batch_predictions_one_hot(self.model, inputs, labels, batch_size)
 
         for x_batch, y_batch, baseline in tf.data.Dataset.from_tensor_slices(
                 (inputs, labels, baseline_scores)).batch(batch_size):
@@ -79,8 +78,8 @@ class Occlusion(BlackBoxExplainer):
             occluded_inputs = Occlusion._apply_masks(x_batch, masks, self.occlusion_value)
             repeated_labels = repeat_labels(y_batch, masks.shape[0])
 
-            batch_scores = BlackBoxExplainer._batch_predictions(self.model, occluded_inputs,
-                                                                repeated_labels, batch_size)
+            batch_scores = batch_predictions_one_hot(self.model, occluded_inputs,
+                                                     repeated_labels, batch_size)
             batch_sensitivity = Occlusion._compute_sensitivity(baseline, batch_scores, masks)
 
             sensitivity = batch_sensitivity if sensitivity is None else \

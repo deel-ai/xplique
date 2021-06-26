@@ -5,7 +5,7 @@ Module related to RISE method
 import tensorflow as tf
 
 from .base import BlackBoxExplainer
-from ..utils import sanitize_input_output, repeat_labels
+from ..utils import sanitize_input_output, repeat_labels, batch_predictions_one_hot
 from ..types import Callable, Tuple, Optional
 
 
@@ -80,8 +80,8 @@ class Rise(BlackBoxExplainer):
             masked_inputs = Rise._apply_masks(x_batch, masks)
             repeated_labels = repeat_labels(y_batch, self.nb_samples)
 
-            predictions = BlackBoxExplainer._batch_predictions(self.model, masked_inputs,
-                                                             repeated_labels, batch_size)
+            predictions = batch_predictions_one_hot(self.model, masked_inputs,
+                                                    repeated_labels, batch_size)
             scores = Rise._compute_importance(predictions, masks)
 
             rise_maps = scores if rise_maps is None else tf.concat([rise_maps, scores], axis=0)

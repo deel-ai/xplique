@@ -5,7 +5,7 @@ Module related to Gradient x Input method
 import tensorflow as tf
 
 from .base import WhiteBoxExplainer
-from ..utils import sanitize_input_output
+from ..utils import sanitize_input_output, batch_gradient
 
 
 class GradientInput(WhiteBoxExplainer):
@@ -44,7 +44,7 @@ class GradientInput(WhiteBoxExplainer):
         explanations
             Gradients x Inputs, with the same shape as the inputs.
         """
-        gradients = WhiteBoxExplainer._batch_gradient(self.model, inputs, labels, self.batch_size)
+        gradients = batch_gradient(self.model, inputs, labels, self.batch_size)
         gradients_inputs = tf.multiply(gradients, inputs)
 
         return gradients_inputs
