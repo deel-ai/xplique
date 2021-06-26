@@ -1,8 +1,25 @@
 import numpy as np
-import tensorflow.keras.backend as K
+import tensorflow as tf
+from tensorflow.keras.layers import Dense, Conv2D, Activation, Dropout, Flatten, MaxPooling2D, Input
 
 from xplique.attributions import GradCAM
-from ..utils import generate_data, generate_model, almost_equal
+from ..utils import generate_data, almost_equal
+
+def _generate_model(input_shape=(32, 32, 3), output_shape=10):
+    model = tf.keras.Sequential()
+    model.add(Input(shape=input_shape))
+    model.add(Conv2D(4, kernel_size=(2, 2),
+                     activation='relu', name='conv2d'))
+    model.add(Conv2D(4, kernel_size=(2, 2),
+                     activation='relu', name='conv2d_1'))
+    model.add(MaxPooling2D(pool_size=(2, 2)))
+    model.add(Dropout(0.25))
+    model.add(Flatten())
+    model.add(Dense(output_shape))
+    model.add(Activation('softmax'))
+    model.compile(loss='categorical_crossentropy', optimizer='sgd')
+
+    return model
 
 
 def test_output_shape():
@@ -12,20 +29,20 @@ def test_output_shape():
     nb_labels = 10
 
     for input_shape in input_shapes:
-        x, y = generate_data(input_shape, nb_labels, 100)
-        model = generate_model(input_shape, nb_labels)
+        samples, labels = generate_data(input_shape, nb_labels, 100)
+        model = _generate_model(input_shape, nb_labels)
 
         method = GradCAM(model, -2)
-        outputs = method.explain(x, y)
+        outputs = method.explain(samples, labels)
 
-        assert x.shape[:3] == outputs.shape[:3]
+        assert samples.shape[:3] == outputs.shape[:3]
 
 
 def test_conv_layer():
     """We should target the right layer using either int, string or default procedure"""
-    K.clear_session()
+    tf.keras.backend.clear_session()
 
-    model = generate_model()
+    model = _generate_model()
 
     last_conv_layer = model.get_layer('conv2d_1')
     first_conv_layer = model.get_layer('conv2d')
