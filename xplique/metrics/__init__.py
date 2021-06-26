@@ -2,4 +2,4 @@
 Explanations Metrics module
 """
 
-from .fidelity import mu_fidelity, deletion, insertion
+from .fidelity import MuFidelity, Deletion, Insertion

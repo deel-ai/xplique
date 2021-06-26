@@ -1,5 +1,5 @@
 """
-Fidelity (or Faithfullness) metrics
+Fidelity (or Faithfulness) metrics
 """
 
 from inspect import isfunction
@@ -7,18 +7,12 @@ from inspect import isfunction
 import numpy as np
 import tensorflow as tf
 
-from ..types import Union, Callable, Optional, Tuple
+from .base import BaseAttributionMetric
+from ..utils import batch_predictions_one_hot
+from ..types import Union, Callable, Optional
 
-def mu_fidelity(model: tf.keras.Model,
-                inputs: tf.Tensor,
-                labels: tf.Tensor,
-                explanations: tf.Tensor,
-                grid_size: Optional[int] = None,
-                subset_percent: float = 0.1,
-                baseline_mode: Union[float, Callable] = 0.0,
-                nb_samples: int = 200,
-                batch_size: int = 64) -> Tuple[float, np.ndarray]:
-                # pylint: disable=R0913
+
+class MuFidelity(BaseAttributionMetric):
     """
     Used to compute the fidelity correlation metric. This metric ensure there is a correlation
     between a random subset of pixels and their attribution score. For each random subset
@@ -40,14 +34,11 @@ def mu_fidelity(model: tf.keras.Model,
     model
         Model used for computing metric.
     inputs
-        Input samples, with N number of samples, W & H the sample dimensions, and C the
-        number of channels.
+        Input samples under study.
     labels
-        One hot encoded labels for each sample, with N the number of samples, and L
-        the number of classes.
-    explanations
-        Feature attributions for each samples, with N number of samples, W & H the sample
-        dimensions.
+        One-hot encoded labels, one for each sample.
+    batch_size
+        Number of samples to explain at once, if None compute all at once.
     grid_size
         If none, compute the original metric, else cut the image in (grid_size, grid_size) and
         each element of the subset will be a super pixel representing one element of the grid.
@@ -58,157 +49,87 @@ def mu_fidelity(model: tf.keras.Model,
         Value of the baseline state, will be called with the a single input if it is a function.
     nb_samples
         Number of different subsets to try on each input to measure the correlation.
-    batch_size
-        Number of samples to explain at once, if None compute all at once.
-
-    Returns
-    -------
-    fidelity_score
-        Metric score.
-    predictions_attributions
-        Values of each predictions (index 0) and his according attribution sum (index 1) for each
-        inputs passed (axis 1).
     """
-    # by default use the original equation (pixel-wise modification)
-    if grid_size is None:
-        grid_size = inputs.shape[1]
-    subset_size = int(grid_size ** 2 * subset_percent)  # cardinal of subset
 
-    # prepare the random masks that will designate the modified subset (S in original equation)
-    # we ensure the masks have exactly `subset_size` pixels set to baseline
-    subset_masks = np.random.rand(nb_samples, grid_size ** 2).argsort(axis=-1) > subset_size
-    # and interpolate them if needed
-    subset_masks = subset_masks.astype(np.float32).reshape((nb_samples, grid_size, grid_size, 1))
-    subset_masks = tf.image.resize(subset_masks, inputs.shape[1:-1], method="nearest")
+    def __init__(self,
+                 model: Callable,
+                 inputs: tf.Tensor,
+                 labels: tf.Tensor,
+                 batch_size: Optional[int] = 64,
+                 grid_size: Optional[int] = 9,
+                 subset_percent: float = 0.2,
+                 baseline_mode: Union[Callable, float] = 0.0,
+                 nb_samples: int = 200):
+        # pylint: disable=R0913
+        super().__init__(model, inputs, labels, batch_size)
+        self.grid_size = grid_size
+        self.subset_percent = subset_percent
+        self.baseline_mode = baseline_mode
+        self.nb_samples = nb_samples
 
-    base_predictions = np.sum(model.predict(inputs, batch_size=batch_size) * labels, -1)
+        # if unspecified use the original equation (pixel-wise modification)
+        self.grid_size = grid_size or inputs.shape[1]
+        # cardinal of subset (|S| in the equation)
+        self.subset_size = int(self.grid_size ** 2 * self.subset_percent)
 
-    predictions, sum_of_attributions = [], []
-    correlations = []
+        # prepare the random masks that will designate the modified subset (S in original equation)
+        # we ensure the masks have exactly `subset_size` pixels set to baseline
+        subset_masks = np.random.rand(self.nb_samples, self.grid_size ** 2).argsort(axis=-1) > \
+                       self.subset_size
+        # and interpolate them if needed
+        subset_masks = subset_masks.astype(np.float32).reshape(
+            (self.nb_samples, self.grid_size, self.grid_size, 1))
+        self.subset_masks = tf.image.resize(subset_masks, inputs.shape[1:-1], method="nearest")
 
-    for inp, label, phi, base in zip(inputs, labels, explanations, base_predictions):
-        baseline = baseline_mode(inp) if isfunction(baseline_mode) else baseline_mode
-        # use the masks to set the selected subsets to baseline state
-        degraded_inputs = inp * subset_masks + (1.0 - subset_masks) * baseline
-        # measure the two terms that should be correlated
-        preds = base - np.sum(model.predict(degraded_inputs, batch_size=batch_size) * label, -1)
-        attrs = np.sum(phi * (1.0 - subset_masks), (1, 2, 3))
-        corr_score = np.corrcoef(preds, attrs)[0, 1]
+        self.base_predictions = batch_predictions_one_hot(self.model, inputs,
+                                                          labels, self.batch_size)
 
-        # sanity check: if the model predictions are the same, no variation
-        if np.isnan(corr_score):
-            corr_score = 0.0
+    def evaluate(self,
+                 explainer: Callable) -> float:
+        """
+        Evaluate the fidelity score.
 
-        predictions.append(preds)
-        sum_of_attributions.append(attrs)
-        correlations.append(corr_score)
+        Parameters
+        ----------
+        explainer
+            Explainer to call to get explanation for an input and a label.
 
-    fidelity_score = np.mean(correlations)
-    predictions_attributions = np.stack([predictions, sum_of_attributions])
+        Returns
+        -------
+        fidelity_score
+            Metric score, average correlation between the drop in score when variables are set
+            to a baseline state and the importance of these variables according to the
+            explanations.
+        """
+        explanations = explainer(self.inputs, self.labels)
 
-    return fidelity_score, predictions_attributions
+        correlations = []
+        for inp, label, phi, base in zip(self.inputs, self.labels, explanations,
+                                         self.base_predictions):
+            label = np.repeat(label[None, :], self.nb_samples, 0)
+            baseline = self.baseline_mode(inp) if isfunction(self.baseline_mode) else \
+                self.baseline_mode
+            # use the masks to set the selected subsets to baseline state
+            degraded_inputs = inp * self.subset_masks + (1.0 - self.subset_masks) * baseline
+            # measure the two terms that should be correlated
+            preds = base - batch_predictions_one_hot(self.model, degraded_inputs,
+                                                     label, self.batch_size)
 
+            attrs = np.sum(phi * (1.0 - self.subset_masks), (1, 2, 3))
+            corr_score = np.corrcoef(preds, attrs)[0, 1]
 
-def deletion(model: tf.keras.Model,
-             inputs: tf.Tensor,
-             labels: tf.Tensor,
-             explanations: tf.Tensor,
-             baseline_mode: Union[float, Callable] = 0.0,
-             steps: int = 10,
-             batch_size: int = 64) -> Tuple[float, np.ndarray]:
-    """
-    Used to calculate the deletion score. This score measures the decrease of the prediction
-    score when removing progressively the most important pixels. Lower is better.
+            # sanity check: if the model predictions are the same, no variation
+            if np.isnan(corr_score):
+                corr_score = 0.0
 
-    Ref. Petsiuk & al., RISE: Randomized Input Sampling for Explanation of Black-box Models (2018).
-    https://arxiv.org/abs/1806.07421
+            correlations.append(corr_score)
 
-    Parameters
-    ----------
-    model
-        Model used for computing metric.
-    inputs
-        Input samples, with N number of samples, W & H the sample dimensions, and C the
-        number of channels.
-    labels
-        One hot encoded labels for each sample, with N the number of samples, and L
-        the number of classes.
-    explanations
-        Feature attributions for each samples, with N number of samples, W & H the sample
-        dimensions.
-    baseline_mode
-        Value of the baseline state, will be called with the inputs if it is a function.
-    steps
-        Number of steps between the start and the end state.
-    batch_size
-        Number of samples to explain at once, if None compute all at once.
+        fidelity_score = np.mean(correlations)
 
-    Returns
-    -------
-    auc
-        Metric score, area over the deletion curve, lower is better.
-    curve
-        Mean curve of deletion. The first index (0) stores the percentages of
-        deletion while the second index (1) gives the average results of the predictions.
-    """
-    return _causal_metric(model, inputs, labels, explanations, "deletion", baseline_mode, steps,
-                          batch_size)
+        return fidelity_score
 
 
-def insertion(model: tf.keras.Model,
-              inputs: tf.Tensor,
-              labels: tf.Tensor,
-              explanations: tf.Tensor,
-              baseline_mode: Union[float, Callable] = 0.0,
-              steps: int = 10,
-              batch_size: int = 64) -> Tuple[float, np.ndarray]:
-    """
-    Used to calculate the insertion score. This score measures the increase of the prediction
-    score when adding progressively the most important pixels. Higher is better.
-
-    Ref. Petsiuk & al., RISE: Randomized Input Sampling for Explanation of Black-box Models (2018).
-    https://arxiv.org/abs/1806.07421
-
-    Parameters
-    ----------
-    model
-        Model used for computing metric.
-    inputs
-        Input samples, with N number of samples, W & H the sample dimensions, and C the
-        number of channels.
-    labels
-        One hot encoded labels for each sample, with N the number of samples, and L
-        the number of classes.
-    explanations
-        Feature attributions for each samples, with N number of samples, W & H the sample
-        dimensions.
-    baseline_mode
-        Value of the baseline state, will be called with the inputs if it is a function.
-    steps
-        Number of steps between the start and the end state.
-    batch_size
-        Number of samples to explain at once, if None compute all at once.
-
-    Returns
-    -------
-    auc
-        Metric score, area over the insertion curve, higher is better.
-    curve
-        Mean curve of insertion. The first index (0) stores the percentages of
-        insertion while the second index (1) gives the average results of the predictions.
-    """
-    return _causal_metric(model, inputs, labels, explanations, "insertion", baseline_mode, steps,
-                          batch_size)
-
-
-def _causal_metric(model: tf.keras.Model,
-                   inputs: tf.Tensor,
-                   labels: tf.Tensor,
-                   explanations: tf.Tensor,
-                   causal_mode: str = "deletion",
-                   baseline_mode: Union[float, Callable] = 0.0,
-                   steps: int = 10,
-                   batch_size: int = 64):
+class CausalFidelity(BaseAttributionMetric):
     """
     Used to compute the insertion and deletion metrics.
 
@@ -217,68 +138,154 @@ def _causal_metric(model: tf.keras.Model,
     model
         Model used for computing metric.
     inputs
-        Input samples, with N number of samples, W & H the sample dimensions, and C the
-        number of channels.
+        Input samples under study.
     labels
-        One hot encoded labels for each sample, with N the number of samples, and L
-        the number of classes.
-    explanations
-        Feature attributions for each samples, with N number of samples, W & H the sample
-        dimensions.
+        One-hot encoded labels, one for each sample.
+    batch_size
+        Number of samples to explain at once, if None compute all at once.
     causal_mode
-        If insertion, the path is baseline to original image, for deletion the path is original
+        If 'insertion', the path is baseline to original image, for 'deletion' the path is original
         image to baseline.
     baseline_mode
         Value of the baseline state, will be called with the inputs if it is a function.
     steps
         Number of steps between the start and the end state.
+    """
+
+    def __init__(self,
+                 model: tf.keras.Model,
+                 inputs: tf.Tensor,
+                 labels: tf.Tensor,
+                 batch_size: Optional[int] = 64,
+                 causal_mode: str = "deletion",
+                 baseline_mode: Union[float, Callable] = 0.0,
+                 steps: int = 10,
+                 ):
+        super().__init__(model, inputs, labels, batch_size)
+        self.causal_mode = causal_mode
+        self.baseline_mode = baseline_mode
+        self.steps = steps
+
+        self.nb_features = np.prod(inputs.shape[1:-1])
+        self.inputs_flatten = inputs.reshape((len(inputs), self.nb_features, inputs.shape[-1]))
+
+    def evaluate(self,
+                 explainer: Callable) -> float:
+        """
+        Evaluate the causal score.
+
+        Parameters
+        ----------
+        explainer
+            Explainer to call to get explanation for an input and a label.
+
+        Returns
+        -------
+        causal_score
+            Metric score, area over the deletion (lower is better) or insertion (higher is
+            better) curve.
+        """
+        explanations = explainer(self.inputs, self.labels)
+        # the reference does not specify how to manage the channels of the explanations
+        if len(explanations.shape) == 4:
+            explanations = np.mean(explanations, -1)
+
+        explanations_flatten = explanations.reshape((len(explanations), -1))
+
+        # for each sample, sort by most important features according to the explanation
+        most_important_features = np.argsort(explanations_flatten, axis=-1)[:, ::-1]
+
+        baselines = self.baseline_mode(self.inputs) if isfunction(self.baseline_mode) else \
+            np.ones_like(self.inputs, dtype=np.float32) * self.baseline_mode
+        baselines_flatten = baselines.reshape(self.inputs_flatten.shape)
+
+        steps = np.linspace(0, self.nb_features, self.steps, dtype=np.int32)
+
+        scores = []
+        if self.causal_mode == "deletion":
+            start = self.inputs_flatten
+            end = baselines_flatten
+        elif self.causal_mode == "insertion":
+            start = baselines_flatten
+            end = self.inputs_flatten
+        else:
+            raise NotImplementedError(f'Unknown causal mode `{self.causal_mode}`.')
+
+        for step in steps:
+            ids_to_flip = most_important_features[:, :step]
+            batch_inputs = start.copy()
+
+            for i, ids in enumerate(ids_to_flip):
+                batch_inputs[i, ids] = end[i, ids]
+
+            batch_inputs = batch_inputs.reshape((-1, *self.inputs.shape[1:]))
+
+            predictions = batch_predictions_one_hot(self.model, batch_inputs,
+                                                    self.labels, self.batch_size)
+            scores.append(predictions)
+
+        auc = np.trapz(np.mean(scores, -1), steps / self.nb_features)
+
+        return auc
+
+
+class Deletion(CausalFidelity):
+    """
+    Used to compute the deletion metric.
+
+    Parameters
+    ----------
+    model
+        Model used for computing metric.
+    inputs
+        Input samples under study.
+    labels
+        One-hot encoded labels, one for each sample.
     batch_size
         Number of samples to explain at once, if None compute all at once.
-
-    Returns
-    -------
-    auc
-        Metric score, area over the curve.
-    curve
-        Mean curve of insertion/deletion. The first index (0) stores the percentages of
-        deletion/insertion while the second index (1) gives the average results of the predictions.
+    baseline_mode
+        Value of the baseline state, will be called with the inputs if it is a function.
+    steps
+        Number of steps between the start and the end state.
     """
-    nb_features = np.prod(inputs.shape[1:-1])
-    inputs_flatten = inputs.reshape((len(inputs), nb_features, inputs.shape[-1]))
-    explanations_flatten = explanations.reshape((len(explanations), -1))
 
-    # for each sample, sort by most important features according to the explanation
-    most_important_features = np.argsort(explanations_flatten, axis=-1)[:, ::-1]
+    def __init__(self,
+                 model: tf.keras.Model,
+                 inputs: tf.Tensor,
+                 labels: tf.Tensor,
+                 batch_size: Optional[int] = 64,
+                 baseline_mode: Union[float, Callable] = 0.0,
+                 steps: int = 10,
+                 ):
+        super().__init__(model, inputs, labels, batch_size, "deletion", baseline_mode, steps)
 
-    baselines = baseline_mode(inputs) if isfunction(baseline_mode) else np.ones_like(
-        inputs) * baseline_mode
-    baselines_flatten = baselines.reshape(inputs_flatten.shape)
 
-    steps = np.linspace(0, nb_features, steps, dtype=np.int32)
+class Insertion(CausalFidelity):
+    """
+    Used to compute the insertion metric.
 
-    scores = []
-    if causal_mode == "deletion":
-        start = inputs_flatten
-        end = baselines_flatten
-    elif causal_mode == "insertion":
-        start = baselines_flatten
-        end = inputs_flatten
-    else:
-        raise NotImplementedError(f'Unknown causal mode `{causal_mode}`.')
+    Parameters
+    ----------
+    model
+        Model used for computing metric.
+    inputs
+        Input samples under study.
+    labels
+        One-hot encoded labels, one for each sample.
+    batch_size
+        Number of samples to explain at once, if None compute all at once.
+    baseline_mode
+        Value of the baseline state, will be called with the inputs if it is a function.
+    steps
+        Number of steps between the start and the end state.
+    """
 
-    for step in steps:
-        ids_to_flip = most_important_features[:, :step]
-        batch_inputs = start.copy()
-
-        for i, ids in enumerate(ids_to_flip):
-            batch_inputs[i, ids] = end[i, ids]
-
-        batch_inputs = batch_inputs.reshape((-1, *inputs.shape[1:]))
-
-        predictions = np.sum(model.predict(batch_inputs, batch_size=batch_size) * labels, -1)
-        scores.append(predictions)
-
-    curve = (steps / nb_features, np.mean(scores, -1))
-    auc = np.trapz(curve[1], curve[0])
-
-    return auc, np.array(curve)
+    def __init__(self,
+                 model: tf.keras.Model,
+                 inputs: tf.Tensor,
+                 labels: tf.Tensor,
+                 batch_size: Optional[int] = 64,
+                 baseline_mode: Union[float, Callable] = 0.0,
+                 steps: int = 10,
+                 ):
+        super().__init__(model, inputs, labels, batch_size, "insertion", baseline_mode, steps)
