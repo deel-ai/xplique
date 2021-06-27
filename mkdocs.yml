@@ -23,6 +23,8 @@ nav:
       - Cav: api/cav.md
       - Tcav: api/tcav.md
   - Feature visualization: api/feature_viz.md
+  - Attributions metrics:
+      - Deletion: api/deletion.md
 
 theme:
   name: "material"
