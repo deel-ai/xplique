@@ -27,6 +27,7 @@ nav:
       - Deletion: api/deletion.md
       - Insertion: api/insertion.md
       - MuFidelity: api/mu_fidelity.md
+      - AverageStability: api/avg_stability.md
 
 theme:
   name: "material"
