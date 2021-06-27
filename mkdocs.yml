@@ -25,6 +25,7 @@ nav:
   - Feature visualization: api/feature_viz.md
   - Attributions metrics:
       - Deletion: api/deletion.md
+      - Insertion: api/insertion.md
 
 theme:
   name: "material"
