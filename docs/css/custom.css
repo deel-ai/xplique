@@ -68,3 +68,36 @@ h2.numkdoc ~ ul li:not(.footnote){
     margin-bottom: var(--margin) !important;
     margin-top: var(--margin) !important;
 }
+
+.md-typeset table:not([class]) th {
+    background-color: var(--dark);
+}
+
+.md-typeset__table {
+    width: 100%;
+}
+
+.md-typeset table:not([class]) {
+    display: table;
+}
+
+table th a {
+    color: var(--synthax-red) !important;
+    word-break: break-word !important;
+}
+
+span.parameter-name {
+    color: var(--primary);
+}
+
+li .parameter-type {
+    font-weight: bold;
+}
+
+.parameter-self {
+    color: var(--synthax-red);
+}
+
+.md-typeset table:not([class]) {
+    font-size: 0.8rem;
+}
