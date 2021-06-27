@@ -70,7 +70,7 @@ class Cav: # pylint: disable=too-few-public-methods
 
     def fit(self,
             positive_dataset: tf.Tensor,
-            negative_dataset: tf.Tensor) -> np.array:
+            negative_dataset: tf.Tensor) -> tf.Tensor:
         """
         Compute and return the Concept Activation Vector (CAV) associated to the dataset and the
         layer targeted.
@@ -114,6 +114,6 @@ class Cav: # pylint: disable=too-few-public-methods
         cav = cav / np.linalg.norm(cav, 1)
         cav = np.array(cav).reshape(original_shape[1:])
 
-        return cav
+        return tf.cast(cav, tf.float32)
 
     __call__ = fit

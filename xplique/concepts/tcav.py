@@ -33,7 +33,7 @@ class Tcav:
     def __init__(self,
                  model: tf.keras.Model,
                  target_layer: Union[str, int],
-                 cav: np.array,
+                 cav: tf.Tensor,
                  batch_size: int = 64):
         self.model = model
         self.cav = tf.cast(cav, tf.float32)
