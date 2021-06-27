@@ -7,26 +7,26 @@ google_analytics:
 nav:
   - Home: index.md
   - Attributions methods:
-    - Saliency: api/saliency.md
-    - Gradient Input: api/gradient_input.md
-    - Occlusion sensitivity: api/occlusion.md
-    - Rise: api/rise.md
-    - Integrated Gradient: api/integrated_gradients.md
-    - SmoothGrad: api/smoothgrad.md
-    - Grad-CAM: api/grad_cam.md
-    - Grad-CAM++: api/grad_cam_pp.md
-    - DeconvNet: api/deconvnet.md
-    - Guided Backprop: api/guided_backpropagation.md
-    - SquareGrad: api/square_grad.md
-    - VarGrad: api/vargrad.md
+      - Saliency: api/saliency.md
+      - Gradient Input: api/gradient_input.md
+      - Occlusion sensitivity: api/occlusion.md
+      - Rise: api/rise.md
+      - Integrated Gradient: api/integrated_gradients.md
+      - SmoothGrad: api/smoothgrad.md
+      - Grad-CAM: api/grad_cam.md
+      - Grad-CAM++: api/grad_cam_pp.md
+      - DeconvNet: api/deconvnet.md
+      - Guided Backprop: api/guided_backpropagation.md
+      - SquareGrad: api/square_grad.md
+      - VarGrad: api/vargrad.md
   - Concept based:
-    - Cav: api/cav.md
-    - Tcav: api/tcav.md
+      - Cav: api/cav.md
+      - Tcav: api/tcav.md
 
 theme:
   name: "material"
-  logo: assets/logo_x.svg
-  favicon: assets/logo_x.svg
+  logo: assets/x_logo.png
+  favicon: assets/x_logo.png
   palette:
     - scheme: default
       primary: white
@@ -44,13 +44,16 @@ markdown_extensions:
   - extra
   - admonition
   - pymdownx.arithmatex
+  - pymdownx.highlight
+  - pymdownx.superfences
   - codehilite
   - toc:
-        permalink: true
+      permalink: true
+      toc_depth: 1-2
   - def_list
   - pymdownx.tasklist:
-        custom_checkbox: true
-        clickable_checkbox: true
+      custom_checkbox: true
+      clickable_checkbox: true
   - pymdownx.emoji:
       emoji_index: !!python/name:materialx.emoji.twemoji
       emoji_generator: !!python/name:materialx.emoji.to_svg
@@ -62,6 +65,5 @@ extra_javascript:
   - https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js
   - js/custom.js
 
-repo_name: 'napolar/xplique'
-repo_url: 'https://github.com/napolar/xplique'
-
+repo_name: "deel-ai/xplique"
+repo_url: "https://github.com/deel-ai/xplique"
