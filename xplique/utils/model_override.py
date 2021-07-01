@@ -110,7 +110,7 @@ def override_relu_gradient(model, relu_policy):
     cloned_model = clone_model(model)
     cloned_model.set_weights(model.get_weights())
 
-    for layer_id in range(len(cloned_model.layers)):
+    for layer_id in range(len(cloned_model.layers)): # pylint: disable=C0200
         layer = cloned_model.layers[layer_id]
         if has_relu_activation(layer):
             layer.activation = relu_policy
