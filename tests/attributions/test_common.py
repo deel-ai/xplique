@@ -1,4 +1,5 @@
 import numpy as np
+import tensorflow as tf
 
 from xplique.attributions import (Saliency, GradientInput, IntegratedGradients, SmoothGrad, VarGrad,
                                   SquareGrad, GradCAM, Occlusion, Rise, GuidedBackprop, DeconvNet,
@@ -40,7 +41,7 @@ def test_common():
         assert hasattr(method, 'explain')
 
         # all explanations returned must be numpy array
-        assert isinstance(explanations, np.ndarray)
+        assert isinstance(explanations, tf.Tensor)
 
 
 def test_batch_size():

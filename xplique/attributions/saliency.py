@@ -4,8 +4,8 @@ Module related to Saliency maps method
 
 import tensorflow as tf
 
-from .base import WhiteBoxExplainer
-from ..utils import sanitize_input_output, batch_gradient
+from .base import WhiteBoxExplainer, sanitize_input_output
+from ..utils import batch_gradient
 
 
 class Saliency(WhiteBoxExplainer):

@@ -9,8 +9,8 @@ import numpy as np
 from sklearn import linear_model
 from skimage.segmentation import quickshift
 
-from .base import BlackBoxExplainer
-from ..utils import sanitize_input_output, batch_predictions_one_hot
+from .base import BlackBoxExplainer, sanitize_input_output
+from ..utils import batch_predictions_one_hot
 from ..types import Callable, Union, Optional, Any
 
 class Lime(BlackBoxExplainer):

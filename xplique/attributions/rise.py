@@ -4,8 +4,8 @@ Module related to RISE method
 
 import tensorflow as tf
 
-from .base import BlackBoxExplainer
-from ..utils import sanitize_input_output, repeat_labels, batch_predictions_one_hot
+from .base import BlackBoxExplainer, sanitize_input_output
+from ..utils import repeat_labels, batch_predictions_one_hot
 from ..types import Callable, Tuple, Optional
 
 
