@@ -6,9 +6,29 @@ from abc import ABC, abstractmethod
 import warnings
 
 import tensorflow as tf
+import numpy as np
 
 from ..types import Callable, Dict, Tuple, Union, Optional
-from ..utils import find_layer
+from ..utils import find_layer, tensor_sanitize
+
+
+def sanitize_input_output(explanation_method: Callable):
+    """
+    Wrap a method explanation function to ensure tf.Tensor as inputs,
+    and as output
+
+    explanation_method
+        Function to wrap, should return an tf.tensor.
+    """
+    def sanitize(self, inputs: Union[tf.data.Dataset, tf.Tensor, np.array],
+                 targets: Optional[Union[tf.Tensor, np.array]],
+                 *args):
+        # ensure we have tf.tensor
+        inputs, targets = tensor_sanitize(inputs, targets)
+        # then enter the explanation function
+        return explanation_method(self, inputs, targets, *args)
+
+    return sanitize
 
 
 class BlackBoxExplainer(ABC):
