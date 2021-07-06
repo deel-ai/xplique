@@ -49,8 +49,8 @@ class Occlusion(BlackBoxExplainer):
 
     @sanitize_input_output
     def explain(self,
-                inputs: tf.Tensor,
-                labels: tf.Tensor) -> tf.Tensor:
+                inputs: Union[tf.data.Dataset, tf.Tensor, np.array],
+                targets: Optional[Union[tf.Tensor, np.array]] = None) -> tf.Tensor:
         """
         Compute Occlusion sensitivity for a batch of samples.
 
@@ -58,8 +58,8 @@ class Occlusion(BlackBoxExplainer):
         ----------
         inputs
             Input samples to be explained.
-        labels
-            One-hot encoded labels, one for each sample.
+        targets
+            One-hot encoded labels or regression target (e.g {+1, -1}), one for each sample.
 
         Returns
         -------
@@ -70,16 +70,16 @@ class Occlusion(BlackBoxExplainer):
         batch_size = self.batch_size or len(inputs)
 
         masks = Occlusion._get_masks((*inputs.shape[1:],), self.patch_size, self.patch_stride)
-        baseline_scores = batch_predictions_one_hot(self.model, inputs, labels, batch_size)
+        baseline_scores = batch_predictions_one_hot(self.model, inputs, targets, batch_size)
 
         for x_batch, y_batch, baseline in tf.data.Dataset.from_tensor_slices(
-                (inputs, labels, baseline_scores)).batch(batch_size):
+                (inputs, targets, baseline_scores)).batch(batch_size):
 
             occluded_inputs = Occlusion._apply_masks(x_batch, masks, self.occlusion_value)
-            repeated_labels = repeat_labels(y_batch, masks.shape[0])
+            repeated_targets = repeat_labels(y_batch, masks.shape[0])
 
             batch_scores = batch_predictions_one_hot(self.model, occluded_inputs,
-                                                     repeated_labels, batch_size)
+                                                     repeated_targets, batch_size)
             batch_sensitivity = Occlusion._compute_sensitivity(baseline, batch_scores, masks)
 
             sensitivity = batch_sensitivity if sensitivity is None else \

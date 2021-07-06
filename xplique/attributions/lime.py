@@ -201,8 +201,8 @@ class Lime(BlackBoxExplainer):
 
     @sanitize_input_output
     def explain(self,
-                inputs: Union[np.ndarray, tf.Tensor],
-                labels: Union[np.ndarray, tf.Tensor]) -> np.ndarray:
+                inputs: Union[tf.data.Dataset, tf.Tensor, np.array],
+                targets: Optional[Union[tf.Tensor, np.array]] = None) -> tf.Tensor:
         """
         This method attributes the output of the model with given labels
         to the inputs of the model using the approach described above,
@@ -216,7 +216,7 @@ class Lime(BlackBoxExplainer):
             Input samples, with N number of samples, W & H the sample dimensions, and C the
             number of channels.
 
-        labels
+        targets
             Tensor or numpy array of shape (N, L)
             One hot encoded labels to compute for each sample, with N the number of samples,
             and L the number of classes.
@@ -248,7 +248,7 @@ class Lime(BlackBoxExplainer):
         return Lime._compute(self.model,
                             self.batch_size,
                             inputs,
-                            labels,
+                            targets,
                             self.interpretable_model,
                             self.similarity_kernel,
                             self.pertub_func,
@@ -262,7 +262,7 @@ class Lime(BlackBoxExplainer):
     def _compute(model: Callable,
                 batch_size: int,
                 inputs: tf.Tensor,
-                labels: tf.Tensor,
+                targets: tf.Tensor,
                 interpretable_model: Callable,
                 similarity_kernel: Callable[[tf.Tensor, tf.Tensor, tf.Tensor], tf.Tensor],
                 pertub_func: Callable[[Union[int, tf.Tensor],int], tf.Tensor],
@@ -288,7 +288,7 @@ class Lime(BlackBoxExplainer):
             Input samples, with N number of samples, W & H the sample dimensions, and C the
             number of channels.
 
-        labels
+        targets
             Tensor of shape (N, L)
             One hot encoded labels to compute for each sample, with N the number of samples,
             and L the number of classes.
@@ -380,7 +380,7 @@ class Lime(BlackBoxExplainer):
             )
 
         # augment the label vector to match (N, nb_samples, L)
-        augmented_labels = tf.expand_dims(labels, axis=1)
+        augmented_labels = tf.expand_dims(targets, axis=1)
         augmented_labels = tf.repeat(augmented_labels, repeats=nb_samples, axis=1)
 
         # add a prefetch variable for numerous inputs

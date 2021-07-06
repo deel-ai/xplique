@@ -3,9 +3,11 @@ Module related to Saliency maps method
 """
 
 import tensorflow as tf
+import numpy as np
 
 from .base import WhiteBoxExplainer, sanitize_input_output
 from ..commons import batch_gradient
+from ..types import Optional, Union
 
 
 class Saliency(WhiteBoxExplainer):
@@ -37,8 +39,8 @@ class Saliency(WhiteBoxExplainer):
 
     @sanitize_input_output
     def explain(self,
-                inputs: tf.Tensor,
-                labels: tf.Tensor) -> tf.Tensor:
+                inputs: Union[tf.data.Dataset, tf.Tensor, np.array],
+                targets: Optional[Union[tf.Tensor, np.array]] = None) -> tf.Tensor:
         """
         Compute saliency maps for a batch of samples.
 
@@ -46,15 +48,15 @@ class Saliency(WhiteBoxExplainer):
         ----------
         inputs
             Input samples to be explained.
-        labels
-            One-hot encoded labels, one for each sample.
+        targets
+            One-hot encoded labels or regression target (e.g {+1, -1}), one for each sample.
 
         Returns
         -------
         explanations
             Saliency maps.
         """
-        gradients = batch_gradient(self.model, inputs, labels, self.batch_size)
+        gradients = batch_gradient(self.model, inputs, targets, self.batch_size)
         gradients = tf.abs(gradients)
 
         # if the image is a RGB, take the maximum magnitude across the channels (see Ref.)

@@ -24,11 +24,11 @@ class BaseAttributionMetric(ABC):
     def __init__(self,
                  model: Callable,
                  inputs: tf.Tensor,
-                 labels: tf.Tensor,
+                 targets: tf.Tensor,
                  batch_size: Optional[int] = 64):
         self.model = model
         self.inputs = inputs
-        self.labels = labels
+        self.targets = targets
         self.batch_size = batch_size
 
     @abstractmethod
