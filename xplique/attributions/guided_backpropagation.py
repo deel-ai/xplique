@@ -3,6 +3,7 @@ Module related to Guided Backpropagation method
 """
 
 import tensorflow as tf
+import numpy as np
 
 from .base import WhiteBoxExplainer, sanitize_input_output
 from ..commons import guided_relu, override_relu_gradient, batch_gradient
@@ -39,8 +40,8 @@ class GuidedBackprop(WhiteBoxExplainer):
 
     @sanitize_input_output
     def explain(self,
-                inputs: tf.Tensor,
-                labels: tf.Tensor) -> tf.Tensor:
+                inputs: Union[tf.data.Dataset, tf.Tensor, np.array],
+                targets: Optional[Union[tf.Tensor, np.array]] = None) -> tf.Tensor:
         """
         Compute Guided Backpropagation for a batch of samples.
 
@@ -48,13 +49,13 @@ class GuidedBackprop(WhiteBoxExplainer):
         ----------
         inputs
             Input samples to be explained.
-        labels
-            One-hot encoded labels, one for each sample.
+        targets
+            One-hot encoded labels or regression target (e.g {+1, -1}), one for each sample.
 
         Returns
         -------
         explanations
             Guided Backpropagation maps.
         """
-        gradients = batch_gradient(self.model, inputs, labels, self.batch_size)
+        gradients = batch_gradient(self.model, inputs, targets, self.batch_size)
         return gradients

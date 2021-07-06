@@ -25,8 +25,8 @@ class AverageStability(BaseAttributionMetric):
         Model used for computing metric.
     inputs
         Input samples under study.
-    labels
-        One-hot encoded labels, one for each sample.
+    targets
+        One-hot encoded labels or regression target (e.g {+1, -1}), one for each sample.
     batch_size
         Number of samples to explain at once, if None compute all at once.
     radius
@@ -40,13 +40,13 @@ class AverageStability(BaseAttributionMetric):
     def __init__(self,
                  model: Callable,
                  inputs: tf.Tensor,
-                 labels: tf.Tensor,
+                 targets: tf.Tensor,
                  batch_size: Optional[int] = 64,
                  radius: float = 0.1,
                  distance: str = 'l2',
                  nb_samples: int = 200):
         # pylint: disable=R0913
-        super().__init__(model, inputs, labels, batch_size)
+        super().__init__(model, inputs, targets, batch_size)
         self.radius = radius
         self.nb_samples = nb_samples
 
@@ -78,10 +78,10 @@ class AverageStability(BaseAttributionMetric):
         stability_score
             Average distance between the explanations
         """
-        explanations = explainer(self.inputs, self.labels)
+        explanations = explainer(self.inputs, self.targets)
 
         distances = []
-        for inp, label, phi in zip(self.inputs, self.labels, explanations):
+        for inp, label, phi in zip(self.inputs, self.targets, explanations):
             label = tf.repeat(label[None, :], self.nb_samples, 0)
             neighbors = inp + self.noisy_masks
             phis_neighbors = explainer(neighbors, label)

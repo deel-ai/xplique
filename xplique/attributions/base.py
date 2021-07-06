@@ -60,17 +60,18 @@ class BlackBoxExplainer(ABC):
 
     @abstractmethod
     def explain(self,
-                inputs: tf.Tensor,
-                labels: tf.Tensor) -> tf.Tensor:
+                inputs: Union[tf.data.Dataset, tf.Tensor, np.array],
+                targets: Optional[Union[tf.Tensor, np.array]] = None) -> tf.Tensor:
         """
         Compute the explanations of the given samples.
+        Accept Tensor, numpy array or tf.data.Dataset (in that case targets is None)
 
         Parameters
         ----------
         inputs
             Input samples to be explained.
-        labels
-            One-hot encoded labels, one for each sample.
+        targets
+            One-hot encoded labels or regression target (e.g {+1, -1}), one for each sample.
 
         Returns
         -------

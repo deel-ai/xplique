@@ -3,10 +3,11 @@ Module related to RISE method
 """
 
 import tensorflow as tf
+import numpy as np
 
 from .base import BlackBoxExplainer, sanitize_input_output
 from ..commons import repeat_labels, batch_predictions_one_hot
-from ..types import Callable, Tuple, Optional
+from ..types import Callable, Tuple, Optional, Union
 
 
 class Rise(BlackBoxExplainer):
@@ -51,8 +52,8 @@ class Rise(BlackBoxExplainer):
 
     @sanitize_input_output
     def explain(self,
-                inputs: tf.Tensor,
-                labels: tf.Tensor) -> tf.Tensor:
+                inputs: Union[tf.data.Dataset, tf.Tensor, np.array],
+                targets: Optional[Union[tf.Tensor, np.array]] = None) -> tf.Tensor:
         """
         Compute RISE for a batch of samples.
 
@@ -60,8 +61,8 @@ class Rise(BlackBoxExplainer):
         ----------
         inputs
             Input samples to be explained.
-        labels
-            One-hot encoded labels, one for each sample.
+        targets
+            One-hot encoded labels or regression target (e.g {+1, -1}), one for each sample.
 
         Returns
         -------
@@ -75,13 +76,13 @@ class Rise(BlackBoxExplainer):
                                self.preservation_probability)
 
         for x_batch, y_batch in tf.data.Dataset.from_tensor_slices(
-                (inputs, labels)).batch(batch_size):
+                (inputs, targets)).batch(batch_size):
 
             masked_inputs = Rise._apply_masks(x_batch, masks)
-            repeated_labels = repeat_labels(y_batch, self.nb_samples)
+            repeated_targets = repeat_labels(y_batch, self.nb_samples)
 
             predictions = batch_predictions_one_hot(self.model, masked_inputs,
-                                                    repeated_labels, batch_size)
+                                                    repeated_targets, batch_size)
             scores = Rise._compute_importance(predictions, masks)
 
             rise_maps = scores if rise_maps is None else tf.concat([rise_maps, scores], axis=0)

@@ -35,8 +35,8 @@ class MuFidelity(BaseAttributionMetric):
         Model used for computing metric.
     inputs
         Input samples under study.
-    labels
-        One-hot encoded labels, one for each sample.
+    targets
+        One-hot encoded labels or regression target (e.g {+1, -1}), one for each sample.
     batch_size
         Number of samples to explain at once, if None compute all at once.
     grid_size
@@ -54,14 +54,14 @@ class MuFidelity(BaseAttributionMetric):
     def __init__(self,
                  model: Callable,
                  inputs: tf.Tensor,
-                 labels: tf.Tensor,
+                 targets: tf.Tensor,
                  batch_size: Optional[int] = 64,
                  grid_size: Optional[int] = 9,
                  subset_percent: float = 0.2,
                  baseline_mode: Union[Callable, float] = 0.0,
                  nb_samples: int = 200):
         # pylint: disable=R0913
-        super().__init__(model, inputs, labels, batch_size)
+        super().__init__(model, inputs, targets, batch_size)
         self.grid_size = grid_size
         self.subset_percent = subset_percent
         self.baseline_mode = baseline_mode
@@ -82,7 +82,7 @@ class MuFidelity(BaseAttributionMetric):
         self.subset_masks = tf.image.resize(subset_masks, inputs.shape[1:-1], method="nearest")
 
         self.base_predictions = batch_predictions_one_hot(self.model, inputs,
-                                                          labels, self.batch_size)
+                                                          targets, self.batch_size)
 
     def evaluate(self,
                  explainer: Callable) -> float:
@@ -101,10 +101,10 @@ class MuFidelity(BaseAttributionMetric):
             to a baseline state and the importance of these variables according to the
             explanations.
         """
-        explanations = explainer(self.inputs, self.labels)
+        explanations = explainer(self.inputs, self.targets)
 
         correlations = []
-        for inp, label, phi, base in zip(self.inputs, self.labels, explanations,
+        for inp, label, phi, base in zip(self.inputs, self.targets, explanations,
                                          self.base_predictions):
             label = np.repeat(label[None, :], self.nb_samples, 0)
             baseline = self.baseline_mode(inp) if isfunction(self.baseline_mode) else \
@@ -140,7 +140,7 @@ class CausalFidelity(BaseAttributionMetric):
     inputs
         Input samples under study.
     labels
-        One-hot encoded labels, one for each sample.
+        One-hot encoded labels or regression target (e.g {+1, -1}), one for each sample.
     batch_size
         Number of samples to explain at once, if None compute all at once.
     causal_mode
@@ -155,13 +155,13 @@ class CausalFidelity(BaseAttributionMetric):
     def __init__(self,
                  model: tf.keras.Model,
                  inputs: tf.Tensor,
-                 labels: tf.Tensor,
+                 targets: tf.Tensor,
                  batch_size: Optional[int] = 64,
                  causal_mode: str = "deletion",
                  baseline_mode: Union[float, Callable] = 0.0,
                  steps: int = 10,
                  ):
-        super().__init__(model, inputs, labels, batch_size)
+        super().__init__(model, inputs, targets, batch_size)
         self.causal_mode = causal_mode
         self.baseline_mode = baseline_mode
         self.steps = steps
@@ -185,7 +185,7 @@ class CausalFidelity(BaseAttributionMetric):
             Metric score, area over the deletion (lower is better) or insertion (higher is
             better) curve.
         """
-        explanations = explainer(self.inputs, self.labels)
+        explanations = explainer(self.inputs, self.targets)
         # the reference does not specify how to manage the channels of the explanations
         if len(explanations.shape) == 4:
             explanations = np.mean(explanations, -1)
@@ -221,7 +221,7 @@ class CausalFidelity(BaseAttributionMetric):
             batch_inputs = batch_inputs.reshape((-1, *self.inputs.shape[1:]))
 
             predictions = batch_predictions_one_hot(self.model, batch_inputs,
-                                                    self.labels, self.batch_size)
+                                                    self.targets, self.batch_size)
             scores.append(predictions)
 
         auc = np.trapz(np.mean(scores, -1), steps / self.nb_features)
@@ -239,8 +239,8 @@ class Deletion(CausalFidelity):
         Model used for computing metric.
     inputs
         Input samples under study.
-    labels
-        One-hot encoded labels, one for each sample.
+    targets
+        One-hot encoded labels or regression target (e.g {+1, -1}), one for each sample.
     batch_size
         Number of samples to explain at once, if None compute all at once.
     baseline_mode
@@ -252,12 +252,12 @@ class Deletion(CausalFidelity):
     def __init__(self,
                  model: tf.keras.Model,
                  inputs: tf.Tensor,
-                 labels: tf.Tensor,
+                 targets: tf.Tensor,
                  batch_size: Optional[int] = 64,
                  baseline_mode: Union[float, Callable] = 0.0,
                  steps: int = 10,
                  ):
-        super().__init__(model, inputs, labels, batch_size, "deletion", baseline_mode, steps)
+        super().__init__(model, inputs, targets, batch_size, "deletion", baseline_mode, steps)
 
 
 class Insertion(CausalFidelity):
@@ -270,8 +270,8 @@ class Insertion(CausalFidelity):
         Model used for computing metric.
     inputs
         Input samples under study.
-    labels
-        One-hot encoded labels, one for each sample.
+    targets
+        One-hot encoded labels or regression target (e.g {+1, -1}), one for each sample.
     batch_size
         Number of samples to explain at once, if None compute all at once.
     baseline_mode
@@ -283,9 +283,9 @@ class Insertion(CausalFidelity):
     def __init__(self,
                  model: tf.keras.Model,
                  inputs: tf.Tensor,
-                 labels: tf.Tensor,
+                 targets: tf.Tensor,
                  batch_size: Optional[int] = 64,
                  baseline_mode: Union[float, Callable] = 0.0,
                  steps: int = 10,
                  ):
-        super().__init__(model, inputs, labels, batch_size, "insertion", baseline_mode, steps)
+        super().__init__(model, inputs, targets, batch_size, "insertion", baseline_mode, steps)

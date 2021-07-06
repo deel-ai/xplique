@@ -19,7 +19,7 @@ def tensor_sanitize(inputs: Union[tf.data.Dataset, tf.Tensor, np.array],
     inputs
         Input samples to be explained.
     targets
-        One-hot encoded labels or regression target, one for each sample.
+        One-hot encoded labels or regression target (e.g {+1, -1}), one for each sample.
 
     Returns
     -------

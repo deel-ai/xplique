@@ -3,6 +3,7 @@ Module related to Grad-CAM method
 """
 
 import tensorflow as tf
+import numpy as np
 
 from .base import WhiteBoxExplainer, sanitize_input_output
 from ..commons import find_layer
@@ -53,17 +54,18 @@ class GradCAM(WhiteBoxExplainer):
 
     @sanitize_input_output
     def explain(self,
-                inputs: tf.Tensor,
-                labels: tf.Tensor) -> tf.Tensor:
+                inputs: Union[tf.data.Dataset, tf.Tensor, np.array],
+                targets: Optional[Union[tf.Tensor, np.array]] = None) -> tf.Tensor:
         """
-        Compute Grad-CAM and resize explanations to match inputs shape.
+        Compute and resize explanations to match inputs shape.
+        Accept Tensor, numpy array or tf.data.Dataset (in that case targets is None)
 
         Parameters
         ----------
         inputs
             Input samples to be explained.
-        labels
-            One-hot encoded labels, one for each sample.
+        targets
+            One-hot encoded labels or regression target (e.g {+1, -1}), one for each sample.
 
         Returns
         -------
@@ -73,7 +75,7 @@ class GradCAM(WhiteBoxExplainer):
         grad_cams = None
         batch_size = self.batch_size if self.batch_size is not None else len(inputs)
 
-        for x_batch, y_batch in tf.data.Dataset.from_tensor_slices((inputs, labels)).batch(
+        for x_batch, y_batch in tf.data.Dataset.from_tensor_slices((inputs, targets)).batch(
                 batch_size):
             batch_feature_maps, batch_gradients = GradCAM._gradient(self.model, x_batch, y_batch)
             batch_weights = self._compute_weights(batch_gradients, batch_feature_maps)
@@ -106,7 +108,7 @@ class GradCAM(WhiteBoxExplainer):
         inputs
             Input samples to be explained.
         labels
-            One-hot encoded labels, one for each sample.
+            One-hot encoded labels or regression target (e.g {+1, -1}), one for each sample.
 
         Returns
         -------

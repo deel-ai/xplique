@@ -35,7 +35,7 @@ def repeat_labels(labels: tf.Tensor, nb_repetitions: int) -> tf.Tensor:
 @tf.function
 def predictions_one_hot(model: Callable,
                         inputs: tf.Tensor,
-                        labels: tf.Tensor) -> tf.Tensor:
+                        targets: tf.Tensor) -> tf.Tensor:
     """
     Compute predictions scores, only for the label class, for a batch of samples.
 
@@ -45,22 +45,22 @@ def predictions_one_hot(model: Callable,
         Model used for computing predictions.
     inputs
         Input samples to be explained.
-    labels
-        One-hot encoded labels, one for each sample.
+    targets
+        One-hot encoded labels or regression target (e.g {+1, -1}), one for each sample.
 
     Returns
     -------
     scores
         Predictions scores computed, only for the label class.
     """
-    scores = tf.reduce_sum(model(inputs) * labels, axis=-1)
+    scores = tf.reduce_sum(model(inputs) * targets, axis=-1)
     return scores
 
 
 @tf.function
 def gradient(model: Callable,
              inputs: tf.Tensor,
-             labels: tf.Tensor) -> tf.Tensor:
+             targets: tf.Tensor) -> tf.Tensor:
     """
     Compute gradients for a batch of samples.
 
@@ -70,8 +70,8 @@ def gradient(model: Callable,
         Model used for computing gradient.
     inputs
         Input samples to be explained.
-    labels
-        One-hot encoded labels, one for each sample.
+    targets
+        One-hot encoded labels or regression target (e.g {+1, -1}), one for each sample.
 
     Returns
     -------
@@ -80,14 +80,14 @@ def gradient(model: Callable,
     """
     with tf.GradientTape(watch_accessed_variables=False) as tape: # type: ignore
         tape.watch(inputs)
-        score = tf.reduce_sum(tf.multiply(model(inputs), labels), axis=1)
+        score = tf.reduce_sum(tf.multiply(model(inputs), targets), axis=1)
     return tape.gradient(score, inputs)
 
 
 def inference_batching(operation: Callable,
                        model: Callable,
                        inputs: tf.Tensor,
-                       labels: tf.Tensor,
+                       targets: tf.Tensor,
                        batch_size: Optional[int]) -> tf.Tensor:
     """
     Take care of batching an inference operation: (model, inputs, labels).
@@ -100,8 +100,8 @@ def inference_batching(operation: Callable,
         Callable that will be passed to the operation.
     inputs
         Input samples to be explained.
-    labels
-        One-hot encoded labels, one for each sample.
+    targets
+        One-hot encoded labels or regression target (e.g {+1, -1}), one for each sample.
     batch_size
         Number of samples to explain at once, if None compute all at once.
 
@@ -111,20 +111,20 @@ def inference_batching(operation: Callable,
         Results of the batched operations.
     """
     if batch_size is not None:
-        dataset = tf.data.Dataset.from_tensor_slices((inputs, labels))
+        dataset = tf.data.Dataset.from_tensor_slices((inputs, targets))
         results = tf.concat([
             operation(model, x, y)
             for x, y in dataset.batch(batch_size)
         ], axis=0)
     else:
-        results = operation(model, inputs, labels)
+        results = operation(model, inputs, targets)
 
     return results
 
 
 def batch_predictions_one_hot(model: Callable,
                               inputs: tf.Tensor,
-                              labels: tf.Tensor,
+                              targets: tf.Tensor,
                               batch_size: Optional[int]) -> tf.Tensor:
     """
     Compute predictions scores, only for the label class, for the samples passed. Take
@@ -136,8 +136,8 @@ def batch_predictions_one_hot(model: Callable,
         Model used for computing predictions score.
     inputs
         Input samples to be explained.
-    labels
-        One-hot encoded labels, one for each sample.
+    targets
+        One-hot encoded labels or regression target (e.g {+1, -1}), one for each sample.
     batch_size
         Number of samples to predict at once, if None compute all at once.
 
@@ -146,12 +146,12 @@ def batch_predictions_one_hot(model: Callable,
     scores
         Predictions scores computed, only for the label class.
     """
-    return inference_batching(predictions_one_hot, model, inputs, labels, batch_size)
+    return inference_batching(predictions_one_hot, model, inputs, targets, batch_size)
 
 
 def batch_gradient(model: Callable,
                    inputs: tf.Tensor,
-                   labels: tf.Tensor,
+                   targets: tf.Tensor,
                    batch_size: Optional[int]) -> tf.Tensor:
     """
     Compute the gradients of the sample passed, take care of splitting the samples in
@@ -163,8 +163,8 @@ def batch_gradient(model: Callable,
         Model used for computing gradient.
     inputs
         Input samples to be explained.
-    labels
-        One-hot encoded labels, one for each sample.
+    targets
+        One-hot encoded labels or regression target (e.g {+1, -1}), one for each sample.
     batch_size
         Number of samples to explain at once, if None compute all at once.
 
@@ -173,4 +173,4 @@ def batch_gradient(model: Callable,
     gradients
         Gradients computed, with the same shape as the inputs.
     """
-    return inference_batching(gradient, model, inputs, labels, batch_size)
+    return inference_batching(gradient, model, inputs, targets, batch_size)
