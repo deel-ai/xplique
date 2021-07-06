@@ -5,8 +5,10 @@ Module related to abstract attribution metric
 from abc import ABC, abstractmethod
 
 import tensorflow as tf
+import numpy as np
 
-from ..types import Callable, Optional
+from ..commons import numpy_sanitize
+from ..types import Callable, Optional, Union
 
 
 class BaseAttributionMetric(ABC):
@@ -23,12 +25,11 @@ class BaseAttributionMetric(ABC):
 
     def __init__(self,
                  model: Callable,
-                 inputs: tf.Tensor,
-                 targets: tf.Tensor,
+                 inputs: Union[tf.data.Dataset, tf.Tensor, np.array],
+                 targets: Optional[Union[tf.Tensor, np.array]] = None,
                  batch_size: Optional[int] = 64):
         self.model = model
-        self.inputs = inputs
-        self.targets = targets
+        self.inputs, self.targets = numpy_sanitize(inputs, targets)
         self.batch_size = batch_size
 
     @abstractmethod
