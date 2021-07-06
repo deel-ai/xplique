@@ -53,8 +53,8 @@ class MuFidelity(BaseAttributionMetric):
 
     def __init__(self,
                  model: Callable,
-                 inputs: tf.Tensor,
-                 targets: tf.Tensor,
+                 inputs: Union[tf.data.Dataset, tf.Tensor, np.array],
+                 targets: Optional[Union[tf.Tensor, np.array]] = None,
                  batch_size: Optional[int] = 64,
                  grid_size: Optional[int] = 9,
                  subset_percent: float = 0.2,
@@ -101,7 +101,7 @@ class MuFidelity(BaseAttributionMetric):
             to a baseline state and the importance of these variables according to the
             explanations.
         """
-        explanations = explainer(self.inputs, self.targets)
+        explanations = np.array(explainer(self.inputs, self.targets))
 
         correlations = []
         for inp, label, phi, base in zip(self.inputs, self.targets, explanations,
@@ -154,8 +154,8 @@ class CausalFidelity(BaseAttributionMetric):
 
     def __init__(self,
                  model: tf.keras.Model,
-                 inputs: tf.Tensor,
-                 targets: tf.Tensor,
+                 inputs: Union[tf.data.Dataset, tf.Tensor, np.array],
+                 targets: Optional[Union[tf.Tensor, np.array]] = None,
                  batch_size: Optional[int] = 64,
                  causal_mode: str = "deletion",
                  baseline_mode: Union[float, Callable] = 0.0,
@@ -185,7 +185,7 @@ class CausalFidelity(BaseAttributionMetric):
             Metric score, area over the deletion (lower is better) or insertion (higher is
             better) curve.
         """
-        explanations = explainer(self.inputs, self.targets)
+        explanations = np.array(explainer(self.inputs, self.targets))
         # the reference does not specify how to manage the channels of the explanations
         if len(explanations.shape) == 4:
             explanations = np.mean(explanations, -1)
@@ -251,8 +251,8 @@ class Deletion(CausalFidelity):
 
     def __init__(self,
                  model: tf.keras.Model,
-                 inputs: tf.Tensor,
-                 targets: tf.Tensor,
+                 inputs: Union[tf.data.Dataset, tf.Tensor, np.array],
+                 targets: Optional[Union[tf.Tensor, np.array]] = None,
                  batch_size: Optional[int] = 64,
                  baseline_mode: Union[float, Callable] = 0.0,
                  steps: int = 10,
@@ -282,8 +282,8 @@ class Insertion(CausalFidelity):
 
     def __init__(self,
                  model: tf.keras.Model,
-                 inputs: tf.Tensor,
-                 targets: tf.Tensor,
+                 inputs: Union[tf.data.Dataset, tf.Tensor, np.array],
+                 targets: Optional[Union[tf.Tensor, np.array]] = None,
                  batch_size: Optional[int] = 64,
                  baseline_mode: Union[float, Callable] = 0.0,
                  steps: int = 10,

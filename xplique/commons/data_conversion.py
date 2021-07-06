@@ -44,3 +44,27 @@ def tensor_sanitize(inputs: Union[tf.data.Dataset, tf.Tensor, np.array],
     targets = tf.cast(targets, tf.float32)
 
     return inputs, targets
+
+
+def numpy_sanitize(inputs: Union[tf.data.Dataset, tf.Tensor, np.array],
+                   targets: Optional[Union[tf.Tensor, np.array]]) -> Tuple[tf.Tensor, tf.Tensor]:
+    """
+    Ensure the output as np.array, accept various inputs format including:
+    tf.Tensor, List, numpy array, tf.data.Dataset (when label = None).
+
+    Parameters
+    ----------
+    inputs
+        Input samples to be explained.
+    targets
+        One-hot encoded labels or regression target (e.g {+1, -1}), one for each sample.
+
+    Returns
+    -------
+    inputs_ndarray
+        Inputs samples as np.array
+    targets_ndarray
+        Targets as np.array
+    """
+    inputs, targets = tensor_sanitize(inputs, targets)
+    return inputs.numpy(), targets.numpy()

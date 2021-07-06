@@ -6,7 +6,7 @@ import numpy as np
 import tensorflow as tf
 
 from .base import BaseAttributionMetric
-from ..types import Callable, Optional
+from ..types import Callable, Optional, Union
 
 
 class AverageStability(BaseAttributionMetric):
@@ -39,8 +39,8 @@ class AverageStability(BaseAttributionMetric):
 
     def __init__(self,
                  model: Callable,
-                 inputs: tf.Tensor,
-                 targets: tf.Tensor,
+                 inputs: Union[tf.data.Dataset, tf.Tensor, np.array],
+                 targets: Optional[Union[tf.Tensor, np.array]] = None,
                  batch_size: Optional[int] = 64,
                  radius: float = 0.1,
                  distance: str = 'l2',
@@ -78,13 +78,13 @@ class AverageStability(BaseAttributionMetric):
         stability_score
             Average distance between the explanations
         """
-        explanations = explainer(self.inputs, self.targets)
+        explanations = np.array(explainer(self.inputs, self.targets))
 
         distances = []
         for inp, label, phi in zip(self.inputs, self.targets, explanations):
             label = tf.repeat(label[None, :], self.nb_samples, 0)
             neighbors = inp + self.noisy_masks
-            phis_neighbors = explainer(neighbors, label)
+            phis_neighbors = np.array(explainer(neighbors, label))
 
             # compute the distances between each new explanations
             avg_dist = np.mean([self.distance(phi_n, phi) for phi_n in phis_neighbors])
