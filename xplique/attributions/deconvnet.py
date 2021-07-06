@@ -5,7 +5,7 @@ Module related to DeconvNet method
 import tensorflow as tf
 
 from .base import WhiteBoxExplainer, sanitize_input_output
-from ..utils import override_relu_gradient, deconv_relu, batch_gradient
+from ..commons import override_relu_gradient, deconv_relu, batch_gradient
 from ..types import Union, Optional
 
 

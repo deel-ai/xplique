@@ -1,6 +1,6 @@
 import tensorflow as tf
 
-from xplique.utils import guided_relu, override_relu_gradient
+from xplique.commons import guided_relu, override_relu_gradient
 
 
 def test_override_commutation():

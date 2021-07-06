@@ -5,7 +5,7 @@ Module related to the Testing of CAVs
 import tensorflow as tf
 import numpy as np
 
-from ..utils import find_layer
+from ..commons import find_layer
 from ..types import Union
 
 

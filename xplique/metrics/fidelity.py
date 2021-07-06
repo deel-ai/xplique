@@ -8,7 +8,7 @@ import numpy as np
 import tensorflow as tf
 
 from .base import BaseAttributionMetric
-from ..utils import batch_predictions_one_hot
+from ..commons import batch_predictions_one_hot
 from ..types import Union, Callable, Optional
 
 

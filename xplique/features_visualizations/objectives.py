@@ -7,7 +7,7 @@ import itertools
 import tensorflow as tf
 import numpy as np
 
-from ..utils import find_layer
+from ..commons import find_layer
 from ..types import Union, List, Callable, Tuple, Optional
 from .losses import cosine_similarity
 

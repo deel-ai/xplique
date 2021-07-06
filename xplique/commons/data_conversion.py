@@ -31,9 +31,13 @@ def tensor_sanitize(inputs: Union[tf.data.Dataset, tf.Tensor, np.array],
 
     # deal with tf.data.Dataset
     if isinstance(inputs, tf.data.Dataset):
+        # if the dataset as 4 dimensions, assume it is batched
+        dataset_shape = inputs.element_spec[0].shape
+        if len(dataset_shape) == 4:
+            inputs = inputs.unbatch()
         # unpack the dataset, assume we have tuple of (input, target)
-        targets = [y for x,y in inputs.unbatch()]
-        inputs  = [x for x,y in inputs.unbatch()]
+        targets = [target for inp, target in inputs]
+        inputs  = [inp for inp, target in inputs]
 
     # deal with numpy array
     inputs = tf.cast(inputs, tf.float32)

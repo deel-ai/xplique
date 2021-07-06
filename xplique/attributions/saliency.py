@@ -5,7 +5,7 @@ Module related to Saliency maps method
 import tensorflow as tf
 
 from .base import WhiteBoxExplainer, sanitize_input_output
-from ..utils import batch_gradient
+from ..commons import batch_gradient
 
 
 class Saliency(WhiteBoxExplainer):
