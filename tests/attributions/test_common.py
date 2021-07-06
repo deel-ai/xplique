@@ -7,6 +7,7 @@ from xplique.attributions import (Saliency, GradientInput, IntegratedGradients, 
 from xplique.attributions.base import BlackBoxExplainer
 from ..utils import generate_data, generate_model
 
+
 def _default_methods(model, output_layer_index):
     return [
         Saliency(model, output_layer_index),
@@ -28,20 +29,28 @@ def test_common():
     """Test applied to all the attributions"""
 
     input_shape, nb_labels, samples = ((32, 32, 3), 10, 20)
-    x, y = generate_data(input_shape, nb_labels, samples)
     model = generate_model(input_shape, nb_labels)
     output_layer_index = -2
 
+    inputs_np, targets_np = generate_data(input_shape, nb_labels, samples)
+    inputs_tf, targets_tf = tf.cast(inputs_np, tf.float32), tf.cast(targets_np, tf.float32)
+    dataset = tf.data.Dataset.from_tensor_slices((inputs_np, targets_np))
+    batched_dataset = tf.data.Dataset.from_tensor_slices((inputs_np, targets_np)).batch(3)
+
     methods = _default_methods(model, output_layer_index)
 
-    for method in methods:
-        explanations = method.explain(x, y)
+    for inputs, targets in [(inputs_np, targets_np),
+                            (inputs_tf, targets_tf),
+                            (dataset, None),
+                            (batched_dataset, None)]:
+        for method in methods:
+            explanations = method.explain(inputs, targets)
 
-        # all explanation must have an explain method
-        assert hasattr(method, 'explain')
+            # all explanation must have an explain method
+            assert hasattr(method, 'explain')
 
-        # all explanations returned must be numpy array
-        assert isinstance(explanations, tf.Tensor)
+            # all explanations returned must be numpy array
+            assert isinstance(explanations, tf.Tensor)
 
 
 def test_batch_size():
