@@ -5,7 +5,7 @@ Module related to Grad-CAM method
 import tensorflow as tf
 
 from .base import WhiteBoxExplainer, sanitize_input_output
-from ..utils import find_layer
+from ..commons import find_layer
 from ..types import Tuple, Union, Optional
 
 

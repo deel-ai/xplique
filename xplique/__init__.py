@@ -11,4 +11,4 @@ __version__ = '0.1.0'
 from . import attributions
 from . import concepts
 from . import features_visualizations
-from . import utils
+from . import commons

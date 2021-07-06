@@ -9,7 +9,7 @@ import tensorflow as tf
 import numpy as np
 
 from ..types import Callable, Dict, Tuple, Union, Optional
-from ..utils import find_layer, tensor_sanitize
+from ..commons import find_layer, tensor_sanitize
 
 
 def sanitize_input_output(explanation_method: Callable):

@@ -8,7 +8,7 @@ import numpy as np
 import tensorflow as tf
 
 from .base import BlackBoxExplainer, sanitize_input_output
-from ..utils import repeat_labels, batch_predictions_one_hot
+from ..commons import repeat_labels, batch_predictions_one_hot
 from ..types import Callable, Tuple, Union, Optional
 
 

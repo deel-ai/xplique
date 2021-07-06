@@ -10,7 +10,7 @@ from sklearn import linear_model
 from skimage.segmentation import quickshift
 
 from .base import BlackBoxExplainer, sanitize_input_output
-from ..utils import batch_predictions_one_hot
+from ..commons import batch_predictions_one_hot
 from ..types import Callable, Union, Optional, Any
 
 class Lime(BlackBoxExplainer):

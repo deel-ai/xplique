@@ -9,7 +9,7 @@ from sklearn.linear_model import SGDClassifier
 from sklearn.svm import LinearSVC
 from sklearn.model_selection import train_test_split
 
-from ..utils import find_layer
+from ..commons import find_layer
 from ..types import Union, Callable
 
 

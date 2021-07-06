@@ -5,7 +5,7 @@ Module related to Guided Backpropagation method
 import tensorflow as tf
 
 from .base import WhiteBoxExplainer, sanitize_input_output
-from ..utils import guided_relu, override_relu_gradient, batch_gradient
+from ..commons import guided_relu, override_relu_gradient, batch_gradient
 from ..types import Union, Optional
 
 
