@@ -117,7 +117,7 @@ class Occlusion(BlackBoxExplainer):
 
         for x_anchor in x_anchors:
             for y_anchor in y_anchors:
-                mask = np.zeros(input_shape, dtype=bool)
+                mask = np.zeros(input_shape[:2], dtype=bool)
                 mask[x_anchor:x_anchor + patch_size[0], y_anchor:y_anchor + patch_size[1]] = 1
                 masks.append(mask)
 
@@ -145,8 +145,13 @@ class Occlusion(BlackBoxExplainer):
         occluded_inputs
             All the occluded combinations for each inputs.
         """
+
+        masks = tf.expand_dims(masks, axis=-1)
+        masks = tf.repeat(masks, repeats=inputs.shape[-1], axis=-1)
+
         occluded_inputs = tf.expand_dims(inputs, axis=1)
         occluded_inputs = tf.repeat(occluded_inputs, repeats=masks.shape[0], axis=1)
+
         occluded_inputs = occluded_inputs * tf.cast(tf.logical_not(masks), tf.float32) + tf.cast(
             masks, tf.float32) * occlusion_value
 
@@ -181,8 +186,7 @@ class Occlusion(BlackBoxExplainer):
         occluded_scores = tf.reshape(occluded_scores, (-1, masks.shape[0]))
 
         score_delta = baseline_scores - occluded_scores
-        score_delta = tf.reshape(score_delta, (*score_delta.shape, 1, 1, 1))
-
+        score_delta = tf.reshape(score_delta, (*score_delta.shape, 1, 1))
         sensitivity = score_delta * tf.cast(masks, tf.float32)
         sensitivity = tf.reduce_sum(sensitivity, axis=1)
 
