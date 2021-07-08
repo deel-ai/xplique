@@ -102,8 +102,9 @@ def test_generate_sample():
 
     assert samples.shape == (nb_samples,4,4,3)
     assert samples.dtype == tf.float32
-
-    assert interpret_samples.shape == (nb_samples,num_features)
+    
+    assert isinstance(interpret_samples, tf.RaggedTensor)
+    assert interpret_samples.to_tensor().shape == [nb_samples, num_features]
     assert interpret_samples.dtype == tf.int32
 
     interpret_samples.numpy()
@@ -122,10 +123,14 @@ def test_compute_similarities():
 
     samples = tf.constant([sample1,sample2,sample3,sample4],dtype=tf.float32)
 
+    imaginary_interp_sample = tf.ragged.constant([[1,0],[0,1],[0,0],[1,1]], dtype=tf.int32)
+
     original_input = tf.ones((2,2,3),dtype=tf.float32)
+    original_input = tf.expand_dims(original_input, axis=0)
+    original_input = tf.repeat(original_input, repeats=4, axis=0)
 
     similarity_kernel = Lime._get_exp_kernel_func()
-    similarities = Lime._compute_similarities(original_input, samples, samples, similarity_kernel)
+    similarities = similarity_kernel(original_input, samples, imaginary_interp_sample)
 
     assert similarities.shape == 4
     assert similarities.dtype == tf.float32
@@ -134,6 +139,12 @@ def test_compute_similarities():
 
     similarities = similarities.numpy()
     assert almost_equal(similarities,expected_outcome)
+
+    similarity_kernel2 = Lime._get_exp_kernel_func(distance_mode='cosine')
+    similarities2 = similarity_kernel2(original_input, samples, imaginary_interp_sample)
+
+    assert similarities2.shape == 4
+    assert similarities2.dtype == tf.float32
 
 def test_compute():
     """The output shape must be the same as the input shape, except for the channels"""
@@ -171,4 +182,20 @@ def test_compute():
                       kernel_width=10)
 
         explanations = method.explain(samples, labels)
-        assert samples.shape[:3] == explanations.shape[:3]
+        assert samples.shape[:3] == explanations.shape
+
+def test_inputs_batching():
+    """ Ensure, that we can call explain with batched inputs """
+    nb_labels = 10
+
+    samples, labels = generate_data( (32, 32, 3), nb_labels, 200)
+    model = generate_model( (32, 32, 3), nb_labels)
+
+    method = Lime(model,
+                    batch_size=10,
+                    interpretable_model=linear_model.Lasso(alpha=0.1),
+                    nb_samples=20,
+                    kernel_width=10)
+
+    explanations = method.explain(samples, labels)
+    assert samples.shape[:3] == explanations.shape
