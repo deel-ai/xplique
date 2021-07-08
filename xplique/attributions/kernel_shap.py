@@ -11,10 +11,9 @@ from ..types import Callable, Union, Optional
 
 class KernelShap(Lime):
     """
-    Kernel SHAP is a method that uses the LIME framework to compute Shapley Values. Setting
-    the loss function, weighting kernel and regularization terms appropriately in the LIME
-    framework allows theoretically obtaining Shapley Values more efficiently than directly
-    computing Shapley Values.
+    By setting appropriately the pertubation function, the similarity kernel and the interpretable
+    model in the LIME framework we can theoretically obtain the Shapley Values more efficiently.
+    Therefore, KernelShap is a method based on LIME with specific attributes.
 
     More information regarding this method and proof of equivalence can be found in the
     original paper here:
@@ -55,7 +54,7 @@ class KernelShap(Lime):
             Default to 800.
 
         batch_pertubed_samples
-            The batch size to predict the pertubed samples labels value.
+            The batch size to predict the pertubed samples targets value.
             Default to 64.
 
         ref_values
@@ -83,28 +82,35 @@ class KernelShap(Lime):
     # No need to redifine the explain method (herited from Lime)
 
     @staticmethod
-    @tf.function
     def _kernel_shap_similarity_kernel(
-        _ , __, interpret_sample: tf.Tensor
+        original_inputs: tf.Tensor,
+        pertubed_samples: tf.Tensor,
+        interpret_samples: tf.RaggedTensor
     ) -> tf.Tensor:
+    # pylint: disable=unused-argument
         """
-        This method compute the similarity between an interpretable pertubed sample and
+        This method compute the similarity between interpretable pertubed samples and
         the original input (i.e a tf.ones(num_features)).
         """
+        interpret_samples = interpret_samples.to_tensor()
+        num_selected_features = tf.reduce_sum(interpret_samples, axis=1)
+        num_features = len(interpret_samples[0])
 
-        num_selected_features = tf.cast(
-            tf.reduce_sum(interpret_sample),
-            dtype=tf.int32)
-        num_features = len(interpret_sample)
+        # Theoretically, in the case where the number of selected
+        # features is zero or the total number of features of the
+        # original input the weight should be infinite.
+        # However, we will consider it is sufficient to set this
+        # weight to 1000000 (all other weights are 1).
+        similarities = tf.where(
+            tf.logical_or(
+                tf.equal(num_selected_features, tf.constant(0)),
+                tf.equal(num_selected_features, tf.constant(num_features))
+            ),
+            tf.ones(len(interpret_samples), dtype=tf.float32)*1000000.0,
+            tf.ones(len(interpret_samples), dtype=tf.float32)
+        )
 
-        if (tf.equal(num_selected_features, tf.constant(0))
-            or tf.equal(num_selected_features,num_features)):
-            # Theoretically, in that case the weight should be
-            # infinite. However, we will consider it is sufficient to
-            # set this weight to 1000000 (all other weights are 1).
-            return tf.constant(1000000.0, dtype=tf.float32)
-
-        return tf.constant(1.0, dtype=tf.float32)
+        return similarities
 
     @staticmethod
     @tf.function
@@ -126,17 +132,19 @@ class KernelShap(Lime):
         This trick is the one used in the Captum library: https://github.com/pytorch/captum
         """
         probs_nb_selected_feature = KernelShap._get_probs_nb_selected_feature(
-            tf.cast(num_features,dtype=tf.int32))
+            tf.cast(num_features, dtype=tf.int32))
         nb_selected_features = tf.random.categorical(tf.math.log([probs_nb_selected_feature]),
                                                      nb_samples,
                                                      dtype=tf.int32)
-        nb_selected_features = tf.reshape(nb_selected_features,[nb_samples])
+        nb_selected_features = tf.reshape(nb_selected_features, [nb_samples])
+
         interpret_samples = []
 
         for i in range(nb_samples):
             rand_vals = tf.random.normal([num_features])
-            threshold = tf.math.top_k(rand_vals, k=(nb_selected_features[i]+1))
-            threshold = tf.reduce_min(threshold.values)
+            idx_sorted_values = tf.argsort(rand_vals, direction='DESCENDING')
+            threshold_idx = idx_sorted_values[nb_selected_features[i]]
+            threshold = rand_vals[threshold_idx]
             interpret_sample = tf.greater(rand_vals, threshold)
             interpret_sample = tf.cast(interpret_sample, dtype=tf.int32)
             interpret_samples.append(interpret_sample)
@@ -151,9 +159,9 @@ class KernelShap(Lime):
         Compute the distribution:
             p(k) = (nb_features - 1) / (k * (nb_features - k))
         """
-        list_features_indexes = tf.range(1,num_features)
-        denom = tf.multiply(list_features_indexes,(num_features - list_features_indexes))
+        list_features_indexes = tf.range(1, num_features)
+        denom = tf.multiply(list_features_indexes, (num_features - list_features_indexes))
         num = num_features - 1
-        probs = tf.divide(num,denom)
-        probs = tf.concat([[0.0],probs], 0)
+        probs = tf.divide(num, denom)
+        probs = tf.concat([[0.0], probs], 0)
         return tf.cast(probs, dtype=tf.float32)

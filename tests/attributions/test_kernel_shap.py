@@ -42,16 +42,22 @@ def test_shap_similarity_kernel():
     interpret_sample3 = [1,1,1,1,1]
     interpret_sample4 = [0,0,0,0,0]
 
-    interpret_samples = tf.constant([interpret_sample1,
-                                     interpret_sample2,
-                                     interpret_sample3,
-                                     interpret_sample4],
-                                    dtype=tf.float32)
+    interpret_samples = tf.ragged.constant(
+        [interpret_sample1,
+         interpret_sample2,
+         interpret_sample3,
+         interpret_sample4],
+        dtype=tf.int32)
 
-    similarities = KernelShap._compute_similarities(tf.constant(0),
-                                                   interpret_samples,
-                                                   interpret_samples,
-                                                   KernelShap._kernel_shap_similarity_kernel)
+    imaginary_original_input = tf.ones((2,2,3),dtype=tf.float32)
+    imaginary_original_input = tf.expand_dims(imaginary_original_input, axis=0)
+    imaginary_original_input = tf.repeat(imaginary_original_input, repeats=4, axis=0)
+
+    similarities = KernelShap._kernel_shap_similarity_kernel(
+        imaginary_original_input,
+        imaginary_original_input,
+        interpret_samples,
+    )
 
     expected_output = np.array([1.0,1.0,1e6,1e6])
 
@@ -91,4 +97,18 @@ def test_output_explain():
         method = KernelShap(model, map_to_interpret_space=map_four_by_four, nb_samples=10)
 
         explanations = method.explain(samples, labels)
-        assert samples.shape[:3] == explanations.shape[:3]
+        assert samples.shape[:3] == explanations.shape
+
+def test_inputs_batching():
+    """ Ensure, that we can call explain with batched inputs """
+    nb_labels = 10
+
+    samples, labels = generate_data( (32, 32, 3), nb_labels, 200)
+    model = generate_model( (32, 32, 3), nb_labels)
+
+    method = KernelShap(model,
+                    batch_size=10,
+                    nb_samples=20)
+
+    explanations = method.explain(samples, labels)
+    assert samples.shape[:3] == explanations.shape
