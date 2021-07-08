@@ -6,6 +6,7 @@ import warnings
 
 import tensorflow as tf
 import numpy as np
+from tensorflow.keras.losses import cosine_similarity #pylint:  disable=E0611
 from sklearn import linear_model
 from skimage.segmentation import quickshift
 
@@ -78,22 +79,25 @@ class Lime(BlackBoxExplainer):
             pertubed samples we want to generate for each input.
 
         similarity_kernel
-            Function which takes a pertubed sample and returned the similarity with the original
-            sample.
-            The similarity can be computed in the original input space or in the interpretable
+            Function which considering an input (duplicated to match the number of pertubed
+            instances created), pertubed instances of thoses samples and the interpretable
+            version of those pertubed samples compute the similarities.
+            The similarities can be computed in the original input space or in the interpretable
             space.
             You can provide a custom function. Note that to use a custom function, you have to
             follow the following scheme:
 
-            @tf.function
-            def custom_similarity(curr_input , sample, interpret_sample) ->
-            tf.tensor (shape=(1,), dtype = tf.float32):
+            def custom_similarity(
+                duplicate_input , pertubed_samples, interpret_samples
+            ) -> tf.tensor (shape=(nb_samples,), dtype = tf.float32):
                 ** some tf actions **
-                return similarity
+                return similarities
 
             where:
-                curr_input, sample are tf.tensor (W, H, C)
-                interpretable sample is a tf.tensor (num_interp_features)
+                duplicate_input, pertubed_samples are tf.tensor (nb_samples, W, H, C)
+                interpret_samples is a tf.tensor (nb_samples, num_interp_features)
+            If it is possible you can add the tf.function decorator.
+
             The default similarity kernel use the euclidian distance between the original input and
             sample in the input space.
 
@@ -145,7 +149,7 @@ class Lime(BlackBoxExplainer):
             Default to 150.
 
         batch_pertubed_samples
-            The batch size to predict the pertubed samples labels value.
+            The batch size to predict the pertubed samples targets value.
             Default to None (i.e predictions of all the pertubed samples one shot).
 
         prob
@@ -201,10 +205,10 @@ class Lime(BlackBoxExplainer):
 
     @sanitize_input_output
     def explain(self,
-                inputs: Union[tf.data.Dataset, tf.Tensor, np.array],
-                targets: Optional[Union[tf.Tensor, np.array]] = None) -> tf.Tensor:
+                inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
+                targets: Optional[Union[tf.Tensor, np.ndarray]] = None) -> np.ndarray:
         """
-        This method attributes the output of the model with given labels
+        This method attributes the output of the model with given targets
         to the inputs of the model using the approach described above,
         training an interpretable model and returning a representation of the
         interpretable model.
@@ -218,8 +222,7 @@ class Lime(BlackBoxExplainer):
 
         targets
             Tensor or numpy array of shape (N, L)
-            One hot encoded labels to compute for each sample, with N the number of samples,
-            and L the number of classes.
+            One-hot encoded labels or regression target (e.g {+1, -1}), one for each input.s.
 
         Returns
         -------
@@ -244,9 +247,10 @@ class Lime(BlackBoxExplainer):
 
         # use the map function to get a mapping per input to the interpretable space
         mappings = self.map_to_interpret_space(inputs)
+        batch_size = self.batch_size or len(inputs)
 
         return Lime._compute(self.model,
-                            self.batch_size,
+                            batch_size,
                             inputs,
                             targets,
                             self.interpretable_model,
@@ -273,7 +277,7 @@ class Lime(BlackBoxExplainer):
                 ) -> tf.Tensor:
                 # pylint: disable=R0913
         """
-        This method attributes the output of the model with given labels
+        This method attributes the output of the model with given targets
         to the inputs of the model using the approach described above,
         training an interpretable model and returning a representation of the
         interpretable model.
@@ -290,8 +294,7 @@ class Lime(BlackBoxExplainer):
 
         targets
             Tensor of shape (N, L)
-            One hot encoded labels to compute for each sample, with N the number of samples,
-            and L the number of classes.
+            One-hot encoded labels or regression target (e.g {+1, -1}), one for each sample.
 
         interpretable_model
             Model object to train interpretable model.
@@ -309,21 +312,27 @@ class Lime(BlackBoxExplainer):
             pertubed samples we want to generate for each input.
 
         similarity_kernel
-            Function which takes a pertubed sample and returned the similarity with the original
-            sample.
-            The similarity can be computed in the original input space or in the interpretable
+            Function which considering an input (duplicated to match the number of pertubed
+            instances created), pertubed instances of thoses samples and the interpretable
+            version of those pertubed samples compute the similarities.
+            The similarities can be computed in the original input space or in the interpretable
             space.
-            The function has to follow the following scheme:
+            You can provide a custom function. Note that to use a custom function, you have to
+            follow the following scheme:
 
-            @tf.function
-            def custom_similarity(curr_input , sample, interpret_sample) ->
-            tf.tensor (shape=(1,), dtype = tf.float32):
+            def custom_similarity(
+                inputs , pertubed_samples, interpret_samples
+            ) -> tf.tensor (shape=(batch_size,), dtype = tf.float32):
                 ** some tf actions **
-                return similarity
+                return similarities
 
             where:
-                curr_input, sample are tf.tensor (W, H, C)
-                interpretable sample is a tf.tensor (num_interp_features)
+                inputs, pertubed_samples are tf.tensor (batch_size, W, H, C)
+                interpret_samples is a tf.tensor (batch_size, num_interp_features)
+            If it is possible you can add the tf.function decorator.
+
+            The default similarity kernel use the euclidian distance between the original input and
+            sample in the input space.
 
         pertub_function
             Function which generate pertubed interpretable samples in the interpretation space from
@@ -361,7 +370,7 @@ class Lime(BlackBoxExplainer):
         Returns
         -------
         explanations
-            Shape:
+            Tensor of shape: (N, W, H)
             Coefficients of the interpretable model. Those coefficients having the size of the
             interpretable space will be given the same value to coefficient which were grouped
             together (e.g belonging to the same super-pixel).
@@ -379,18 +388,18 @@ class Lime(BlackBoxExplainer):
                 "model. You should consider using a map function which select less features."
             )
 
-        # augment the label vector to match (N, nb_samples, L)
-        augmented_labels = tf.expand_dims(targets, axis=1)
-        augmented_labels = tf.repeat(augmented_labels, repeats=nb_samples, axis=1)
+        # augment the target vector to match (N, nb_samples, L)
+        augmented_targets = tf.expand_dims(targets, axis=1)
+        augmented_targets = tf.repeat(augmented_targets, repeats=nb_samples, axis=1)
 
         # add a prefetch variable for numerous inputs
         nb_prefetch = 0
         if len(inputs)//batch_size > 2:
             nb_prefetch = 2
 
-        # batch inputs, mappings, augmented labels and num_features
-        for b_inp, b_labels, b_mappings, b_num_features in tf.data.Dataset.from_tensor_slices(
-            (inputs, augmented_labels, mappings, num_features)
+        # batch inputs, mappings, augmented targets and num_features
+        for b_inp, b_targets, b_mappings, b_num_features in tf.data.Dataset.from_tensor_slices(
+            (inputs, augmented_targets, mappings, num_features)
         ).batch(batch_size).prefetch(nb_prefetch):
 
             # get the pertubed samples (interpretable and in the original space)
@@ -404,42 +413,49 @@ class Lime(BlackBoxExplainer):
                     ref_values
                 ),
                 elems=(b_inp, b_mappings, b_num_features),
-                fn_output_signature=(tf.int32, tf.float32)
+                fn_output_signature=(
+                    tf.RaggedTensorSpec(shape=[None,None],dtype=tf.int32),
+                    tf.float32
+                )
             )
 
-            # get the labels of pertubed_samples
-            samples_labels = tf.map_fn(
+            # get the targets of pertubed_samples
+            pertubed_targets = tf.map_fn(
                 fn= lambda inp: batch_predictions_one_hot(
                     model,
                     inp[0],
                     inp[1],
                     batch_pertubed_samples
                 ),
-                elems=(pertubed_samples, b_labels),
+                elems=(pertubed_samples, b_targets),
                 fn_output_signature=tf.float32
             )
 
-            # compute similiraty between original inputs and their pertubed versions
+            # augment inputs to match the number of pertubed instances
+            augmented_b_inp = tf.expand_dims(b_inp, axis = 1)
+            augmented_b_inp = tf.repeat(augmented_b_inp, repeats=nb_samples, axis=1)
+
+            # compute similarities
             similarities = tf.map_fn(
-                fn= lambda inp: Lime._compute_similarities(
-                    inp[0],
-                    inp[1],
-                    inp[2],
-                    similarity_kernel
+                fn= lambda inp: similarity_kernel(inp[0],
+                                                  inp[1],
+                                                  inp[2]
                 ),
-                elems=(b_inp, pertubed_samples, interpret_samples),
+                elems=(augmented_b_inp, pertubed_samples, interpret_samples),
                 fn_output_signature=tf.float32
             )
 
             # train the interpretable model
-            for int_samples, samples_label, samples_weight in tf.data.Dataset.from_tensor_slices(
-                    (interpret_samples,samples_labels,similarities)):
+            for int_samples, pertubed_target, samples_weight in tf.data.Dataset.from_tensor_slices(
+                    (interpret_samples,pertubed_targets,similarities)):
 
                 explain_model = interpretable_model
 
-                explain_model.fit(int_samples.numpy(),
-                                    samples_label.numpy(),
-                                    sample_weight=samples_weight.numpy())
+                explain_model.fit(
+                    int_samples.numpy(),
+                    pertubed_target.numpy(),
+                    sample_weight=samples_weight.numpy()
+                )
 
                 explanation = explain_model.coef_
                 # add the interpretable explanation
@@ -513,7 +529,7 @@ class Lime(BlackBoxExplainer):
             interpretable_pertubed_samples
                 Tensor of shape (nb_samples, num_features)
             """
-            probs = tf.ones([1,num_features],tf.float32)*tf.cast(prob,tf.float32)
+            probs = tf.ones(tf.expand_dims(num_features,axis=0),tf.float32)*tf.cast(prob,tf.float32)
             uniform_sampling = tf.random.uniform(shape=[nb_samples,num_features],
                                                 dtype=tf.float32,
                                                 minval=0,
@@ -629,10 +645,8 @@ class Lime(BlackBoxExplainer):
         Returns
         -------
         interpret_samples
-            Tensor of shape (nb_samples, num_features)
-            Intrepretable samples of an input, with:
-                nb_samples number of samples
-                num_features the dimension of the interpretable space.
+            Ragged Tensor of shape (nb_samples, num_features)
+            Intrepretable samples of the original input.
         pertubed_samples
             Tensor of shape (nb_samples, W, H, C)
             The samples corresponding to the masks applied to the original input
@@ -642,6 +656,13 @@ class Lime(BlackBoxExplainer):
 
         masks = Lime._get_masks(interpret_samples, mapping)
         pertubed_samples = Lime._apply_masks(original_input, masks, ref_value)
+
+        # since all inputs might have a nb of features different, we need to
+        # specify that interpret samples is a Ragged Tensor, then it allows
+        # to map this function even if from one batch to another its length
+        # vary
+        interpret_samples = tf.RaggedTensor.from_tensor(interpret_samples)
+
         return interpret_samples, pertubed_samples
 
     @staticmethod
@@ -663,91 +684,70 @@ class Lime(BlackBoxExplainer):
         Returns
         -------
         similarity_kernel
-            This callable should return a distance between an input and a pertubed sample
+            This callable should return distances between inputs and its pertubed samples
             (either in original space or in the interpretable space).
 
         """
         kernel_width = tf.cast(kernel_width,dtype=tf.float32)
 
         if distance_mode=="euclidean":
-            @tf.function
-            def _euclidean_similarity_kernel(original_input: tf.Tensor,
-                                             sample: tf.Tensor,
-                                             __: tf.Tensor):
-                distance = None
+            @tf.function(
+                input_signature=(
+                    tf.TensorSpec(shape=[None,None,None,None], dtype=tf.float32),
+                    tf.TensorSpec(shape=[None,None,None,None], dtype=tf.float32),
+                    tf.RaggedTensorSpec(shape=[None,None], dtype=tf.int32)
+                )
+            )
+            def _euclidean_similarity_kernel(original_inputs: tf.Tensor,
+                                             pertubed_samples: tf.Tensor,
+                                             interpret_samples: tf.RaggedTensor
+                                            ) -> tf.Tensor:
+                                            # pylint: disable=unused-argument
+                nb_samples = len(original_inputs)
+                flatten_inputs = tf.reshape(original_inputs, [nb_samples,-1])
+                flatten_samples = tf.reshape(pertubed_samples, [nb_samples,-1])
 
-                flatten_input = tf.reshape(original_input, [-1])
-                flatten_sample = tf.reshape(sample, [-1])
+                distances = tf.norm(flatten_inputs - flatten_samples, ord='euclidean', axis=1)
 
-                distance = tf.norm(flatten_input - flatten_sample, ord='euclidean')
-
-                return tf.exp(-1.0 * (distance**2) / (kernel_width**2))
+                similarities = tf.exp(-1.0 * (distances**2) / (kernel_width**2))
+                return similarities
 
             return _euclidean_similarity_kernel
 
         if distance_mode=="cosine":
-            @tf.function
-            def _cosine_similarity_kernel(original_input: tf.Tensor,
-                                          sample: tf.Tensor,
-                                          __: tf.Tensor):
-                distance = None
+            @tf.function(
+                input_signature=(
+                    tf.TensorSpec(shape=[None,None,None,None], dtype=tf.float32),
+                    tf.TensorSpec(shape=[None,None,None,None], dtype=tf.float32),
+                    tf.RaggedTensorSpec(shape=[None,None], dtype=tf.int32)
+                )
+            )
+            def _cosine_similarity_kernel(original_inputs: tf.Tensor,
+                                          pertubed_samples: tf.Tensor,
+                                          interpret_samples: tf.RaggedTensor
+                                         ) -> tf.Tensor:
+                                         # pylint: disable=unused-argument
 
-                flatten_input = tf.reshape(original_input, [-1])
-                flatten_sample = tf.reshape(sample, [-1])
+                nb_samples = len(original_inputs)
+                flatten_inputs = tf.reshape(original_inputs, [nb_samples,-1])
+                flatten_samples = tf.reshape(pertubed_samples, [nb_samples,-1])
 
-                distance = 1.0 - tf.keras.losses.cosine_similarity(flatten_input, flatten_sample)
-
-                return tf.exp(-1.0 * (distance**2) / (kernel_width**2))
+                distances = 1.0 - cosine_similarity(flatten_inputs, flatten_samples, axis=1)
+                similarities = tf.exp(-1.0 * (distances**2) / (kernel_width**2))
+                return similarities
 
             return _cosine_similarity_kernel
 
         raise ValueError("distance_mode must be either cosine or euclidean.")
 
     @staticmethod
-    @tf.function
-    def _compute_similarities(
-        curr_input: tf.Tensor,
-        samples: tf.Tensor,
-        interpret_samples: tf.Tensor,
-        similarity_kernel: Callable[[tf.Tensor, tf.Tensor, tf.Tensor], tf.Tensor]
-        ) -> tf.Tensor:
-        """
-        This method call the similarity kernel nb_samples times to get the distances between an
-        input sample and all the pertubed samples (either in the original input space or in the
-        interpretable space)
-
-        Parameters
-        ----------
-        curr_input
-            Tensor of shape (W, H, C)
-            The input we are explaining
-        samples
-            Tensor of shape (nb_samples, W, H, C)
-            The pertubed samples of the current input
-        interpret_samples
-            Tensor of shape (nb_samples, num_features)
-            The interpretable pertubed samples of the current input
-        similarity_kernel
-            The function which allows to compute the distances between current input and its
-            pertubed versions
-
-        Returns
-        -------
-        similarities
-            The similarities between current input and its pertubed versions
-        """
-
-        curr_inputs = tf.expand_dims(curr_input, axis=0)
-        curr_inputs = tf.repeat(curr_inputs, repeats=len(samples), axis=0)
-
-        similarities = tf.map_fn(fn= lambda inp: similarity_kernel(inp[0],inp[1],inp[2]),
-                                 elems=(curr_inputs,samples,interpret_samples),
-                                 fn_output_signature=tf.float32)
-        return similarities
-
-    @staticmethod
-    @tf.function
-    def _broadcast_explanation(explanation: tf.Tensor, mapping: tf.Tensor):
+    @tf.function(
+        input_signature=(
+            tf.TensorSpec(shape=[None], dtype=tf.float32),
+            tf.TensorSpec(shape=[None,None], dtype=tf.int32)
+        )
+    )
+    def _broadcast_explanation(explanation: tf.Tensor, mapping: tf.Tensor) -> tf.Tensor:
         """
         This method allows to broadcast explanations from the interpretable space to the
         corresponding super pixels
@@ -758,7 +758,7 @@ class Lime(BlackBoxExplainer):
             Tensor of shape (num_features)
             Explanation value for each super pixel
         mapping
-            Shape: (W, H)
+            Tensor of shape (W, H)
             The mapping of the original input from which we drawn interpretable samples
             (i.e super-pixels positions).
             Its size is equal to width and height of the original input
@@ -770,5 +770,6 @@ class Lime(BlackBoxExplainer):
             The explanation of the current input considered
 
         """
-        broadcast_explanation = tf.gather(explanation, indices=mapping)
+
+        broadcast_explanation = tf.gather(explanation, indices=mapping, axis=0)
         return broadcast_explanation
