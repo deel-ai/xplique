@@ -26,6 +26,6 @@ metric = Insertion(model, inputs, labels)
 score = metric.evaluate(explainer)
 ```
 
-{{xplique.metrics.fidelity.Insertion}}
+{{xplique.metrics.Insertion}}
 
 [^1]:[RISE: Randomized Input Sampling for Explanation of Black-box Models (2018)](https://arxiv.org/abs/1806.07421)

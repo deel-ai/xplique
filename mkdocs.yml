@@ -19,6 +19,8 @@ nav:
       - Guided Backprop: api/guided_backpropagation.md
       - SquareGrad: api/square_grad.md
       - VarGrad: api/vargrad.md
+      - Lime: api/lime.md
+      - KernelSHAP: api/kernel_shap.md
   - Concept based:
       - Cav: api/cav.md
       - Tcav: api/tcav.md
@@ -28,6 +30,7 @@ nav:
       - Insertion: api/insertion.md
       - MuFidelity: api/mu_fidelity.md
       - AverageStability: api/avg_stability.md
+  - Contributing: contributing.md
 
 theme:
   name: "material"

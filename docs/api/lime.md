@@ -1,16 +1,18 @@
 # LIME
 
 The Lime method use an interpretable model to provide an explanation.
-More specifically, you map inputs ($$x \in R^d$$) to an interpretable space
-(e.g super-pixels) of size num_interpetable_features. 
-From there you generate pertubed interpretable samples ($$z' \in {0,1}^{num\_interpretable\_samples$$
+More specifically, you map inputs ($x \in R^d$) to an interpretable space (e.g super-pixels) of size num_interpetable_features. 
+From there you generate pertubed interpretable samples ($z' \in \{0,1\}^{num\_interpretable\_samples}$
 where $1$ means we keep this specific interpretable feature).
+
 Once you have your interpretable samples you can map them back to their original space
-(the pertubed samples $$z \in R^d$$) and obtain the label prediction of your model for each pertubed
+(the pertubed samples $z \in R^d$) and obtain the label prediction of your model for each pertubed
 samples.
+
 In the Lime method you define a similarity kernel which compute the similarity between an input and
 its pertubed representations (either in the original input space or in the interpretable space):
-$$\pi_x(z',z)$$.
+$\pi_x(z',z)$.
+
 Finally, you train an interpretable model per input, using interpretable samples along the
 corresponding pertubed labels and it will draw interpretable samples weighted by the similarity kernel.
 Thus, you will have an interpretable explanation (i.e in the interpretable space) which can be
@@ -30,12 +32,12 @@ from xplique.attributions import Lime
 # define a custom map_to_interpret_space function
 # ...
 
-method = Lime(model, map_to_interpret_space=custom_map,
-    nb_samples=100)
+method = Lime(model, map_to_interpret_space=custom_map)
 explanations = method.explain(images, labels)
 ```
 
 The choice of the interpretable model and the map function will have a great deal toward the quality of explanation.
+By default, the map function use the quickshift segmentation of scikit-images
 
 {{xplique.attributions.lime.Lime}}
 

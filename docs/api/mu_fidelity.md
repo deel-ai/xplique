@@ -17,17 +17,17 @@ The better the method, the higher the score.
 ## Example
 
 ```python
-from xplique.metrics import Deletion
+from xplique.metrics import MuFidelity
 from xplique.attributions import Saliency
 
 # load images, labels and model
 # ...
 explainer = Saliency(model)
 
-metric = Deletion(model, inputs, labels)
+metric = MuFidelity(model, inputs, labels)
 score = metric.evaluate(explainer)
 ```
 
-{{xplique.metrics.fidelity.Deletion}}
+{{xplique.metrics.MuFidelity}}
 
 [^1]:[Evaluating and Aggregating Feature-based Model Explanations (2020)](https://arxiv.org/abs/2005.00631)

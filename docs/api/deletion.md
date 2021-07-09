@@ -18,14 +18,14 @@ The better the method, the smaller the score.
 from xplique.metrics import Deletion
 from xplique.attributions import Saliency
 
-# load images, labels and model
+# load images, targets and model
 # ...
 explainer = Saliency(model)
 
-metric = Deletion(model, inputs, labels)
+metric = Deletion(model, inputs, targets)
 score = metric.evaluate(explainer)
 ```
 
-{{xplique.metrics.fidelity.Deletion}}
+{{xplique.metrics.Deletion}}
 
 [^1]:[RISE: Randomized Input Sampling for Explanation of Black-box Models (2018)](https://arxiv.org/abs/1806.07421)
