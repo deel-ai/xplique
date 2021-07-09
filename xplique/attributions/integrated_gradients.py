@@ -53,8 +53,8 @@ class IntegratedGradients(WhiteBoxExplainer):
 
     @sanitize_input_output
     def explain(self,
-                inputs: Union[tf.data.Dataset, tf.Tensor, np.array],
-                targets: Optional[Union[tf.Tensor, np.array]] = None) -> tf.Tensor:
+                inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
+                targets: Optional[Union[tf.Tensor, np.ndarray]] = None) -> tf.Tensor:
         """
         Compute Integrated Gradients for a batch of samples.
 

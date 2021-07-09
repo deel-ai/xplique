@@ -25,8 +25,8 @@ class BaseAttributionMetric(ABC):
 
     def __init__(self,
                  model: Callable,
-                 inputs: Union[tf.data.Dataset, tf.Tensor, np.array],
-                 targets: Optional[Union[tf.Tensor, np.array]] = None,
+                 inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
+                 targets: Optional[Union[tf.Tensor, np.ndarray]] = None,
                  batch_size: Optional[int] = 64):
         self.model = model
         self.inputs, self.targets = numpy_sanitize(inputs, targets)

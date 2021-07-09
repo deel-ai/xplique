@@ -39,8 +39,8 @@ class AverageStability(BaseAttributionMetric):
 
     def __init__(self,
                  model: Callable,
-                 inputs: Union[tf.data.Dataset, tf.Tensor, np.array],
-                 targets: Optional[Union[tf.Tensor, np.array]] = None,
+                 inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
+                 targets: Optional[Union[tf.Tensor, np.ndarray]] = None,
                  batch_size: Optional[int] = 64,
                  radius: float = 0.1,
                  distance: str = 'l2',
