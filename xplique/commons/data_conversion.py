@@ -8,8 +8,8 @@ import numpy as np
 from ..types import Union, Optional, Tuple
 
 
-def tensor_sanitize(inputs: Union[tf.data.Dataset, tf.Tensor, np.array],
-                    targets: Optional[Union[tf.Tensor, np.array]]) -> Tuple[tf.Tensor, tf.Tensor]:
+def tensor_sanitize(inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
+                    targets: Optional[Union[tf.Tensor, np.ndarray]]) -> Tuple[tf.Tensor, tf.Tensor]:
     """
     Ensure the output as tf.Tensor, accept various inputs format including:
     tf.Tensor, List, numpy array, tf.data.Dataset (when label = None).
@@ -46,10 +46,10 @@ def tensor_sanitize(inputs: Union[tf.data.Dataset, tf.Tensor, np.array],
     return inputs, targets
 
 
-def numpy_sanitize(inputs: Union[tf.data.Dataset, tf.Tensor, np.array],
-                   targets: Optional[Union[tf.Tensor, np.array]]) -> Tuple[tf.Tensor, tf.Tensor]:
+def numpy_sanitize(inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
+                   targets: Optional[Union[tf.Tensor, np.ndarray]]) -> Tuple[tf.Tensor, tf.Tensor]:
     """
-    Ensure the output as np.array, accept various inputs format including:
+    Ensure the output as np.ndarray, accept various inputs format including:
     tf.Tensor, List, numpy array, tf.data.Dataset (when label = None).
 
     Parameters
@@ -62,9 +62,9 @@ def numpy_sanitize(inputs: Union[tf.data.Dataset, tf.Tensor, np.array],
     Returns
     -------
     inputs_ndarray
-        Inputs samples as np.array
+        Inputs samples as np.ndarray
     targets_ndarray
-        Targets as np.array
+        Targets as np.ndarray
     """
     inputs, targets = tensor_sanitize(inputs, targets)
     return inputs.numpy(), targets.numpy()
