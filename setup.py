@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 
-with open("README.md") as fh:
+with open("README.md", encoding="utf-8") as fh:
     README = fh.read()
 
 setup(
