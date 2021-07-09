@@ -3,7 +3,7 @@ import tensorflow as tf
 
 from xplique.attributions import (Saliency, GradientInput, IntegratedGradients, SmoothGrad, VarGrad,
                                   SquareGrad, GradCAM, Occlusion, Rise, GuidedBackprop, DeconvNet,
-                                  GradCAMPP)
+                                  GradCAMPP, Lime, KernelShap)
 from xplique.attributions.base import BlackBoxExplainer
 from ..utils import generate_data, generate_model
 
@@ -22,6 +22,8 @@ def _default_methods(model, output_layer_index):
         GuidedBackprop(model, output_layer_index),
         DeconvNet(model, output_layer_index),
         GradCAMPP(model, output_layer_index),
+        Lime(model),
+        KernelShap(model)
     ]
 
 
@@ -57,7 +59,7 @@ def test_batch_size():
     """Ensure the functioning of attributions for special batch size cases"""
 
     input_shape, nb_labels, samples = ((10, 10, 3), 5, 20)
-    x, y = generate_data(input_shape, nb_labels, samples)
+    inputs, targets = generate_data(input_shape, nb_labels, samples)
     model = generate_model(input_shape, nb_labels)
     output_layer_index = -1
 
@@ -78,11 +80,13 @@ def test_batch_size():
             GuidedBackprop(model, output_layer_index, bs),
             DeconvNet(model, output_layer_index, bs),
             GradCAMPP(model, output_layer_index, bs),
+            Lime(model, bs),
+            KernelShap(model, bs)
         ]
 
         for method in methods:
             try:
-                explanations = method.explain(x, y)
+                explanations = method.explain(inputs, targets)
             except:
                 raise AssertionError(
                     "Explanation failed for method ", method.__class__.__name__,
