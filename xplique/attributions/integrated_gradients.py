@@ -140,7 +140,7 @@ class IntegratedGradients(WhiteBoxExplainer):
             Interpolated path for each inputs, the first dimension correspond to the number of
             samples multiplied by steps.
         """
-        alpha = tf.reshape(tf.linspace(0.0, 1.0, steps), (1, -1, 1, 1, 1))
+        alpha = tf.reshape(tf.linspace(0.0, 1.0, steps), (1, -1, *(1,) * len(inputs.shape[1:])))
 
         interpolated_inputs = tf.expand_dims(inputs, axis=1)
         interpolated_inputs = tf.repeat(interpolated_inputs, repeats=steps, axis=1)
