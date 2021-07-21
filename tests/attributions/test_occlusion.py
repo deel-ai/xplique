@@ -21,15 +21,24 @@ def test_output_shape():
 
 
 def test_polymorphic_parameters():
-    """Ensure we could pass tuple or int to define patch parameters"""
+    """Ensure we could pass tuple or int to define patch parameters when inputs are images"""
     s = 3
-    model = generate_model()
 
-    occlusion_int = Occlusion(model, patch_size=s, patch_stride=s)
-    occlusion_tuple = Occlusion(model, patch_size=(s, s), patch_stride=(s, s))
+    input_shapes = [(28, 28, 1), (32, 32, 3)]
+    nb_labels = 10
 
-    assert occlusion_int.patch_size == occlusion_tuple.patch_size
-    assert occlusion_int.patch_stride == occlusion_tuple.patch_stride
+    for input_shape in input_shapes:
+        features, targets = generate_data(input_shape, nb_labels, 20)
+        model = generate_model(input_shape, nb_labels)
+
+        occlusion_int = Occlusion(model, patch_size=s, patch_stride=s)
+        occlusion_tuple = Occlusion(model, patch_size=(s, s), patch_stride=(s, s))
+
+        occlusion_int(features, targets)
+        occlusion_tuple(features, targets)
+
+        assert occlusion_int.patch_size == occlusion_tuple.patch_size
+        assert occlusion_int.patch_stride == occlusion_tuple.patch_stride
 
 
 def test_mask_generator():

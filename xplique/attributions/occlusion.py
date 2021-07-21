@@ -37,14 +37,13 @@ class Occlusion(BlackBoxExplainer):
     def __init__(self,
                  model: Callable,
                  batch_size: Optional[int] = 32,
-                 patch_size: Union[int, Tuple[int, int]] = (3, 3),
-                 patch_stride: Union[int, Tuple[int, int]] = (3, 3),
+                 patch_size: Union[int, Tuple[int, int]] = 3,
+                 patch_stride: Union[int, Tuple[int, int]] = 3,
                  occlusion_value: float = 0.5):
         super().__init__(model, batch_size)
 
-        self.patch_size = patch_size if isinstance(patch_size, tuple) else (patch_size, patch_size)
-        self.patch_stride = patch_stride if isinstance(patch_stride, tuple) \
-                                         else (patch_stride, patch_stride)
+        self.patch_size = patch_size
+        self.patch_stride = patch_stride
         self.occlusion_value = occlusion_value
 
     @sanitize_input_output
@@ -66,6 +65,16 @@ class Occlusion(BlackBoxExplainer):
         explanations
             Occlusion sensitivity, same shape as the inputs, except for the channels.
         """
+
+        # check if data is tabular
+        is_tabular = (len(inputs.shape)==2)
+
+        if not is_tabular:
+            if not isinstance(self.patch_size, tuple):
+                self.patch_size = (self.patch_size, self.patch_size)
+            if not isinstance(self.patch_stride, tuple):
+                self.patch_stride = (self.patch_stride, self.patch_stride)
+
         sensitivity = None
         batch_size = self.batch_size or len(inputs)
 
@@ -88,9 +97,9 @@ class Occlusion(BlackBoxExplainer):
         return sensitivity
 
     @staticmethod
-    def _get_masks(input_shape: Tuple[int, int, int],
-                   patch_size: Tuple[int, int],
-                   patch_stride: Tuple[int, int]) -> tf.Tensor:
+    def _get_masks(input_shape: Union[Tuple[int, int, int], Tuple[int, int], Tuple[int]],
+                   patch_size: Union[int,Tuple[int, int]],
+                   patch_stride: Union[int,Tuple[int, int]]) -> tf.Tensor:
         """
         Create all the possible patches for the given configuration.
 
@@ -110,16 +119,28 @@ class Occlusion(BlackBoxExplainer):
         """
         masks = []
 
-        x_anchors = [x * patch_stride[0] for x in
-                     range(0, ceil((input_shape[0] - patch_size[0] + 1) / patch_stride[0]))]
-        y_anchors = [y * patch_stride[1] for y in
-                     range(0, ceil((input_shape[1] - patch_size[1] + 1) / patch_stride[1]))]
+        # check if we have tabular data
+        is_tabular = (len(input_shape)==1)
 
-        for x_anchor in x_anchors:
-            for y_anchor in y_anchors:
-                mask = np.zeros(input_shape[:2], dtype=bool)
-                mask[x_anchor:x_anchor + patch_size[0], y_anchor:y_anchor + patch_size[1]] = 1
+        if is_tabular:
+            x_anchors = [x * patch_stride for x in
+            range(0, ceil((input_shape[0] - patch_size + 1) / patch_stride))]
+
+            for x_anchor in x_anchors:
+                mask = np.zeros(input_shape, dtype=bool)
+                mask[x_anchor:x_anchor + patch_size] = 1
                 masks.append(mask)
+        else:
+            x_anchors = [x * patch_stride[0] for x in
+                        range(0, ceil((input_shape[0] - patch_size[0] + 1) / patch_stride[0]))]
+            y_anchors = [y * patch_stride[1] for y in
+                        range(0, ceil((input_shape[1] - patch_size[1] + 1) / patch_stride[1]))]
+
+            for x_anchor in x_anchors:
+                for y_anchor in y_anchors:
+                    mask = np.zeros(input_shape[:2], dtype=bool)
+                    mask[x_anchor:x_anchor + patch_size[0], y_anchor:y_anchor + patch_size[1]] = 1
+                    masks.append(mask)
 
         return tf.cast(masks, dtype=tf.bool)
 
@@ -145,15 +166,17 @@ class Occlusion(BlackBoxExplainer):
         occluded_inputs
             All the occluded combinations for each inputs.
         """
-
-        masks = tf.expand_dims(masks, axis=-1)
-        masks = tf.repeat(masks, repeats=inputs.shape[-1], axis=-1)
-
         occluded_inputs = tf.expand_dims(inputs, axis=1)
         occluded_inputs = tf.repeat(occluded_inputs, repeats=masks.shape[0], axis=1)
 
-        occluded_inputs = occluded_inputs * tf.cast(tf.logical_not(masks), tf.float32) + tf.cast(
-            masks, tf.float32) * occlusion_value
+        # check if inputs shape is (N, W, H, C)
+        has_channels = (len(inputs.shape)>3)
+        if has_channels:
+            masks = tf.expand_dims(masks, axis=-1)
+            masks = tf.repeat(masks, repeats=inputs.shape[-1], axis=-1)
+
+        occluded_inputs = occluded_inputs * tf.cast(tf.logical_not(masks), tf.float32)
+        occluded_inputs += tf.cast(masks, tf.float32) * occlusion_value
 
         occluded_inputs = tf.reshape(occluded_inputs, (-1, *occluded_inputs.shape[2:]))
 
@@ -186,7 +209,9 @@ class Occlusion(BlackBoxExplainer):
         occluded_scores = tf.reshape(occluded_scores, (-1, masks.shape[0]))
 
         score_delta = baseline_scores - occluded_scores
-        score_delta = tf.reshape(score_delta, (*score_delta.shape, 1, 1))
+        # reshape the delta score to fit masks
+        score_delta = tf.reshape(score_delta, (*score_delta.shape, *(1,) * len(masks.shape[1:])))
+
         sensitivity = score_delta * tf.cast(masks, tf.float32)
         sensitivity = tf.reduce_sum(sensitivity, axis=1)
 
