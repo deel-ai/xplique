@@ -8,7 +8,7 @@ import tensorflow as tf
 import numpy as np
 from tensorflow.keras.losses import cosine_similarity #pylint:  disable=E0611
 from sklearn import linear_model
-from skimage.segmentation import quickshift
+from skimage.segmentation import quickshift, felzenszwalb
 
 from .base import BlackBoxExplainer, sanitize_input_output
 from ..commons import batch_predictions_one_hot
@@ -26,14 +26,14 @@ class Lime(BlackBoxExplainer):
     The similarity kernel will define how close the pertubed samples are from the original sample
     you want to explain.
     For instance, if you have large images (e.g 299x299x3) the default similarity kernel with the
-    default kernel width will compute similarities really close to 0 consequently the interpretable
+    kernel width of 1 will compute similarities really close to 0 consequently the interpretable
     model will not train. In order to makes it work you have to use (for example) a larger kernel
     width.
     Moreover, depending on the similarities vector you obtain some interpretable model will fit
     better than other (e.g Ridge on large colored image might perform better than Lasso).
     Finally, your map function will defines how many features your linear model has to learn.
-    Basically, the default mapping is an identity mapping, so for large image it means there is
-    as many features as there are pixels (e.g 299x299x3->89401 features) which can lead to poor
+    Basically, an identity mapping (map each pixel as a single feature), on large image means there
+    is as many features as there are pixels (e.g 299x299x3->89401 features) which can lead to poor
     explanations.
 
     N.B: This module was built to be deployed on GPU to be fully efficient. Considering the number
@@ -72,8 +72,9 @@ class Lime(BlackBoxExplainer):
             - expected_outputs: ndarray (1D nb_samples),
             - weights: ndarray (1D nb_samples)
 
-            The model object should also provide a `predict` method and have a coef_ attributes
-            (the interpretable explanation) at least once fit is called.
+            The model object should also provide a `predict` and `fit` method.
+            It should also have a coef_ attributes (the interpretable explanation) at least
+            once `fit` is called.
             As interpretable model you can use linear models from scikit-learn.
             Note that here nb_samples doesn't indicates the length of inputs but the number of
             pertubed samples we want to generate for each input.
@@ -94,11 +95,11 @@ class Lime(BlackBoxExplainer):
                 return similarities
 
             where:
-                duplicate_input, pertubed_samples are tf.tensor (nb_samples, W, H, C)
+                duplicate_input, pertubed_samples are tf.tensor (nb_samples, W (,H, C))
                 interpret_samples is a tf.tensor (nb_samples, num_interp_features)
             If it is possible you can add the tf.function decorator.
 
-            The default similarity kernel use the euclidian distance between the original input and
+            The default similarity kernel use the euclidean distance between the original input and
             sample in the input space.
 
         pertub_function
@@ -122,7 +123,8 @@ class Lime(BlackBoxExplainer):
         ref_values
             It defines reference value which replaces each feature when the corresponding
             interpretable feature is set to 0.
-            It should be provided as: a ndarray (C,)
+            It should be provided as: a ndarray of shape (1) if there is no channels in your input
+            and (C,) otherwise
 
             The default ref value is set to (0.5,0.5,0.5) for inputs with 3 channels (corresponding
             to a grey pixel when inputs are normalized by 255) and to 0 otherwise.
@@ -132,12 +134,18 @@ class Lime(BlackBoxExplainer):
             feature (e.g super-pixel).
             It allows to transpose from (resp. to) the original input space to (resp. from)
             the interpretable space.
-            The default mapping is the quickshift segmentation algorithm.
+            The default mapping is:
+                - the quickshift segmentation algorithm for inputs with (N, W, H, C) shape,
+                we assume here such shape is used to represent (W, H, C) images.
+                - the felzenszwalb segmentation algorithm for inputs with (N, W, H) shape,
+                we assume here such shape is used to represent (W, H) images.
+                - an identity mapping if inputs has shape (N, W), we assume here your inputs
+                are tabular data.
 
             To use your own custom map function you should use the following scheme:
 
-            def custom_map_to_interpret_space(inputs: tf.tensor (N, W, H, C)) ->
-            tf.tensor (N, W, H):
+            def custom_map_to_interpret_space(inputs: tf.tensor (N, W (, H, C) )) ->
+            tf.tensor (N, W (, H)):
                 **some grouping techniques**
                 return mappings
 
@@ -164,7 +172,7 @@ class Lime(BlackBoxExplainer):
             Width of your kernel. It is important to make it evolving depending on your inputs size
             otherwise you will get all similarity close to 0 leading to poor performance or NaN
             values.
-            Default to 1.
+            Default to 45 (i.e adapted for RGB images).
         """
 
         if similarity_kernel is None:
@@ -172,9 +180,6 @@ class Lime(BlackBoxExplainer):
 
         if pertub_func is None:
             pertub_func = Lime._get_default_pertub_function(prob)
-
-        if map_to_interpret_space is None:
-            map_to_interpret_space = Lime._default_map_to_interpret_space
 
         if (nb_samples>=500) and (batch_pertubed_samples is None):
             warnings.warn(
@@ -216,9 +221,9 @@ class Lime(BlackBoxExplainer):
         Parameters
         ----------
         inputs
-            Tensor or numpy array of shape (N, W, H, C)
-            Input samples, with N number of samples, W & H the sample dimensions, and C the
-            number of channels.
+            Tensor or numpy array of shape (N, W (, H, C))
+            Input samples, with N number of samples, W (& H) the sample dimension(s) (and C the
+            number of channels).
 
         targets
             Tensor or numpy array of shape (N, L)
@@ -227,26 +232,47 @@ class Lime(BlackBoxExplainer):
         Returns
         -------
         explanations
-            Numpy array of shape: (N, W, H)
+            Numpy array of shape: (N, W (, H))
             Coefficients of the interpretable model. Those coefficients having the size of the
             interpretable space will be given the same value to coefficient which were grouped
             together (e.g belonging to the same super-pixel).
         """
 
-        if self.ref_values is None:
-            if inputs.shape[-1] == 3:
-                # grey pixel
-                ref_values = tf.ones(inputs.shape[-1])*0.5
+        # check if inputs are tabular or has shape (N, W, H, C)
+        is_tabular = (len(inputs.shape)==2)
+        has_channels = (len(inputs.shape)==4)
+
+        if has_channels:
+            # default quickshift segmentation for image
+            if self.map_to_interpret_space is None:
+                self.map_to_interpret_space = Lime._default_image_map_to_interpret_space
+            # if inputs have channels ensure
+            if self.ref_values is None:
+                if inputs.shape[-1] == 3:
+                    # grey pixel
+                    ref_values = tf.ones(inputs.shape[-1])*0.5
+                else:
+                    ref_values = tf.zeros(inputs.shape[-1])
             else:
-                ref_values = tf.zeros(inputs.shape[-1])
+                assert(
+                    self.ref_values.shape[0] == inputs.shape[-1]
+                ),"The dimension of ref_values must match inputs (C, )"
+                ref_values = tf.cast(self.ref_values, tf.float32)
         else:
-            assert(
-                self.ref_values.shape[0] == inputs.shape[-1]
-            ),"The dimension of ref_values must match inputs (C, )"
-            ref_values = tf.cast(self.ref_values, tf.float32)
+            if self.map_to_interpret_space is None:
+                if is_tabular:
+                    self.map_to_interpret_space = Lime._default_tab_map_to_interpret_space
+                else:
+                    self.map_to_interpret_space = Lime._default_2dimage_map_to_interpret_space
+
+            if self.ref_values is None:
+                ref_values = tf.zeros(1)
+            else:
+                ref_values = tf.cast(self.ref_values, tf.float32)
 
         # use the map function to get a mapping per input to the interpretable space
         mappings = self.map_to_interpret_space(inputs)
+        print(mappings.shape)
         batch_size = self.batch_size or len(inputs)
 
         return Lime._compute(self.model,
@@ -288,9 +314,9 @@ class Lime(BlackBoxExplainer):
             Model to explain.
 
         inputs
-            Tensor of shape (N, W, H, C)
-            Input samples, with N number of samples, W & H the sample dimensions, and C the
-            number of channels.
+            Tensor of shape (N, W (, H, C))
+            Input samples, with N number of samples, W (& H) the sample dimension(s) (and C the
+            number of channels).
 
         targets
             Tensor of shape (N, L)
@@ -305,8 +331,9 @@ class Lime(BlackBoxExplainer):
             - expected_outputs: ndarray (1D nb_samples),
             - weights: ndarray (1D nb_samples)
 
-            The model object should also provide a `predict` method and have a coef_ attributes
-            (the interpretable explanation).
+            The model object should also provide a `predict` and `fit` method.
+            It should also have a coef_ attributes (the interpretable explanation) at least
+            once `fit` is called.
             As interpretable model you can use linear models from scikit-learn.
             Note that here nb_samples doesn't indicates the length of inputs but the number of
             pertubed samples we want to generate for each input.
@@ -327,11 +354,11 @@ class Lime(BlackBoxExplainer):
                 return similarities
 
             where:
-                inputs, pertubed_samples are tf.tensor (batch_size, W, H, C)
-                interpret_samples is a tf.tensor (batch_size, num_interp_features)
+                duplicate_input, pertubed_samples are tf.tensor (nb_samples, W (,H, C))
+                interpret_samples is a tf.tensor (nb_samples, num_interp_features)
             If it is possible you can add the tf.function decorator.
 
-            The default similarity kernel use the euclidian distance between the original input and
+            The default similarity kernel use the euclidean distance between the original input and
             sample in the input space.
 
         pertub_function
@@ -351,10 +378,11 @@ class Lime(BlackBoxExplainer):
         ref_values
             It defines reference value which replaces each feature when the corresponding
             interpretable feature is set to 0.
-            It should be provided as: a tf.Tensor (C,)
+            It should be provided as: a ndarray of shape (1) if there is no channels in your input
+            and (C,) otherwise
 
         mappings
-            Tensor of shape (N, W, H)
+            Tensor of shape (N, W (, H))
             It is grouping features which correspond to the same interpretable feature (super-pixel)
             It allows to transpose from (resp. to) the original input space to (resp. from) the
             interpretable space.
@@ -370,7 +398,7 @@ class Lime(BlackBoxExplainer):
         Returns
         -------
         explanations
-            Tensor of shape: (N, W, H)
+            Tensor of shape: (N, W (, H))
             Coefficients of the interpretable model. Those coefficients having the size of the
             interpretable space will be given the same value to coefficient which were grouped
             together (e.g belonging to the same super-pixel).
@@ -378,7 +406,7 @@ class Lime(BlackBoxExplainer):
         explanations = []
 
         # get the number of interpretable features for each inputs
-        num_features = tf.reduce_max(tf.reduce_max(mappings, axis=1),axis=1)
+        num_features = tf.reduce_max(tf.reshape(mappings, [inputs.shape[0], -1]), axis=1)
         num_features += tf.ones(len(mappings),dtype=tf.int32)
 
         if tf.greater(tf.cast(tf.reduce_max(num_features),tf.float32),1e4):
@@ -463,17 +491,26 @@ class Lime(BlackBoxExplainer):
                 explanations.append(explanation)
 
         explanations = tf.ragged.stack(explanations, axis=0)
+
         # broadcast explanations to match the original inputs shapes
-        complete_explanations = tf.map_fn(
-            fn= lambda inp: Lime._broadcast_explanation(inp[0],inp[1]),
-            elems=(explanations,mappings),
-            fn_output_signature=tf.float32
-        )
+        # except for channels
+        if len(mappings.shape)==3:
+            complete_explanations = tf.map_fn(
+                fn= lambda inp: Lime._broadcast_explanation_2d(inp[0],inp[1]),
+                elems=(explanations,mappings),
+                fn_output_signature=tf.float32
+            )
+        else:
+            complete_explanations = tf.map_fn(
+                fn= lambda inp: Lime._broadcast_explanation_1d(inp[0],inp[1]),
+                elems=(explanations,mappings),
+                fn_output_signature=tf.float32
+            )
 
         return complete_explanations
 
     @staticmethod
-    def _default_map_to_interpret_space(inputs: tf.Tensor) -> tf.Tensor:
+    def _default_image_map_to_interpret_space(inputs: tf.Tensor) -> tf.Tensor:
         """
         This method compute the quickshift segmentation.
 
@@ -494,6 +531,56 @@ class Lime(BlackBoxExplainer):
         for inp in inputs:
             mapping = quickshift(inp.numpy().astype('double'), ratio=0.5, kernel_size=2)
             mapping = tf.cast(mapping, tf.int32)
+            mappings.append(mapping)
+        mappings = tf.stack(mappings, axis=0)
+        return mappings
+
+    @staticmethod
+    def _default_2dimage_map_to_interpret_space(inputs: tf.Tensor) -> tf.Tensor:
+        """
+        This method compute the felzenszwalb segmentation.
+
+        Parameters
+        ----------
+        inputs
+            Tensor of shape (N, W, H)
+            Input samples, with N number of samples, W & H the sample dimensions.
+
+        Returns
+        -------
+        mappings
+            Tensor of shape (N, W, H)
+            Mappings which map each pixel to the corresponding segment
+        """
+        mappings = []
+        for inp in inputs:
+            mapping = felzenszwalb(inp.numpy().astype('double'))
+            mapping = tf.cast(mapping, tf.int32)
+            mappings.append(mapping)
+        mappings = tf.stack(mappings, axis=0)
+        return mappings
+
+
+    @staticmethod
+    def _default_tab_map_to_interpret_space(inputs: tf.Tensor) -> tf.Tensor:
+        """
+        This method compute a similarity mapping i.e each features is independent.
+
+        Parameters
+        ----------
+        inputs
+            Tensor of shape (N, W)
+            Input samples, with N number of samples, W the sample dimensions.
+
+        Returns
+        -------
+        mappings
+            Tensor of shape (N, W)
+            Mappings which map each pixel to the corresponding segment
+        """
+        mappings = []
+        for inp in inputs:
+            mapping = tf.range(len(inp))
             mappings.append(mapping)
         mappings = tf.stack(mappings, axis=0)
         return mappings
@@ -555,14 +642,14 @@ class Lime(BlackBoxExplainer):
                 nb_samples number of samples
                 num_features the dimension of the interpretable space.
         mapping
-            Tensor of shape (W, H)
+            Tensor of shape (W (, H))
             The mapping of the original input from which we drawn interpretable samples.
-            Its size is equal to width and height of the original input
+            Its size is equal to width (and height) of the original input
 
         Returns
         -------
         masks
-            Tensor of shape (nb_samples, W, H)
+            Tensor of shape (nb_samples, W (, H))
             The masks corresponding to each interpretable samples
         """
         tf_masks = tf.gather(interpret_samples,indices=mapping,axis=1)
@@ -580,30 +667,39 @@ class Lime(BlackBoxExplainer):
         Parameters
         ----------
         original_input
-            Tensor of shape (W, H, C)
+            Tensor of shape (W (, H, C))
             The input we want to explain
         sample_masks
-            Tensor of shape (nb_samples, W, H)
+            Tensor of shape (nb_samples, W (, H))
             The masks we obtained from the pertubed instances in the interpretable space
         ref_value
-            Tensor of shape (C,)
+            Tensor of shape (1) or (C,)
             The reference value which replaces each feature when the corresponding
             interpretable feature is set to 0
 
         Returns
         -------
         pertubed_samples
-            Tensor of shape (nb_samples, W, H, C)
+            Tensor of shape (nb_samples, W (, H, C))
             The pertubed samples corresponding to the masks applied to the original input
         """
         pert_samples = tf.expand_dims(original_input, axis=0)
         pert_samples = tf.repeat(pert_samples, repeats=len(sample_masks), axis=0)
 
-        sample_masks = tf.expand_dims(sample_masks, axis=-1)
-        sample_masks = tf.repeat(sample_masks, repeats=original_input.shape[-1], axis=-1)
+        # if there is channels we need to expand masks dimension
+        if len(original_input.shape)==3:
 
-        pert_samples = pert_samples * tf.cast(sample_masks, tf.float32)
-        ref_val = tf.reshape(ref_value, (1,1,1,original_input.shape[-1]))
+            sample_masks = tf.expand_dims(sample_masks, axis=-1)
+            sample_masks = tf.repeat(sample_masks, repeats=original_input.shape[-1], axis=-1)
+
+            pert_samples = pert_samples * tf.cast(sample_masks, tf.float32)
+            ref_val = tf.reshape(ref_value, (1,1,1,original_input.shape[-1]))
+
+        else:
+
+            pert_samples = pert_samples * tf.cast(sample_masks, tf.float32)
+            ref_val = tf.reshape(ref_value, (1, *(1,) * len(original_input.shape)))
+
         pert_samples += (tf.ones((sample_masks.shape)) - tf.cast(sample_masks, tf.float32))*ref_val
 
         return pert_samples
@@ -625,15 +721,15 @@ class Lime(BlackBoxExplainer):
         Parameters
         ----------
         original_input
-            Tensor of shape (W, H, C)
+            Tensor of shape (W (, H, C))
             The input we want to explain
         pertub_func
             Function which generate a pertubed sample in the interpretation space from an
             interpretable input.
         mapping
-            Tensor of shape (W, H)
+            Tensor of shape (W (, H))
             The mapping of the original input from which we drawn interpretable samples.
-            Its size is equal to width and height of the current input
+            Its size is equal to width (and height) of the current input
         num_features
             The dimension size of the interpretable space
         nb_samples
@@ -648,7 +744,7 @@ class Lime(BlackBoxExplainer):
             Ragged Tensor of shape (nb_samples, num_features)
             Intrepretable samples of the original input.
         pertubed_samples
-            Tensor of shape (nb_samples, W, H, C)
+            Tensor of shape (nb_samples, W (, H, C))
             The samples corresponding to the masks applied to the original input
         """
 
@@ -691,13 +787,7 @@ class Lime(BlackBoxExplainer):
         kernel_width = tf.cast(kernel_width,dtype=tf.float32)
 
         if distance_mode=="euclidean":
-            @tf.function(
-                input_signature=(
-                    tf.TensorSpec(shape=[None,None,None,None], dtype=tf.float32),
-                    tf.TensorSpec(shape=[None,None,None,None], dtype=tf.float32),
-                    tf.RaggedTensorSpec(shape=[None,None], dtype=tf.int32)
-                )
-            )
+            @tf.function
             def _euclidean_similarity_kernel(original_inputs: tf.Tensor,
                                              pertubed_samples: tf.Tensor,
                                              interpret_samples: tf.RaggedTensor
@@ -715,13 +805,7 @@ class Lime(BlackBoxExplainer):
             return _euclidean_similarity_kernel
 
         if distance_mode=="cosine":
-            @tf.function(
-                input_signature=(
-                    tf.TensorSpec(shape=[None,None,None,None], dtype=tf.float32),
-                    tf.TensorSpec(shape=[None,None,None,None], dtype=tf.float32),
-                    tf.RaggedTensorSpec(shape=[None,None], dtype=tf.int32)
-                )
-            )
+            @tf.function
             def _cosine_similarity_kernel(original_inputs: tf.Tensor,
                                           pertubed_samples: tf.Tensor,
                                           interpret_samples: tf.RaggedTensor
@@ -747,7 +831,7 @@ class Lime(BlackBoxExplainer):
             tf.TensorSpec(shape=[None,None], dtype=tf.int32)
         )
     )
-    def _broadcast_explanation(explanation: tf.Tensor, mapping: tf.Tensor) -> tf.Tensor:
+    def _broadcast_explanation_2d(explanation: tf.Tensor, mapping: tf.Tensor) -> tf.Tensor:
         """
         This method allows to broadcast explanations from the interpretable space to the
         corresponding super pixels
@@ -767,6 +851,40 @@ class Lime(BlackBoxExplainer):
         -------
         broadcast_explanation
             Tensor of shape (W, H)
+            The explanation of the current input considered
+
+        """
+
+        broadcast_explanation = tf.gather(explanation, indices=mapping, axis=0)
+        return broadcast_explanation
+
+    @staticmethod
+    @tf.function(
+        input_signature=(
+            tf.TensorSpec(shape=[None], dtype=tf.float32),
+            tf.TensorSpec(shape=[None], dtype=tf.int32)
+        )
+    )
+    def _broadcast_explanation_1d(explanation: tf.Tensor, mapping: tf.Tensor) -> tf.Tensor:
+        """
+        This method allows to broadcast explanations from the interpretable space to the
+        corresponding super pixels
+
+        Parameters
+        ----------
+        explanation
+            Tensor of shape (num_features)
+            Explanation value for each super pixel
+        mapping
+            Tensor of shape (W)
+            The mapping of the original input from which we drawn interpretable samples
+            (i.e features index).
+            Its size is equal to width of the original input
+
+        Returns
+        -------
+        broadcast_explanation
+            Tensor of shape (W)
             The explanation of the current input considered
 
         """
