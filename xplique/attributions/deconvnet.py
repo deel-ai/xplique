@@ -6,7 +6,7 @@ import tensorflow as tf
 import numpy as np
 
 from .base import WhiteBoxExplainer, sanitize_input_output
-from ..commons import override_relu_gradient, deconv_relu, batch_gradient
+from ..commons import override_relu_gradient, deconv_relu_policy, batch_gradient
 from ..types import Union, Optional
 
 
@@ -36,7 +36,7 @@ class DeconvNet(WhiteBoxExplainer):
                  output_layer: Optional[Union[str, int]] = -1,
                  batch_size: Optional[int] = 32):
         super().__init__(model, output_layer, batch_size)
-        self.model = override_relu_gradient(self.model, deconv_relu)
+        self.model = override_relu_gradient(self.model, deconv_relu_policy)
 
     @sanitize_input_output
     def explain(self,
