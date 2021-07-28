@@ -6,9 +6,11 @@ import tensorflow as tf
 from tensorflow.keras.layers import Activation # pylint: disable=E0611
 from tensorflow.keras.models import clone_model # pylint: disable=E0611
 
+from ..types import Tuple, Callable, Union
+
 
 @tf.custom_gradient
-def guided_relu(inputs):
+def guided_relu(inputs: tf.Tensor) -> Tuple[tf.Tensor, Callable]:
     """
     Guided relu activation function.
     Act like a relu during forward pass, but allows only positive gradients with positive
@@ -16,14 +18,14 @@ def guided_relu(inputs):
 
     Parameters
     ----------
-    inputs : tf.Tensor
+    inputs
         Input tensor
 
     Returns
     -------
-    output : tf.Tensor
+    output
         Tensor, output or relu transformation.
-    grad_func : function
+    grad_func
         Gradient function for guided relu.
     """
 
@@ -35,7 +37,7 @@ def guided_relu(inputs):
 
 
 @tf.custom_gradient
-def deconv_relu(inputs):
+def deconv_relu(inputs: tf.Tensor) -> Tuple[tf.Tensor, Callable]:
     """
     DeconvNet activation function.
     Act like a relu during forward pass, but allows only positive gradients to pass through
@@ -43,14 +45,14 @@ def deconv_relu(inputs):
 
     Parameters
     ----------
-    inputs : tf.Tensor
+    inputs
         Input tensor
 
     Returns
     -------
-    output : tf.Tensor
+    output
         Tensor, output or relu transformation.
-    grad_func : function
+    grad_func
         Gradient function for DeconvNet relu.
     """
 
@@ -60,52 +62,56 @@ def deconv_relu(inputs):
     return tf.nn.relu(inputs), grad_func
 
 
-def is_relu(layer):
+def is_relu(layer: tf.keras.layers.Layer) -> bool:
     """
     Check if a layer is a ReLU layer
 
     Parameters
     ----------
-    layer : tf.keras.layers.Layers
+    layer
+        Layer to check.
 
     Returns
     -------
     is_relu : bool
+        True if the layer is a relu activation.
     """
     return isinstance(layer, tf.keras.layers.ReLU)
 
 
-def has_relu_activation(layer):
+def has_relu_activation(layer: tf.keras.layers.Layer) -> bool:
     """
     Check if a layer has a ReLU activation.
 
     Parameters
     ----------
-    layer : tf.keras.layers.Layers
+    layer
+        Layer to check.
 
     Returns
     -------
-    has_relu: bool
+    has_relu
+        True if the layer has a relu activation.
     """
     if not hasattr(layer, 'activation'):
         return False
     return layer.activation in [tf.nn.relu, tf.keras.activations.relu]
 
 
-def override_relu_gradient(model, relu_policy):
+def override_relu_gradient(model: tf.keras.Model, relu_policy: Callable) -> tf.keras.Model:
     """
     Given a model, commute all original ReLU by a new given ReLU policy.
 
     Parameters
     ----------
-    model : tf.keras.model
+    model
         Model to commute.
-    relu_policy : tf.custom_gradient
+    relu_policy
         Function wrapped with custom_gradient, defining the ReLU backprop behaviour.
 
     Returns
     -------
-    model_commuted : tf.keras.model
+    model_commuted
     """
     cloned_model = clone_model(model)
     cloned_model.set_weights(model.get_weights())
@@ -120,20 +126,20 @@ def override_relu_gradient(model, relu_policy):
     return cloned_model
 
 
-def find_layer(model, layer):
+def find_layer(model: tf.keras.Model, layer: Union[str, int]) -> tf.keras.layers.Layer:
     """
     Find a layer in a model either by his name or by his index.
 
     Parameters
     ----------
-    model : tf.keras.Model
+    model
         Model on which to search.
-    layer : str or int
+    layer
         Layer name or layer index
 
     Returns
     -------
-    layer : tf.keras.Layer
+    layer
         Layer found
     """
     if isinstance(layer, str):
