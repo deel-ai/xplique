@@ -239,8 +239,8 @@ class Lime(BlackBoxExplainer):
         """
 
         # check if inputs are tabular or has shape (N, W, H, C)
-        is_tabular = (len(inputs.shape)==2)
-        has_channels = (len(inputs.shape)==4)
+        is_tabular = len(inputs.shape) == 2
+        has_channels = len(inputs.shape )== 4
 
         if has_channels:
             # default quickshift segmentation for image
@@ -272,7 +272,6 @@ class Lime(BlackBoxExplainer):
 
         # use the map function to get a mapping per input to the interpretable space
         mappings = self.map_to_interpret_space(inputs)
-        print(mappings.shape)
         batch_size = self.batch_size or len(inputs)
 
         return Lime._compute(self.model,
