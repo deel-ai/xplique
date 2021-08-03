@@ -52,7 +52,8 @@ def plot_attributions(
         alpha: float = 0.5,
         clip_percentile: Optional[float] = 0.1,
         absolute_value: bool = False,
-        cols: int = 10,
+        cols: int = 5,
+        img_size: float = 2.,
         **plot_kwargs
 ):
     """
@@ -78,6 +79,8 @@ def plot_attributions(
         Whether an absolute value is applied to the explanations.
     cols
         Number of columns.
+    img_size:
+        Size of each subplots (in inch), considering we keep aspect ratio
     plot_kwargs
         Additional parameters passed to `plt.imshow()`.
     """
@@ -92,11 +95,41 @@ def plot_attributions(
     if absolute_value:
         explanations = np.abs(explanations)
 
+    # prepare nice display
+
+    # get width and height of our images
+    l_width, l_height = explanations.shape[1:]
+
+    # define the figure margin, width, height in inch
+    margin = 0.3
+    spacing = 0.3
+    figwidth = cols * img_size + (cols-1) * spacing + 2 * margin
+    figheight = rows * img_size * l_height/l_width + (rows-1) * spacing + 2 * margin
+
+    left = margin/figwidth
+    bottom = margin/figheight
+
+    fig = plt.figure()
+    fig.set_size_inches(figwidth, figheight)
+
+    fig.subplots_adjust(
+        left = left,
+        bottom = bottom,
+        right = 1.-left,
+        top = 1.-bottom,
+        wspace = spacing/img_size,
+        hspace= spacing/img_size * l_width/l_height
+    )
+
     for i, explanation in enumerate(explanations):
         plt.subplot(rows, cols, i+1)
 
         if images is not None:
-            plt.imshow(_standardize_image(images[i]))
+            img = _standardize_image(images[i])
+            if img.shape[-1] == 1:
+                plt.imshow(img[:,:,0], cmap="Greys")
+            else:
+                plt.imshow(img)
 
         plt.imshow(_standardize_image(explanation, clip_percentile), cmap=cmap, alpha=alpha,
                    **plot_kwargs)
