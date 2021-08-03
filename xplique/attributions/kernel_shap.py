@@ -102,7 +102,7 @@ class KernelShap(Lime):
 
         # when calling the kernel, we will call it for interpretable
         # samples which all have the same size, thus we can use the
-        # following trich to get the total number of interpretable
+        # following trick to get the total number of interpretable
         # features toward a specific input
         nb_total_features = interpret_samples.bounding_shape(out_type = tf.int32)[1]
         interpret_samples = interpret_samples.to_tensor()

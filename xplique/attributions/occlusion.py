@@ -67,9 +67,9 @@ class Occlusion(BlackBoxExplainer):
         """
 
         # check if data is tabular
-        is_tabular = (len(inputs.shape)==2)
+        is_image = len(inputs.shape) > 2
 
-        if not is_tabular:
+        if is_image:
             if not isinstance(self.patch_size, tuple):
                 self.patch_size = (self.patch_size, self.patch_size)
             if not isinstance(self.patch_stride, tuple):
@@ -120,7 +120,7 @@ class Occlusion(BlackBoxExplainer):
         masks = []
 
         # check if we have tabular data
-        is_tabular = (len(input_shape)==1)
+        is_tabular = len(input_shape) == 1
 
         if is_tabular:
             x_anchors = [x * patch_stride for x in
@@ -170,7 +170,7 @@ class Occlusion(BlackBoxExplainer):
         occluded_inputs = tf.repeat(occluded_inputs, repeats=masks.shape[0], axis=1)
 
         # check if inputs shape is (N, W, H, C)
-        has_channels = (len(inputs.shape)>3)
+        has_channels = len(inputs.shape) > 3
         if has_channels:
             masks = tf.expand_dims(masks, axis=-1)
             masks = tf.repeat(masks, repeats=inputs.shape[-1], axis=-1)
