@@ -51,7 +51,7 @@ Finally, the _Metrics_ module covers the current metrics used in explainability.
 
 - [📚 Table of contents](#-table-of-contents)
 - [🚀 Quick Start](#-quick-start)
-- [🔥 Notebooks](#-notebooks)
+- [🔥 Tutorials](#-tutorials)
 - [📦 What's Included](#-whats-included)
 - [👍 Contributing](#-contributing)
 - [👀 See Also](#-see-also)
@@ -134,29 +134,40 @@ obj = neuron_obj + 2.0 * channel_obj
 images = optimize(obj)
 ```
 
-## 🔥 Notebooks
+## 🔥 Tutorials
 
-- [Using the attributions methods](https://gist.github.com/napolar/c02cef48ae7fc20e76d633f3f1588c63)
-  <sub> [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/gist/napolar/c02cef48ae7fc20e76d633f3f1588c63/sample-generation.ipynb) </sub>
+We propose some Hands-on tutorials to get familiar with the library and its api:
+
+- **Getting Started** $~~~~~~~~~~~~~~~~~~~~~~$
+  <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/11Hiu5SMER7dfug3th2EBNRiKHTVGfJxB?authuser=1) </sub>
+- **Tabular Data and Regression** $~~$
+  <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1pjDJmAa9oeSquYtbYh6tksU6eTmObIcq?authuser=1) </sub>
+- **Introduction to Metrics** $~~~~~~~~~~$
+  <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/12OtJKdUuuaiRVpe-luhScv368gLeuT58?authuser=1) </sub>
+
+You can find a certain number of other practical tutorials [just here](https://github.com/deel-ai/xplique/blob/master/TUTORIALS.md). This section is actively developed and more contents will be
+included. We will try to cover all the possible usage of the library, feel free to contact us if you have any suggestions or recommandations towards tutorials you would like to see.
 
 ## 📦 What's Included
 
-| **Attribution Method** | Type of Model | Source                                    |
-| :--------------------- | :------------ | :---------------------------------------- |
-| Deconvolution          | TF            | [Paper](https://arxiv.org/abs/1311.2901)  |
-| Grad-CAM               | TF            | [Paper](https://arxiv.org/abs/1610.02391) |
-| Grad-CAM++             | TF            | [Paper](https://arxiv.org/abs/1710.11063) |
-| Gradient Input         | TF            | [Paper](https://arxiv.org/abs/1711.06104) |
-| Guided Backprop        | TF            | [Paper](https://arxiv.org/abs/1412.6806)  |
-| Integrated Gradients   | TF            | [Paper](https://arxiv.org/abs/1703.01365) |
-| Kernel SHAP            | Callable      | [Paper](https://arxiv.org/abs/1705.07874) |
-| Lime                   | Callable      | [Paper](https://arxiv.org/abs/1602.04938) |
-| Occlusion              | Callable      | [Paper](https://arxiv.org/abs/1311.2901)  |
-| Rise                   | Callable      | [Paper](https://arxiv.org/abs/1806.07421) |
-| Saliency               | TF            | [Paper](https://arxiv.org/abs/1312.6034)  |
-| SmoothGrad             | TF            | [Paper](https://arxiv.org/abs/1706.03825) |
-| SquareGrad             | TF            | [Paper](https://arxiv.org/abs/1806.10758) |
-| VarGrad                | TF            | [Paper](https://arxiv.org/abs/1810.03292) |
+All the attributions method presented below handle both **Classification** and **Regression** tasks.
+
+| **Attribution Method** | Type of Model | Source                                    | Tabular Data       | Images             | Time-Series        |
+| :--------------------- | :------------ | :---------------------------------------- | :----------------: | :----------------: | :----------------: |
+| Deconvolution          | TF            | [Paper](https://arxiv.org/abs/1311.2901)  | ✔                  | ✔                 | TBD                |
+| Grad-CAM               | TF            | [Paper](https://arxiv.org/abs/1610.02391) |                    | ✔                  | TBD                |
+| Grad-CAM++             | TF            | [Paper](https://arxiv.org/abs/1710.11063) |                    | ✔                  | TBD                |
+| Gradient Input         | TF            | [Paper](https://arxiv.org/abs/1711.06104) | ✔                  | ✔                 | TBD                |
+| Guided Backprop        | TF            | [Paper](https://arxiv.org/abs/1412.6806)  | ✔                  | ✔                 | TBD                |
+| Integrated Gradients   | TF            | [Paper](https://arxiv.org/abs/1703.01365) | ✔                  | ✔                 | TBD                |
+| Kernel SHAP            | Callable      | [Paper](https://arxiv.org/abs/1705.07874) | ✔                  | ✔                 | TBD                |
+| Lime                   | Callable      | [Paper](https://arxiv.org/abs/1602.04938) | ✔                  | ✔                 | TBD                |
+| Occlusion              | Callable      | [Paper](https://arxiv.org/abs/1311.2901)  | ✔                  | ✔                 | TBD                |
+| Rise                   | Callable      | [Paper](https://arxiv.org/abs/1806.07421) | TBD                | ✔                  | TBD                |
+| Saliency               | TF            | [Paper](https://arxiv.org/abs/1312.6034)  | ✔                  | ✔                 | TBD                |
+| SmoothGrad             | TF            | [Paper](https://arxiv.org/abs/1706.03825) | ✔                  | ✔                 | TBD                |
+| SquareGrad             | TF            | [Paper](https://arxiv.org/abs/1806.10758) | ✔                  | ✔                 | TBD                |
+| VarGrad                | TF            | [Paper](https://arxiv.org/abs/1810.03292) | ✔                  | ✔                 | TBD                |
 
 | **Attribution Metrics** | Type of Model | Property  | Source                                    |
 | :---------------------- | :------------ | :-------- | :---------------------------------------- |
