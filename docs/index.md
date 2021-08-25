@@ -138,11 +138,11 @@ images = optimize(obj)
 
 We propose some Hands-on tutorials to get familiar with the library and its api:
 
-- **Getting Started** $~~~~~~~~~~~~~~~~~~~~~~$
+- **Getting Started**    
   <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/11Hiu5SMER7dfug3th2EBNRiKHTVGfJxB?authuser=1) </sub>
-- **Tabular Data and Regression** $~~$
+- **Tabular Data and Regression**    
   <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1pjDJmAa9oeSquYtbYh6tksU6eTmObIcq?authuser=1) </sub>
-- **Introduction to Metrics** $~~~~~~~~~~$
+- **Introduction to Metrics**    
   <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/12OtJKdUuuaiRVpe-luhScv368gLeuT58?authuser=1) </sub>
 
 You can find a certain number of other practical tutorials [just here](https://github.com/deel-ai/xplique/blob/master/TUTORIALS.md). This section is actively developed and more contents will be
