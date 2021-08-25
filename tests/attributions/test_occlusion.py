@@ -69,7 +69,7 @@ def test_mask_generator():
 
 def test_apply():
     """Ensure we apply correctly the masks"""
-    x = np.ones((1, 2, 2, 1), dtype=np.float32)
+    x = np.ones((2, 2, 1), dtype=np.float32)
     applied_value = 49.0
 
     masks = Occlusion._get_masks((2, 2, 1), (1, 1), (1, 1))
