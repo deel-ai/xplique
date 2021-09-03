@@ -11,6 +11,7 @@ from .vargrad import VarGrad
 from .square_grad import SquareGrad
 from .occlusion import Occlusion
 from .rise import Rise
+from .d_rise import DRise
 from .guided_backpropagation import GuidedBackprop
 from .deconvnet import DeconvNet
 from .grad_cam_pp import GradCAMPP
