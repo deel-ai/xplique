@@ -9,10 +9,7 @@ from .base import BlackBoxExplainer, sanitize_input_output
 from ..commons import repeat_labels, batch_predictions_one_hot,inference_batching
 from ..types import Callable, Tuple, Optional, Union
 
-def print_tf(message,o):
-    print(message,type(o))
-    print(o)
-        
+
 class DRise(BlackBoxExplainer):
     """
     Used to compute the D-RISE method, by probing the model with randomly masked versions of
@@ -56,25 +53,20 @@ class DRise(BlackBoxExplainer):
         self.granularity = granularity
         self.preservation_probability = preservation_probability
 
-    def foo(model, inputs, targets):
-        #print("FOO.targets",len(targets))
+    @staticmethod
+    def inference(model, inputs, targets):
         predictions=model(inputs)
-        #print("FOO.predictions",len(predictions))
         numClasses=targets.shape[1]-5
-        #print("FOO.numClasses",numClasses)
         Lt, Pt, Vt = tf.split(targets[0], [4, 1, numClasses])
         SdtDjp=[]
         for Dj in predictions:
             Lj, Pj, Vj = tf.split(Dj[0], [4, 1, numClasses])
             Oj=tf.constant([1.0])
             iou=DRise._bbox_iou(Lt,Lj)
-#            print("PjVj",Pj,Vj,Pj*Vj)
             cosineSim=tf.tensordot(Pt*Vt,Pj*Vj,1)/(tf.norm(Pt*Vt)*tf.norm(Pj*Vj))
             Sdtdj=iou*Oj[0]*cosineSim
             SdtDjp=tf.concat([SdtDjp,[Sdtdj]], axis=0)
-        #print("FOO.SdtDjp",SdtDjp)
         scores=tf.reduce_max(SdtDjp)
-        #print("FOO.scores",scores)
         return scores
 
     @sanitize_input_output
@@ -97,36 +89,24 @@ class DRise(BlackBoxExplainer):
             RISE maps, same shape as the inputs, except for the channels.
         """
         rise_maps = None
-        #print("E.inputs.shape",inputs.shape)
         targets=tf.expand_dims(targets,axis=0) 
-        #print("E.targets.shape",targets.shape)
         batch_size = self.batch_size or len(inputs)
-        #print("E.batch_size",batch_size)
 
         masks = DRise._get_masks((*inputs.shape[1:],), self.nb_samples, self.granularity,
                                self.preservation_probability)
-        #print ("E.masks.shape",masks.shape)
 
         for x_batch, y_batch in tf.data.Dataset.from_tensor_slices(
                 (inputs, targets)).batch(batch_size):
 
             masked_inputs = DRise._apply_masks(x_batch, masks)           
-            #print("E.masked_inputs.shape",masked_inputs.shape)
             repeated_targets = repeat_labels(y_batch, self.nb_samples)
 
-            #numClasses=y_batch.shape[1]-5   
-            #print("E.numClasses",numClasses)
-
-            #print("go Go GO !")
-            predictions=inference_batching(DRise.foo,self.model, masked_inputs,
+            predictions = inference_batching(DRise.inference,self.model, masked_inputs,
                                                     repeated_targets,batch_size)
-            #print("E.predictions",predictions)
-            #print("YESSSS !")
-
             scores = DRise._compute_importance(predictions, masks)
 
             rise_maps = scores if rise_maps is None else tf.concat([rise_maps, scores], axis=0)
-        #print("/!\\ STOP /!\\")
+
         return rise_maps
 
     @staticmethod
@@ -167,7 +147,7 @@ class DRise(BlackBoxExplainer):
         downsampled_masks = tf.cast(downsampled_masks, tf.float32)
 
         upsampled_masks = tf.image.resize(downsampled_masks, upsampled_shape)
-        #print ("E.input_shape",input_shape)
+
         masks = tf.image.random_crop(upsampled_masks, (nb_samples, *input_shape[:-1], 1))
 
         return masks
@@ -234,7 +214,7 @@ class DRise(BlackBoxExplainer):
         return scores
 
     @staticmethod
-#    @tf.function
+    @tf.function
     def _bbox_iou(boxes1: tf.function, 
                   boxes2: tf.function) -> tf.Tensor:
         boxes1_area = boxes1[..., 2] * boxes1[..., 3]
