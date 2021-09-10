@@ -83,65 +83,40 @@ def test_apply_masks():
     expected_sample2 = np.array([[[1,1,1],[125,255,0]],[[1,1,1],[1,1,1]]])
     assert np.array_equal(samples[1],expected_sample2)
 
-def test_generate_sample():
-    """
-    Ensure that the generate sample function behave as expected (shape, type) and that
-    values belong to the right range of value
-    """
-    curr_input = tf.ones((4,4,3))
-    mapping_to_interpret_space = tf.constant([[0,0,1,1],[0,0,1,1],[2,2,3,3],[2,2,3,3]])
-    nb_samples = 5
-    num_features = 4
-    baseline = tf.constant([125.0,255.0,0.0])
-    interpret_samples, samples = Lime._generate_sample(curr_input,
-                                                      Lime._get_default_pertub_function(),
-                                                      mapping_to_interpret_space,
-                                                      num_features,
-                                                      nb_samples,
-                                                      baseline)
-
-    assert samples.shape == (nb_samples,4,4,3)
-    assert samples.dtype == tf.float32
-    
-    assert isinstance(interpret_samples, tf.RaggedTensor)
-    assert interpret_samples.to_tensor().shape == [nb_samples, num_features]
-    assert interpret_samples.dtype == tf.int32
-
-    interpret_samples.numpy()
-    for i in range(nb_samples):
-        assert np.sum(interpret_samples[i]) <= num_features
-
-def test_compute_similarities():
+def test_similarities():
     """
     Ensure that the compute similarity function behave as expected (shape, type)
     and return expected values on toy examples
     """
-    sample1 = np.array([[[1,1,1],[0,1,1]],[[0,0,0],[0,0,0]]])
-    sample2 = np.array([[[0,1,1],[1,1,1]],[[1,1,1],[0,0,0]]])
-    sample3 = np.array([[[0,1,1],[1,1,1]],[[0,0,0],[1,1,1]]])
-    sample4 = np.array([[[0,1,1],[1,1,1]],[[1,1,1],[1,1,1]]])
-
-    samples = tf.constant([sample1,sample2,sample3,sample4],dtype=tf.float32)
-
-    imaginary_interp_sample = tf.ragged.constant([[1,0],[0,1],[0,0],[1,1]], dtype=tf.int32)
-
     original_input = tf.ones((2,2,3),dtype=tf.float32)
-    original_input = tf.expand_dims(original_input, axis=0)
-    original_input = tf.repeat(original_input, repeats=4, axis=0)
+    mapping = tf.constant([[0,1],[2,3]], dtype=tf.int32)
+    ref_value = tf.zeros(3, dtype=tf.float32)
+
+    int_sample1 = np.array([1, 0, 0, 1])
+    int_sample2 = np.array([0, 1, 0, 1])
+    int_sample3 = np.array([0, 1, 0, 0])
+    int_sample4 = np.array([0, 1, 1, 1])
+
+    int_samples = tf.constant(
+        [int_sample1, int_sample2, int_sample3, int_sample4],
+        dtype=tf.int32
+    )
+    masks = Lime._get_masks(int_samples, mapping)
+    pertubed_samples = Lime._apply_masks(original_input, masks, ref_value)
 
     similarity_kernel = Lime._get_exp_kernel_func()
-    similarities = similarity_kernel(original_input, samples, imaginary_interp_sample)
+    similarities = similarity_kernel(original_input, int_samples, pertubed_samples)
 
     assert similarities.shape == 4
     assert similarities.dtype == tf.float32
 
-    expected_outcome = np.array([np.exp(-7),np.exp(-4),np.exp(-4),np.exp(-1)])
+    expected_outcome = np.array([np.exp(-6),np.exp(-6),np.exp(-9),np.exp(-3)])
 
     similarities = similarities.numpy()
     assert almost_equal(similarities,expected_outcome)
 
     similarity_kernel2 = Lime._get_exp_kernel_func(distance_mode='cosine')
-    similarities2 = similarity_kernel2(original_input, samples, imaginary_interp_sample)
+    similarities2 = similarity_kernel2(original_input, int_samples, pertubed_samples)
 
     assert similarities2.shape == 4
     assert similarities2.dtype == tf.float32
@@ -151,11 +126,10 @@ def test_compute():
     input_shapes = [(28, 28, 1), (32, 32, 3)]
     nb_labels = 10
 
-    def map_four_by_four(inputs):
+    def map_four_by_four(inp):
 
-        nb_input = inputs.shape[0]
-        width = inputs.shape[1]
-        height = inputs.shape[2]
+        width = inp.shape[0]
+        height = inp.shape[1]
 
         mapping = np.zeros((width,height))
         for i in range(width):
@@ -166,10 +140,7 @@ def test_compute():
                     mapping[i][j] = (width/2) * (i//2) + (j//2)
 
         mapping = tf.cast(mapping, dtype=tf.int32)
-
-        mappings = tf.expand_dims(mapping, axis=0)
-        mappings = tf.repeat(mappings, repeats=nb_input, axis=0)
-        return mappings
+        return mapping
 
     for input_shape in input_shapes:
         samples, labels = generate_data(input_shape, nb_labels, 20)
@@ -188,12 +159,12 @@ def test_inputs_batching():
     """ Ensure, that we can call explain with batched inputs """
     nb_labels = 10
 
-    samples, labels = generate_data( (32, 32, 3), nb_labels, 200)
-    model = generate_model( (32, 32, 3), nb_labels)
+    samples, labels = generate_data((32, 32, 3), nb_labels, 200)
+    model = generate_model((32, 32, 3), nb_labels)
 
     method = Lime(model,
-                    batch_size=10,
-                    interpretable_model=linear_model.Lasso(alpha=0.1),
+                    batch_size=15,
+                    interpretable_model=linear_model.Ridge(alpha=0.1),
                     nb_samples=20,
                     kernel_width=10)
 

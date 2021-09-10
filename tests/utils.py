@@ -27,8 +27,8 @@ def generate_regression_model(features_shape, output_shape=1):
     model = Sequential()
     model.add(Input(shape=features_shape))
     model.add(Flatten())
-    model.add(Dense(64, activation='relu'))
-    model.add(Dense(64, activation='relu'))
+    model.add(Dense(4, activation='relu'))
+    model.add(Dense(4, activation='relu'))
     model.add(Dense(output_shape))
     model.compile(loss='mean_absolute_error',
                   optimizer='sgd')

@@ -19,7 +19,6 @@ def _default_methods(model, output_layer_index):
         Lime(model),
         KernelShap(model),
         Occlusion(model, patch_size=1, patch_stride=1),
-        # Rise(model)
     ]
 
 def test_tabular_data():
@@ -58,7 +57,9 @@ def test_tabular_data():
             assert explanations.shape == [samples, *features_shape]
 
 def test_multioutput_regression():
-    """Tests applied to most attribution methods"""
+    """
+    Test if in a multioutput regression settings the methods have the expected behavior
+    """
 
     features_shape, output_shape, samples = ((10,), 4, 20)
     model = generate_regression_model(features_shape, output_shape=output_shape)
@@ -118,7 +119,6 @@ def test_batch_size():
             Lime(model, bs),
             KernelShap(model, bs),
             Occlusion(model, bs, patch_size=1, patch_stride=1),
-            # Rise(model, bs),
         ]
 
         for method in methods:

@@ -21,16 +21,19 @@ class KernelShap(Lime):
     """
     def __init__(self,
                  model: Callable,
-                 batch_size: int = 1,
+                 batch_size: int = 64,
                  map_to_interpret_space: Optional[Callable] = None,
                  nb_samples: int = 800,
-                 batch_pertubed_samples: Optional[int] = 64,
-                 ref_values: Optional[np.ndarray] = None):
+                 ref_value: Optional[np.ndarray] = None):
         """
         Parameters
         ----------
         model
             Model that you want to explain.
+
+        batch_size
+            The batch size to predict the pertubed samples targets value.
+            Default to 64.
 
         map_to_interpret_space
             Function which group an input features which correspond to the same interpretable
@@ -59,10 +62,6 @@ class KernelShap(Lime):
             The number of pertubed samples you want to generate for each input sample.
             Default to 800.
 
-        batch_pertubed_samples
-            The batch size to predict the pertubed samples targets value.
-            Default to 64.
-
         ref_values
             It defines reference value which replaces each feature when the corresponding
             interpretable feature is set to 0.
@@ -80,49 +79,12 @@ class KernelShap(Lime):
             interpretable_model = linear_model.LinearRegression(),
             similarity_kernel = KernelShap._kernel_shap_similarity_kernel,
             pertub_func = KernelShap._kernel_shap_pertub_func,
-            ref_values = ref_values,
+            ref_value = ref_value,
             map_to_interpret_space = map_to_interpret_space,
             nb_samples = nb_samples,
-            batch_pertubed_samples = batch_pertubed_samples
             )
 
     # No need to redifine the explain method (herited from Lime)
-
-    @staticmethod
-    def _kernel_shap_similarity_kernel(
-        original_inputs: tf.Tensor,
-        pertubed_samples: tf.Tensor,
-        interpret_samples: tf.RaggedTensor
-    ) -> tf.Tensor:
-    # pylint: disable=unused-argument
-        """
-        This method compute the similarity between interpretable pertubed samples and
-        the original input (i.e a tf.ones(num_features)).
-        """
-
-        # when calling the kernel, we will call it for interpretable
-        # samples which all have the same size, thus we can use the
-        # following trich to get the total number of interpretable
-        # features toward a specific input
-        nb_total_features = interpret_samples.bounding_shape(out_type = tf.int32)[1]
-        interpret_samples = interpret_samples.to_tensor()
-        nb_selected_features = tf.reduce_sum(interpret_samples, axis=1)
-
-        # Theoretically, in the case where the number of selected
-        # features is zero or the total number of features of the
-        # original input the weight should be infinite.
-        # However, we will consider it is sufficient to set this
-        # weight to 1000000 (all other weights are 1).
-        similarities = tf.where(
-            tf.logical_or(
-                tf.equal(nb_selected_features, tf.constant(0)),
-                tf.equal(nb_selected_features, tf.constant(nb_total_features))
-            ),
-            tf.ones(len(interpret_samples), dtype=tf.float32)*1000000.0,
-            tf.ones(len(interpret_samples), dtype=tf.float32)
-        )
-
-        return similarities
 
     @staticmethod
     @tf.function
@@ -138,29 +100,34 @@ class KernelShap(Lime):
            from a normal distribution and keeping the top k elements which then will be 1
            and other values are 0.
          Since there are nb_features choose k vectors with k ones, this weighted sampling
-         is equivalent to applying the Shapley kernel for the sample weight,
-         defined as:
+         is equivalent to applying the Shapley kernel for the sample weight, defined as:
             k(nb_features, k) = (nb_features - 1)/(k*(nb_features - k)*(nb_features choose k))
         This trick is the one used in the Captum library: https://github.com/pytorch/captum
         """
+
+        nb_features = tf.squeeze(nb_features)
         probs_nb_selected_feature = KernelShap._get_probs_nb_selected_feature(
-            tf.cast(nb_features, dtype=tf.int32))
+            tf.cast(nb_features, dtype=tf.int32)
+        )
         nb_selected_features = tf.random.categorical(tf.math.log([probs_nb_selected_feature]),
                                                      nb_samples,
                                                      dtype=tf.int32)
         nb_selected_features = tf.reshape(nb_selected_features, [nb_samples])
+        nb_selected_features = tf.one_hot(nb_selected_features, nb_features, dtype=tf.int32)
 
-        interpret_samples = []
+        rand_vals = tf.random.normal([nb_samples, nb_features])
+        idx_sorted_values = tf.argsort(rand_vals, axis=1, direction='DESCENDING')
 
-        for i in range(nb_samples):
-            rand_vals = tf.random.normal([nb_features])
-            idx_sorted_values = tf.argsort(rand_vals, direction='DESCENDING')
-            threshold_idx = idx_sorted_values[nb_selected_features[i]]
-            threshold = rand_vals[threshold_idx]
-            interpret_sample = tf.greater(rand_vals, threshold)
-            interpret_sample = tf.cast(interpret_sample, dtype=tf.int32)
-            interpret_samples.append(interpret_sample)
-        interpret_samples = tf.stack(interpret_samples, axis=0)
+        threshold_idx = idx_sorted_values * nb_selected_features
+        threshold_idx = tf.reduce_sum(threshold_idx, axis=1)
+
+        threshold = rand_vals * tf.one_hot(threshold_idx, nb_features)
+        threshold = tf.reduce_sum(threshold, axis=1)
+        threshold = tf.expand_dims(threshold, axis=1)
+        threshold = tf.repeat(threshold, repeats=nb_features, axis=1)
+
+        interpret_samples = tf.greater(rand_vals, threshold)
+        interpret_samples = tf.cast(interpret_samples, dtype=tf.int32)
 
         return interpret_samples
 
@@ -177,3 +144,24 @@ class KernelShap(Lime):
         probs = tf.divide(num, denom)
         probs = tf.concat([[0.0], probs], 0)
         return tf.cast(probs, dtype=tf.float32)
+
+    @staticmethod
+    def _kernel_shap_similarity_kernel(
+        original_input,
+        interpret_samples,
+        pertubed_samples
+    ) -> tf.Tensor:
+    # pylint: disable=unused-argument
+        """
+        This method compute the similarity between interpretable pertubed samples and
+        the original input (i.e a tf.ones(num_features)). The trick used for computation
+        reason is to instead of using the original similarity kernel to pick random pertubed
+        instances of interpretable sample in order to follow a certain probability rule, we
+        let the pertub function create the pertub interpretable sample directly following
+        this probability. Therefore, from the pertub function we can pick them with
+        equal probability. See the `_kernel_shap_pertub_func` for more details.
+        """
+
+        similarities = tf.ones(len(interpret_samples), dtype=tf.float32)
+
+        return similarities

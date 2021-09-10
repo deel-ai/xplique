@@ -23,7 +23,7 @@ class Rise(BlackBoxExplainer):
     model
         Model used for computing explanations.
     batch_size
-        Number of samples to explain at once, if None compute all at once.
+        Number of masked samples to explain at once, if None process all at once.
     nb_samples
         Number of masks generated for Monte Carlo sampling.
     granularity
@@ -70,21 +70,34 @@ class Rise(BlackBoxExplainer):
             RISE maps, same shape as the inputs, except for the channels.
         """
         rise_maps = None
-        batch_size = self.batch_size or len(inputs)
+        batch_size = self.batch_size or self.nb_samples
 
         masks = Rise._get_masks((*inputs.shape[1:],), self.nb_samples, self.granularity,
-                               self.preservation_probability)
+                self.preservation_probability)
 
-        for x_batch, y_batch in tf.data.Dataset.from_tensor_slices(
-                (inputs, targets)).batch(batch_size):
+        for inp, target in tf.data.Dataset.from_tensor_slices(
+            (inputs, targets)
+        ):
+            weighted_scores = None
+            target = tf.expand_dims(target, axis=0)
+            for batch_masks in tf.data.Dataset.from_tensor_slices(
+                (masks)
+            ).batch(batch_size):
 
-            masked_inputs = Rise._apply_masks(x_batch, masks)
-            repeated_targets = repeat_labels(y_batch, self.nb_samples)
+                masked_input = Rise._apply_masks(inp, batch_masks)
+                repeated_targets = repeat_labels(target, len(batch_masks))
 
-            predictions = batch_predictions_one_hot(self.model, masked_inputs,
-                                                    repeated_targets, batch_size)
-            scores = Rise._compute_importance(predictions, masks)
+                predictions = batch_predictions_one_hot(self.model, masked_input,
+                                                    repeated_targets, len(batch_masks))
 
+                batch_weighted_scores = Rise._compute_importance(predictions, batch_masks)
+
+                weighted_scores = batch_weighted_scores if weighted_scores is None else \
+                    weighted_scores + batch_weighted_scores
+
+            # ponderate by the presence of each pixels, we could use a mean reducer to make it
+            # faster, but only if the number of sample is large enough (as the sampling is iid)
+            scores = weighted_scores / (tf.squeeze(tf.reduce_sum(masks, axis=0)) + Rise.EPSILON)
             rise_maps = scores if rise_maps is None else tf.concat([rise_maps, scores], axis=0)
 
         return rise_maps
@@ -134,13 +147,13 @@ class Rise(BlackBoxExplainer):
 
     @staticmethod
     @tf.function
-    def _apply_masks(inputs: tf.Tensor, masks: tf.Tensor) -> tf.Tensor:
+    def _apply_masks(current_input: tf.Tensor, masks: tf.Tensor) -> tf.Tensor:
         """
         Given input samples and masks, apply it for every sample and repeat the labels.
 
         Parameters
         ----------
-        inputs
+        current_input
             Input samples to be explained.
         masks
             Masks with continuous value randomly generated.
@@ -150,12 +163,10 @@ class Rise(BlackBoxExplainer):
         occluded_inputs
             All the occluded combinations for each inputs.
         """
-        occluded_inputs = tf.expand_dims(inputs, axis=1)
-        occluded_inputs = tf.repeat(occluded_inputs, repeats=len(masks), axis=1)
+        occluded_inputs = tf.expand_dims(current_input, axis=0)
+        occluded_inputs = tf.repeat(occluded_inputs, repeats=len(masks), axis=0)
 
         occluded_inputs = occluded_inputs * masks
-
-        occluded_inputs = tf.reshape(occluded_inputs, (-1, *occluded_inputs.shape[2:]))
 
         return occluded_inputs
 
@@ -186,9 +197,6 @@ class Rise(BlackBoxExplainer):
         # weight each pixels according to his preservation
         weighted_scores = occluded_scores * tf.expand_dims(masks, axis=0)
 
-        # ponderate by the presence of each pixels, we could use a mean reducer to make it
-        # faster, but only if the number of sample is large enough (as the sampling is iid)
-        scores = tf.reduce_sum(weighted_scores, axis=1) / (tf.reduce_sum(masks, axis=0) +
-                                                            Rise.EPSILON)
+        weighted_scores = tf.reduce_sum(weighted_scores, axis=1)
 
-        return scores
+        return weighted_scores

@@ -125,7 +125,7 @@ def inference_batching(operation: Callable,
 def batch_predictions_one_hot(model: Callable,
                               inputs: tf.Tensor,
                               targets: tf.Tensor,
-                              batch_size: Optional[int]) -> tf.Tensor:
+                              batch_size: Optional[int] = None) -> tf.Tensor:
     """
     Compute predictions scores, only for the label class, for the samples passed. Take
     care of splitting in multiple batches if batch_size is specified.
