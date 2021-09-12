@@ -8,7 +8,7 @@ import numpy as np
 import tensorflow as tf
 
 from .base import BlackBoxExplainer, sanitize_input_output
-from ..commons import repeat_labels, batch_predictions_one_hot
+from ..commons import repeat_labels, batch_predictions_one_hot, batch_tensor
 from ..types import Callable, Tuple, Union, Optional
 
 
@@ -75,42 +75,40 @@ class Occlusion(BlackBoxExplainer):
             if not isinstance(self.patch_stride, tuple):
                 self.patch_stride = (self.patch_stride, self.patch_stride)
 
-        sensitivity = None
+        occlusion_maps = None
         batch_size = self.batch_size or len(inputs)
 
         masks = Occlusion._get_masks((*inputs.shape[1:],), self.patch_size, self.patch_stride)
-        baseline_scores = batch_predictions_one_hot(self.model, inputs, targets, batch_size)
+        base_scores = batch_predictions_one_hot(self.model, inputs, targets, batch_size)
 
-        for inp, target, baseline in tf.data.Dataset.from_tensor_slices(
-            (inputs, targets, baseline_scores)
-        ):
-            curr_sensitivity = None
-            target = tf.expand_dims(target, axis=0)
-            for batch_masks in tf.data.Dataset.from_tensor_slices(
-                (masks)
-            ).batch(batch_size):
+        # since the number of masks is often very large, we process the entries one by one
+        for single_input, single_target, single_base_score in zip(inputs, targets, base_scores):
 
-                occluded_inputs = Occlusion._apply_masks(inp, batch_masks, self.occlusion_value)
-                repeated_targets = repeat_labels(target, len(batch_masks))
+            occlusion_map = tf.zeros(masks.shape[1:])
+
+            for batch_masks in batch_tensor(masks, batch_size):
+
+                occluded_inputs = Occlusion._apply_masks(single_input, batch_masks,
+                                                         self.occlusion_value)
+                repeated_targets = repeat_labels(single_target[tf.newaxis, :], len(batch_masks))
 
                 batch_scores = batch_predictions_one_hot(self.model, occluded_inputs,
-                                                    repeated_targets, len(batch_masks))
+                                                         repeated_targets, len(batch_masks))
                 batch_sensitivity = Occlusion._compute_sensitivity(
-                    baseline, batch_scores, batch_masks
+                    single_base_score, batch_scores, batch_masks
                 )
 
-                curr_sensitivity = batch_sensitivity if curr_sensitivity is None else \
-                    curr_sensitivity + batch_sensitivity
+                occlusion_map += batch_sensitivity
 
-            sensitivity = curr_sensitivity if sensitivity is None else \
-                tf.concat([sensitivity, curr_sensitivity], axis=0)
+            occlusion_maps = occlusion_map if occlusion_maps is None else \
+                tf.concat([occlusion_maps, occlusion_map], axis=0)
 
-        return sensitivity
+        return occlusion_maps
 
     @staticmethod
     def _get_masks(input_shape: Union[Tuple[int, int, int], Tuple[int, int], Tuple[int]],
-                   patch_size: Union[int,Tuple[int, int]],
-                   patch_stride: Union[int,Tuple[int, int]]) -> tf.Tensor:
+                   patch_size: Union[int, Tuple[int, int]],
+                   patch_stride: Union[int, Tuple[int, int]]) -> tf.Tensor:
         """
         Create all the possible patches for the given configuration.
 
@@ -135,7 +133,7 @@ class Occlusion(BlackBoxExplainer):
 
         if is_tabular:
             x_anchors = [x * patch_stride for x in
-            range(0, ceil((input_shape[0] - patch_size + 1) / patch_stride))]
+                         range(0, ceil((input_shape[0] - patch_size + 1) / patch_stride))]
 
             for x_anchor in x_anchors:
                 mask = np.zeros(input_shape, dtype=bool)
@@ -143,9 +141,9 @@ class Occlusion(BlackBoxExplainer):
                 masks.append(mask)
         else:
             x_anchors = [x * patch_stride[0] for x in
-                        range(0, ceil((input_shape[0] - patch_size[0] + 1) / patch_stride[0]))]
+                         range(0, ceil((input_shape[0] - patch_size[0] + 1) / patch_stride[0]))]
             y_anchors = [y * patch_stride[1] for y in
-                        range(0, ceil((input_shape[1] - patch_size[1] + 1) / patch_stride[1]))]
+                         range(0, ceil((input_shape[1] - patch_size[1] + 1) / patch_stride[1]))]
 
             for x_anchor in x_anchors:
                 for y_anchor in y_anchors:
