@@ -4,6 +4,7 @@ from xplique.attributions import (Saliency, GradientInput, IntegratedGradients, 
                                   SquareGrad, GradCAM, Occlusion, Rise, GuidedBackprop, DeconvNet,
                                   GradCAMPP)
 from xplique.metrics import MuFidelity, Deletion, Insertion, AverageStability
+from xplique.metrics.base import ExplanationMetric, ExplainerMetric
 from ..utils import generate_data, generate_model
 
 
@@ -40,9 +41,13 @@ def test_common():
         AverageStability(model, x, y, nb_samples=3)
     ]
 
-    for metric in metrics:
-        for explainer in explainers:
-            score = metric(explainer)
+    for explainer in explainers:
+        explanations = explainer(x, y)
+        for metric in metrics:
             assert hasattr(metric, 'evaluate')
+            if isinstance(metric, ExplainerMetric):
+                score = metric(explainer)
+            else:
+                score = metric(explanations)
             print(f"\n\n\n {type(score)} \n\n\n")
             assert type(score) in [np.float32, np.float64, float]

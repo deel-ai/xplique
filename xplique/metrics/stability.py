@@ -5,11 +5,11 @@ Stability (or Sensitivity) metrics
 import numpy as np
 import tensorflow as tf
 
-from .base import BaseAttributionMetric
+from .base import ExplainerMetric
 from ..types import Callable, Optional, Union
 
 
-class AverageStability(BaseAttributionMetric):
+class AverageStability(ExplainerMetric):
     """
     Used to compute the average sensitivity metric (or stability). This metric ensure that close
     inputs with similar predictions yields similar explanations. For each inputs we randomly
@@ -92,4 +92,4 @@ class AverageStability(BaseAttributionMetric):
 
         stability_score = np.mean(distances)
 
-        return stability_score
+        return float(stability_score)
