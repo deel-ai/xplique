@@ -79,7 +79,7 @@ class Occlusion(BlackBoxExplainer):
         batch_size = self.batch_size or len(inputs)
 
         masks = Occlusion._get_masks((*inputs.shape[1:],), self.patch_size, self.patch_stride)
-        baseline_scores = batch_predictions_one_hot(self.model, inputs, targets, 1)
+        baseline_scores = batch_predictions_one_hot(self.model, inputs, targets, batch_size)
 
         for inp, target, baseline in tf.data.Dataset.from_tensor_slices(
             (inputs, targets, baseline_scores)
