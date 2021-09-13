@@ -6,7 +6,7 @@ import tensorflow as tf
 import numpy as np
 
 from .base import BlackBoxExplainer, sanitize_input_output
-from ..commons import repeat_labels, batch_predictions_one_hot, batch_tensor
+from ..commons import repeat_labels, predictions_one_hot, batch_tensor
 from ..types import Callable, Optional, Union, Tuple
 
 
@@ -86,8 +86,7 @@ class Rise(BlackBoxExplainer):
                 masked_inputs, masks_upsampled = Rise._apply_masks(single_input, batch_masks)
                 repeated_targets = repeat_labels(single_target[tf.newaxis, :], len(batch_masks))
 
-                predictions = batch_predictions_one_hot(self.model, masked_inputs,
-                                                        repeated_targets, len(batch_masks))
+                predictions = predictions_one_hot(self.model, masked_inputs, repeated_targets)
                 rise_nominator += tf.reduce_sum(tf.reshape(predictions, (-1, 1, 1, 1))
                                                 * masks_upsampled, 0)
                 rise_denominator += tf.reduce_sum(masks_upsampled, 0)

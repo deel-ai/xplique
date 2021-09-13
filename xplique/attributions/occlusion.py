@@ -8,7 +8,7 @@ import numpy as np
 import tensorflow as tf
 
 from .base import BlackBoxExplainer, sanitize_input_output
-from ..commons import repeat_labels, batch_predictions_one_hot, batch_tensor
+from ..commons import repeat_labels, batch_predictions_one_hot, predictions_one_hot, batch_tensor
 from ..types import Callable, Tuple, Union, Optional
 
 
@@ -92,8 +92,7 @@ class Occlusion(BlackBoxExplainer):
                                                          self.occlusion_value)
                 repeated_targets = repeat_labels(single_target[tf.newaxis, :], len(batch_masks))
 
-                batch_scores = batch_predictions_one_hot(self.model, occluded_inputs,
-                                                         repeated_targets, len(batch_masks))
+                batch_scores = predictions_one_hot(self.model, occluded_inputs, repeated_targets)
                 batch_sensitivity = Occlusion._compute_sensitivity(
                     single_base_score, batch_scores, batch_masks
                 )
