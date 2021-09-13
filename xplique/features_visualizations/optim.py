@@ -22,8 +22,8 @@ def optimize(objective: Objective,
              transformations: Optional[List[Callable]] = standard_transformations,
              warmup_steps: int = 16,
              custom_shape: Optional[Tuple] = None,
-             save_every: Optional[int] = None) -> Tuple[tf.Tensor, List[str]]:
-             # pylint: disable=R0913
+             save_every: Optional[int] = None) -> Tuple[List[tf.Tensor], List[str]]:
+             # pylint: disable=R0913,E1130
     """
     Optimise a given objective using gradient ascent.
 
