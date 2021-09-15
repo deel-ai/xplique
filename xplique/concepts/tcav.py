@@ -33,10 +33,8 @@ class Tcav:
     def __init__(self,
                  model: tf.keras.Model,
                  target_layer: Union[str, int],
-                 cav: tf.Tensor,
                  batch_size: int = 64):
         self.model = model
-        self.cav = tf.cast(cav, tf.float32)
         self.batch_size = batch_size
 
         # configure model bottleneck
@@ -45,7 +43,8 @@ class Tcav:
 
     def score(self,
               inputs: tf.Tensor,
-              label: int) -> float:
+              label: int,
+              cav: tf.Tensor) -> float:
         """
         Compute and return the Concept Activation Vector (CAV) associated to the dataset and the
         layer targeted.
@@ -56,6 +55,8 @@ class Tcav:
             Input sample on which to test the influence of the concept.
         label
             Index of the class to test.
+        cav
+            Concept Activation Vector, see CAV module.
 
         Returns
         -------
@@ -65,11 +66,12 @@ class Tcav:
 
         directional_derivatives = None
         label = tf.cast(label, tf.int32)
+        cav = tf.cast(cav, tf.float32)
 
         for x_batch in tf.data.Dataset.from_tensor_slices(inputs).batch(self.batch_size):
             batch_dd = Tcav.directional_derivative(self.multi_head,
                                                    x_batch, label,
-                                                   self.cav)
+                                                   cav)
             directional_derivatives = batch_dd if directional_derivatives is None else \
                 tf.concat([directional_derivatives, batch_dd], axis=0)
 
