@@ -5,8 +5,8 @@ Module related to the Testing of CAVs
 import tensorflow as tf
 import numpy as np
 
-from ..commons import find_layer
-from ..types import Union
+from ..commons import find_layer, batch_tensor
+from ..types import Union, Optional
 
 
 class Tcav:
@@ -33,7 +33,7 @@ class Tcav:
     def __init__(self,
                  model: tf.keras.Model,
                  target_layer: Union[str, int],
-                 batch_size: int = 64):
+                 batch_size: Optional[int] = 64):
         self.model = model
         self.batch_size = batch_size
 
@@ -68,7 +68,9 @@ class Tcav:
         label = tf.cast(label, tf.int32)
         cav = tf.cast(cav, tf.float32)
 
-        for x_batch in tf.data.Dataset.from_tensor_slices(inputs).batch(self.batch_size):
+        batch_size = self.batch_size or len(inputs)
+
+        for x_batch in batch_tensor(inputs, batch_size):
             batch_dd = Tcav.directional_derivative(self.multi_head,
                                                    x_batch, label,
                                                    cav)
