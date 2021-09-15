@@ -22,14 +22,16 @@ def test_tcav_computation():
 
     # by forcing the model to learn this mapping, we should have the following
     # score for the cav :
+    tcav_maker = Tcav(model, 1)
+
     # cav [1.0, 0.0] relative to y1 = 1
     # cav [0.0, 1.0] relative to y1 = 0
     # cav [1.0, 0.0] relative to y2 = 0
     # cav [0.0, 1.0] relative to y2 = 1
-    tcav_x1_y1 = Tcav(model, 1, [1.0, 0.0])(x, 0)
-    tcav_x2_y1 = Tcav(model, 1, [0.0, 1.0])(x, 0)
-    tcav_x1_y2 = Tcav(model, 1, [1.0, 0.0])(x, 1)
-    tcav_x2_y2 = Tcav(model, 1, [0.0, 1.0])(x, 1)
+    tcav_x1_y1 = tcav_maker(x, 0, [1.0, 0.0])
+    tcav_x2_y1 = tcav_maker(x, 0, [0.0, 1.0])
+    tcav_x1_y2 = tcav_maker(x, 1, [1.0, 0.0])
+    tcav_x2_y2 = tcav_maker(x, 1, [0.0, 1.0])
 
     epsilon = 0.01
     assert np.abs(tcav_x1_y1 - 1.0) < epsilon
