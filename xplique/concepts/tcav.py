@@ -24,8 +24,6 @@ class Tcav:
         Model to extract concept from.
     target_layer
         Index of the target layer or name of the layer.
-    cav
-        Concept Activation Vector, see CAV module.
     batch_size
         Batch size during the predictions.
     """
