@@ -9,7 +9,7 @@ import numpy as np
 
 from ..commons import find_layer
 from ..types import Union, List, Callable, Tuple, Optional
-from .losses import cosine_similarity
+from .losses import dot_cosim
 
 
 class Objective:
@@ -181,6 +181,7 @@ class Objective:
                   layer: Union[str, int],
                   vector: tf.Tensor,
                   multiplier: float = 1.0,
+                  cossim_pow: float = 2.0,
                   name: Optional[str] = None):
         """
         Util to build an objective to maximise a direction of a layer.
@@ -195,6 +196,9 @@ class Objective:
             Direction to optimize.
         multiplier
             Multiplication factor of the objective.
+        cossim_pow
+            Power of the cosine similarity, higher value encourage the objective to care more about
+            the angle of the activations.
         name
             A name for the objective.
 
@@ -210,7 +214,7 @@ class Objective:
             name = [f"Direction#{layer.name}"]
 
         def optim_func(model_output, mask):
-            return cosine_similarity(model_output, mask)
+            return dot_cosim(model_output, mask, cossim_pow)
 
         return Objective(model, [layer.output], [mask], [optim_func], [multiplier], [name])
 
