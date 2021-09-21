@@ -49,7 +49,7 @@ def test_direction():
     model_reconf, objective_func, names, input_shape = objectif.compile()
 
     assert model_reconf.outputs[0].name == model.layers[1].output.name
-    assert names[0] == "Direction#early"
+    assert names[0] == "Direction#early_0"
     assert input_shape == (1, 28, 28, 3)
 
 
@@ -129,7 +129,7 @@ def test_combinations():
                                                       model.layers[1].output.name,  # channel obj
                                                       model.layers[-4].output.name] # neuron obj
     assert_names = [
-        f"Layer#logits & Direction#pre-logits & Channel#early_{c_id} & Neuron#features_{n_id}" for
+        f"Layer#logits & Direction#pre-logits_0 & Channel#early_{c_id} & Neuron#features_{n_id}" for
         c_id in range(nb_channels) for n_id in range(nb_neurons)]
     assert all([names[i] == assert_names[i] for i in range(nb_neurons*nb_channels)])
     assert input_shape == (nb_neurons * nb_channels, 28, 28, 3) # number of combinations
