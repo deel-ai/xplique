@@ -137,7 +137,7 @@ class Objective:
     @staticmethod
     def layer(model: tf.keras.Model,
               layer: Union[str, int],
-              reducer: str = "mean",
+              reducer: str = "magnitude",
               multiplier: float = 1.0,
               name: Optional[str] = None):
         """
