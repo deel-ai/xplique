@@ -8,7 +8,10 @@ import tensorflow as tf
 import numpy as np
 from tensorflow.keras.losses import cosine_similarity #pylint:  disable=E0611
 from sklearn import linear_model
-from skimage.segmentation import quickshift, felzenszwalb
+from skimage.segmentation import quickshift, felzenszwalb, watershed
+
+from skimage.color import rgb2gray
+from skimage.filters import sobel
 
 from .base import BlackBoxExplainer, sanitize_input_output
 from ..commons import batch_predictions_one_hot
@@ -671,7 +674,11 @@ class Lime(BlackBoxExplainer):
             Tensor of shape (W, H)
             Mappings which map each pixel to the corresponding segment
         """
-        mapping = quickshift(inp.numpy().astype('double'), ratio=0.5, kernel_size=2)
+
+#        mapping = quickshift(inp.numpy().astype('double'), ratio=0.5, kernel_size=2)
+        gradient = sobel(rgb2gray(inp.numpy().astype('double')))
+        mapping = watershed(gradient, markers=250, compactness=0.001)
+        
         mapping = tf.cast(mapping, tf.int32)
 
         return mapping
