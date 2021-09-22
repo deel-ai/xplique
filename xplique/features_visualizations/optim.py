@@ -4,7 +4,7 @@ Optimisation functions
 
 import tensorflow as tf
 
-from ..commons.model_override import override_relu_gradient
+from ..commons.model_override import override_relu_gradient, open_relu_policy
 from ..types import Optional, List, Callable, Tuple
 from .preconditioning import fft_image, get_fft_scale, fft_to_rgb, to_valid_rgb
 from .transformations import standard_transformations
@@ -90,7 +90,7 @@ def optimize(objective: Objective,
                                                regularizers)
 
     if warmup_steps:
-        model_warmup = override_relu_gradient(model, tf.nn.leaky_relu)
+        model_warmup = override_relu_gradient(model, open_relu_policy)
         for _ in range(warmup_steps):
             grads = optimisation_step(model_warmup, inputs)
             optimizer.apply_gradients([(-grads, inputs)])
