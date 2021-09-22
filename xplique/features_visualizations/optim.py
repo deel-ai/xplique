@@ -5,9 +5,9 @@ Optimisation functions
 import tensorflow as tf
 
 from ..commons.model_override import override_relu_gradient, open_relu_policy
-from ..types import Optional, List, Callable, Tuple
+from ..types import Optional, Union, List, Callable, Tuple
 from .preconditioning import fft_image, get_fft_scale, fft_to_rgb, to_valid_rgb
-from .transformations import standard_transformations
+from .transformations import generate_standard_transformations
 from .objectives import Objective
 
 
@@ -15,13 +15,13 @@ def optimize(objective: Objective,
              optimizer: tf.keras.optimizers.Optimizer,
              nb_steps: int = 256,
              use_fft: bool = True,
-             fft_decay: float = 1.0,
-             std: float = 0.5,
+             fft_decay: float = 0.85,
+             std: float = 0.01,
              regularizers: Optional[List[Callable]] = None,
              image_normalizer: str = 'sigmoid',
-             transformations: Optional[List[Callable]] = standard_transformations,
-             warmup_steps: int = 16,
-             custom_shape: Optional[Tuple] = None,
+             transformations: Optional[Union[List[Callable], str]] = 'standard',
+             warmup_steps: int = False,
+             custom_shape: Optional[Tuple] = (512, 512),
              save_every: Optional[int] = None) -> Tuple[List[tf.Tensor], List[str]]:
              # pylint: disable=R0913,E1130
     """
@@ -48,7 +48,8 @@ def optimize(objective: Objective,
         Transformation applied to the image after each iterations to ensure the
         pixels are in [0,1].
     transformations
-        Transformations applied to the image during optimisation.
+        Transformations applied to the image during optimisation, default to robust standard
+        transformations.
     warmup_steps
         If true, clone the model by replacing the Relu's with Leaky Relu's to
         find a pre-optimised image, allowing the visualization process to get
@@ -72,6 +73,9 @@ def optimize(objective: Objective,
     img_shape = input_shape
     if custom_shape:
         img_shape = (img_shape[0], *custom_shape, img_shape[-1])
+
+    if transformations == 'standard':
+        transformations = generate_standard_transformations(img_shape[1])
 
     if use_fft:
         inputs = tf.Variable(fft_image(img_shape, std), trainable=True)

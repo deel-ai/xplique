@@ -178,16 +178,32 @@ def compose_transformations(transformations: List[Callable]) -> Callable:
     return composed_func
 
 
-standard_transformations = compose_transformations([
-    pad(24, 0.0),
-    random_jitter(6),
-    random_jitter(6),
-    random_jitter(12),
-    random_jitter(12),
-    random_scale((0.95, 0.99)),
-    random_jitter(12),
-    random_jitter(12),
-    random_jitter(12),
-    random_jitter(12),
-    random_jitter(12),
-])
+def generate_standard_transformations(size: int) -> Callable:
+    """
+    Prepare a set of (apparently) robust transformations.
+
+    Parameters
+    ----------
+    size
+        Input size of the image.
+
+    Returns
+    -------
+    transformations
+        A combinations of transformations to make the optimization robust.
+    """
+    unit = int(size / 16)
+
+    return compose_transformations([
+        pad(unit * 4, 0.0),
+        random_jitter(unit * 2),
+        random_jitter(unit * 2),
+        random_jitter(unit * 4),
+        random_jitter(unit * 4),
+        random_jitter(unit * 4),
+        random_scale((0.92, 0.96)),
+        random_blur(sigma_range=(1.0, 1.1)),
+        random_jitter(unit),
+        random_jitter(unit),
+        random_flip()
+    ])
