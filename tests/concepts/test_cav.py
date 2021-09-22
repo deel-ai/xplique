@@ -52,7 +52,7 @@ def test_classifier():
 
     cavs = [
         Cav(model, "square_layer", classifier="SGD")(positive, negative),
-        Cav(model, "square_layer", classifier="SVM")(positive, negative),
+        Cav(model, "square_layer", classifier="SVC")(positive, negative),
         Cav(model, "square_layer", classifier=SGDClassifier(alpha=0.1))(positive, negative)
     ]
 
