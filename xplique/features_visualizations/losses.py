@@ -5,6 +5,7 @@ Losses used for feature visualizations
 import tensorflow as tf
 
 
+@tf.function
 def cosine_similarity(tensor_a: tf.Tensor, tensor_b: tf.Tensor) -> tf.Tensor:
     """
     Return the cosine similarity for batchs of vectors passed.
@@ -27,3 +28,35 @@ def cosine_similarity(tensor_a: tf.Tensor, tensor_b: tf.Tensor) -> tf.Tensor:
     tensor_b = tf.nn.l2_normalize(tensor_b, axis=axis_to_norm)
 
     return tf.reduce_sum(tensor_a * tensor_b, axis=axis_to_norm)
+
+
+@tf.function
+def dot_cosim(tensor_a: tf.Tensor, tensor_b: tf.Tensor, cosim_pow: float = 2.0) -> tf.Tensor:
+    """
+    Return the product of the cosine similarity and the dot product for batchs of vectors passed.
+    This original looking loss was proposed by the authors of lucid and seeks to both optimise
+    the direction with cosine similarity, but at the same time exaggerate the feature (caricature)
+    with the dot product.
+
+    source: https://github.com/tensorflow/lucid/issues/116
+
+    Parameters
+    ----------
+    tensor_a
+        Batch of N tensors.
+    tensor_b
+        Batch of N tensors.
+    cosim_pow
+        Power of the cosine similarity, higher value encourage the objective to care more about
+        the angle of the activations.
+
+    Returns
+    -------
+    dot_cosim_value
+        The product of the cosine similarity and the dot product for each pairs of tensors.
+    """
+
+    cosim = tf.maximum(cosine_similarity(tensor_a, tensor_b), 1e-6) ** cosim_pow
+    dot = tf.reduce_sum(tensor_a * tensor_b)
+
+    return dot * cosim

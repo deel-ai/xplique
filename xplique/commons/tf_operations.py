@@ -4,7 +4,7 @@ Custom tensorflow operations
 
 import tensorflow as tf
 
-from ..types import Callable, Optional
+from ..types import Callable, Optional, Union, Tuple
 
 
 def repeat_labels(labels: tf.Tensor, nb_repetitions: int) -> tf.Tensor:
@@ -174,3 +174,27 @@ def batch_gradient(model: Callable,
         Gradients computed, with the same shape as the inputs.
     """
     return inference_batching(gradient, model, inputs, targets, batch_size)
+
+
+def batch_tensor(tensors: Union[Tuple, tf.Tensor],
+                 batch_size: Optional[int] = None):
+    """
+    Create a tensorflow dataset of tensors or series of tensors.
+
+    Parameters
+    ----------
+    tensors
+        Tuple of tensors or tensors to batch.
+    batch_size
+        Number of samples to iterate at once, if None process all at once.
+
+    Returns
+    -------
+    dataset
+        Tensorflow dataset batched.
+    """
+    dataset = tf.data.Dataset.from_tensor_slices(tensors)
+    if batch_size is not None:
+        dataset = dataset.batch(batch_size)
+
+    return dataset

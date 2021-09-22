@@ -7,12 +7,12 @@ from inspect import isfunction
 import numpy as np
 import tensorflow as tf
 
-from .base import BaseAttributionMetric
+from .base import ExplanationMetric
 from ..commons import batch_predictions_one_hot
 from ..types import Union, Callable, Optional
 
 
-class MuFidelity(BaseAttributionMetric):
+class MuFidelity(ExplanationMetric):
     """
     Used to compute the fidelity correlation metric. This metric ensure there is a correlation
     between a random subset of pixels and their attribution score. For each random subset
@@ -85,14 +85,14 @@ class MuFidelity(BaseAttributionMetric):
                                                           targets, self.batch_size)
 
     def evaluate(self,
-                 explainer: Callable) -> float:
+                 explanations: Union[tf.Tensor, np.array]) -> float:
         """
         Evaluate the fidelity score.
 
         Parameters
         ----------
-        explainer
-            Explainer to call to get explanation for an input and a label.
+        explanations
+            Explanation for the inputs, labels to evaluate.
 
         Returns
         -------
@@ -101,12 +101,14 @@ class MuFidelity(BaseAttributionMetric):
             to a baseline state and the importance of these variables according to the
             explanations.
         """
-        explanations = np.array(explainer(self.inputs, self.targets))
+        explanations = np.array(explanations)
+        assert len(explanations) == len(self.inputs), "The number of explanations must be the " \
+                                                      "same as the number of inputs"
 
         correlations = []
         for inp, label, phi, base in zip(self.inputs, self.targets, explanations,
                                          self.base_predictions):
-            label = np.repeat(label[None, :], self.nb_samples, 0)
+            label = tf.repeat(label[None, :], self.nb_samples, 0)
             baseline = self.baseline_mode(inp) if isfunction(self.baseline_mode) else \
                 self.baseline_mode
             # use the masks to set the selected subsets to baseline state
@@ -126,10 +128,10 @@ class MuFidelity(BaseAttributionMetric):
 
         fidelity_score = np.mean(correlations)
 
-        return fidelity_score
+        return float(fidelity_score)
 
 
-class CausalFidelity(BaseAttributionMetric):
+class CausalFidelity(ExplanationMetric):
     """
     Used to compute the insertion and deletion metrics.
 
@@ -170,14 +172,14 @@ class CausalFidelity(BaseAttributionMetric):
         self.inputs_flatten = inputs.reshape((len(inputs), self.nb_features, inputs.shape[-1]))
 
     def evaluate(self,
-                 explainer: Callable) -> float:
+                 explanations: Union[tf.Tensor, np.array]) -> float:
         """
         Evaluate the causal score.
 
         Parameters
         ----------
-        explainer
-            Explainer to call to get explanation for an input and a label.
+        explanations
+            Explanation for the inputs, labels to evaluate.
 
         Returns
         -------
@@ -185,7 +187,9 @@ class CausalFidelity(BaseAttributionMetric):
             Metric score, area over the deletion (lower is better) or insertion (higher is
             better) curve.
         """
-        explanations = np.array(explainer(self.inputs, self.targets))
+        explanations = np.array(explanations)
+        assert len(explanations) == len(self.inputs), "The number of explanations must be the " \
+                                                      "same as the number of inputs"
         # the reference does not specify how to manage the channels of the explanations
         if len(explanations.shape) == 4:
             explanations = np.mean(explanations, -1)

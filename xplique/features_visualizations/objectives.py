@@ -9,7 +9,7 @@ import numpy as np
 
 from ..commons import find_layer
 from ..types import Union, List, Callable, Tuple, Optional
-from .losses import cosine_similarity
+from .losses import dot_cosim
 
 
 class Objective:
@@ -179,9 +179,10 @@ class Objective:
     @staticmethod
     def direction(model: tf.keras.Model,
                   layer: Union[str, int],
-                  vector: tf.Tensor,
+                  vectors: Union[tf.Tensor, List[tf.Tensor]],
                   multiplier: float = 1.0,
-                  name: Optional[str] = None):
+                  cossim_pow: float = 2.0,
+                  names: Optional[Union[str, List[str]]] = None):
         """
         Util to build an objective to maximise a direction of a layer.
 
@@ -191,12 +192,15 @@ class Objective:
             Model used for optimization.
         layer
             Index or name of the targeted layer.
-        vector
-            Direction to optimize.
+        vectors
+            Direction(s) to optimize.
         multiplier
             Multiplication factor of the objective.
-        name
-            A name for the objective.
+        cossim_pow
+            Power of the cosine similarity, higher value encourage the objective to care more about
+            the angle of the activations.
+        names
+            A name for each objectives.
 
         Returns
         -------
@@ -204,15 +208,15 @@ class Objective:
             An objective ready to be compiled
         """
         layer = find_layer(model, layer)
-        mask = [vector]
+        masks = vectors if isinstance(vectors, list) else [vectors]
 
-        if name is None:
-            name = [f"Direction#{layer.name}"]
+        if names is None:
+            names = [f"Direction#{layer.name}_{i}" for i in range(len(masks))]
 
         def optim_func(model_output, mask):
-            return cosine_similarity(model_output, mask)
+            return dot_cosim(model_output, mask, cossim_pow)
 
-        return Objective(model, [layer.output], [mask], [optim_func], [multiplier], [name])
+        return Objective(model, [layer.output], [masks], [optim_func], [multiplier], [names])
 
     @staticmethod
     def channel(model: tf.keras.Model,

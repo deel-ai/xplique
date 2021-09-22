@@ -1,5 +1,6 @@
 tensorflow>=2.1.0
-numpy>=1.16.0
+numpy
 scikit-learn
 scikit-image
 matplotlib
+scipy
