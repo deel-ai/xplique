@@ -11,7 +11,6 @@ from sklearn import linear_model
 from skimage.segmentation import quickshift, felzenszwalb
 
 from .base import BlackBoxExplainer, sanitize_input_output
-from ..commons import batch_predictions_one_hot
 from ..types import Callable, Union, Optional, Any
 
 class Lime(BlackBoxExplainer):
@@ -272,6 +271,7 @@ class Lime(BlackBoxExplainer):
                             batch_size,
                             inputs,
                             targets,
+                            self.inference_function,
                             self.interpretable_model,
                             self.similarity_kernel,
                             self.pertub_func,
@@ -285,6 +285,7 @@ class Lime(BlackBoxExplainer):
                 batch_size: int,
                 inputs: tf.Tensor,
                 targets: tf.Tensor,
+                inference_function: Callable,
                 interpretable_model: Callable,
                 similarity_kernel: Callable[[tf.Tensor, tf.Tensor, tf.Tensor], tf.Tensor],
                 pertub_func: Callable[[Union[int, tf.Tensor],int], tf.Tensor],
@@ -312,6 +313,9 @@ class Lime(BlackBoxExplainer):
         targets
             Tensor of shape (N, L)
             One-hot encoded labels or regression target (e.g {+1, -1}), one for each sample.
+
+        inference_function
+            Function that allows to get the probability output of the model
 
         interpretable_model
             Model object to train interpretable model.
@@ -376,9 +380,10 @@ class Lime(BlackBoxExplainer):
                 augmented_target = tf.expand_dims(target, axis=0)
                 augmented_target = tf.repeat(augmented_target, len(pertubed_samples), axis=0)
 
-                batch_pertubed_targets = batch_predictions_one_hot(model,
-                            pertubed_samples,
-                            augmented_target)
+                batch_pertubed_targets = inference_function(model,
+                                                            pertubed_samples,
+                                                            augmented_target)
+
                 pertubed_targets.append(batch_pertubed_targets)
 
                 batch_similarities = similarity_kernel(inp, int_samples, pertubed_samples)

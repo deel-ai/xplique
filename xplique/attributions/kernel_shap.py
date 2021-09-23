@@ -71,7 +71,6 @@ class KernelShap(Lime):
             The default ref value is set to (0.5,0.5,0.5) for inputs with 3 channels (corresponding
             to a grey pixel when inputs are normalized by 255) and to 0 otherwise.
         """
-
         Lime.__init__(
             self,
             model,

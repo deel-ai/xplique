@@ -56,7 +56,6 @@ def predictions_one_hot(model: Callable,
     scores = tf.reduce_sum(model(inputs) * targets, axis=-1)
     return scores
 
-
 @tf.function
 def gradient(model: Callable,
              inputs: tf.Tensor,
