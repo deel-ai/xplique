@@ -9,7 +9,10 @@ import tensorflow as tf
 import numpy as np
 
 from ..types import Callable, Dict, Tuple, Union, Optional
-from ..commons import find_layer, tensor_sanitize
+from ..commons import find_layer, tensor_sanitize, batch_predictions_one_hot, \
+                      predictions_one_hot, batch_predictions_one_hot_callable, \
+                      predictions_one_hot_callable
+
 
 
 def sanitize_input_output(explanation_method: Callable):
@@ -53,8 +56,16 @@ class BlackBoxExplainer(ABC):
             if model_key not in BlackBoxExplainer._cache_models:
                 BlackBoxExplainer._cache_models[model_key] = model
             self.model = BlackBoxExplainer._cache_models[model_key]
+            self.inference_function = predictions_one_hot
+            self.batch_inference_function = batch_predictions_one_hot
+        elif isinstance(model, (tf.Module, tf.keras.layers.Layer)):
+            self.model = model
+            self.inference_function = predictions_one_hot
+            self.batch_inference_function = batch_predictions_one_hot
         else:
             self.model = model
+            self.inference_function = predictions_one_hot_callable
+            self.batch_inference_function = batch_predictions_one_hot_callable
 
         self.batch_size = batch_size
 
