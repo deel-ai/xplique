@@ -55,14 +55,29 @@ Finally, the _Metrics_ module covers the current metrics used in explainability.
 ## 📚 Table of contents
 
 - [📚 Table of contents](#-table-of-contents)
-- [🚀 Quick Start](#-quick-start)
 - [🔥 Tutorials](#-tutorials)
+- [🚀 Quick Start](#-quick-start)
 - [📦 What's Included](#-whats-included)
+- [📞 Callable](#-callable)
 - [👍 Contributing](#-contributing)
 - [👀 See Also](#-see-also)
 - [🙏 Acknowledgments](#-acknowledgments)
 - [👨‍🎓 Creator](#-creator)
 - [📝 License](#-license)
+
+## 🔥 Tutorials
+
+We propose some Hands-on tutorials to get familiar with the library and its api:
+
+- **Attribution Methods**: Getting started <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1XproaVxXjO9nrBSyyy7BuKJ1vy21iHs2) </sub>
+- **Attribution Methods**: Tabular data and Regression <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1pjDJmAa9oeSquYtbYh6tksU6eTmObIcq) </sub>
+- **Attribution Methods**: Metrics <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1WEpVpFSq-oL1Ejugr8Ojb3tcbqXIOPBg) </sub>
+- **Concepts Methods**: Testing with Concept Activation Vectors <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1iuEz46ZjgG97vTBH8p-vod3y14UETvVE) </sub>
+- **Feature Visualization**: Getting started <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1st43K9AH-UL4eZM1S4QdyrOi7Epa5K8v) </sub>
+
+
+You can find a certain number of [other practical tutorials just here](https://github.com/deel-ai/xplique/blob/master/TUTORIALS.md). This section is actively developed and more contents will be
+included. We will try to cover all the possible usage of the library, feel free to contact us if you have any suggestions or recommandations towards tutorials you would like to see.
 
 ## 🚀 Quick Start
 
@@ -140,20 +155,6 @@ obj = neuron_obj + 2.0 * channel_obj
 images = optimize(obj)
 ```
 
-## 🔥 Tutorials
-
-We propose some Hands-on tutorials to get familiar with the library and its api:
-
-- **Attribution Methods**: Getting started <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1XproaVxXjO9nrBSyyy7BuKJ1vy21iHs2) </sub>
-- **Attribution Methods**: Tabular data and Regression <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1pjDJmAa9oeSquYtbYh6tksU6eTmObIcq) </sub>
-- **Attribution Methods**: Metrics <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1WEpVpFSq-oL1Ejugr8Ojb3tcbqXIOPBg) </sub>
-- **Concepts Methods**: Testing with Concept Activation Vectors <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1iuEz46ZjgG97vTBH8p-vod3y14UETvVE) </sub>
-- **Feature Visualization**: Getting started <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1st43K9AH-UL4eZM1S4QdyrOi7Epa5K8v) </sub>
-
-
-You can find a certain number of [other practical tutorials just here](https://github.com/deel-ai/xplique/blob/master/TUTORIALS.md). This section is actively developed and more contents will be
-included. We will try to cover all the possible usage of the library, feel free to contact us if you have any suggestions or recommandations towards tutorials you would like to see.
-
 ## 📦 What's Included
 
 All the attributions method presented below handle both **Classification** and **Regression** tasks.
@@ -166,14 +167,16 @@ All the attributions method presented below handle both **Classification** and *
 | Gradient Input         | TF            | [Paper](https://arxiv.org/abs/1711.06104) | ✔                  | ✔                 | WIP                |
 | Guided Backprop        | TF            | [Paper](https://arxiv.org/abs/1412.6806)  | ✔                  | ✔                 | WIP                |
 | Integrated Gradients   | TF            | [Paper](https://arxiv.org/abs/1703.01365) | ✔                  | ✔                 | WIP                |
-| Kernel SHAP            | Callable      | [Paper](https://arxiv.org/abs/1705.07874) | ✔                  | ✔                 | WIP                |
-| Lime                   | Callable      | [Paper](https://arxiv.org/abs/1602.04938) | ✔                  | ✔                 | WIP                |
-| Occlusion              | Callable      | [Paper](https://arxiv.org/abs/1311.2901)  | ✔                  | ✔                 | WIP                |
-| Rise                   | Callable      | [Paper](https://arxiv.org/abs/1806.07421) | WIP                | ✔                 | WIP                |
+| Kernel SHAP            | Callable*     | [Paper](https://arxiv.org/abs/1705.07874) | ✔                  | ✔                 | WIP                |
+| Lime                   | Callable*     | [Paper](https://arxiv.org/abs/1602.04938) | ✔                  | ✔                 | WIP                |
+| Occlusion              | Callable*     | [Paper](https://arxiv.org/abs/1311.2901)  | ✔                  | ✔                 | WIP                |
+| Rise                   | Callable*     | [Paper](https://arxiv.org/abs/1806.07421) | WIP                | ✔                 | WIP                |
 | Saliency               | TF            | [Paper](https://arxiv.org/abs/1312.6034)  | ✔                  | ✔                 | WIP                |
 | SmoothGrad             | TF            | [Paper](https://arxiv.org/abs/1706.03825) | ✔                  | ✔                 | WIP                |
 | SquareGrad             | TF            | [Paper](https://arxiv.org/abs/1806.10758) | ✔                  | ✔                 | WIP                |
 | VarGrad                | TF            | [Paper](https://arxiv.org/abs/1810.03292) | ✔                  | ✔                 | WIP                |
+
+* : See the [Callable documentation](https://deel-ai.github.io/xplique/callable.html)
 
 | **Attribution Metrics** | Type of Model | Property         | Source                                    |
 | :---------------------- | :------------ | :--------------- | :---------------------------------------- |
@@ -231,11 +234,11 @@ To learn more about Explainable AI in general, see:
 ## 🙏 Acknowledgments
 
 <img align="right" src="https://www.deel.ai/wp-content/uploads/2021/05/logo-DEEL.png" width="25%">
-This project received funding from the French ”Investing for the Future – PIA3” program within the Artificial and Natural Intelligence Toulouse Institute (ANITI). The authors gratefully acknowledge the support of the <a href="https://www.deel.ai/"> DEEL </a> project.
+This project received funding from the French ”Investing for the Future – PIA3” program within the Artificial and Natural Intelligence Toulouse Institute (ANITI). The authors gratefully acknowledge the support of the <a href="https://www.deel.ai/"> DEEL </a> project namely from [Justin Plakoo](https://github.com/justinplakoo) and [Lucas Hervier](https://github.com/lucashervier).
 
 ## 👨‍🎓 Creator
 
-This library was started as a side-project by [Thomas FEL](https://twitter.com/Napoolar) who is doing a thesis on explainability.
+This library was started as a side-project by [Thomas FEL](https://twitter.com/Napoolar) who is doing a thesis on explainability. He then received help from some members of the <a href="https://www.deel.ai/"> DEEL </a> team to enhance the library.
 
 ## 📝 License
 
