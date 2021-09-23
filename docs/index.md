@@ -25,6 +25,9 @@
 <p align="center">
     🦊 <b>Xplique</b> (pronounced <i>\ɛks.plik\</i>) is a Python toolkit dedicated to explainability, currently based on Tensorflow.
     The goal of this library is to gather the state of the art of Explainable AI to help you understand your complex neural network models.
+
+  <br>
+  <a href="https://deel-ai.github.io/xplique/"><strong>Explore Xplique docs »</strong></a>
   <br>
   <br>
   <a href="https://deel-ai.github.io/xplique/attributions">Attributions</a>
@@ -47,17 +50,34 @@ Finally, the _Metrics_ module covers the current metrics used in explainability.
     <img width="23.4%" src="./assets/concepts.png"> 
 </p>
 
+<br>
+
 ## 📚 Table of contents
 
 - [📚 Table of contents](#-table-of-contents)
 - [🚀 Quick Start](#-quick-start)
 - [🔥 Tutorials](#-tutorials)
 - [📦 What's Included](#-whats-included)
+- [📞 Callable](#-callable)
 - [👍 Contributing](#-contributing)
 - [👀 See Also](#-see-also)
 - [🙏 Acknowledgments](#-acknowledgments)
 - [👨‍🎓 Creator](#-creator)
 - [📝 License](#-license)
+
+## 🔥 Tutorials
+
+We propose some Hands-on tutorials to get familiar with the library and its api:
+
+- **Attribution Methods**: Getting started <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1XproaVxXjO9nrBSyyy7BuKJ1vy21iHs2) </sub>
+- **Attribution Methods**: Tabular data and Regression <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1pjDJmAa9oeSquYtbYh6tksU6eTmObIcq) </sub>
+- **Attribution Methods**: Metrics <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1WEpVpFSq-oL1Ejugr8Ojb3tcbqXIOPBg) </sub>
+- **Concepts Methods**: Testing with Concept Activation Vectors <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1iuEz46ZjgG97vTBH8p-vod3y14UETvVE) </sub>
+- **Feature Visualization**: Getting started <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1st43K9AH-UL4eZM1S4QdyrOi7Epa5K8v) </sub>
+
+
+You can find a certain number of [other practical tutorials just here](tutorials.md). This section is actively developed and more contents will be
+included. We will try to cover all the possible usage of the library, feel free to contact us if you have any suggestions or recommandations towards tutorials you would like to see.
 
 ## 🚀 Quick Start
 
@@ -96,9 +116,10 @@ from xplique.metrics import Deletion
 # ...
 
 explainer = GradCAM(model)
+explanations = explainer(inputs, labels)
 metric = Deletion(model, inputs, labels)
 
-score_grad_cam = metric(explainer)
+score_grad_cam = metric(explanations)
 ```
 
 ### Concepts Extraction
@@ -134,55 +155,45 @@ obj = neuron_obj + 2.0 * channel_obj
 images = optimize(obj)
 ```
 
-## 🔥 Tutorials
-
-We propose some Hands-on tutorials to get familiar with the library and its api:
-
-- **Getting Started**    
-  <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/11Hiu5SMER7dfug3th2EBNRiKHTVGfJxB?authuser=1) </sub>
-- **Tabular Data and Regression**    
-  <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1pjDJmAa9oeSquYtbYh6tksU6eTmObIcq?authuser=1) </sub>
-- **Introduction to Metrics**    
-  <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/12OtJKdUuuaiRVpe-luhScv368gLeuT58?authuser=1) </sub>
-
-You can find a certain number of other practical tutorials [just here](https://github.com/deel-ai/xplique/blob/master/TUTORIALS.md). This section is actively developed and more contents will be
-included. We will try to cover all the possible usage of the library, feel free to contact us if you have any suggestions or recommandations towards tutorials you would like to see.
-
 ## 📦 What's Included
 
 All the attributions method presented below handle both **Classification** and **Regression** tasks.
 
 | **Attribution Method** | Type of Model | Source                                    | Tabular Data       | Images             | Time-Series        |
 | :--------------------- | :------------ | :---------------------------------------- | :----------------: | :----------------: | :----------------: |
-| Deconvolution          | TF            | [Paper](https://arxiv.org/abs/1311.2901)  | ✔                  | ✔                 | TBD                |
-| Grad-CAM               | TF            | [Paper](https://arxiv.org/abs/1610.02391) |                    | ✔                  | TBD                |
-| Grad-CAM++             | TF            | [Paper](https://arxiv.org/abs/1710.11063) |                    | ✔                  | TBD                |
-| Gradient Input         | TF            | [Paper](https://arxiv.org/abs/1711.06104) | ✔                  | ✔                 | TBD                |
-| Guided Backprop        | TF            | [Paper](https://arxiv.org/abs/1412.6806)  | ✔                  | ✔                 | TBD                |
-| Integrated Gradients   | TF            | [Paper](https://arxiv.org/abs/1703.01365) | ✔                  | ✔                 | TBD                |
-| Kernel SHAP            | Callable      | [Paper](https://arxiv.org/abs/1705.07874) | ✔                  | ✔                 | TBD                |
-| Lime                   | Callable      | [Paper](https://arxiv.org/abs/1602.04938) | ✔                  | ✔                 | TBD                |
-| Occlusion              | Callable      | [Paper](https://arxiv.org/abs/1311.2901)  | ✔                  | ✔                 | TBD                |
-| Rise                   | Callable      | [Paper](https://arxiv.org/abs/1806.07421) | TBD                | ✔                  | TBD                |
-| Saliency               | TF            | [Paper](https://arxiv.org/abs/1312.6034)  | ✔                  | ✔                 | TBD                |
-| SmoothGrad             | TF            | [Paper](https://arxiv.org/abs/1706.03825) | ✔                  | ✔                 | TBD                |
-| SquareGrad             | TF            | [Paper](https://arxiv.org/abs/1806.10758) | ✔                  | ✔                 | TBD                |
-| VarGrad                | TF            | [Paper](https://arxiv.org/abs/1810.03292) | ✔                  | ✔                 | TBD                |
+| Deconvolution          | TF            | [Paper](https://arxiv.org/abs/1311.2901)  | ✔                  | ✔                 | WIP                |
+| Grad-CAM               | TF            | [Paper](https://arxiv.org/abs/1610.02391) |                    | ✔                 | WIP                |
+| Grad-CAM++             | TF            | [Paper](https://arxiv.org/abs/1710.11063) |                    | ✔                 | WIP                |
+| Gradient Input         | TF            | [Paper](https://arxiv.org/abs/1711.06104) | ✔                  | ✔                 | WIP                |
+| Guided Backprop        | TF            | [Paper](https://arxiv.org/abs/1412.6806)  | ✔                  | ✔                 | WIP                |
+| Integrated Gradients   | TF            | [Paper](https://arxiv.org/abs/1703.01365) | ✔                  | ✔                 | WIP                |
+| Kernel SHAP            | Callable*     | [Paper](https://arxiv.org/abs/1705.07874) | ✔                  | ✔                 | WIP                |
+| Lime                   | Callable*     | [Paper](https://arxiv.org/abs/1602.04938) | ✔                  | ✔                 | WIP                |
+| Occlusion              | Callable*     | [Paper](https://arxiv.org/abs/1311.2901)  | ✔                  | ✔                 | WIP                |
+| Rise                   | Callable*     | [Paper](https://arxiv.org/abs/1806.07421) | WIP                | ✔                 | WIP                |
+| Saliency               | TF            | [Paper](https://arxiv.org/abs/1312.6034)  | ✔                  | ✔                 | WIP                |
+| SmoothGrad             | TF            | [Paper](https://arxiv.org/abs/1706.03825) | ✔                  | ✔                 | WIP                |
+| SquareGrad             | TF            | [Paper](https://arxiv.org/abs/1806.10758) | ✔                  | ✔                 | WIP                |
+| VarGrad                | TF            | [Paper](https://arxiv.org/abs/1810.03292) | ✔                  | ✔                 | WIP                |
 
-| **Attribution Metrics** | Type of Model | Property  | Source                                    |
-| :---------------------- | :------------ | :-------- | :---------------------------------------- |
-| MuFidelity              | TF            | Fidelity  | [Paper](https://arxiv.org/abs/2005.00631) |
-| Deletion                | TF            | Fidelity  | [Paper](https://arxiv.org/abs/1806.07421) |
-| Insertion               | TF            | Fidelity  | [Paper](https://arxiv.org/abs/1806.07421) |
-| Average Stability       | TF            | Stability | [Paper](https://arxiv.org/abs/2005.00631) |
-| (WIP) MeGe              |               |           |
-| (WIP) ReCo              |               |           |
+* : See the [Callable documentation](callable.md)
+
+| **Attribution Metrics** | Type of Model | Property         | Source                                    |
+| :---------------------- | :------------ | :--------------- | :---------------------------------------- |
+| MuFidelity              | TF            | Fidelity         | [Paper](https://arxiv.org/abs/2005.00631) |
+| Deletion                | TF            | Fidelity         | [Paper](https://arxiv.org/abs/1806.07421) |
+| Insertion               | TF            | Fidelity         | [Paper](https://arxiv.org/abs/1806.07421) |
+| Average Stability       | TF            | Stability        | [Paper](https://arxiv.org/abs/2005.00631) |
+| MeGe                    | TF            | Representativity | [Paper](https://arxiv.org/abs/2009.04521) |
+| ReCo                    | TF            | Consistency      | [Paper](https://arxiv.org/abs/2009.04521) |
+| (WIP) e-robustness      |
 
 | **Concepts method**             | Type of Model | Source                                        |
 | :------------------------------ | :------------ | :-------------------------------------------- |
 | Concept Activation Vector (CAV) | TF            | [Paper](https://arxiv.org/pdf/1711.11279.pdf) |
-| Testing CAV                     | TF            | [Paper](https://arxiv.org/pdf/1711.11279.pdf) |
+| Testing CAV (TCAV)              | TF            | [Paper](https://arxiv.org/pdf/1711.11279.pdf) |
 | (WIP) Robust TCAV               |               |
+| (WIP) Automatic Concept Extraction (ACE)        |               
 
 | **Feature Visualization** [(Paper)](https://distill.pub/2017/feature-visualization/) | Type of Model | Details                                                                                                            |
 | :----------------------------------------------------------------------------------- | :------------ | :----------------------------------------------------------------------------------------------------------------- |
@@ -211,6 +222,7 @@ Other tools to explain your model include:
 - [Captum](https://captum.ai/) the Pytorch library for Interpretability research
 - [Tf-explain](https://github.com/sicara/tf-explain) that implement multiples attribution methods and propose callbacks API for tensorflow.
 - [Alibi Explain](https://github.com/SeldonIO/alibi) for model inspection and interpretation
+- [SHAP](https://github.com/slundberg/shap) a very popular library to compute local explanations using the classic Shapley values from game theory and their related extensions
 
 To learn more about Explainable AI in general, see:
 
@@ -226,7 +238,7 @@ This project received funding from the French ”Investing for the Future – PI
 
 ## 👨‍🎓 Creator
 
-This library was started as a side-project by [Thomas FEL](https://twitter.com/Napoolar) who is doing a thesis on explainability.
+This library was started as a side-project by [Thomas FEL](https://twitter.com/Napoolar) who is doing a thesis on explainability. He then received help from some members of the <a href="https://www.deel.ai/"> DEEL </a> team to enhance the library namely from [Justin Plakoo](https://github.com/justinplakoo) and [Lucas Hervier](https://github.com/lucashervier).
 
 ## 📝 License
 
