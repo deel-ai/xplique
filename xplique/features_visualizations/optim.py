@@ -19,6 +19,7 @@ def optimize(objective: Objective,
              std: float = 0.01,
              regularizers: Optional[List[Callable]] = None,
              image_normalizer: str = 'sigmoid',
+             values_range: Tuple[float, float] = (0, 1),
              transformations: Optional[Union[List[Callable], str]] = 'standard',
              warmup_steps: int = False,
              custom_shape: Optional[Tuple] = (512, 512),
@@ -47,6 +48,8 @@ def optimize(objective: Objective,
     image_normalizer
         Transformation applied to the image after each iterations to ensure the
         pixels are in [0,1].
+    values_range
+        Range of values of the inputs that will be provided to the model, e.g (0, 1) or (-1, 1).
     transformations
         Transformations applied to the image during optimisation, default to robust standard
         transformations.
@@ -81,10 +84,10 @@ def optimize(objective: Objective,
         inputs = tf.Variable(fft_image(img_shape, std), trainable=True)
         fft_scale = get_fft_scale(img_shape[1], img_shape[2], decay_power=fft_decay)
         image_param = lambda inputs: to_valid_rgb(fft_to_rgb(img_shape, inputs, fft_scale),
-                                                  image_normalizer)
+                                                  image_normalizer, values_range)
     else:
         inputs = tf.Variable(tf.random.normal(img_shape, std, dtype=tf.float32))
-        image_param = lambda inputs: to_valid_rgb(inputs, image_normalizer)
+        image_param = lambda inputs: to_valid_rgb(inputs, image_normalizer, values_range)
 
     optimisation_step = _get_optimisation_step(objective_function,
                                                len(model.outputs),
