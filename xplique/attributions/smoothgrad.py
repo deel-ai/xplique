@@ -6,7 +6,7 @@ import tensorflow as tf
 import numpy as np
 
 from .base import WhiteBoxExplainer, sanitize_input_output
-from ..commons import repeat_labels, batch_gradient
+from ..commons import repeat_labels, batch_gradient, batch_tensor
 from ..types import Tuple, Union, Optional
 
 
@@ -66,10 +66,10 @@ class SmoothGrad(WhiteBoxExplainer):
         smoothed_gradients = None
         batch_size = self.batch_size or len(inputs)
 
-        for x_batch, y_batch in tf.data.Dataset.from_tensor_slices((inputs, targets)).batch(
-                batch_size):
-            noisy_mask = SmoothGrad._get_noisy_mask((self.nb_samples, *x_batch.shape[1:]),
-                                                    self.noise)
+        noisy_mask = SmoothGrad._get_noisy_mask((self.nb_samples, *inputs.shape[1:]), self.noise)
+
+        for x_batch, y_batch in batch_tensor((inputs, targets),
+                                             max(batch_size // self.nb_samples, 1)):
             noisy_inputs = SmoothGrad._apply_noise(x_batch, noisy_mask)
             repeated_targets = repeat_labels(y_batch, self.nb_samples)
             # compute the gradient of each noisy samples generated
