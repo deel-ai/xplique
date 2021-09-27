@@ -6,7 +6,7 @@ import tensorflow as tf
 import numpy as np
 
 from .base import WhiteBoxExplainer, sanitize_input_output
-from ..commons import repeat_labels, batch_gradient
+from ..commons import repeat_labels, batch_gradient, batch_tensor
 from ..types import Tuple, Union, Optional
 
 
@@ -75,8 +75,8 @@ class IntegratedGradients(WhiteBoxExplainer):
         baseline = IntegratedGradients._get_baseline((*inputs.shape[1:],),
                                                      self.baseline_value)
 
-        for x_batch, y_batch in tf.data.Dataset.from_tensor_slices((inputs, targets)).batch(
-                batch_size):
+        for x_batch, y_batch in batch_tensor((inputs, targets),
+                                             max(batch_size // self.steps, 1)):
             # create the paths for every sample (interpolated points from baseline to sample)
             interpolated_inputs = IntegratedGradients._get_interpolated_points(
                 x_batch, self.steps, baseline)
