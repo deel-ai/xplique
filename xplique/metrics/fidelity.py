@@ -6,6 +6,7 @@ from inspect import isfunction
 
 import numpy as np
 import tensorflow as tf
+from scipy.stats import spearmanr
 
 from .base import ExplanationMetric
 from ..commons import batch_predictions_one_hot
@@ -117,8 +118,8 @@ class MuFidelity(ExplanationMetric):
             preds = base - batch_predictions_one_hot(self.model, degraded_inputs,
                                                      label, self.batch_size)
 
-            attrs = np.sum(phi * (1.0 - self.subset_masks), (1, 2, 3))
-            corr_score = np.corrcoef(preds, attrs)[0, 1]
+            attrs = tf.reduce_sum(phi * (1.0 - self.subset_masks), (1, 2, 3))
+            corr_score = spearmanr(preds, attrs)[0]
 
             # sanity check: if the model predictions are the same, no variation
             if np.isnan(corr_score):
@@ -235,7 +236,12 @@ class CausalFidelity(ExplanationMetric):
 
 class Deletion(CausalFidelity):
     """
-    Used to compute the deletion metric.
+    The deletion metric measures the drop in the probability of a class as important pixels (given
+    by the saliency map) are gradually removed from the image. A sharp drop, and thus a small
+    area under the probability curve, are indicative of a good explanation.
+
+    Ref. Petsiuk & al., RISE: Randomized Input Sampling for Explanation of Black-box Models (2018).
+    https://arxiv.org/pdf/1806.07421.pdf
 
     Parameters
     ----------
@@ -266,7 +272,12 @@ class Deletion(CausalFidelity):
 
 class Insertion(CausalFidelity):
     """
-    Used to compute the insertion metric.
+    The insertion metric, on the other hand, captures the importance of the pixels in terms of
+    their ability to synthesize an image and is measured by the rise in the probability of the
+    class of interest as pixels are added according to the generated importance map.
+
+    Ref. Petsiuk & al., RISE: Randomized Input Sampling for Explanation of Black-box Models (2018).
+    https://arxiv.org/pdf/1806.07421.pdf
 
     Parameters
     ----------
