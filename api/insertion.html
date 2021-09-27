@@ -14,7 +14,7 @@
     
     
       
-        <title>Occlusion sensitivity - Xplique</title>
+        <title>Insertion - Xplique</title>
       
     
     
@@ -78,7 +78,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#occlusion-sensitivity" class="md-skip">
+        <a href="#deletion" class="md-skip">
           Skip to content
         </a>
       
@@ -107,7 +107,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Occlusion sensitivity
+              Insertion
             
           </span>
         </div>
@@ -247,14 +247,12 @@
 
   
   
-    
-  
   
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
       
-        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_2" type="checkbox" id="__nav_2" checked>
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_2" type="checkbox" id="__nav_2" >
       
       <label class="md-nav__link" for="__nav_2">
         Attributions methods
@@ -294,58 +292,11 @@
             
   
   
-    
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          Occlusion sensitivity
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="occlusion.html" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="occlusion.html" class="md-nav__link">
         Occlusion sensitivity
       </a>
-      
-        
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#example" class="md-nav__link">
-    Example
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#Occlusion" class="md-nav__link">
-    Occlusion
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -563,12 +514,14 @@
 
   
   
+    
+  
   
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
       
       
-        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_5" type="checkbox" id="__nav_5" >
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_5" type="checkbox" id="__nav_5" checked>
       
       <label class="md-nav__link" for="__nav_5">
         Attributions metrics
@@ -596,11 +549,58 @@
             
   
   
+    
   
-    <li class="md-nav__item">
-      <a href="insertion.html" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          Insertion
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="insertion.html" class="md-nav__link md-nav__link--active">
         Insertion
       </a>
+      
+        
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#example" class="md-nav__link">
+    Example
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#Insertion" class="md-nav__link">
+    Insertion
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -683,8 +683,8 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#Occlusion" class="md-nav__link">
-    Occlusion
+  <a href="#Insertion" class="md-nav__link">
+    Insertion
   </a>
   
 </li>
@@ -701,83 +701,51 @@
             <article class="md-content__inner md-typeset">
               
                 
-                  <a href="https://github.com/deel-ai/xplique/edit/master/docs/api/occlusion.md" title="Edit this page" class="md-content__button md-icon">
+                  <a href="https://github.com/deel-ai/xplique/edit/master/docs/api/insertion.md" title="Edit this page" class="md-content__button md-icon">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20.71 7.04c.39-.39.39-1.04 0-1.41l-2.34-2.34c-.37-.39-1.02-.39-1.41 0l-1.84 1.83 3.75 3.75M3 17.25V21h3.75L17.81 9.93l-3.75-3.75L3 17.25z"/></svg>
                   </a>
                 
                 
-                <h1 id="occlusion-sensitivity">Occlusion sensitivity<a class="headerlink" href="#occlusion-sensitivity" title="Permanent link">&para;</a></h1>
-<p>The Occlusion sensitivity method sweep a patch that occludes pixels over the
-images, and use the variations of the model prediction to deduce critical areas.<sup id="fnref:1"><a class="footnote-ref" href="#fn:1">1</a></sup></p>
+                <h1 id="deletion">Deletion<a class="headerlink" href="#deletion" title="Permanent link">&para;</a></h1>
+<p>The Insertion Fidelity metric measures how well a saliency-map–based explanation can find elements that are minimal for the predictions.</p>
 <div class="admonition quote">
 <p class="admonition-title">Quote</p>
-<p>[...] this method, referred to as Occlusion, replacing one feature <span><span class="MathJax_Preview">x_i</span><script type="math/tex">x_i</script></span> at the time with a
- baseline and measuring the effect of this perturbation on the target output.</p>
-<p>-- <cite><a href="https://arxiv.org/abs/1711.06104">Towards better understanding of the gradient-based attribution methods for Deep Neural Networks (2017)</a></cite><sup id="fnref:2"><a class="footnote-ref" href="#fn:2">2</a></sup></p>
+<p>The insertion metric, on the other hand, captures the importance of the
+pixels in terms of their ability to synthesize an image and is measured by the rise in the
+probability of the class of interest as pixels are added according to the generated importance
+map. </p>
+<p>-- <cite><a href="https://arxiv.org/abs/1806.07421">RISE: Randomized Input Sampling for Explanation of Black-box Models (2018)</a></cite><sup id="fnref:1"><a class="footnote-ref" href="#fn:1">1</a></sup></p>
 </div>
-<p>with <span><span class="MathJax_Preview">S_c</span><script type="math/tex">S_c</script></span> the unormalized class score (layer before softmax) and <span><span class="MathJax_Preview">\bar{x}</span><script type="math/tex">\bar{x}</script></span> a baseline, the Occlusion
-sensitivity map <span><span class="MathJax_Preview">\phi</span><script type="math/tex">\phi</script></span> is defined as :</p>
-<div>
-<div class="MathJax_Preview"> \phi_i = S_c(x) - S_c(x_{[x_i = \bar{x}]}) </div>
-<script type="math/tex; mode=display"> \phi_i = S_c(x) - S_c(x_{[x_i = \bar{x}]}) </script>
-</div>
+<p>The better the method, the higher the score.</p>
 <h2 id="example">Example<a class="headerlink" href="#example" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code><span class="kn">from</span> <span class="nn">xplique.attributions</span> <span class="kn">import</span> <span class="n">Occlusion</span>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span> <span class="nn">xplique.metrics</span> <span class="kn">import</span> <span class="n">Insertion</span>
+<span class="kn">from</span> <span class="nn">xplique.attributions</span> <span class="kn">import</span> <span class="n">Saliency</span>
 
 <span class="c1"># load images, labels and model</span>
 <span class="c1"># ...</span>
+<span class="n">explainer</span> <span class="o">=</span> <span class="n">Saliency</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
 
-<span class="n">method</span> <span class="o">=</span> <span class="n">Occlusion</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">patch_size</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">10</span><span class="p">),</span> 
-                   <span class="n">patch_stride</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">occlusion_value</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
-<span class="n">explanations</span> <span class="o">=</span> <span class="n">method</span><span class="o">.</span><span class="n">explain</span><span class="p">(</span><span class="n">images</span><span class="p">,</span> <span class="n">labels</span><span class="p">)</span>
+<span class="n">metric</span> <span class="o">=</span> <span class="n">Insertion</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">labels</span><span class="p">)</span>
+<span class="n">score</span> <span class="o">=</span> <span class="n">metric</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">explainer</span><span class="p">)</span>
 </code></pre></div>
-<h2 class="numkdoc" id="Occlusion"><code>Occlusion</code><a class="headerlink" href="#Occlusion" title="Permanent link">&para;</a></h2>
-<p>Used to compute the Occlusion sensitivity method, sweep a patch that occludes pixels over the
-images and use the variations of the model prediction to deduce critical areas.
+<h2 class="numkdoc" id="Insertion"><code>Insertion</code><a class="headerlink" href="#Insertion" title="Permanent link">&para;</a></h2>
+<p>The insertion metric, on the other hand, captures the importance of the pixels in terms of
+their ability to synthesize an image and is measured by the rise in the probability of the
+class of interest as pixels are added according to the generated importance map.
 <br></p>
-<h4 class="numkdoc" id="__init__"><code>__init__(<span class='parameter-self'>self</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> model</span>: <span class='parameter-type'> Callable</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> batch_size</span>: <span class='parameter-type'> Union[int, None] = 32</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> patch_size</span>: <span class='parameter-type'> Union[int Tuple[int, int]] = 3</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> patch_stride</span>: <span class='parameter-type'> Union[int Tuple[int, int]] = 3</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> occlusion_value</span>: <span class='parameter-type'> float = 0.5)</span></code><a class="headerlink" href="#__init__" title="Permanent link">&para;</a></h4>
+<h4 class="numkdoc" id="__init__"><code>__init__(<span class='parameter-self'>self</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> model</span>: <span class='parameter-type'> tf.keras.Model</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> inputs</span>: <span class='parameter-type'> Union[tensorflow.python.data.ops.dataset_ops.DatasetV2, tf.Tensor, numpy.ndarray]</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> targets</span>: <span class='parameter-type'> Union[tf.Tensor, numpy.ndarray, None] = None</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> batch_size</span>: <span class='parameter-type'> Union[int, None] = 64</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> baseline_mode</span>: <span class='parameter-type'> Union[float, Callable] = 0.0</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> steps</span>: <span class='parameter-type'> int = 10)</span></code><a class="headerlink" href="#__init__" title="Permanent link">&para;</a></h4>
 <p><strong>Parameters</strong></p>
 <ul>
 <li>
-<p><strong><span class='parameter-name'>model</span></strong>            : <span class='parameter-type'>Callable</span> </p>
+<p><strong><span class='parameter-name'>model</span></strong>            : <span class='parameter-type'>tf.keras.Model</span> </p>
 <ul>
-<li>Model used for computing explanations. </li>
+<li>Model used for computing metric. </li>
 </ul>
 </li>
-<li>
-<p><strong><span class='parameter-name'>batch_size</span></strong>            : <span class='parameter-type'>Union[int, None] = 32</span> </p>
-<ul>
-<li>Number of masked samples to process at once, if None process all at once. </li>
-</ul>
-</li>
-<li>
-<p><strong><span class='parameter-name'>patch_size</span></strong>            : <span class='parameter-type'>Union[int, Tuple[int, int]] = 3</span> </p>
-<ul>
-<li>Size of the patches to apply, if integer then assume an hypercube. </li>
-</ul>
-</li>
-<li>
-<p><strong><span class='parameter-name'>patch_stride</span></strong>            : <span class='parameter-type'>Union[int, Tuple[int, int]] = 3</span> </p>
-<ul>
-<li>Stride between two patches, if integer then assume an hypercube. </li>
-</ul>
-</li>
-<li>
-<p><strong><span class='parameter-name'>occlusion_value</span></strong>            : <span class='parameter-type'>float = 0.5</span> </p>
-<ul>
-<li>Value used as occlusion. </li>
-</ul>
-</li>
-</ul>
-<h4 class="numkdoc" id="explain"><code>explain(<span class='parameter-self'>self</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> inputs</span>: <span class='parameter-type'> Union[tensorflow.python.data.ops.dataset_ops.DatasetV2, tf.Tensor, numpy.ndarray]</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> targets</span>: <span class='parameter-type'> Union[tf.Tensor, numpy.ndarray, None] = None) -&gt; tf.Tensor</span></code><a class="headerlink" href="#explain" title="Permanent link">&para;</a></h4>
-<p>Compute Occlusion sensitivity for a batch of samples.
-<br></p>
-<p><strong>Parameters</strong></p>
-<ul>
 <li>
 <p><strong><span class='parameter-name'>inputs</span></strong>            : <span class='parameter-type'>Union[tensorflow.python.data.ops.dataset_ops.DatasetV2, tf.Tensor, numpy.ndarray]</span> </p>
 <ul>
-<li>Input samples to be explained. </li>
+<li>Input samples under study. </li>
 </ul>
 </li>
 <li>
@@ -786,13 +754,43 @@ images and use the variations of the model prediction to deduce critical areas.
 <li>One-hot encoded labels or regression target (e.g {+1, -1}), one for each sample. </li>
 </ul>
 </li>
+<li>
+<p><strong><span class='parameter-name'>batch_size</span></strong>            : <span class='parameter-type'>Union[int, None] = 64</span> </p>
+<ul>
+<li>Number of samples to explain at once, if None compute all at once. </li>
+</ul>
+</li>
+<li>
+<p><strong><span class='parameter-name'>baseline_mode</span></strong>            : <span class='parameter-type'>Union[float, Callable] = 0.0</span> </p>
+<ul>
+<li>Value of the baseline state, will be called with the inputs if it is a function. </li>
+</ul>
+</li>
+<li>
+<p><strong><span class='parameter-name'>steps</span></strong>            : <span class='parameter-type'>int = 10</span> </p>
+<ul>
+<li>Number of steps between the start and the end state. </li>
+</ul>
+</li>
+</ul>
+<h4 class="numkdoc" id="evaluate"><code>evaluate(<span class='parameter-self'>self</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> explanations</span>: <span class='parameter-type'> Union[tf.Tensor, <built-in function array>]) -&gt; float</span></code><a class="headerlink" href="#evaluate" title="Permanent link">&para;</a></h4>
+<p>Evaluate the causal score.
+<br></p>
+<p><strong>Parameters</strong></p>
+<ul>
+<li>
+<p><strong><span class='parameter-name'>explanations</span></strong>            : <span class='parameter-type'>Union[tf.Tensor, <built-in function array>]</span> </p>
+<ul>
+<li>Explanation for the inputs, labels to evaluate. </li>
+</ul>
+</li>
 </ul>
 <p><strong>Return</strong></p>
 <ul>
 <li>
-<p><strong><span class='parameter-name'>explanations</span></strong>            : <span class='parameter-type'>tf.Tensor</span> </p>
+<p><strong><span class='parameter-name'>causal_score</span></strong>            : <span class='parameter-type'>float</span> </p>
 <ul>
-<li>Occlusion sensitivity, same shape as the inputs, except for the channels. </li>
+<li>Metric score, area over the deletion (lower is better) or insertion (higher is better) curve. </li>
 </ul>
 </li>
 </ul>
@@ -801,10 +799,7 @@ images and use the variations of the model prediction to deduce critical areas.
 <hr />
 <ol>
 <li id="fn:1">
-<p><a href="https://arxiv.org/abs/1311.2901">Visualizing and Understanding Convolutional Networks (2014).</a>&#160;<a class="footnote-backref" href="#fnref:1" title="Jump back to footnote 1 in the text">&#8617;</a></p>
-</li>
-<li id="fn:2">
-<p><a href="https://arxiv.org/abs/1711.06104">Towards better understanding of gradient-based attribution methods for Deep Neural Networks</a>&#160;<a class="footnote-backref" href="#fnref:2" title="Jump back to footnote 2 in the text">&#8617;</a></p>
+<p><a href="https://arxiv.org/abs/1806.07421">RISE: Randomized Input Sampling for Explanation of Black-box Models (2018)</a>&#160;<a class="footnote-backref" href="#fnref:1" title="Jump back to footnote 1 in the text">&#8617;</a></p>
 </li>
 </ol>
 </div>
@@ -827,7 +822,7 @@ images and use the variations of the model prediction to deduce critical areas.
     <nav class="md-footer__inner md-grid" aria-label="Footer">
       
         
-        <a href="gradient_input.html" class="md-footer__link md-footer__link--prev" aria-label="Previous: Gradient Input" rel="prev">
+        <a href="deletion.html" class="md-footer__link md-footer__link--prev" aria-label="Previous: Deletion" rel="prev">
           <div class="md-footer__button md-icon">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
           </div>
@@ -836,20 +831,20 @@ images and use the variations of the model prediction to deduce critical areas.
               <span class="md-footer__direction">
                 Previous
               </span>
-              Gradient Input
+              Deletion
             </div>
           </div>
         </a>
       
       
         
-        <a href="rise.html" class="md-footer__link md-footer__link--next" aria-label="Next: Rise" rel="next">
+        <a href="mu_fidelity.html" class="md-footer__link md-footer__link--next" aria-label="Next: MuFidelity" rel="next">
           <div class="md-footer__title">
             <div class="md-ellipsis">
               <span class="md-footer__direction">
                 Next
               </span>
-              Rise
+              MuFidelity
             </div>
           </div>
           <div class="md-footer__button md-icon">

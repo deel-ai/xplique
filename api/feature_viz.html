@@ -14,7 +14,7 @@
     
     
       
-        <title>Tcav - Xplique</title>
+        <title>Feature visualization - Xplique</title>
       
     
     
@@ -78,7 +78,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#tcav" class="md-skip">
+        <a href="#feature-visualization" class="md-skip">
           Skip to content
         </a>
       
@@ -107,7 +107,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Tcav
+              Feature visualization
             
           </span>
         </div>
@@ -445,14 +445,12 @@
 
   
   
-    
-  
   
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
       
-        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_3" type="checkbox" id="__nav_3" checked>
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_3" type="checkbox" id="__nav_3" >
       
       <label class="md-nav__link" for="__nav_3">
         Concept based
@@ -480,6 +478,27 @@
             
   
   
+  
+    <li class="md-nav__item">
+      <a href="tcav.html" class="md-nav__link">
+        Tcav
+      </a>
+    </li>
+  
+
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
     
   
   
@@ -492,12 +511,12 @@
       
       
         <label class="md-nav__link md-nav__link--active" for="__toc">
-          Tcav
+          Feature visualization
           <span class="md-nav__icon md-icon"></span>
         </label>
       
-      <a href="tcav.html" class="md-nav__link md-nav__link--active">
-        Tcav
+      <a href="feature_viz.html" class="md-nav__link md-nav__link--active">
+        Feature visualization
       </a>
       
         
@@ -515,15 +534,15 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#example" class="md-nav__link">
-    Example
+  <a href="#examples" class="md-nav__link">
+    Examples
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#Tcav" class="md-nav__link">
-    Tcav
+  <a href="#Objective" class="md-nav__link">
+    Objective
   </a>
   
 </li>
@@ -532,27 +551,6 @@
   
 </nav>
       
-    </li>
-  
-
-          
-        </ul>
-      </nav>
-    </li>
-  
-
-    
-      
-      
-      
-
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="feature_viz.html" class="md-nav__link">
-        Feature visualization
-      </a>
     </li>
   
 
@@ -676,15 +674,15 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#example" class="md-nav__link">
-    Example
+  <a href="#examples" class="md-nav__link">
+    Examples
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#Tcav" class="md-nav__link">
-    Tcav
+  <a href="#Objective" class="md-nav__link">
+    Objective
   </a>
   
 </li>
@@ -701,131 +699,317 @@
             <article class="md-content__inner md-typeset">
               
                 
-                  <a href="https://github.com/deel-ai/xplique/edit/master/docs/api/tcav.md" title="Edit this page" class="md-content__button md-icon">
+                  <a href="https://github.com/deel-ai/xplique/edit/master/docs/api/feature_viz.md" title="Edit this page" class="md-content__button md-icon">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20.71 7.04c.39-.39.39-1.04 0-1.41l-2.34-2.34c-.37-.39-1.02-.39-1.41 0l-1.84 1.83 3.75 3.75M3 17.25V21h3.75L17.81 9.93l-3.75-3.75L3 17.25z"/></svg>
                   </a>
                 
                 
-                <h1 id="tcav">TCAV<a class="headerlink" href="#tcav" title="Permanent link">&para;</a></h1>
-<p>TCAV or Testing with Concept Activation Vector consist consists in using a 
-concept activation vector (CAV) to quantify the relationship between this 
-concept and a class. </p>
-<p>This is done by using the directional derivative of the concept vector on 
-several samples of a given class and measuring the percentage of positive
-(a positive directional derivative indicating that an infinitesimal addition
-of the concept increases the probability of the class). </p>
-<p>For a Concept Activation Vector <span><span class="MathJax_Preview">v_l</span><script type="math/tex">v_l</script></span> of a layer <span><span class="MathJax_Preview">f_l</span><script type="math/tex">f_l</script></span> of a model, and <span><span class="MathJax_Preview">f_{c}</span><script type="math/tex">f_{c}</script></span>
-the logit of the class <span><span class="MathJax_Preview">c</span><script type="math/tex">c</script></span>, we measure the directional derivative 
-<span><span class="MathJax_Preview">S_c(x) = v_l \cdot \frac{ \partial{f_c(x)} } { \partial{f_l}(x) }</span><script type="math/tex">S_c(x) = v_l \cdot \frac{ \partial{f_c(x)} } { \partial{f_l}(x) }</script></span>.</p>
-<p>The TCAV score is the percentage of elements of the class <span><span class="MathJax_Preview">c</span><script type="math/tex">c</script></span> for which the <span><span class="MathJax_Preview">S_c</span><script type="math/tex">S_c</script></span>
-is positive. </p>
-<div>
-<div class="MathJax_Preview"> TCAV_c = \frac{|x \in \mathcal{X}^c : S_c(x) &gt; 0 |}{ | \mathcal{X}^c | } </div>
-<script type="math/tex; mode=display"> TCAV_c = \frac{|x \in \mathcal{X}^c : S_c(x) > 0 |}{ | \mathcal{X}^c | } </script>
+                <h1 id="feature-visualization">Feature Visualization<a class="headerlink" href="#feature-visualization" title="Permanent link">&para;</a></h1>
+<p>One of the specificities of neural networks is their differentiability. This characteristic allows us to compute gradients, either the gradient of a loss with respect to the parameters, or in the case we are interested in here, of a part of the network with respect to the input.
+This gradient then allows us to iteratively modify the input in order to maximize an objective such as a neuron, a channel or a combination of objectives.</p>
+<div class="admonition quote">
+<p class="admonition-title">Quote</p>
+<p>If we want to understand individual features, we can search for examples where they have high values 
+either for a neuron at an individual position, or for an entire channel.
+-- <cite><a href="https://distill.pub/2017/feature-visualization">Feature Visualization -- How neural networks build up their understanding of images (2017)</a></cite><sup id="fnref:1"><a class="footnote-ref" href="#fn:1">1</a></sup></p>
 </div>
-<h2 id="example">Example<a class="headerlink" href="#example" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code><span class="kn">from</span> <span class="nn">xplique.concepts</span> <span class="kn">import</span> <span class="n">Tcav</span>
+<p>More precisely, the explanation of a neuron <span><span class="MathJax_Preview">n</span><script type="math/tex">n</script></span> denoted as <span><span class="MathJax_Preview">\phi^{(n)}</span><script type="math/tex">\phi^{(n)}</script></span> is an input <span><span class="MathJax_Preview">x* \in \mathcal{X}</span><script type="math/tex">x* \in \mathcal{X}</script></span> such that</p>
+<div>
+<div class="MathJax_Preview"> \phi^{(n)} = \underset{x}{arg\ max}\ f(x)^{(n)} - \mathcal{R}(x) </div>
+<script type="math/tex; mode=display"> \phi^{(n)} = \underset{x}{arg\ max}\ f(x)^{(n)} - \mathcal{R}(x) </script>
+</div>
+<p>with <span><span class="MathJax_Preview">f(x)^{(n)}</span><script type="math/tex">f(x)^{(n)}</script></span> the neuron score for an input <span><span class="MathJax_Preview">x</span><script type="math/tex">x</script></span> and <span><span class="MathJax_Preview">\mathcal{R}(x)</span><script type="math/tex">\mathcal{R}(x)</script></span> a regularization term.
+In practice it turns out that preconditioning the input in a decorrelated space such as the frequency domain allows to obtain more consistent results and to better formulate the regularization (e.g. by controlling the rate of high frequency and low frequency desired).</p>
+<h2 id="examples">Examples<a class="headerlink" href="#examples" title="Permanent link">&para;</a></h2>
+<p>Optimize the ten logits of a neural network (we recommend to remove the softmax activation of your network).</p>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span> <span class="nn">xplique.features_visualizations</span> <span class="kn">import</span> <span class="n">Objective</span>
+<span class="kn">from</span> <span class="nn">xplique.features_visualizations</span> <span class="kn">import</span> <span class="n">optimize</span>
 
-<span class="n">tcav_renderer</span> <span class="o">=</span> <span class="n">Tcav</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="s1">&#39;mixed4d&#39;</span><span class="p">,</span> <span class="n">cav</span><span class="p">)</span>
-<span class="n">tcav_score</span> <span class="o">=</span> <span class="n">tcav_renderer</span><span class="p">(</span><span class="n">samples</span><span class="p">,</span> <span class="n">class_index</span><span class="p">)</span>
+<span class="c1"># load a model...</span>
+
+<span class="c1"># targeting the 10 logits of the layer &#39;logits&#39;</span>
+<span class="c1"># we can also target a layer by its index, like -1 for the last layer </span>
+<span class="n">logits_obj</span> <span class="o">=</span> <span class="n">Objective</span><span class="o">.</span><span class="n">neuron</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="s2">&quot;logits&quot;</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">)))</span>
+<span class="n">images</span> <span class="o">=</span> <span class="n">optimize</span><span class="p">(</span><span class="n">logits_obj</span><span class="p">)</span> <span class="c1"># 10 images, one for each logits</span>
 </code></pre></div>
-<h2 class="numkdoc" id="Tcav"><code>Tcav</code><a class="headerlink" href="#Tcav" title="Permanent link">&para;</a></h2>
-<p>Used to Test a Concept Activation Vector, using the sign of the directional derivative of a
-concept vector relative to a class.
+<p>Create a combination of multiple objectives and aggregate them</p>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span> <span class="nn">xplique.features_visualizations</span> <span class="kn">import</span> <span class="n">Objective</span>
+<span class="kn">from</span> <span class="nn">xplique.features_visualizations</span> <span class="kn">import</span> <span class="n">optimize</span>
+
+<span class="c1"># load a model...</span>
+
+<span class="c1"># target the first logits neuron</span>
+<span class="n">logits_obj</span> <span class="o">=</span> <span class="n">Objective</span><span class="o">.</span><span class="n">neuron</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="s2">&quot;logits&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+<span class="c1"># target the third layer</span>
+<span class="n">layer_obj</span> <span class="o">=</span> <span class="n">Objective</span><span class="o">.</span><span class="n">layer</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="s2">&quot;conv2d_1&quot;</span><span class="p">)</span>
+<span class="c1"># target the second channel of another layer</span>
+<span class="n">channel_obj</span> <span class="o">=</span> <span class="n">Objective</span><span class="o">.</span><span class="n">channel</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="s2">&quot;mixed4_2&quot;</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+
+<span class="c1"># combine the objective</span>
+<span class="n">obj</span> <span class="o">=</span> <span class="n">logits_obj</span> <span class="o">*</span> <span class="mf">1.0</span> <span class="o">+</span> <span class="n">layer_obj</span> <span class="o">*</span> <span class="mf">3.0</span> <span class="o">+</span> <span class="n">channel_obj</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="mf">5.0</span><span class="p">)</span>
+<span class="n">images</span> <span class="o">=</span> <span class="n">optimize</span><span class="p">(</span><span class="n">logits_obj</span><span class="p">)</span> <span class="c1"># 1 resulting image</span>
+</code></pre></div>
+<h2 class="numkdoc" id="Objective"><code>Objective</code><a class="headerlink" href="#Objective" title="Permanent link">&para;</a></h2>
+<p>Use to combine several sub-objectives into one.
 <br></p>
-<h4 class="numkdoc" id="__init__"><code>__init__(<span class='parameter-self'>self</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> model</span>: <span class='parameter-type'> tf.keras.Model</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> target_layer</span>: <span class='parameter-type'> Union[str, int]</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> batch_size</span>: <span class='parameter-type'> Union[int, None] = 64)</span></code><a class="headerlink" href="#__init__" title="Permanent link">&para;</a></h4>
+<h4 class="numkdoc" id="__init__"><code>__init__(<span class='parameter-self'>self</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> model</span>: <span class='parameter-type'> tf.keras.Model</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> layers</span>: <span class='parameter-type'> List[tf.keras.layers.Layer]</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> masks</span>: <span class='parameter-type'> List[tf.Tensor]</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> funcs</span>: <span class='parameter-type'> List[Callable]</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> multipliers</span>: <span class='parameter-type'> List[float]</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> names</span>: <span class='parameter-type'> List[str])</span></code><a class="headerlink" href="#__init__" title="Permanent link">&para;</a></h4>
 <p><strong>Parameters</strong></p>
 <ul>
 <li>
 <p><strong><span class='parameter-name'>model</span></strong>            : <span class='parameter-type'>tf.keras.Model</span> </p>
 <ul>
-<li>Model to extract concept from. </li>
+<li>Model used for optimization. </li>
 </ul>
 </li>
 <li>
-<p><strong><span class='parameter-name'>target_layer</span></strong>            : <span class='parameter-type'>Union[str, int]</span> </p>
+<p><strong><span class='parameter-name'>layers</span></strong>            : <span class='parameter-type'>List[tf.keras.layers.Layer]</span> </p>
 <ul>
-<li>Index of the target layer or name of the layer. </li>
+<li>A list of the layers output for each sub-objectives. </li>
 </ul>
 </li>
 <li>
-<p><strong><span class='parameter-name'>batch_size</span></strong>            : <span class='parameter-type'>Union[int, None] = 64</span> </p>
+<p><strong><span class='parameter-name'>masks</span></strong>            : <span class='parameter-type'>List[tf.Tensor]</span> </p>
 <ul>
-<li>Batch size during the predictions. </li>
+<li>A list of masks that will be applied on the targeted layer for each sub-objectives. </li>
+</ul>
+</li>
+<li>
+<p><strong><span class='parameter-name'>funcs</span></strong>            : <span class='parameter-type'>List[Callable]</span> </p>
+<ul>
+<li>A list of loss functions for each sub-objectives. </li>
+</ul>
+</li>
+<li>
+<p><strong><span class='parameter-name'>multipliers</span></strong>            : <span class='parameter-type'>List[float]</span> </p>
+<ul>
+<li>A list of multiplication factor for each sub-objectives </li>
+</ul>
+</li>
+<li>
+<p><strong><span class='parameter-name'>names</span></strong>            : <span class='parameter-type'>List[str]</span> </p>
+<ul>
+<li>A list of name for each sub-objectives </li>
 </ul>
 </li>
 </ul>
-<h4 class="numkdoc" id="directional_derivative"><code>directional_derivative(<span class='parameter-name'>multi_head_model</span>: <span class='parameter-type'> tf.keras.Model</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> inputs</span>: <span class='parameter-type'> tf.Tensor</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> label</span>: <span class='parameter-type'> int</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> cav</span>: <span class='parameter-type'> tf.Tensor) -&gt; tf.Tensor</span></code><a class="headerlink" href="#directional_derivative" title="Permanent link">&para;</a></h4>
-<p>Compute the gradient of the label relative to the activations of the CAV layer.
+<h4 class="numkdoc" id="channel"><code>channel(<span class='parameter-name'>model</span>: <span class='parameter-type'> tf.keras.Model</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> layer</span>: <span class='parameter-type'> Union[str, int]</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> channel_ids</span>: <span class='parameter-type'> Union[int List[int]]</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> multiplier</span>: <span class='parameter-type'> float = 1.0</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> names</span>: <span class='parameter-type'> Union[str List[str], None] = None)</span></code><a class="headerlink" href="#channel" title="Permanent link">&para;</a></h4>
+<p>Util to build an objective to maximise a channel.
 <br></p>
 <p><strong>Parameters</strong></p>
 <ul>
 <li>
-<p><strong><span class='parameter-name'>multi_head_model</span></strong>            : <span class='parameter-type'>tf.keras.Model</span> </p>
+<p><strong><span class='parameter-name'>model</span></strong>            : <span class='parameter-type'>tf.keras.Model</span> </p>
 <ul>
-<li>Model reconfigured, first output is the activations of the CAV layer, and the second output is the prediction layer. </li>
+<li>Model used for optimization. </li>
 </ul>
 </li>
 <li>
-<p><strong><span class='parameter-name'>inputs</span></strong>            : <span class='parameter-type'>tf.Tensor</span> </p>
+<p><strong><span class='parameter-name'>layer</span></strong>            : <span class='parameter-type'>Union[str, int]</span> </p>
 <ul>
-<li>Input sample on which to test the influence of the concept. </li>
+<li>Index or name of the targeted layer. </li>
 </ul>
 </li>
 <li>
-<p><strong><span class='parameter-name'>label</span></strong>            : <span class='parameter-type'>int</span> </p>
+<p><strong><span class='parameter-name'>channel_ids</span></strong>            : <span class='parameter-type'>Union[int, List[int]]</span> </p>
 <ul>
-<li>Index of the class to test. </li>
+<li>Indexes of the channels to maximise. </li>
 </ul>
 </li>
 <li>
-<p><strong><span class='parameter-name'>cav</span></strong>            : <span class='parameter-type'>tf.Tensor</span> </p>
+<p><strong><span class='parameter-name'>multiplier</span></strong>            : <span class='parameter-type'>float = 1.0</span> </p>
 <ul>
-<li>Concept Activation Vector, same shape as the activations output. </li>
+<li>Multiplication factor of the objectives. </li>
+</ul>
+</li>
+<li>
+<p><strong><span class='parameter-name'>names</span></strong>            : <span class='parameter-type'>Union[str, List[str], None] = None</span> </p>
+<ul>
+<li>Names for each objectives. </li>
 </ul>
 </li>
 </ul>
 <p><strong>Return</strong></p>
 <ul>
 <li>
-<p><strong><span class='parameter-name'>directional_derivative</span></strong>            : <span class='parameter-type'>tf.Tensor</span> </p>
+<p><strong><span class='parameter-name'>objective</span></strong>            </p>
 <ul>
-<li>Directional derivative values of each samples. </li>
+<li>An objective containing a sub-objective for each channels. </li>
 </ul>
 </li>
 </ul>
 <p><br></p>
-<h4 class="numkdoc" id="score"><code>score(<span class='parameter-self'>self</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> inputs</span>: <span class='parameter-type'> tf.Tensor</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> label</span>: <span class='parameter-type'> int</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> cav</span>: <span class='parameter-type'> tf.Tensor) -&gt; float</span></code><a class="headerlink" href="#score" title="Permanent link">&para;</a></h4>
-<p>Compute and return the Concept Activation Vector (CAV) associated to the dataset and the
-layer targeted.
+<h4 class="numkdoc" id="compile"><code>compile(<span class='parameter-self'>self</span>) -&gt; Tuple[tf.keras.Model,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Callable,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; List[str], Tuple]</code><a class="headerlink" href="#compile" title="Permanent link">&para;</a></h4>
+<p>Compile all the sub-objectives into one and return the objects
+for the optimisation process.
+<br></p>
+<p><strong>Return</strong></p>
+<ul>
+<li>
+<p><strong><span class='parameter-name'>model_reconfigured</span></strong>            : <span class='parameter-type'>Tuple[tf.keras.Model, Callable, List[str], Tuple]</span> </p>
+<ul>
+<li>Model with the outputs needed for the optimization. </li>
+</ul>
+</li>
+<li>
+<p><strong><span class='parameter-name'>objective_function</span></strong>            : <span class='parameter-type'>Tuple[tf.keras.Model, Callable, List[str], Tuple]</span> </p>
+<ul>
+<li>Function to call that compute the loss for the objectives. </li>
+</ul>
+</li>
+<li>
+<p><strong><span class='parameter-name'>names</span></strong>            : <span class='parameter-type'>Tuple[tf.keras.Model, Callable, List[str], Tuple]</span> </p>
+<ul>
+<li>Names of each objectives. </li>
+</ul>
+</li>
+<li>
+<p><strong><span class='parameter-name'>input_shape</span></strong>            : <span class='parameter-type'>Tuple[tf.keras.Model, Callable, List[str], Tuple]</span> </p>
+<ul>
+<li>Shape of the input, one sample for each optimization. </li>
+</ul>
+</li>
+</ul>
+<p><br></p>
+<h4 class="numkdoc" id="direction"><code>direction(<span class='parameter-name'>model</span>: <span class='parameter-type'> tf.keras.Model</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> layer</span>: <span class='parameter-type'> Union[str, int]</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> vectors</span>: <span class='parameter-type'> Union[tf.Tensor List[tf.Tensor]]</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> multiplier</span>: <span class='parameter-type'> float = 1.0</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> cossim_pow</span>: <span class='parameter-type'> float = 2.0</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> names</span>: <span class='parameter-type'> Union[str List[str], None] = None)</span></code><a class="headerlink" href="#direction" title="Permanent link">&para;</a></h4>
+<p>Util to build an objective to maximise a direction of a layer.
 <br></p>
 <p><strong>Parameters</strong></p>
 <ul>
 <li>
-<p><strong><span class='parameter-name'>inputs</span></strong>            : <span class='parameter-type'>tf.Tensor</span> </p>
+<p><strong><span class='parameter-name'>model</span></strong>            : <span class='parameter-type'>tf.keras.Model</span> </p>
 <ul>
-<li>Input sample on which to test the influence of the concept. </li>
+<li>Model used for optimization. </li>
 </ul>
 </li>
 <li>
-<p><strong><span class='parameter-name'>label</span></strong>            : <span class='parameter-type'>int</span> </p>
+<p><strong><span class='parameter-name'>layer</span></strong>            : <span class='parameter-type'>Union[str, int]</span> </p>
 <ul>
-<li>Index of the class to test. </li>
+<li>Index or name of the targeted layer. </li>
 </ul>
 </li>
 <li>
-<p><strong><span class='parameter-name'>cav</span></strong>            : <span class='parameter-type'>tf.Tensor</span> </p>
+<p><strong><span class='parameter-name'>vectors</span></strong>            : <span class='parameter-type'>Union[tf.Tensor, List[tf.Tensor]]</span> </p>
 <ul>
-<li>Concept Activation Vector, see CAV module. </li>
+<li>Direction(s) to optimize. </li>
+</ul>
+</li>
+<li>
+<p><strong><span class='parameter-name'>multiplier</span></strong>            : <span class='parameter-type'>float = 1.0</span> </p>
+<ul>
+<li>Multiplication factor of the objective. </li>
+</ul>
+</li>
+<li>
+<p><strong><span class='parameter-name'>cossim_pow</span></strong>            : <span class='parameter-type'>float = 2.0</span> </p>
+<ul>
+<li>Power of the cosine similarity, higher value encourage the objective to care more about the angle of the activations. </li>
+</ul>
+</li>
+<li>
+<p><strong><span class='parameter-name'>names</span></strong>            : <span class='parameter-type'>Union[str, List[str], None] = None</span> </p>
+<ul>
+<li>A name for each objectives. </li>
 </ul>
 </li>
 </ul>
 <p><strong>Return</strong></p>
 <ul>
 <li>
-<p><strong><span class='parameter-name'>tcav</span></strong>            : <span class='parameter-type'>float</span> </p>
+<p><strong><span class='parameter-name'>objective</span></strong>            </p>
 <ul>
-<li>Percentage of sample that contains the concept with a positive impact on the class </li>
+<li>An objective ready to be compiled </li>
+</ul>
+</li>
+</ul>
+<p><br></p>
+<h4 class="numkdoc" id="layer"><code>layer(<span class='parameter-name'>model</span>: <span class='parameter-type'> tf.keras.Model</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> layer</span>: <span class='parameter-type'> Union[str, int]</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> reducer</span>: <span class='parameter-type'> str = 'magnitude'</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> multiplier</span>: <span class='parameter-type'> float = 1.0</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> name</span>: <span class='parameter-type'> Union[str, None] = None)</span></code><a class="headerlink" href="#layer" title="Permanent link">&para;</a></h4>
+<p>Util to build an objective to maximise a layer.
+<br></p>
+<p><strong>Parameters</strong></p>
+<ul>
+<li>
+<p><strong><span class='parameter-name'>model</span></strong>            : <span class='parameter-type'>tf.keras.Model</span> </p>
+<ul>
+<li>Model used for optimization. </li>
+</ul>
+</li>
+<li>
+<p><strong><span class='parameter-name'>layer</span></strong>            : <span class='parameter-type'>Union[str, int]</span> </p>
+<ul>
+<li>Index or name of the targeted layer. </li>
+</ul>
+</li>
+<li>
+<p><strong><span class='parameter-name'>reducer</span></strong>            : <span class='parameter-type'>str = 'magnitude'</span> </p>
+<ul>
+<li>Type of reduction to apply, 'mean' will optimize the mean value of the layer, 'magnitude' will optimize the mean of the absolute values. </li>
+</ul>
+</li>
+<li>
+<p><strong><span class='parameter-name'>multiplier</span></strong>            : <span class='parameter-type'>float = 1.0</span> </p>
+<ul>
+<li>Multiplication factor of the objective. </li>
+</ul>
+</li>
+<li>
+<p><strong><span class='parameter-name'>name</span></strong>            : <span class='parameter-type'>Union[str, None] = None</span> </p>
+<ul>
+<li>A name for the objective. </li>
+</ul>
+</li>
+</ul>
+<p><strong>Return</strong></p>
+<ul>
+<li>
+<p><strong><span class='parameter-name'>objective</span></strong>            </p>
+<ul>
+<li>An objective ready to be compiled </li>
+</ul>
+</li>
+</ul>
+<p><br></p>
+<h4 class="numkdoc" id="neuron"><code>neuron(<span class='parameter-name'>model</span>: <span class='parameter-type'> tf.keras.Model</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> layer</span>: <span class='parameter-type'> Union[str, int]</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> neurons_ids</span>: <span class='parameter-type'> Union[int List[int]]</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> multiplier</span>: <span class='parameter-type'> float = 1.0</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> names</span>: <span class='parameter-type'> Union[str List[str], None] = None)</span></code><a class="headerlink" href="#neuron" title="Permanent link">&para;</a></h4>
+<p>Util to build an objective to maximise a neuron.
+<br></p>
+<p><strong>Parameters</strong></p>
+<ul>
+<li>
+<p><strong><span class='parameter-name'>model</span></strong>            : <span class='parameter-type'>tf.keras.Model</span> </p>
+<ul>
+<li>Model used for optimization. </li>
+</ul>
+</li>
+<li>
+<p><strong><span class='parameter-name'>layer</span></strong>            : <span class='parameter-type'>Union[str, int]</span> </p>
+<ul>
+<li>Index or name of the targeted layer. </li>
+</ul>
+</li>
+<li>
+<p><strong><span class='parameter-name'>neurons_ids</span></strong>            : <span class='parameter-type'>Union[int, List[int]]</span> </p>
+<ul>
+<li>Indexes of the neurons to maximise. </li>
+</ul>
+</li>
+<li>
+<p><strong><span class='parameter-name'>multiplier</span></strong>            : <span class='parameter-type'>float = 1.0</span> </p>
+<ul>
+<li>Multiplication factor of the objectives. </li>
+</ul>
+</li>
+<li>
+<p><strong><span class='parameter-name'>names</span></strong>            : <span class='parameter-type'>Union[str, List[str], None] = None</span> </p>
+<ul>
+<li>Names for each objectives. </li>
+</ul>
+</li>
+</ul>
+<p><strong>Return</strong></p>
+<ul>
+<li>
+<p><strong><span class='parameter-name'>objective</span></strong>            </p>
+<ul>
+<li>An objective containing a sub-objective for each neurons. </li>
 </ul>
 </li>
 </ul>
@@ -834,7 +1018,7 @@ layer targeted.
 <hr />
 <ol>
 <li id="fn:1">
-<p><a href="https://arxiv.org/abs/1711.11279">Interpretability Beyond Feature Attribution: Quantitative Testing with Concept Activation Vectors (TCAV) (2018).</a>&#160;<a class="footnote-backref" href="#fnref:1" title="Jump back to footnote 1 in the text">&#8617;</a></p>
+<p><a href="https://distill.pub/2017/feature-visualization">Feature Visualization -- How neural networks build up their understanding of images (2017)</a>&#160;<a class="footnote-backref" href="#fnref:1" title="Jump back to footnote 1 in the text">&#8617;</a></p>
 </li>
 </ol>
 </div>
@@ -857,7 +1041,7 @@ layer targeted.
     <nav class="md-footer__inner md-grid" aria-label="Footer">
       
         
-        <a href="cav.html" class="md-footer__link md-footer__link--prev" aria-label="Previous: Cav" rel="prev">
+        <a href="tcav.html" class="md-footer__link md-footer__link--prev" aria-label="Previous: Tcav" rel="prev">
           <div class="md-footer__button md-icon">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
           </div>
@@ -866,20 +1050,20 @@ layer targeted.
               <span class="md-footer__direction">
                 Previous
               </span>
-              Cav
+              Tcav
             </div>
           </div>
         </a>
       
       
         
-        <a href="feature_viz.html" class="md-footer__link md-footer__link--next" aria-label="Next: Feature visualization" rel="next">
+        <a href="deletion.html" class="md-footer__link md-footer__link--next" aria-label="Next: Deletion" rel="next">
           <div class="md-footer__title">
             <div class="md-ellipsis">
               <span class="md-footer__direction">
                 Next
               </span>
-              Feature visualization
+              Deletion
             </div>
           </div>
           <div class="md-footer__button md-icon">
