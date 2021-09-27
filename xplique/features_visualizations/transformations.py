@@ -7,17 +7,17 @@ import tensorflow as tf
 from ..types import Tuple, Callable, List
 
 
-def random_blur(kernel_size: int = 10,
-                sigma_range: Tuple[float, float] = (1.0, 2.0)) -> Callable:
+def random_blur(sigma_range: Tuple[float, float] = (1.0, 2.0),
+                kernel_size: int = 10) -> Callable:
     """
     Generate a function that apply a random gaussian blur to the batch.
 
     Parameters
     ----------
-    kernel_size
-        Size of the gaussian kernel
     sigma_range
         Min and max sigma (or scale) of the gaussian kernel.
+    kernel_size
+        Size of the gaussian kernel
 
     Returns
     -------
