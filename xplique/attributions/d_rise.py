@@ -57,9 +57,16 @@ class DRise(BlackBoxExplainer):
 
     @staticmethod
     def inference(model, inputs, targets):
+#        print("----------------------------------------------")
+#        print("targets",targets)
+#        print("       ",targets.shape)
         predictions=model(inputs)
+#        print("Pred",len(predictions))
+#        print("    ",predictions[0].shape)
+
         numClasses=targets.shape[1]-5
         Lt, Pt, Vt = tf.split(targets[0], [4, 1, numClasses])
+#        print(Lt,Pt,Vt)
         SdtDjp=[]
         for Dj in predictions:
             Lj, Pj, Vj = tf.split(Dj[0], [4, 1, numClasses])
@@ -68,7 +75,13 @@ class DRise(BlackBoxExplainer):
             cosineSim=tf.tensordot(Pt*Vt,Pj*Vj,1)/(tf.norm(Pt*Vt)*tf.norm(Pj*Vj))
             Sdtdj=iou*Oj[0]*cosineSim
             SdtDjp=tf.concat([SdtDjp,[Sdtdj]], axis=0)
-        scores=tf.reduce_max(SdtDjp)
+
+#        print("SdtDjp",SdtDjp)    
+#        print("      ",SdtDjp.shape)    
+        scores=tf.reduce_max(SdtDjp)#,axis=1)
+#        print(scores)
+#        print(scores.shape)
+#        print("----------------------------------------------")
         return scores
 
 #    @sanitize_input_output
@@ -148,12 +161,16 @@ class DRise(BlackBoxExplainer):
                 masked_inputs, masks_upsampled = DRise._apply_masks(single_input, batch_masks)           
                 repeated_targets = repeat_labels(single_target[tf.newaxis, :], len(batch_masks))
 
-                predictions = inference_batching(DRise.inference,self.model, masked_inputs,
-                                                    repeated_targets,batch_size)
-#                scores = DRise._compute_importance(predictions, masks)
-                rise_nominator += tf.reduce_sum(tf.reshape(predictions, (-1, 1, 1, 1))
-                                                * masks_upsampled, 0)
-                rise_denominator += tf.reduce_sum(masks_upsampled, 0)
+                for m in range(len(batch_masks)):
+#                    print("masked_inputs   ",len(masked_inputs),masked_inputs[0].shape)
+#                    print("repeated_targets",len(repeated_targets),repeated_targets[0].shape)
+                    predictions = inference_batching(DRise.inference,self.model, masked_inputs,repeated_targets,None)
+##                    predictions = DRise.inference(self.model, masked_inputs[m],repeated_targets[m])
+#                    print("Predictions DRise",predictions)
+#                    scores = DRise._compute_importance(predictions, masks)
+                    rise_nominator += tf.reduce_sum(tf.reshape(predictions, (-1, 1, 1, 1))
+                                                    * masks_upsampled, 0)
+                    rise_denominator += tf.reduce_sum(masks_upsampled, 0)
 
             rise_map = rise_nominator / (rise_denominator + DRise.EPSILON)
             rise_map = rise_map[tf.newaxis, :, :, 0]
@@ -161,7 +178,7 @@ class DRise(BlackBoxExplainer):
             rise_maps = rise_map if rise_maps is None else tf.concat([rise_maps, rise_map], axis=0)
 
 #            rise_maps = scores if rise_maps is None else tf.concat([rise_maps, scores], axis=0)
-
+#        print(rise_maps)
         return rise_maps
 
 
