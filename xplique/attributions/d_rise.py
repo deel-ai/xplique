@@ -29,7 +29,7 @@ class DRise(BlackBoxExplainer):
         Number of samples to explain at once, if None compute all at once.
     nb_samples
         Number of masks generated for Monte Carlo sampling.
-    granularity
+    grid_size
         Size of the grid used to generate the scaled-down masks. Masks are then rescale to
         input_size + scaled-down size and cropped to input_size.
     preservation_probability
@@ -45,12 +45,12 @@ class DRise(BlackBoxExplainer):
                  model: Callable,
                  batch_size: Optional[int] = 32,
                  nb_samples: int = 4000,
-                 granularity: int = 7,
+                 grid_size: int = 7,
                  preservation_probability: float = .5):
         super().__init__(model, batch_size)
 
         self.nb_samples = nb_samples
-        self.granularity = granularity
+        self.grid_size = grid_size
         self.preservation_probability = preservation_probability
 
     @staticmethod
@@ -92,7 +92,7 @@ class DRise(BlackBoxExplainer):
         targets=tf.expand_dims(targets,axis=0) 
         batch_size = self.batch_size or len(inputs)
 
-        masks = DRise._get_masks((*inputs.shape[1:],), self.nb_samples, self.granularity,
+        masks = DRise._get_masks((*inputs.shape[1:],), self.nb_samples, self.grid_size,
                                self.preservation_probability)
 
         for x_batch, y_batch in tf.data.Dataset.from_tensor_slices(
