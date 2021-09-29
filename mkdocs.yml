@@ -41,13 +41,14 @@ theme:
       primary: white
       accent: indigo
       toggle:
-        icon: material/weather-night
+        icon: material/toggle-switch-off-outline
         name: Switch to dark mode
     - scheme: slate
       toggle:
-        icon: material/weather-sunny
+        icon: material/toggle-switch
         name: Switch to light mode
-
+  icon:
+    repo: fontawesome/brands/github
 plugins:
   - numkdoc
   - search
