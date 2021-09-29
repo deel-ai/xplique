@@ -57,13 +57,12 @@ class DRise(BlackBoxExplainer):
 
     @staticmethod
     def inference(model, inputs, targets):
-#        print("----------------------------------------------")
-#        print("targets",targets)
-#        print("       ",targets.shape)
+ #       print("----------------------------------------------")
+ #       print("targets",targets)
+ #       print("       ",targets.shape)
         predictions=model(inputs)
-#        print("Pred",len(predictions))
-#        print("    ",predictions[0].shape)
-
+ #       print("Pred",len(predictions))
+ #       print("    ",predictions)
         numClasses=targets.shape[1]-5
         Lt, Pt, Vt = tf.split(targets[0], [4, 1, numClasses])
 #        print(Lt,Pt,Vt)
@@ -83,46 +82,6 @@ class DRise(BlackBoxExplainer):
 #        print(scores.shape)
 #        print("----------------------------------------------")
         return scores
-
-#    @sanitize_input_output
-#    def explain(self,
-#                inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
-#                targets: Optional[Union[tf.Tensor, np.ndarray]] = None) -> tf.Tensor:
-#        """
-#        Compute D-RISE for a batch of samples.
-#
-#        Parameters
-#        ----------
-#        inputs
-#            Input samples to be explained.
-#        targets
-#            One-hot encoded labels or regression target (e.g {+1, -1}), one for each sample.
-#
-#        Returns
-#        -------
-#        explanations
-#            RISE maps, same shape as the inputs, except for the channels.
-#        """
-#        rise_maps = None
-#        targets=tf.expand_dims(targets,axis=0) 
-#        batch_size = self.batch_size or len(inputs)#
-#
-#        masks = DRise._get_masks((*inputs.shape[1:],), self.nb_samples, self.grid_size,
-#                               self.preservation_probability)
-#
-#        for x_batch, y_batch in tf.data.Dataset.from_tensor_slices(
-#                (inputs, targets)).batch(batch_size):
-#
-#            masked_inputs = DRise._apply_masks(x_batch, masks)           
-#            repeated_targets = repeat_labels(y_batch, self.nb_samples)
-#
-#            predictions = inference_batching(DRise.inference,self.model, masked_inputs,
-#                                                    repeated_targets,batch_size)
-#            scores = DRise._compute_importance(predictions, masks)
-#
-#            rise_maps = scores if rise_maps is None else tf.concat([rise_maps, scores], axis=0)
-#
-#        return rise_maps
 
     @sanitize_input_output
     def explain(self,
@@ -161,24 +120,16 @@ class DRise(BlackBoxExplainer):
                 masked_inputs, masks_upsampled = DRise._apply_masks(single_input, batch_masks)           
                 repeated_targets = repeat_labels(single_target[tf.newaxis, :], len(batch_masks))
 
-                for m in range(len(batch_masks)):
-#                    print("masked_inputs   ",len(masked_inputs),masked_inputs[0].shape)
-#                    print("repeated_targets",len(repeated_targets),repeated_targets[0].shape)
-                    predictions = inference_batching(DRise.inference,self.model, masked_inputs,repeated_targets,None)
-##                    predictions = DRise.inference(self.model, masked_inputs[m],repeated_targets[m])
-#                    print("Predictions DRise",predictions)
-#                    scores = DRise._compute_importance(predictions, masks)
-                    rise_nominator += tf.reduce_sum(tf.reshape(predictions, (-1, 1, 1, 1))
-                                                    * masks_upsampled, 0)
-                    rise_denominator += tf.reduce_sum(masks_upsampled, 0)
+                predictions = inference_batching(DRise.inference,self.model, masked_inputs,repeated_targets,1)
+                predictions=np.nan_to_num(predictions, nan=0., posinf=0., neginf=0.)
+                rise_nominator += tf.reduce_sum(tf.reshape(predictions, (-1, 1, 1, 1)) * masks_upsampled, 0)
+                rise_denominator += tf.reduce_sum(masks_upsampled, 0)
 
             rise_map = rise_nominator / (rise_denominator + DRise.EPSILON)
             rise_map = rise_map[tf.newaxis, :, :, 0]
 
             rise_maps = rise_map if rise_maps is None else tf.concat([rise_maps, rise_map], axis=0)
 
-#            rise_maps = scores if rise_maps is None else tf.concat([rise_maps, scores], axis=0)
-#        print(rise_maps)
         return rise_maps
 
 
@@ -250,40 +201,6 @@ class DRise(BlackBoxExplainer):
         masked_input = tf.expand_dims(single_input, 0) * masks
 
         return masked_input, masks
-
-#    @staticmethod
-#    @tf.function
-#    def _compute_importance(occluded_scores: tf.Tensor,
-#                            masks: tf.Tensor) -> tf.Tensor:
-#        """
-#        Compute the importance of each pixels for each prediction according to the mask used.
-#
-#        Parameters
-#        ----------
-#        occluded_scores
-#            The score of the occluded combinations for the class of interest.
-#        masks
-#            The continuous occlusion masks, with 1 as preserved.#
-#
-#        Returns
-#        -------
-#        scores
-#            Value reflecting the contribution of each pixels on the output.
-#        """
-#        # group by input and expand
-#        occluded_scores = tf.reshape(occluded_scores, (-1, len(masks)))
-#        occluded_scores = tf.reshape(occluded_scores, (*occluded_scores.shape, 1, 1))
-#        # removing the channel dimension (we don't deal with input anymore)
-#        masks = tf.squeeze(masks, axis=-1)
-#        # weight each pixels according to his preservation
-#        weighted_scores = occluded_scores * tf.expand_dims(masks, axis=0)
-#
-#        # ponderate by the presence of each pixels, we could use a mean reducer to make it
-#        # faster, but only if the number of sample is large enough (as the sampling is iid)
-#        scores = tf.reduce_sum(weighted_scores, axis=1) / (tf.reduce_sum(masks, axis=0) +
-#                                                            DRise.EPSILON)
-#
-#        return scores
 
     @staticmethod
     @tf.function
