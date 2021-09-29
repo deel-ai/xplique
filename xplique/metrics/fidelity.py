@@ -86,7 +86,7 @@ class MuFidelity(ExplanationMetric):
                                                           targets, self.batch_size)
 
     def evaluate(self,
-                 explanations: Union[tf.Tensor, np.array]) -> float:
+                 explanations: Union[tf.Tensor, np.ndarray]) -> float:
         """
         Evaluate the fidelity score.
 
@@ -173,7 +173,7 @@ class CausalFidelity(ExplanationMetric):
         self.inputs_flatten = inputs.reshape((len(inputs), self.nb_features, inputs.shape[-1]))
 
     def evaluate(self,
-                 explanations: Union[tf.Tensor, np.array]) -> float:
+                 explanations: Union[tf.Tensor, np.ndarray]) -> float:
         """
         Evaluate the causal score.
 
