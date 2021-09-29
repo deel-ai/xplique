@@ -30,13 +30,13 @@
   <a href="https://deel-ai.github.io/xplique/"><strong>Explore Xplique docs »</strong></a>
   <br>
   <br>
-  <a href="https://deel-ai.github.io/xplique/attributions">Attributions</a>
+  <a href="https://deel-ai.github.io/xplique/api/saliency">Attributions</a>
   ·
-  <a href="https://deel-ai.github.io/xplique/concepts">Concept</a>
+  <a href="https://deel-ai.github.io/xplique/api/cav">Concept</a>
   ·
-  <a href="https://deel-ai.github.io/xplique/feature_visualization">Feature Visualization</a>
+  <a href="https://deel-ai.github.io/xplique/api/feature_viz">Feature Visualization</a>
   ·
-  <a href="https://deel-ai.github.io/xplique/metrics">Metrics</a>
+  <a href="https://deel-ai.github.io/xplique/api/deletion">Metrics</a>
 </p>
 
 The library is composed of several modules, the _Attributions Methods_ module implements various methods (e.g Saliency, Grad-CAM, Integrated-Gradients...), with explanations, examples and links to official papers.
@@ -152,7 +152,7 @@ neuron_obj = Objective.neuron(model, "logits", 200)
 channel_obj = Objective.layer(model, "mixed3", 10)
 
 obj = neuron_obj + 2.0 * channel_obj
-images = optimize(obj)
+images, obj_names = optimize(obj)
 ```
 
 ## 📦 What's Included
@@ -176,7 +176,7 @@ All the attributions method presented below handle both **Classification** and *
 | SquareGrad             | TF            | [Paper](https://arxiv.org/abs/1806.10758) | ✔                  | ✔                 | WIP                |
 | VarGrad                | TF            | [Paper](https://arxiv.org/abs/1810.03292) | ✔                  | ✔                 | WIP                |
 
-* : See the [Callable documentation](callable.md)
+\* : See the [Callable documentation](callable.md)
 
 | **Attribution Metrics** | Type of Model | Property         | Source                                    |
 | :---------------------- | :------------ | :--------------- | :---------------------------------------- |
@@ -214,7 +214,8 @@ Feel free to propose your ideas or come and contribute with us on the Xplique to
 
 ## 👀 See Also
 
-This library is one approach of many to explain your model. We don't expect it to be the final solution; we create it to explore one point in the space of possibilities.
+This library is one approach of many to explain your model. We don't expect it to be the perfect    
+ solution; we create it to explore one point in the space of possibilities.
 
 Other tools to explain your model include:
 
@@ -238,7 +239,13 @@ This project received funding from the French ”Investing for the Future – PI
 
 ## 👨‍🎓 Creator
 
-This library was started as a side-project by [Thomas FEL](https://twitter.com/Napoolar) who is doing a thesis on explainability. He then received help from some members of the <a href="https://www.deel.ai/"> DEEL </a> team to enhance the library namely from [Justin Plakoo](https://github.com/justinplakoo) and [Lucas Hervier](https://github.com/lucashervier).
+This library was started as a side-project by [Thomas FEL](https://twitter.com/Napoolar) who is
+currently a graduate student at the Artificial and Natural Intelligence Toulouse Institute under
+the direction of [Thomas SERRE](https://serre-lab.clps.brown.edu). His thesis work focuses on
+explainability for deep neural networks.
+He then received help from some members of the <a href="https://www.deel.ai/"> DEEL </a> team
+to enhance the library namely from [Justin PLAKOO](https://github.com/justinplakoo) and
+[Lucas HERVIER](https://github.com/lucashervier).
 
 ## 📝 License
 
