@@ -6,6 +6,20 @@
     --synthax-red: #ec407a;
 }
 
+[data-md-color-scheme="slate"] {
+    /* dark theme */
+    --primary: #BB86fc;
+    --dark: #313131;
+    --synthax-blue: #EA80FC;
+    --synthax-red: #03DAC6;
+    --md-typeset-a-color: var(--synthax-blue);
+    --md-primary-fg-color: var(--dark);
+    --md-primary-fg-color--light: #5d6cc0;
+    --md-primary-fg-color--dark: var(--primary);
+    --md-accent-fg-color: var(--synthax-blue);
+}
+
+
 html {
     font-size: 115%;
 }
@@ -43,6 +57,10 @@ h4 code {
     font-size: 95% !important;
 }
 
+[data-md-color-scheme="slate"] h4 code {
+    background-color: rgba(240, 240, 240, 0.05) !important;
+}
+
 .admonition {
     font-size: 95% !important;
 }
@@ -69,8 +87,16 @@ h2.numkdoc ~ ul li:not(.footnote){
     margin-top: var(--margin) !important;
 }
 
+table {
+    border: solid 2px rgba(255, 255, 255, 0.1);
+}
+
 .md-typeset table:not([class]) th {
     background-color: var(--dark);
+}
+
+[data-md-color-scheme="slate"] .md-typeset table:not([class]) th {
+    color: white !important;
 }
 
 .md-typeset__table {
@@ -100,4 +126,19 @@ li .parameter-type {
 
 .md-typeset table:not([class]) {
     font-size: 0.8rem;
+}
+
+.md-header__button.md-logo img, .md-header__button.md-logo svg {
+    width: 2.0rem !important;
+    height: auto !important;
+}
+
+.md-clipboard {
+    transition: all 0.25s ease;
+    color: var(--synthax-red) !important;
+    opacity: 0.25;
+}
+
+.md-clipboard:focus, .md-clipboard:hover {
+    opacity: 1.0;
 }
