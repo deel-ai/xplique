@@ -32,7 +32,7 @@ from xplique.attributions import SmoothGrad
 # load images, labels and model
 # ...
 
-method = SmoothGrad(model, nb_samples=50, noise=0.5)
+method = SmoothGrad(model, nb_samples=50, noise=0.15)
 explanations = method.explain(images, labels)
 ```
 
