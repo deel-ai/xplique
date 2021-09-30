@@ -18,7 +18,7 @@ from xplique.attributions import VarGrad
 # load images, labels and model
 # ...
 
-method = VarGrad(model, nb_samples=50, noise=0.5)
+method = VarGrad(model, nb_samples=50, noise=0.15)
 explanations = method.explain(images, labels)
 ```
 
