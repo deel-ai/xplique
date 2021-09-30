@@ -44,8 +44,7 @@ class Tcav:
               label: int,
               cav: tf.Tensor) -> float:
         """
-        Compute and return the Concept Activation Vector (CAV) associated to the dataset and the
-        layer targeted.
+        Compute and return the TCAV score of the CAV associated to class tested.
 
         Parameters
         ----------
@@ -59,7 +58,8 @@ class Tcav:
         Returns
         -------
         tcav
-            Percentage of sample that contains the concept with a positive impact on the class
+            Percentage of sample for which increasing the concept has a positive impact on the
+            class logit.
         """
 
         directional_derivatives = None
@@ -76,7 +76,7 @@ class Tcav:
                 tf.concat([directional_derivatives, batch_dd], axis=0)
 
         # tcav is the number of positive directional derivatives
-        tcav = np.sum(directional_derivatives > 0.0) / len(directional_derivatives)
+        tcav = np.mean(directional_derivatives > 0.0)
 
         return tcav
 
