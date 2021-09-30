@@ -21,9 +21,10 @@ from xplique.attributions import Saliency
 # load images, targets and model
 # ...
 explainer = Saliency(model)
+explanations = explainer(inputs, targets)
 
 metric = Deletion(model, inputs, targets)
-score = metric.evaluate(explainer)
+score = metric.evaluate(explanations)
 ```
 
 {{xplique.metrics.Deletion}}
