@@ -12,7 +12,7 @@ from .objectives import Objective
 
 
 def optimize(objective: Objective,
-             optimizer: tf.keras.optimizers.Optimizer,
+             optimizer: Optional[tf.keras.optimizers.Optimizer] = None,
              nb_steps: int = 256,
              use_fft: bool = True,
              fft_decay: float = 0.85,
@@ -72,6 +72,9 @@ def optimize(objective: Objective,
         Name of each objectives.
     """
     model, objective_function, objective_names, input_shape = objective.compile()
+
+    if optimizer is None:
+        optimizer = tf.keras.optimizers.Adam(0.05)
 
     img_shape = input_shape
     if custom_shape:
