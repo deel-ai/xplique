@@ -11,10 +11,10 @@ obtaining the corresponding outputs to deduce critical areas.
      -- <cite>[RISE: Randomized Input Sampling for Explanation of Black-box Models (2018)](https://arxiv.org/abs/1806.07421)</cite>[^1]
 
 
-with $S_c$ the class score **after softmax**, $x$ an input, and $m$ a mask (not binary) the RISE 
-importance map $\phi$ is defined as :
+with $S_c$ the class score **after softmax**, $x$ an input, and $m  \sim \mathcal{M}$ a mask (not
+ binary) the RISE importance map $\phi$ is defined as :
 
-$$ \phi_i = \frac{1}{\mathbb{E}[m] N} \sum_{i=0}^N S_c(x \odot m_i) m_i $$
+$$ \phi_i = \frac{1}{\mathbb{E}(\mathcal{M}) N} \sum_{i=0}^N S_c(x \odot m_i) m_i $$
 
 ## Example
 
@@ -24,7 +24,7 @@ from xplique.attributions import Rise
 # load images, labels and model
 # ...
 
-method = Rise(model, nb_samples=80, granularity=6, preservation_probability=0.5)
+method = Rise(model, nb_samples=4000, grid_size=7, preservation_probability=0.5)
 explanations = method.explain(images, labels)
 ```
 
