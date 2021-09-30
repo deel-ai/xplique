@@ -23,8 +23,8 @@ $$ TCAV_c = \frac{|x \in \mathcal{X}^c : S_c(x) > 0 |}{ | \mathcal{X}^c | } $$
 ```python
 from xplique.concepts import Tcav
 
-tcav_renderer = Tcav(model, 'mixed4d', cav)
-tcav_score = tcav_renderer(samples, class_index)
+tcav_renderer = Tcav(model, 'mixed4d') # you can also pass the layer index (e.g -1)
+tcav_score = tcav_renderer(samples, class_index, cav)
 
 ```
 
