@@ -71,6 +71,8 @@ def optimize(objective: Objective,
     objective_names
         Name of each objectives.
     """
+    values_range = (min(values_range), max(values_range))
+
     model, objective_function, objective_names, input_shape = objective.compile()
 
     if optimizer is None:
