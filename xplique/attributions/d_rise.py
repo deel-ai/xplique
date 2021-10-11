@@ -63,19 +63,19 @@ class DRise(BlackBoxExplainer):
         predictions=model(inputs)
  #       print("Pred",len(predictions))
  #       print("    ",predictions)
-        numClasses=targets.shape[1]-5
-        Lt, Pt, Vt = tf.split(targets[0], [4, 1, numClasses])
-#        print(Lt,Pt,Vt)
+        # get number of classes in 'nbClasses'
+        nbClasses=targets.shape[1]-5
+        Lt, Ot, Pt = tf.split(targets[0], [4, 1, nbClasses])
+#        print(Lt,Ot,Pt)
         SdtDjp=[]
         for Dj in predictions:
-            Lj, Pj, Vj = tf.split(Dj[0], [4, 1, numClasses])
-            Oj=tf.constant([1.0])
+            Lj, Oj, Pj = tf.split(Dj[0], [4, 1, nbClasses])
             iou=DRise._bbox_iou(Lt,Lj)
-            cosineSim=tf.tensordot(Pt*Vt,Pj*Vj,1)/(tf.norm(Pt*Vt)*tf.norm(Pj*Vj))
+            cosineSim=tf.tensordot(Pt,Pj,1)/(tf.norm(Pt)*tf.norm(Pj))
             Sdtdj=iou*Oj[0]*cosineSim
             SdtDjp=tf.concat([SdtDjp,[Sdtdj]], axis=0)
 
-#        print("SdtDjp",SdtDjp)    
+#        print("SdtDjp",SdtDjp)
 #        print("      ",SdtDjp.shape)    
         scores=tf.reduce_max(SdtDjp)#,axis=1)
 #        print(scores)
@@ -120,8 +120,9 @@ class DRise(BlackBoxExplainer):
                 masked_inputs, masks_upsampled = DRise._apply_masks(single_input, batch_masks)           
                 repeated_targets = repeat_labels(single_target[tf.newaxis, :], len(batch_masks))
 
-                predictions = inference_batching(DRise.inference,self.model, masked_inputs,repeated_targets,1)
-                predictions=np.nan_to_num(predictions, nan=0., posinf=0., neginf=0.)
+                predictions = inference_batching(DRise.inference, self.model, masked_inputs, repeated_targets, 1)
+                predictions = np.nan_to_num(predictions, nan=0., posinf=0., neginf=0.)
+
                 rise_nominator += tf.reduce_sum(tf.reshape(predictions, (-1, 1, 1, 1)) * masks_upsampled, 0)
                 rise_denominator += tf.reduce_sum(masks_upsampled, 0)
 

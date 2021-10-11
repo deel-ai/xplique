@@ -9,7 +9,7 @@ import numpy as np
 from tensorflow.keras.losses import cosine_similarity #pylint:  disable=E0611
 from sklearn import linear_model
 from skimage.segmentation import quickshift, felzenszwalb, watershed
-
+from scipy import ndimage
 from skimage.color import rgb2gray
 from skimage.filters import sobel
 
@@ -677,8 +677,12 @@ class Lime(BlackBoxExplainer):
 
 #        mapping = quickshift(inp.numpy().astype('double'), ratio=0.5, kernel_size=2)
         gradient = sobel(rgb2gray(inp.numpy().astype('double')))
-        mapping = watershed(gradient, markers=250, compactness=0.001)
-        
+#        print("GRADIENT mM",np.min(gradient),np.max(gradient))
+        SllGradient = (gradient < 0.05)
+        _, nbLabs = ndimage.label(SllGradient)
+#        print("          Nb.Marqueurs   ",nbLabs)
+        mapping = watershed(gradient, markers=nbLabs//2, compactness=0.001)
+
         mapping = tf.cast(mapping, tf.int32)
 
         return mapping
