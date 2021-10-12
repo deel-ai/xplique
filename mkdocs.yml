@@ -31,6 +31,7 @@ nav:
       - MuFidelity: api/mu_fidelity.md
       - AverageStability: api/avg_stability.md
   - Contributing: contributing.md
+  - Callable: callable.md
 
 theme:
   name: "material"
