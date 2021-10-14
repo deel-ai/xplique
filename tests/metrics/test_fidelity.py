@@ -40,7 +40,7 @@ def test_causal_metrics():
                                       steps=step)(explanations)
 
             for score in [score_insertion, score_deletion]:
-                assert 0.0 < score < 1.0
+                assert 0.0 <= score <= 1.0
 
 
 def test_perfect_correlation():
@@ -95,7 +95,7 @@ def test_perfect_deletion():
     explanations = x
 
     perfect_score = Deletion(model, x, y, steps=steps)(explanations)
-    assert almost_equal(perfect_score, ((1.0 + 0.0) / 2.0) / steps)
+    assert almost_equal(perfect_score, 0.0, 1e-2)
 
 
 def test_perfect_insertion():
@@ -112,4 +112,4 @@ def test_perfect_insertion():
     explanations = x
 
     perfect_score = Insertion(model, x, y, steps=steps)(explanations)
-    assert almost_equal(perfect_score, 1.0 - ((0.0 + 1.0) / 2.0) / steps)
+    assert almost_equal(perfect_score, 1.0, 1e-2)

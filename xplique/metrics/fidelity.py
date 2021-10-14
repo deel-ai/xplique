@@ -229,7 +229,9 @@ class CausalFidelity(ExplanationMetric):
                                                     self.targets, self.batch_size)
             scores.append(predictions)
 
-        auc = np.trapz(np.mean(scores, -1), steps / self.nb_features)
+        # compute auc using trapezoidal rule (the steps are equally reparted)
+        avg_scores = np.mean(scores, -1)
+        auc = np.mean(avg_scores[:-1] + avg_scores[1:]) * 0.5
 
         return auc
 
