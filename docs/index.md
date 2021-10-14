@@ -45,9 +45,9 @@ The _Concepts_ module allows you to extract human concepts from a model and to t
 Finally, the _Metrics_ module covers the current metrics used in explainability. Used in conjunction with the _Attribution Methods_ module, it allows you to test the different methods or evaluate the explanations of a model.
 
 <p align="center" width="100%">
-    <img width="33%" src="./assets/attributions.png"> 
-    <img width="39%" src="./assets/feature_viz.png"> 
-    <img width="23.4%" src="./assets/concepts.png"> 
+    <img width="36.216%" src="./assets/attributions.png"> 
+    <img width="38.88%" src="./assets/feature_viz.png"> 
+    <img width="22.248%" src="./assets/concepts.png"> 
 </p>
 
 <br>
