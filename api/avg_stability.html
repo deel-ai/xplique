@@ -751,7 +751,7 @@ inputs with similar predictions yields similar explanations. For each inputs we 
 sample noise to add to the inputs and compute the explanation for the noisy inputs. We then
 get the average distance between the original explanations and the noisy explanations.
 <br></p>
-<h4 class="numkdoc" id="__init__"><code>__init__(<span class='parameter-self'>self</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> model</span>: <span class='parameter-type'> Callable</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> inputs</span>: <span class='parameter-type'> Union[tensorflow.python.data.ops.dataset_ops.DatasetV2, tf.Tensor, numpy.ndarray]</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> targets</span>: <span class='parameter-type'> Union[tf.Tensor, numpy.ndarray, None] = None</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> batch_size</span>: <span class='parameter-type'> Union[int, None] = 64</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> radius</span>: <span class='parameter-type'> float = 0.1</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> distance</span>: <span class='parameter-type'> str = 'l2'</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> nb_samples</span>: <span class='parameter-type'> int = 200)</span></code><a class="headerlink" href="#__init__" title="Permanent link">&para;</a></h4>
+<h4 class="numkdoc" id="__init__"><code>__init__(<span class='parameter-self'>self</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> model</span>: <span class='parameter-type'> Callable</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> inputs</span>: <span class='parameter-type'> Union[tf.Dataset, tf.Tensor, numpy.ndarray]</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> targets</span>: <span class='parameter-type'> Union[tf.Tensor, numpy.ndarray, None] = None</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> batch_size</span>: <span class='parameter-type'> Union[int, None] = 64</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> radius</span>: <span class='parameter-type'> float = 0.1</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> distance</span>: <span class='parameter-type'> str = 'l2'</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> nb_samples</span>: <span class='parameter-type'> int = 200)</span></code><a class="headerlink" href="#__init__" title="Permanent link">&para;</a></h4>
 <p><strong>Parameters</strong></p>
 <ul>
 <li>
@@ -761,7 +761,7 @@ get the average distance between the original explanations and the noisy explana
 </ul>
 </li>
 <li>
-<p><strong><span class='parameter-name'>inputs</span></strong>            : <span class='parameter-type'>Union[tensorflow.python.data.ops.dataset_ops.DatasetV2, tf.Tensor, numpy.ndarray]</span> </p>
+<p><strong><span class='parameter-name'>inputs</span></strong>            : <span class='parameter-type'>Union[tf.Dataset, tf.Tensor, numpy.ndarray]</span> </p>
 <ul>
 <li>Input samples under study. </li>
 </ul>

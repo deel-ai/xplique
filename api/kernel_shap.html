@@ -750,7 +750,7 @@ model in the LIME framework we can theoretically obtain the Shapley Values more 
 Therefore, KernelShap is a method based on LIME with specific attributes.
 <br></p>
 <h4 class="numkdoc" id="__init__"><code>__init__(<span class='parameter-self'>self</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> model</span>: <span class='parameter-type'> Callable</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> batch_size</span>: <span class='parameter-type'> int = 64</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> map_to_interpret_space</span>: <span class='parameter-type'> Union[Callable, None] = None</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> nb_samples</span>: <span class='parameter-type'> int = 800</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> ref_value</span>: <span class='parameter-type'> Union[numpy.ndarray, None] = None)</span></code><a class="headerlink" href="#__init__" title="Permanent link">&para;</a></h4>
-<h4 class="numkdoc" id="explain"><code>explain(<span class='parameter-self'>self</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> inputs</span>: <span class='parameter-type'> Union[tensorflow.python.data.ops.dataset_ops.DatasetV2, tf.Tensor, numpy.ndarray]</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> targets</span>: <span class='parameter-type'> Union[tf.Tensor, numpy.ndarray, None] = None) -&gt; numpy.ndarray</span></code><a class="headerlink" href="#explain" title="Permanent link">&para;</a></h4>
+<h4 class="numkdoc" id="explain"><code>explain(<span class='parameter-self'>self</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> inputs</span>: <span class='parameter-type'> Union[tf.Dataset, tf.Tensor, numpy.ndarray]</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> targets</span>: <span class='parameter-type'> Union[tf.Tensor, numpy.ndarray, None] = None) -&gt; numpy.ndarray</span></code><a class="headerlink" href="#explain" title="Permanent link">&para;</a></h4>
 <p>This method attributes the output of the model with given targets
 to the inputs of the model using the approach described above,
 training an interpretable model and returning a representation of the
@@ -759,7 +759,7 @@ interpretable model.
 <p><strong>Parameters</strong></p>
 <ul>
 <li>
-<p><strong><span class='parameter-name'>inputs</span></strong>            : <span class='parameter-type'>Union[tensorflow.python.data.ops.dataset_ops.DatasetV2, tf.Tensor, numpy.ndarray]</span> </p>
+<p><strong><span class='parameter-name'>inputs</span></strong>            : <span class='parameter-type'>Union[tf.Dataset, tf.Tensor, numpy.ndarray]</span> </p>
 <ul>
 <li>Tensor or numpy array of shape (N, W (, H, C)) Input samples, with N number of samples, W (&amp; H) the sample dimension(s) (and C the number of channels). </li>
 </ul>
