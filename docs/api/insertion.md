@@ -1,4 +1,4 @@
-# Deletion
+# Insertion
 
 The Insertion Fidelity metric measures how well a saliency-map–based explanation can find elements that are minimal for the predictions.
 

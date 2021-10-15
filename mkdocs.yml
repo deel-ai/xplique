@@ -28,6 +28,8 @@ nav:
   - Attributions metrics:
       - Deletion: api/deletion.md
       - Insertion: api/insertion.md
+      - Deletion TS: api/deletion_ts.md
+      - Insertion TS: api/insertion_ts.md
       - MuFidelity: api/mu_fidelity.md
       - AverageStability: api/avg_stability.md
   - Contributing: contributing.md
