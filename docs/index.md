@@ -178,14 +178,16 @@ All the attributions method presented below handle both **Classification** and *
 
 \* : See the [Callable documentation](callable.md)
 
-| **Attribution Metrics** | Type of Model | Property         | Source                                    |
-| :---------------------- | :------------ | :--------------- | :---------------------------------------- |
-| MuFidelity              | TF            | Fidelity         | [Paper](https://arxiv.org/abs/2005.00631) |
-| Deletion                | TF            | Fidelity         | [Paper](https://arxiv.org/abs/1806.07421) |
-| Insertion               | TF            | Fidelity         | [Paper](https://arxiv.org/abs/1806.07421) |
-| Average Stability       | TF            | Stability        | [Paper](https://arxiv.org/abs/2005.00631) |
-| MeGe                    | TF            | Representativity | [Paper](https://arxiv.org/abs/2009.04521) |
-| ReCo                    | TF            | Consistency      | [Paper](https://arxiv.org/abs/2009.04521) |
+| **Attribution Metrics** | Type of Model | Property         | Source                                                                                |
+| :---------------------- | :------------ | :--------------- | :------------------------------------------------------------------------------------ |
+| MuFidelity              | TF            | Fidelity         | [Paper](https://arxiv.org/abs/2005.00631)                                             |
+| Deletion                | TF            | Fidelity         | [Paper](https://arxiv.org/abs/1806.07421)                                             |
+| Insertion               | TF            | Fidelity         | [Paper](https://arxiv.org/abs/1806.07421)                                             |
+| Deletion TS             | TF            | Fidelity         | [Paper1](https://arxiv.org/abs/1806.07421) [Paper2](https://arxiv.org/abs/1909.07082) |
+| Insertion TS            | TF            | Fidelity         | [Paper1](https://arxiv.org/abs/1806.07421) [Paper2](https://arxiv.org/abs/1909.07082) |
+| Average Stability       | TF            | Stability        | [Paper](https://arxiv.org/abs/2005.00631)                                             |
+| MeGe                    | TF            | Representativity | [Paper](https://arxiv.org/abs/2009.04521)                                             |
+| ReCo                    | TF            | Consistency      | [Paper](https://arxiv.org/abs/2009.04521)                                             |
 | (WIP) e-robustness      |
 
 | **Concepts method**             | Type of Model | Source                                        |
