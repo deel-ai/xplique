@@ -154,6 +154,8 @@ class CausalFidelity(ExplanationMetric):
         Value of the baseline state, will be called with the inputs if it is a function.
     steps
         Number of steps between the start and the end state.
+    max_percentage_perturbed
+        Maximum percentage of the input perturbed.
     """
 
     def __init__(self,
@@ -164,7 +166,8 @@ class CausalFidelity(ExplanationMetric):
                  causal_mode: str = "deletion",
                  baseline_mode: Union[float, Callable] = 0.0,
                  steps: int = 10,
-                 ):
+                 max_percentage_perturbed: float = 1.0,
+                 ): # pylint: disable=R0913
         super().__init__(model, inputs, targets, batch_size)
         self.causal_mode = causal_mode
         self.baseline_mode = baseline_mode
@@ -172,6 +175,10 @@ class CausalFidelity(ExplanationMetric):
 
         self.nb_features = np.prod(inputs.shape[1:-1])
         self.inputs_flatten = inputs.reshape((len(inputs), self.nb_features, inputs.shape[-1]))
+
+        assert 0.0 < max_percentage_perturbed <= 1.0, "`max_percentage_perturbed` must be" \
+                                                      "in ]O, 1]."
+        self.max_percentage_perturbed = max_percentage_perturbed
 
     def evaluate(self,
                  explanations: Union[tf.Tensor, np.ndarray]) -> float:
@@ -205,7 +212,8 @@ class CausalFidelity(ExplanationMetric):
             np.ones_like(self.inputs, dtype=np.float32) * self.baseline_mode
         baselines_flatten = baselines.reshape(self.inputs_flatten.shape)
 
-        steps = np.linspace(0, self.nb_features, self.steps, dtype=np.int32)
+        steps = np.linspace(0, self.nb_features * self.max_percentage_perturbed,self.steps,
+                            dtype=np.int32)
 
         scores = []
         if self.causal_mode == "deletion":
@@ -260,6 +268,8 @@ class Deletion(CausalFidelity):
         Value of the baseline state, will be called with the inputs if it is a function.
     steps
         Number of steps between the start and the end state.
+    max_percentage_perturbed
+        Maximum percentage of the input perturbed.
     """
 
     def __init__(self,
@@ -269,6 +279,7 @@ class Deletion(CausalFidelity):
                  batch_size: Optional[int] = 64,
                  baseline_mode: Union[float, Callable] = 0.0,
                  steps: int = 10,
+                 max_percentage_perturbed: float = 1.0
                  ):
         super().__init__(model, inputs, targets, batch_size, "deletion", baseline_mode, steps)
 
@@ -296,6 +307,8 @@ class Insertion(CausalFidelity):
         Value of the baseline state, will be called with the inputs if it is a function.
     steps
         Number of steps between the start and the end state.
+    max_percentage_perturbed
+        Maximum percentage of the input perturbed.
     """
 
     def __init__(self,
@@ -305,6 +318,7 @@ class Insertion(CausalFidelity):
                  batch_size: Optional[int] = 64,
                  baseline_mode: Union[float, Callable] = 0.0,
                  steps: int = 10,
+                 max_percentage_perturbed: float = 1.0
                  ):
         super().__init__(model, inputs, targets, batch_size, "insertion", baseline_mode, steps)
 
