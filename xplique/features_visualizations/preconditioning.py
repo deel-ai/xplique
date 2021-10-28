@@ -75,6 +75,8 @@ def to_valid_rgb(images: tf.Tensor,
     # rescale according to value range
     images = images - tf.reduce_min(images, (1, 2, 3), keepdims=True)
     images = images / tf.reduce_max(images, (1, 2, 3), keepdims=True)
+    images *= values_range[1] - values_range[0]
+    images += values_range[0]
 
     return images
 

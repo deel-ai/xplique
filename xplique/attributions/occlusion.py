@@ -39,7 +39,7 @@ class Occlusion(BlackBoxExplainer):
                  batch_size: Optional[int] = 32,
                  patch_size: Union[int, Tuple[int, int]] = 3,
                  patch_stride: Union[int, Tuple[int, int]] = 3,
-                 occlusion_value: float = 0.5):
+                 occlusion_value: float = 0.0):
         super().__init__(model, batch_size)
 
         self.patch_size = patch_size

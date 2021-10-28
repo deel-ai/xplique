@@ -45,9 +45,9 @@ The _Concepts_ module allows you to extract human concepts from a model and to t
 Finally, the _Metrics_ module covers the current metrics used in explainability. Used in conjunction with the _Attribution Methods_ module, it allows you to test the different methods or evaluate the explanations of a model.
 
 <p align="center" width="100%">
-    <img width="33%" src="./assets/attributions.png"> 
-    <img width="39%" src="./assets/feature_viz.png"> 
-    <img width="23.4%" src="./assets/concepts.png"> 
+    <img width="36.216%" src="./assets/attributions.png"> 
+    <img width="38.88%" src="./assets/feature_viz.png"> 
+    <img width="22.248%" src="./assets/concepts.png"> 
 </p>
 
 <br>
@@ -69,11 +69,11 @@ Finally, the _Metrics_ module covers the current metrics used in explainability.
 
 We propose some Hands-on tutorials to get familiar with the library and its api:
 
-- **Attribution Methods**: Getting started <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1XproaVxXjO9nrBSyyy7BuKJ1vy21iHs2) </sub>
-- **Attribution Methods**: Tabular data and Regression <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1pjDJmAa9oeSquYtbYh6tksU6eTmObIcq) </sub>
-- **Attribution Methods**: Metrics <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1WEpVpFSq-oL1Ejugr8Ojb3tcbqXIOPBg) </sub>
-- **Concepts Methods**: Testing with Concept Activation Vectors <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1iuEz46ZjgG97vTBH8p-vod3y14UETvVE) </sub>
-- **Feature Visualization**: Getting started <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1st43K9AH-UL4eZM1S4QdyrOi7Epa5K8v) </sub>
+- [**Attribution Methods**: Getting started](https://colab.research.google.com/drive/1XproaVxXjO9nrBSyyy7BuKJ1vy21iHs2) <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1XproaVxXjO9nrBSyyy7BuKJ1vy21iHs2) </sub>
+- [**Attribution Methods**: Tabular data and Regression](https://colab.research.google.com/drive/1pjDJmAa9oeSquYtbYh6tksU6eTmObIcq) <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1pjDJmAa9oeSquYtbYh6tksU6eTmObIcq) </sub>
+- [**Attribution Methods**: Metrics](https://colab.research.google.com/drive/1WEpVpFSq-oL1Ejugr8Ojb3tcbqXIOPBg) <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1WEpVpFSq-oL1Ejugr8Ojb3tcbqXIOPBg) </sub>
+- [**Concepts Methods**: Testing with Concept Activation Vectors](https://colab.research.google.com/drive/1iuEz46ZjgG97vTBH8p-vod3y14UETvVE) <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1iuEz46ZjgG97vTBH8p-vod3y14UETvVE) </sub>
+- [**Feature Visualization**: Getting started](https://colab.research.google.com/drive/1st43K9AH-UL4eZM1S4QdyrOi7Epa5K8v) <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1st43K9AH-UL4eZM1S4QdyrOi7Epa5K8v) </sub>
 
 
 You can find a certain number of [other practical tutorials just here](tutorials.md). This section is actively developed and more contents will be
@@ -178,14 +178,16 @@ All the attributions method presented below handle both **Classification** and *
 
 \* : See the [Callable documentation](callable.md)
 
-| **Attribution Metrics** | Type of Model | Property         | Source                                    |
-| :---------------------- | :------------ | :--------------- | :---------------------------------------- |
-| MuFidelity              | TF            | Fidelity         | [Paper](https://arxiv.org/abs/2005.00631) |
-| Deletion                | TF            | Fidelity         | [Paper](https://arxiv.org/abs/1806.07421) |
-| Insertion               | TF            | Fidelity         | [Paper](https://arxiv.org/abs/1806.07421) |
-| Average Stability       | TF            | Stability        | [Paper](https://arxiv.org/abs/2005.00631) |
-| MeGe                    | TF            | Representativity | [Paper](https://arxiv.org/abs/2009.04521) |
-| ReCo                    | TF            | Consistency      | [Paper](https://arxiv.org/abs/2009.04521) |
+| **Attribution Metrics** | Type of Model | Property         | Source                                                                                |
+| :---------------------- | :------------ | :--------------- | :------------------------------------------------------------------------------------ |
+| MuFidelity              | TF            | Fidelity         | [Paper](https://arxiv.org/abs/2005.00631)                                             |
+| Deletion                | TF            | Fidelity         | [Paper](https://arxiv.org/abs/1806.07421)                                             |
+| Insertion               | TF            | Fidelity         | [Paper](https://arxiv.org/abs/1806.07421)                                             |
+| Deletion TS             | TF            | Fidelity         | [Paper1](https://arxiv.org/abs/1806.07421) [Paper2](https://arxiv.org/abs/1909.07082) |
+| Insertion TS            | TF            | Fidelity         | [Paper1](https://arxiv.org/abs/1806.07421) [Paper2](https://arxiv.org/abs/1909.07082) |
+| Average Stability       | TF            | Stability        | [Paper](https://arxiv.org/abs/2005.00631)                                             |
+| MeGe                    | TF            | Representativity | [Paper](https://arxiv.org/abs/2009.04521)                                             |
+| ReCo                    | TF            | Consistency      | [Paper](https://arxiv.org/abs/2009.04521)                                             |
 | (WIP) e-robustness      |
 
 | **Concepts method**             | Type of Model | Source                                        |

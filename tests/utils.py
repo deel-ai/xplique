@@ -1,6 +1,6 @@
 import numpy as np
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense, Conv2D, Activation, Dropout, Flatten, MaxPooling2D, Input
+from tensorflow.keras.layers import Dense, Conv1D, Conv2D, Activation, GlobalAveragePooling1D, Dropout, Flatten, MaxPooling2D, Input
 from tensorflow.keras.utils import to_categorical
 
 def generate_data(x_shape=(32, 32, 3), num_labels=10, samples=100):
@@ -17,6 +17,17 @@ def generate_model(input_shape=(32, 32, 3), output_shape=10):
     model.add(MaxPooling2D(pool_size=(2, 2)))
     model.add(Dropout(0.25))
     model.add(Flatten())
+    model.add(Dense(output_shape))
+    model.add(Activation('softmax'))
+    model.compile(loss='categorical_crossentropy', optimizer='sgd')
+
+    return model
+
+def generate_timeseries_model(input_shape=(20, 10), output_shape=10):
+    model = Sequential()
+    model.add(Input(shape=input_shape))
+    model.add(Conv1D(4, kernel_size=3, activation='relu'))
+    model.add(GlobalAveragePooling1D())
     model.add(Dense(output_shape))
     model.add(Activation('softmax'))
     model.compile(loss='categorical_crossentropy', optimizer='sgd')

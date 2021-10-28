@@ -1,8 +1,8 @@
 import tensorflow as tf
 import numpy as np
 
-from ..utils import generate_model, generate_data, almost_equal
-from xplique.metrics import Insertion, Deletion, MuFidelity
+from ..utils import generate_model, generate_timeseries_model, generate_data, almost_equal
+from xplique.metrics import Insertion, Deletion, MuFidelity, InsertionTS, DeletionTS
 
 def test_mu_fidelity():
     # ensure we can compute the metric with consistents arguments
@@ -40,7 +40,30 @@ def test_causal_metrics():
                                       steps=step)(explanations)
 
             for score in [score_insertion, score_deletion]:
-                assert 0.0 < score < 1.0
+                assert 0.0 <= score <= 1.0
+
+
+def test_perturbation_metrics():
+    # ensure we can compute insertion/deletion metric with consistent arguments
+    input_shape, nb_labels, nb_samples = ((20, 10), 5, 50)
+    x, y = generate_data(input_shape, nb_labels, nb_samples)
+    model = generate_timeseries_model(input_shape, nb_labels)
+    explanations = np.random.uniform(0, 1, x.shape)
+
+    for step in [-1, 2, 10]:
+        for max_percentage_perturbed in [0.2, 1.0]:
+            for baseline_mode in [0.0, "zero", "inverse", "negative"]:
+                score_insertion = InsertionTS(
+                    model, x, y, metric="loss", baseline_mode=baseline_mode,
+                    steps=step, max_percentage_perturbed=max_percentage_perturbed,
+                )(explanations)
+                score_deletion = DeletionTS(
+                    model, x, y, metric="loss", baseline_mode=baseline_mode,
+                    steps=step, max_percentage_perturbed=max_percentage_perturbed,
+                )(explanations)
+
+                for score in [score_insertion, score_deletion]:
+                    assert 0.0 < score < 1
 
 
 def test_perfect_correlation():
@@ -95,7 +118,7 @@ def test_perfect_deletion():
     explanations = x
 
     perfect_score = Deletion(model, x, y, steps=steps)(explanations)
-    assert almost_equal(perfect_score, ((1.0 + 0.0) / 2.0) / steps)
+    assert almost_equal(perfect_score, 0.0, 1e-2)
 
 
 def test_perfect_insertion():
@@ -112,4 +135,4 @@ def test_perfect_insertion():
     explanations = x
 
     perfect_score = Insertion(model, x, y, steps=steps)(explanations)
-    assert almost_equal(perfect_score, 1.0 - ((0.0 + 1.0) / 2.0) / steps)
+    assert almost_equal(perfect_score, 1.0, 1e-2)
