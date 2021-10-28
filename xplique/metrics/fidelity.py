@@ -8,7 +8,7 @@ import numpy as np
 import tensorflow as tf
 
 from .base import ExplanationMetric
-from ..commons import batch_predictions_one_hot
+from ..commons import batch_predictions_one_hot,inference_batching
 from ..types import Union, Callable, Optional
 
 
@@ -229,6 +229,89 @@ class CausalFidelity(ExplanationMetric):
             scores.append(predictions)
 
         auc = np.trapz(np.mean(scores, -1), steps / self.nb_features)
+        return auc,scores
+
+    def evaluateX(self,
+                 explanations: Union[tf.Tensor, np.array],
+                 numTarget: int) -> float:
+        """
+        Evaluate the causal score.
+
+        Parameters
+        ----------
+        explanations
+            Explanation for the inputs, labels to evaluate.
+
+        Returns
+        -------
+        causal_score
+            Metric score, area over the deletion (lower is better) or insertion (higher is
+            better) curve.
+        """
+        print("CausalFidelity X ")
+        explanations = np.array(explanations)
+        print(len(explanations),"vs",len(self.inputs))
+        assert len(explanations) == len(self.inputs), "The number of explanations must be the " \
+                                                      "same as the number of inputs"
+        # the reference does not specify how to manage the channels of the explanations
+        if len(explanations.shape) == 4:
+            explanations = np.mean(explanations, -1)
+
+        explanations_flatten = explanations.reshape((len(explanations), -1))
+
+        # for each sample, sort by most important features according to the explanation
+        most_important_features = np.argsort(explanations_flatten, axis=-1)[:, ::-1]
+        print(most_important_features.shape)
+
+        baselines = self.baseline_mode(self.inputs) if isfunction(self.baseline_mode) else \
+            np.ones_like(self.inputs, dtype=np.float32) * self.baseline_mode
+        baselines_flatten = baselines.reshape(self.inputs_flatten.shape)
+
+        steps = np.linspace(0, self.nb_features, self.steps, dtype=np.int32)
+
+        scores = []
+        if self.causal_mode == "deletion":
+            start = self.inputs_flatten
+            end = baselines_flatten
+        elif self.causal_mode == "insertion":
+            start = baselines_flatten
+            end = self.inputs_flatten
+        else:
+            raise NotImplementedError(f'Unknown causal mode `{self.causal_mode}`.')
+
+#        for bbx in range(len(self.targets)):
+        if True:
+#            bbx=0
+            scores = []
+            for step in steps:
+                ids_to_flip = most_important_features[:, :step]
+                batch_inputs = start.copy()
+
+                for i, ids in enumerate(ids_to_flip):
+                    batch_inputs[i, ids] = end[i, ids]
+
+                batch_inputs = batch_inputs.reshape((-1, *self.inputs.shape[1:]))
+
+#                print("SO",self.operation  )
+
+#                print("TF",self.inputs.shape,self.targets.shape,len(self.targets),self.targets[0].reshape((1,len(self.targets[0]))))
+#              predictions = inference_batching(self.operation, self.model, self.inputs, self.targets, self.batch_size)
+
+                target = self.targets[numTarget].reshape((1,len(self.targets[numTarget])))
+#                print("TG",target)
+                dataset = tf.data.Dataset.from_tensor_slices((self.inputs, target))
+                predictions = tf.concat([
+                    self.operation(self.model, x, y)
+                    for x, y in dataset.batch(self.batch_size)
+                ], axis=0)
+            #    predictions = np.nan_to_num(predictions, nan=0., posinf=0., neginf=0.)
+#                print(predictions)
+                scores.append([predictions])
+
+            for s in scores: print(s)
+            print(np.mean(scores, -1))
+            print(steps,self.nb_features)
+            auc = np.trapz(np.mean(scores, -1), steps / self.nb_features)
 
         return auc
 

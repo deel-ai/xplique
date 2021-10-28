@@ -72,11 +72,12 @@ class DRise(BlackBoxExplainer):
             Lj, Oj, Pj = tf.split(Dj[0], [4, 1, nbClasses])
             iou=DRise._bbox_iou(Lt,Lj)
             cosineSim=tf.tensordot(Pt,Pj,1)/(tf.norm(Pt)*tf.norm(Pj))
+            #print(iou,Oj[0],cosineSim)
             Sdtdj=iou*Oj[0]*cosineSim
             SdtDjp=tf.concat([SdtDjp,[Sdtdj]], axis=0)
 
 #        print("SdtDjp",SdtDjp)
-#        print("      ",SdtDjp.shape)    
+#        print("      ",SdtDjp.shape)
         scores=tf.reduce_max(SdtDjp)#,axis=1)
 #        print(scores)
 #        print(scores.shape)
@@ -104,26 +105,25 @@ class DRise(BlackBoxExplainer):
         """
         rise_maps = None
         batch_size = self.batch_size or self.nb_samples
-        targets=tf.expand_dims(targets,axis=0) 
+        targets=tf.expand_dims(targets,axis=0)
 
         # since the number of masks is often very large, we process the entries one by one
         for single_input, single_target in zip(inputs, targets):
 
-#        for x_batch, y_batch in tf.data.Dataset.from_tensor_slices(
-#                (inputs, targets)).batch(batch_size):
             rise_nominator   = tf.zeros((*single_input.shape[:-1], 1))
             rise_denominator = tf.zeros((*single_input.shape[:-1], 1))
 
             # we iterate on the binary masks since they are cheap in memory
             for batch_masks in batch_tensor(self.binary_masks, batch_size):
                 # the upsampling/cropping phase is performed on the batched masks
-                masked_inputs, masks_upsampled = DRise._apply_masks(single_input, batch_masks)           
+                masked_inputs, masks_upsampled = DRise._apply_masks(single_input, batch_masks)
                 repeated_targets = repeat_labels(single_target[tf.newaxis, :], len(batch_masks))
 
                 predictions = inference_batching(DRise.inference, self.model, masked_inputs, repeated_targets, 1)
                 predictions = np.nan_to_num(predictions, nan=0., posinf=0., neginf=0.)
 
-                rise_nominator += tf.reduce_sum(tf.reshape(predictions, (-1, 1, 1, 1)) * masks_upsampled, 0)
+                rise_nominator += tf.reduce_sum(tf.reshape(predictions, (-1, 1, 1, 1))
+                                                * masks_upsampled, 0)
                 rise_denominator += tf.reduce_sum(masks_upsampled, 0)
 
             rise_map = rise_nominator / (rise_denominator + DRise.EPSILON)
@@ -140,9 +140,9 @@ class DRise(BlackBoxExplainer):
                    grid_size: int,
                    preservation_probability: float) -> tf.Tensor:
         """
-        Random mask generation. Following the paper, we start by generating random mask in a
-        lower dimension. Then, we use bilinear interpolation to upsample the masks and take a
-        random crop of the size of the inputs.
+        Random mask generation.
+        Start by generating random mask in a lower dimension. Then,a bilinear interpolation to
+        upsample the masks and take a random crop of the size of the inputs.
 
         Parameters
         ----------
@@ -205,7 +205,7 @@ class DRise(BlackBoxExplainer):
 
     @staticmethod
     @tf.function
-    def _bbox_iou(boxes1: tf.function, 
+    def _bbox_iou(boxes1: tf.function,
                   boxes2: tf.function) -> tf.Tensor:
         boxes1_area = boxes1[..., 2] * boxes1[..., 3]
         boxes2_area = boxes2[..., 2] * boxes2[..., 3]
