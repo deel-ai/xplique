@@ -28,7 +28,7 @@ from xplique.features_visualizations import optimize
 # targeting the 10 logits of the layer 'logits'
 # we can also target a layer by its index, like -1 for the last layer 
 logits_obj = Objective.neuron(model, "logits", list(range(10)))
-images = optimize(logits_obj) # 10 images, one for each logits
+images, obj_names = optimize(logits_obj) # 10 images, one for each logits
 ```
 
 Create a combination of multiple objectives and aggregate them
@@ -48,7 +48,7 @@ channel_obj = Objective.channel(model, "mixed4_2", 2)
 
 # combine the objective
 obj = logits_obj * 1.0 + layer_obj * 3.0 + channel_obj * (-5.0)
-images = optimize(logits_obj) # 1 resulting image
+images, obj_names = optimize(logits_obj) # 1 resulting image
 ```
 
 {{xplique.features_visualizations.objectives.Objective}}

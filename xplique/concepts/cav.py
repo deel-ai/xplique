@@ -28,9 +28,9 @@ class Cav: # pylint: disable=too-few-public-methods
         Model to extract concept from.
     target_layer
         Index of the target layer or name of the layer.
-    classifier : 'SGD' or 'SVM' or Sklearn model, optional
-        Default implementation use SGD classifier, SVM give more robust results but the computation
-        time is longer.
+    classifier : 'SGD' or 'SVC' or Sklearn model, optional
+        Default implementation use SGD with hinge classifier (linear SVM), SVC use libsvm but
+        the computation time is longer.
     test_fraction
         Fraction of the dataset used for test
     batch_size
@@ -57,11 +57,12 @@ class Cav: # pylint: disable=too-few-public-methods
 
         # configure classifier
         if classifier == 'SGD':
-            self.classifier = SGDClassifier(loss='hinge',
-                                            penalty='l2',
-                                            validation_fraction=0.2,
+            # official parameters
+            self.classifier = SGDClassifier(alpha=0.01,
+                                            max_iter=1_000,
+                                            tol=1e-3,
                                             verbose=self.verbose)
-        elif classifier == 'SVM':
+        elif classifier == 'SVC':
             self.classifier = LinearSVC(verbose=self.verbose)
         elif all(hasattr(classifier, attr) for attr in ['fit', 'score']):
             self.classifier = classifier
@@ -104,8 +105,8 @@ class Cav: # pylint: disable=too-few-public-methods
 
         self.classifier.fit(x_train, y_train)
 
-        val_accuracy = self.classifier.score(x_test, y_test)
         if self.verbose:
+            val_accuracy = self.classifier.score(x_test, y_test)
             print(f"[CAV] val_accuracy : {round(float(val_accuracy * 100), 2)}")
 
         # weights of each feature is the vector orthogonal to the hyperplane

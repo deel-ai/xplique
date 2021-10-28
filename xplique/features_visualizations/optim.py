@@ -4,24 +4,25 @@ Optimisation functions
 
 import tensorflow as tf
 
-from ..commons.model_override import override_relu_gradient
-from ..types import Optional, List, Callable, Tuple
+from ..commons.model_override import override_relu_gradient, open_relu_policy
+from ..types import Optional, Union, List, Callable, Tuple
 from .preconditioning import fft_image, get_fft_scale, fft_to_rgb, to_valid_rgb
-from .transformations import standard_transformations
+from .transformations import generate_standard_transformations
 from .objectives import Objective
 
 
 def optimize(objective: Objective,
-             optimizer: tf.keras.optimizers.Optimizer,
+             optimizer: Optional[tf.keras.optimizers.Optimizer] = None,
              nb_steps: int = 256,
              use_fft: bool = True,
-             fft_decay: float = 1.0,
-             std: float = 0.5,
+             fft_decay: float = 0.85,
+             std: float = 0.01,
              regularizers: Optional[List[Callable]] = None,
              image_normalizer: str = 'sigmoid',
-             transformations: Optional[List[Callable]] = standard_transformations,
-             warmup_steps: int = 16,
-             custom_shape: Optional[Tuple] = None,
+             values_range: Tuple[float, float] = (0, 1),
+             transformations: Optional[Union[List[Callable], str]] = 'standard',
+             warmup_steps: int = False,
+             custom_shape: Optional[Tuple] = (512, 512),
              save_every: Optional[int] = None) -> Tuple[List[tf.Tensor], List[str]]:
              # pylint: disable=R0913,E1130
     """
@@ -47,8 +48,11 @@ def optimize(objective: Objective,
     image_normalizer
         Transformation applied to the image after each iterations to ensure the
         pixels are in [0,1].
+    values_range
+        Range of values of the inputs that will be provided to the model, e.g (0, 1) or (-1, 1).
     transformations
-        Transformations applied to the image during optimisation.
+        Transformations applied to the image during optimisation, default to robust standard
+        transformations.
     warmup_steps
         If true, clone the model by replacing the Relu's with Leaky Relu's to
         find a pre-optimised image, allowing the visualization process to get
@@ -69,18 +73,24 @@ def optimize(objective: Objective,
     """
     model, objective_function, objective_names, input_shape = objective.compile()
 
+    if optimizer is None:
+        optimizer = tf.keras.optimizers.Adam(0.05)
+
     img_shape = input_shape
     if custom_shape:
         img_shape = (img_shape[0], *custom_shape, img_shape[-1])
+
+    if transformations == 'standard':
+        transformations = generate_standard_transformations(img_shape[1])
 
     if use_fft:
         inputs = tf.Variable(fft_image(img_shape, std), trainable=True)
         fft_scale = get_fft_scale(img_shape[1], img_shape[2], decay_power=fft_decay)
         image_param = lambda inputs: to_valid_rgb(fft_to_rgb(img_shape, inputs, fft_scale),
-                                                  image_normalizer)
+                                                  image_normalizer, values_range)
     else:
         inputs = tf.Variable(tf.random.normal(img_shape, std, dtype=tf.float32))
-        image_param = lambda inputs: to_valid_rgb(inputs, image_normalizer)
+        image_param = lambda inputs: to_valid_rgb(inputs, image_normalizer, values_range)
 
     optimisation_step = _get_optimisation_step(objective_function,
                                                len(model.outputs),
@@ -90,7 +100,7 @@ def optimize(objective: Objective,
                                                regularizers)
 
     if warmup_steps:
-        model_warmup = override_relu_gradient(model, tf.nn.leaky_relu)
+        model_warmup = override_relu_gradient(model, open_relu_policy)
         for _ in range(warmup_steps):
             grads = optimisation_step(model_warmup, inputs)
             optimizer.apply_gradients([(-grads, inputs)])

@@ -7,17 +7,17 @@ import tensorflow as tf
 from ..types import Tuple, Callable, List
 
 
-def random_blur(kernel_size: int = 10,
-                sigma_range: Tuple[float, float] = (1.0, 2.0)) -> Callable:
+def random_blur(sigma_range: Tuple[float, float] = (1.0, 2.0),
+                kernel_size: int = 10) -> Callable:
     """
     Generate a function that apply a random gaussian blur to the batch.
 
     Parameters
     ----------
-    kernel_size
-        Size of the gaussian kernel
     sigma_range
         Min and max sigma (or scale) of the gaussian kernel.
+    kernel_size
+        Size of the gaussian kernel
 
     Returns
     -------
@@ -178,16 +178,32 @@ def compose_transformations(transformations: List[Callable]) -> Callable:
     return composed_func
 
 
-standard_transformations = compose_transformations([
-    pad(24, 0.0),
-    random_jitter(6),
-    random_jitter(6),
-    random_jitter(12),
-    random_jitter(12),
-    random_scale((0.95, 0.99)),
-    random_jitter(12),
-    random_jitter(12),
-    random_jitter(12),
-    random_jitter(12),
-    random_jitter(12),
-])
+def generate_standard_transformations(size: int) -> Callable:
+    """
+    Prepare a set of (apparently) robust transformations.
+
+    Parameters
+    ----------
+    size
+        Input size of the image.
+
+    Returns
+    -------
+    transformations
+        A combinations of transformations to make the optimization robust.
+    """
+    unit = int(size / 16)
+
+    return compose_transformations([
+        pad(unit * 4, 0.0),
+        random_jitter(unit * 2),
+        random_jitter(unit * 2),
+        random_jitter(unit * 4),
+        random_jitter(unit * 4),
+        random_jitter(unit * 4),
+        random_scale((0.92, 0.96)),
+        random_blur(sigma_range=(1.0, 1.1)),
+        random_jitter(unit),
+        random_jitter(unit),
+        random_flip()
+    ])

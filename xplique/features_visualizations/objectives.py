@@ -9,7 +9,7 @@ import numpy as np
 
 from ..commons import find_layer
 from ..types import Union, List, Callable, Tuple, Optional
-from .losses import dot_cosim
+from .losses import dot_cossim
 
 
 class Objective:
@@ -137,7 +137,7 @@ class Objective:
     @staticmethod
     def layer(model: tf.keras.Model,
               layer: Union[str, int],
-              reducer: str = "mean",
+              reducer: str = "magnitude",
               multiplier: float = 1.0,
               name: Optional[str] = None):
         """
@@ -214,7 +214,7 @@ class Objective:
             names = [f"Direction#{layer.name}_{i}" for i in range(len(masks))]
 
         def optim_func(model_output, mask):
-            return dot_cosim(model_output, mask, cossim_pow)
+            return dot_cossim(model_output, mask, cossim_pow)
 
         return Objective(model, [layer.output], [masks], [optim_func], [multiplier], [names])
 

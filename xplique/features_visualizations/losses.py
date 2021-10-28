@@ -31,7 +31,7 @@ def cosine_similarity(tensor_a: tf.Tensor, tensor_b: tf.Tensor) -> tf.Tensor:
 
 
 @tf.function
-def dot_cosim(tensor_a: tf.Tensor, tensor_b: tf.Tensor, cosim_pow: float = 2.0) -> tf.Tensor:
+def dot_cossim(tensor_a: tf.Tensor, tensor_b: tf.Tensor, cossim_pow: float = 2.0) -> tf.Tensor:
     """
     Return the product of the cosine similarity and the dot product for batchs of vectors passed.
     This original looking loss was proposed by the authors of lucid and seeks to both optimise
@@ -46,17 +46,17 @@ def dot_cosim(tensor_a: tf.Tensor, tensor_b: tf.Tensor, cosim_pow: float = 2.0) 
         Batch of N tensors.
     tensor_b
         Batch of N tensors.
-    cosim_pow
+    cossim_pow
         Power of the cosine similarity, higher value encourage the objective to care more about
         the angle of the activations.
 
     Returns
     -------
-    dot_cosim_value
+    dot_cossim_value
         The product of the cosine similarity and the dot product for each pairs of tensors.
     """
 
-    cosim = tf.maximum(cosine_similarity(tensor_a, tensor_b), 1e-6) ** cosim_pow
+    cosim = tf.maximum(cosine_similarity(tensor_a, tensor_b), 1e-1) ** cossim_pow
     dot = tf.reduce_sum(tensor_a * tensor_b)
 
     return dot * cosim

@@ -21,9 +21,10 @@ from xplique.attributions import Saliency
 # load images, labels and model
 # ...
 explainer = Saliency(model)
+explanations = explainer(inputs, labels)
 
 metric = Insertion(model, inputs, labels)
-score = metric.evaluate(explainer)
+score = metric.evaluate(explanations)
 ```
 
 {{xplique.metrics.Insertion}}

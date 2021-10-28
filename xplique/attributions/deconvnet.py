@@ -56,7 +56,7 @@ class DeconvNet(WhiteBoxExplainer):
         Returns
         -------
         explanations
-            Guided Backpropagation maps.
+            Deconv maps.
         """
         gradients = batch_gradient(self.model, inputs, targets, self.batch_size)
         return gradients

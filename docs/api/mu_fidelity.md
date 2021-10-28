@@ -23,9 +23,10 @@ from xplique.attributions import Saliency
 # load images, labels and model
 # ...
 explainer = Saliency(model)
+explanations = explainer(inputs, lablels)
 
 metric = MuFidelity(model, inputs, labels)
-score = metric.evaluate(explainer)
+score = metric.evaluate(explainations)
 ```
 
 {{xplique.metrics.MuFidelity}}

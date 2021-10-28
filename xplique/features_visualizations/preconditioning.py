@@ -10,7 +10,7 @@ Credit is due to the original Lucid authors.
 import numpy as np
 import tensorflow as tf
 
-from ..types import Tuple
+from ..types import Tuple, Union, Callable
 
 
 imagenet_color_correlation = tf.cast(
@@ -41,9 +41,12 @@ def recorrelate_colors(images: tf.Tensor) -> tf.Tensor:
     return tf.reshape(images_flat, tf.shape(images))
 
 
-def to_valid_rgb(images: tf.Tensor, normalizer: str = 'sigmoid') -> tf.Tensor:
+def to_valid_rgb(images: tf.Tensor,
+                 normalizer: Union[str, Callable] = 'sigmoid',
+                 values_range: Tuple[float, float] = (0, 1)) -> tf.Tensor:
     """
     Apply transformations to map tensors to valid rgb images.
+
 
     Parameters
     ----------
@@ -52,6 +55,8 @@ def to_valid_rgb(images: tf.Tensor, normalizer: str = 'sigmoid') -> tf.Tensor:
         and C the number of channels.
     normalizer
         Transformation to apply to map pixels in the range [0, 1]. Either 'clip' or 'sigmoid'.
+    values_range
+        Range of values of the inputs that will be provided to the model, e.g (0, 1) or (-1, 1).
 
     Returns
     -------
@@ -59,8 +64,18 @@ def to_valid_rgb(images: tf.Tensor, normalizer: str = 'sigmoid') -> tf.Tensor:
         Images after correction
     """
     images = recorrelate_colors(images)
-    images = tf.nn.sigmoid(images) if normalizer == 'sigmoid' else images
-    images = tf.clip_by_norm(images, 1, axes=-1) if normalizer == 'clip' else images
+
+    if normalizer == 'sigmoid':
+        images = tf.nn.sigmoid(images)
+    elif normalizer == 'clip':
+        images = tf.clip_by_value(images, values_range[0], values_range[1])
+    else:
+        images = normalizer(images)
+
+    # rescale according to value range
+    images = images - tf.reduce_min(images, (1, 2, 3), keepdims=True)
+    images = images / tf.reduce_max(images, (1, 2, 3), keepdims=True)
+
     return images
 
 

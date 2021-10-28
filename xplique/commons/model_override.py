@@ -109,6 +109,53 @@ def deconv_relu_policy(max_value: Optional[float] = None,
     return deconv_relu
 
 
+def open_relu_policy(max_value: Optional[float] = None,
+                     threshold: float = 0.0) -> Callable:
+    """
+    Generate a relu activation function which allows gradients to pass.
+
+    Parameters
+    ----------
+    max_value
+        If specified, the maximum value for the ReLU.
+    threshold
+        If specified, the threshold for the ReLU.
+
+    Returns
+    -------
+    open_relu
+        A relu which allows all gradients to pass.
+    """
+    relu = tf.keras.layers.ReLU(max_value=max_value, threshold=threshold)
+
+    @tf.custom_gradient
+    def open_relu(inputs: tf.Tensor) -> Tuple[tf.Tensor, Callable]:
+        """
+        OpenRelu activation function.
+        Act like a relu during forward pass, but allows all gradients to pass through
+        during backprop.
+
+        Parameters
+        ----------
+        inputs
+            Input tensor
+
+        Returns
+        -------
+        output
+            Tensor, output or relu transformation.
+        grad_func
+            Gradient function for OpenRelu.
+        """
+
+        def grad_func(grads):
+            return grads
+
+        return relu(inputs), grad_func
+
+    return open_relu
+
+
 def is_relu(layer: tf.keras.layers.Layer) -> bool:
     """
     Check if a layer is a ReLU layer

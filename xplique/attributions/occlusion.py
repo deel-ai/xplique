@@ -8,7 +8,7 @@ import numpy as np
 import tensorflow as tf
 
 from .base import BlackBoxExplainer, sanitize_input_output
-from ..commons import repeat_labels, batch_predictions_one_hot, predictions_one_hot, batch_tensor
+from ..commons import repeat_labels, batch_tensor
 from ..types import Callable, Tuple, Union, Optional
 
 
@@ -66,7 +66,7 @@ class Occlusion(BlackBoxExplainer):
             Occlusion sensitivity, same shape as the inputs, except for the channels.
         """
 
-        # check if data is tabular
+        # check if data is images
         is_image = len(inputs.shape) > 2
 
         if is_image:
@@ -79,7 +79,7 @@ class Occlusion(BlackBoxExplainer):
         batch_size = self.batch_size or len(inputs)
 
         masks = Occlusion._get_masks((*inputs.shape[1:],), self.patch_size, self.patch_stride)
-        base_scores = batch_predictions_one_hot(self.model, inputs, targets, batch_size)
+        base_scores = self.batch_inference_function(self.model, inputs, targets, batch_size)
 
         # since the number of masks is often very large, we process the entries one by one
         for single_input, single_target, single_base_score in zip(inputs, targets, base_scores):
@@ -92,7 +92,10 @@ class Occlusion(BlackBoxExplainer):
                                                          self.occlusion_value)
                 repeated_targets = repeat_labels(single_target[tf.newaxis, :], len(batch_masks))
 
-                batch_scores = predictions_one_hot(self.model, occluded_inputs, repeated_targets)
+                batch_scores = self.inference_function(self.model,
+                                                       occluded_inputs,
+                                                       repeated_targets)
+
                 batch_sensitivity = Occlusion._compute_sensitivity(
                     single_base_score, batch_scores, batch_masks
                 )
