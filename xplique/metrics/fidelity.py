@@ -331,14 +331,6 @@ class CausalFidelityTS(ExplanationMetric):
     """
     Used to compute the insertion and deletion metrics for Time Series explanations.
 
-    Adaptation of the insertion and deletion principle based on the perturbations suggested by:
-        Schlegel et al. in 2019 in their paper: Towards a Rigorous Evaluation of XAI Methods on...
-    4 baseline mode are supported:
-        float values: set the baseline to a fixed values
-        "zero": set the baseline to zero
-        "inverse": set the baseline to the maximum for each feature minus the input value
-        "negative": set the baseline by taking the inverse of the input values
-
     Parameters
     ----------
     model
@@ -479,11 +471,12 @@ class DeletionTS(CausalFidelityTS):
     """
     Adaptation of the deletion metric for time series.
 
-    The deletion metric measures the drop in the probability of a class
-    as the input is gradually perturbed. The feature - time-steps pairs
-    are perturbed in order of importance given by the explanation.
-    A sharp drop, and thus a small area under the probability curve,
+    The deletion metric measures the drop in the probability of a class as the input is
+    gradually perturbed. The feature - time-steps pairs are perturbed in order of importance
+    given by the explanation. A sharp drop, and thus a small area under the probability curve,
     are indicative of a good explanation.
+
+    Ref. Schlegel et al., Towards a Rigorous Evaluation of XAI Methods (2019).
 
     Parameters
     ----------
@@ -499,7 +492,10 @@ class DeletionTS(CausalFidelityTS):
     batch_size
         Number of samples to explain at once, if None compute all at once.
     baseline_mode
-        Value of the baseline state, associated perturbation for strings.
+        Value of the baseline state or the associated perturbation functions.
+        A float value will fix the baseline to that value, "zero" set the baseline to zero,
+        "inverse" set the baseline to the maximum for each feature minus the input value and
+        "negative" set the baseline by taking the inverse of input values.
     steps
         Number of steps between the start and the end state.
         Can be set to -1 for all possible steps to be computed.
@@ -525,11 +521,10 @@ class InsertionTS(CausalFidelityTS):
     """
     Adaptation of the insertion metric for time series.
 
-    The insertion metric, on the other hand, captures the importance of
-    the feature - time-steps pairs in terms of their ability to synthesize
-    a time series and is measured by the rise in the probability of the
-    class of interest as feature - time-steps pairs are added according to
-    the generated importance map.
+    The insertion metric, captures the importance of the feature - time-steps pairs in terms of
+    their ability to synthesize a time series.
+
+    Ref. Schlegel et al., Towards a Rigorous Evaluation of XAI Methods (2019).
 
     Parameters
     ----------
@@ -544,8 +539,10 @@ class InsertionTS(CausalFidelityTS):
         the evaluate function (e.g 'loss', 'accuracy'...). Default to loss.
     batch_size
         Number of samples to explain at once, if None compute all at once.
-    baseline_mode
-        Value of the baseline state, associated perturbation for strings.
+        Value of the baseline state or the associated perturbation functions.
+        A float value will fix the baseline to that value, "zero" set the baseline to zero,
+        "inverse" set the baseline to the maximum for each feature minus the input value and
+        "negative" set the baseline by taking the inverse of input values.
     steps
         Number of steps between the start and the end state.
         Can be set to -1 for all possible steps to be computed.
