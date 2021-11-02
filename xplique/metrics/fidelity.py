@@ -500,7 +500,7 @@ class DeletionTS(CausalFidelityTS):
     steps
         Number of steps between the start and the end state.
         Can be set to -1 for all possible steps to be computed.
-    max_nb_perturbation
+    max_percentage_perturbed
         Maximum percentage of the input perturbed.
     """
 
@@ -546,7 +546,7 @@ class InsertionTS(CausalFidelityTS):
     steps
         Number of steps between the start and the end state.
         Can be set to -1 for all possible steps to be computed.
-    max_nb_perturbation
+    max_percentage_perturbed
         Maximum percentage of the input perturbed.
     """
 
