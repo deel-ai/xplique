@@ -407,13 +407,12 @@ class CausalFidelityTS(ExplanationMetric):
         ----------
         explanations
             Explanation for the inputs, labels to evaluate.
+
         Returns
         -------
         causal_score
             Metric score, area over the deletion (lower is better) or insertion (higher is
             better) curve.
-            The area represent the mean score perturbation compared to model_baseline
-                (model score on non-perturbed inputs)
         """
         explanations = np.array(explanations)
         assert explanations.shape == self.inputs.shape, "The number of explanations must be the " \
