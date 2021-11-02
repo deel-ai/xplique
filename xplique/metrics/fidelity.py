@@ -76,8 +76,9 @@ class MuFidelity(ExplanationMetric):
 
         # prepare the random masks that will designate the modified subset (S in original equation)
         # we ensure the masks have exactly `subset_size` pixels set to baseline
-        subset_masks = np.random.rand(self.nb_samples, self.grid_size ** 2).argsort(axis=-1) > \
-                       self.subset_size
+        subset_masks = np.random.rand(self.nb_samples, self.grid_size ** 2)
+        subset_masks = subset_masks.argsort(axis=-1) > self.subset_size
+
         # and interpolate them if needed
         subset_masks = subset_masks.astype(np.float32).reshape(
             (self.nb_samples, self.grid_size, self.grid_size, 1))
@@ -167,7 +168,8 @@ class CausalFidelity(ExplanationMetric):
                  baseline_mode: Union[float, Callable] = 0.0,
                  steps: int = 10,
                  max_percentage_perturbed: float = 1.0,
-                 ): # pylint: disable=R0913
+                 ):
+        # pylint: disable=R0913
         super().__init__(model, inputs, targets, batch_size)
         self.causal_mode = causal_mode
         self.baseline_mode = baseline_mode
@@ -212,7 +214,7 @@ class CausalFidelity(ExplanationMetric):
             np.ones_like(self.inputs, dtype=np.float32) * self.baseline_mode
         baselines_flatten = baselines.reshape(self.inputs_flatten.shape)
 
-        steps = np.linspace(0, self.nb_features * self.max_percentage_perturbed,self.steps,
+        steps = np.linspace(0, self.nb_features * self.max_percentage_perturbed, self.steps,
                             dtype=np.int32)
 
         scores = []
