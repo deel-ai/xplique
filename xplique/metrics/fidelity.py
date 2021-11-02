@@ -399,7 +399,7 @@ class CausalFidelityTS(ExplanationMetric):
                                                   verbose=0, return_dict=True)[self.metric]
 
     def evaluate(self,
-                 explanations: Union[tf.Tensor, np.array]) -> float:
+                 explanations: Union[tf.Tensor, np.ndarray]) -> float:
         """
         Evaluate the causal score for time series explanations.
 
