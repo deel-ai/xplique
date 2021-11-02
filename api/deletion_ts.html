@@ -802,7 +802,7 @@ As the insertion and deletion metrics use input perturbation to be computed, cre
 <li>
 <p><strong><span class='parameter-name'>baseline_mode</span></strong>            : <span class='parameter-type'>Union[float, str] = 0.0</span> </p>
 <ul>
-<li>Value of the baseline state, associated perturbation for strings. </li>
+<li>Value of the baseline state or theassociated perturbation functions. A float value will fix the baseline to that value, "zero" set the baseline to zero, "inverse" set the baseline to the maximum for each feature minus the input value and "negative" set the baseline by taking the inverse of input values. </li>
 </ul>
 </li>
 <li>

@@ -794,13 +794,7 @@ This metric computes the capacity of the model to make predictions while only th
 <li>
 <p><strong><span class='parameter-name'>batch_size</span></strong>            : <span class='parameter-type'>Union[int, None] = 64</span> </p>
 <ul>
-<li>Number of samples to explain at once, if None compute all at once. </li>
-</ul>
-</li>
-<li>
-<p><strong><span class='parameter-name'>baseline_mode</span></strong>            : <span class='parameter-type'>Union[float, str] = 0.0</span> </p>
-<ul>
-<li>Value of the baseline state, associated perturbation for strings. </li>
+<li>Number of samples to explain at once, if None compute all at once. Value of the baseline state or theassociated perturbation functions. A float value will fix the baseline to that value, "zero" set the baseline to zero, "inverse" set the baseline to the maximum for each feature minus the input value and "negative" set the baseline by taking the inverse of input values. </li>
 </ul>
 </li>
 <li>
