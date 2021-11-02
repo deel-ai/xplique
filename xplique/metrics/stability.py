@@ -44,7 +44,7 @@ class AverageStability(ExplainerMetric):
                  batch_size: Optional[int] = 64,
                  radius: float = 0.1,
                  distance: Union[str, Callable] = 'l2',
-                 nb_samples: int = 200):
+                 nb_samples: int = 20):
         # pylint: disable=R0913
         super().__init__(model, inputs, targets, batch_size)
         self.radius = radius
