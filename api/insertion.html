@@ -78,7 +78,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#deletion" class="md-skip">
+        <a href="#insertion" class="md-skip">
           Skip to content
         </a>
       
@@ -610,6 +610,30 @@
   
   
     <li class="md-nav__item">
+      <a href="deletion_ts.html" class="md-nav__link">
+        Deletion TS
+      </a>
+    </li>
+  
+
+          
+            
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="insertion_ts.html" class="md-nav__link">
+        Insertion TS
+      </a>
+    </li>
+  
+
+          
+            
+  
+  
+  
+    <li class="md-nav__item">
       <a href="mu_fidelity.html" class="md-nav__link">
         MuFidelity
       </a>
@@ -721,7 +745,7 @@
                   </a>
                 
                 
-                <h1 id="deletion">Deletion<a class="headerlink" href="#deletion" title="Permanent link">&para;</a></h1>
+                <h1 id="insertion">Insertion<a class="headerlink" href="#insertion" title="Permanent link">&para;</a></h1>
 <p>The Insertion Fidelity metric measures how well a saliency-map–based explanation can find elements that are minimal for the predictions.</p>
 <div class="admonition quote">
 <p class="admonition-title">Quote</p>
@@ -749,7 +773,7 @@ map. </p>
 their ability to synthesize an image and is measured by the rise in the probability of the
 class of interest as pixels are added according to the generated importance map.
 <br></p>
-<h4 class="numkdoc" id="__init__"><code>__init__(<span class='parameter-self'>self</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> model</span>: <span class='parameter-type'> tf.keras.Model</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> inputs</span>: <span class='parameter-type'> Union[tf.Dataset, tf.Tensor, numpy.ndarray]</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> targets</span>: <span class='parameter-type'> Union[tf.Tensor, numpy.ndarray, None] = None</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> batch_size</span>: <span class='parameter-type'> Union[int, None] = 64</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> baseline_mode</span>: <span class='parameter-type'> Union[float, Callable] = 0.0</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> steps</span>: <span class='parameter-type'> int = 10)</span></code><a class="headerlink" href="#__init__" title="Permanent link">&para;</a></h4>
+<h4 class="numkdoc" id="__init__"><code>__init__(<span class='parameter-self'>self</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> model</span>: <span class='parameter-type'> tf.keras.Model</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> inputs</span>: <span class='parameter-type'> Union[tf.Dataset, tf.Tensor, numpy.ndarray]</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> targets</span>: <span class='parameter-type'> Union[tf.Tensor, numpy.ndarray, None] = None</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> batch_size</span>: <span class='parameter-type'> Union[int, None] = 64</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> baseline_mode</span>: <span class='parameter-type'> Union[float, Callable] = 0.0</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> steps</span>: <span class='parameter-type'> int = 10</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> max_percentage_perturbed</span>: <span class='parameter-type'> float = 1.0)</span></code><a class="headerlink" href="#__init__" title="Permanent link">&para;</a></h4>
 <p><strong>Parameters</strong></p>
 <ul>
 <li>
@@ -786,6 +810,12 @@ class of interest as pixels are added according to the generated importance map.
 <p><strong><span class='parameter-name'>steps</span></strong>            : <span class='parameter-type'>int = 10</span> </p>
 <ul>
 <li>Number of steps between the start and the end state. </li>
+</ul>
+</li>
+<li>
+<p><strong><span class='parameter-name'>max_percentage_perturbed</span></strong>            : <span class='parameter-type'>float = 1.0</span> </p>
+<ul>
+<li>Maximum percentage of the input perturbed. </li>
 </ul>
 </li>
 </ul>
@@ -854,13 +884,13 @@ class of interest as pixels are added according to the generated importance map.
       
       
         
-        <a href="mu_fidelity.html" class="md-footer__link md-footer__link--next" aria-label="Next: MuFidelity" rel="next">
+        <a href="deletion_ts.html" class="md-footer__link md-footer__link--next" aria-label="Next: Deletion TS" rel="next">
           <div class="md-footer__title">
             <div class="md-ellipsis">
               <span class="md-footer__direction">
                 Next
               </span>
-              MuFidelity
+              Deletion TS
             </div>
           </div>
           <div class="md-footer__button md-icon">

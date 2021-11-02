@@ -610,6 +610,30 @@
   
   
     <li class="md-nav__item">
+      <a href="deletion_ts.html" class="md-nav__link">
+        Deletion TS
+      </a>
+    </li>
+  
+
+          
+            
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="insertion_ts.html" class="md-nav__link">
+        Insertion TS
+      </a>
+    </li>
+  
+
+          
+            
+  
+  
+  
+    <li class="md-nav__item">
       <a href="mu_fidelity.html" class="md-nav__link">
         MuFidelity
       </a>
@@ -750,7 +774,7 @@ sensitivity map <span><span class="MathJax_Preview">\phi</span><script type="mat
 <p>Used to compute the Occlusion sensitivity method, sweep a patch that occludes pixels over the
 images and use the variations of the model prediction to deduce critical areas.
 <br></p>
-<h4 class="numkdoc" id="__init__"><code>__init__(<span class='parameter-self'>self</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> model</span>: <span class='parameter-type'> Callable</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> batch_size</span>: <span class='parameter-type'> Union[int, None] = 32</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> patch_size</span>: <span class='parameter-type'> Union[int, Tuple[int, int]] = 3</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> patch_stride</span>: <span class='parameter-type'> Union[int, Tuple[int, int]] = 3</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> occlusion_value</span>: <span class='parameter-type'> float = 0.5)</span></code><a class="headerlink" href="#__init__" title="Permanent link">&para;</a></h4>
+<h4 class="numkdoc" id="__init__"><code>__init__(<span class='parameter-self'>self</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> model</span>: <span class='parameter-type'> Callable</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> batch_size</span>: <span class='parameter-type'> Union[int, None] = 32</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> patch_size</span>: <span class='parameter-type'> Union[int, Tuple[int, int]] = 3</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> patch_stride</span>: <span class='parameter-type'> Union[int, Tuple[int, int]] = 3</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> occlusion_value</span>: <span class='parameter-type'> float = 0.0)</span></code><a class="headerlink" href="#__init__" title="Permanent link">&para;</a></h4>
 <p><strong>Parameters</strong></p>
 <ul>
 <li>
@@ -778,7 +802,7 @@ images and use the variations of the model prediction to deduce critical areas.
 </ul>
 </li>
 <li>
-<p><strong><span class='parameter-name'>occlusion_value</span></strong>            : <span class='parameter-type'>float = 0.5</span> </p>
+<p><strong><span class='parameter-name'>occlusion_value</span></strong>            : <span class='parameter-type'>float = 0.0</span> </p>
 <ul>
 <li>Value used as occlusion. </li>
 </ul>
