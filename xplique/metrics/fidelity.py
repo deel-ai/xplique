@@ -281,7 +281,8 @@ class Deletion(CausalFidelity):
                  steps: int = 10,
                  max_percentage_perturbed: float = 1.0
                  ):
-        super().__init__(model, inputs, targets, batch_size, "deletion", baseline_mode, steps)
+        super().__init__(model, inputs, targets, batch_size, "deletion",
+                         baseline_mode, steps, max_percentage_perturbed)
 
 
 class Insertion(CausalFidelity):
@@ -320,7 +321,8 @@ class Insertion(CausalFidelity):
                  steps: int = 10,
                  max_percentage_perturbed: float = 1.0
                  ):
-        super().__init__(model, inputs, targets, batch_size, "insertion", baseline_mode, steps)
+        super().__init__(model, inputs, targets, batch_size, "insertion",
+                         baseline_mode, steps, max_percentage_perturbed)
 
 
 class CausalFidelityTS(ExplanationMetric):
