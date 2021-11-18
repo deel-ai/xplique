@@ -3,7 +3,6 @@ Fidelity (or Faithfulness) metrics
 """
 
 from inspect import isfunction
-from math import floor
 
 import numpy as np
 import tensorflow as tf
@@ -214,7 +213,7 @@ class CausalFidelity(ExplanationMetric):
             np.ones_like(self.inputs, dtype=np.float32) * self.baseline_mode
         baselines_flatten = baselines.reshape(self.inputs_flatten.shape)
 
-        steps = np.linspace(0, self.nb_features * self.max_percentage_perturbed, self.steps,
+        steps = np.linspace(0, self.nb_features * self.max_percentage_perturbed, self.steps+1,
                             dtype=np.int32)
 
         scores = []
@@ -383,16 +382,11 @@ class CausalFidelityTS(ExplanationMetric):
 
         assert 0 < max_percentage_perturbed <= 1, \
             "max_percentage_perturbed should be between 0 and 1"
-        max_nb_perturbation = floor(max_percentage_perturbed*self.nb_features)
+        self.max_percentage_perturbed = max_percentage_perturbed
 
         if steps == -1:
-            steps = max_nb_perturbation
-        assert 1 < steps <= max_nb_perturbation, \
-            f"The number of steps must be between 2 and {max_nb_perturbation} (or '-1')."
+            steps = self.max_percentage_perturbed * self.nb_features
         self.steps = int(steps)
-        self.max_nb_perturbation = max_nb_perturbation
-        self.model_baseline = self.model.evaluate(self.inputs, self.targets,
-                                                  verbose=0, return_dict=True)[self.metric]
 
     def evaluate(self,
                  explanations: Union[tf.Tensor, np.ndarray]) -> float:
@@ -436,7 +430,8 @@ class CausalFidelityTS(ExplanationMetric):
 
         baselines_flatten = baselines.reshape(self.inputs_flatten.shape)
 
-        steps = np.linspace(1, self.max_nb_perturbation, self.steps, dtype=np.int32)
+        steps = np.linspace(0, self.nb_features * self.max_percentage_perturbed, self.steps+1,
+                            dtype=np.int32)
 
         scores = []
         if self.causal_mode == "deletion":
@@ -462,7 +457,9 @@ class CausalFidelityTS(ExplanationMetric):
                                         return_dict=True)
             scores.append(score[self.metric])
 
-        auc = abs(np.mean(scores) - self.model_baseline)
+        # compute auc with trapeze
+        np_scores = np.array(scores)
+        auc = np.mean(np_scores[:-1] + np_scores[1:]) * 0.5
 
         return auc
 
