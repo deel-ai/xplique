@@ -30,7 +30,8 @@ def generate_timeseries_model(input_shape=(20, 10), output_shape=10):
     model.add(GlobalAveragePooling1D())
     model.add(Dense(output_shape))
     model.add(Activation('softmax'))
-    model.compile(loss='categorical_crossentropy', optimizer='sgd')
+    model.compile(loss='categorical_crossentropy', optimizer='sgd',
+                  metrics=['accuracy'])
 
     return model
 
