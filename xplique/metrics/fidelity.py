@@ -404,6 +404,31 @@ class CausalFidelityTS(ExplanationMetric):
             Metric score, area over the deletion (lower is better) or insertion (higher is
             better) curve.
         """
+        scores_dict = self.detailed_evaluate(explanations)
+
+        # compute auc with trapeze
+        np_scores = np.array(list(scores_dict.values()))
+        auc = np.mean(np_scores[:-1] + np_scores[1:]) * 0.5
+
+        return auc
+
+    def detailed_evaluate(self,
+                          explanations: Union[tf.Tensor, np.ndarray]) -> dict:
+        """
+        Evaluate model performance for successive perturbations of an input.
+        Used to compute causal score for time series explanations
+
+        Parameters
+        ----------
+        explanations
+            Explanation for the inputs, labels to evaluate.
+
+        Returns
+        -------
+        causal_score_dict
+            Metric score, area over the deletion (lower is better) or insertion (higher is
+            better) curve.
+        """
         explanations = np.array(explanations)
         assert explanations.shape == self.inputs.shape, "The number of explanations must be the " \
                                                         "same as the number of inputs"
@@ -433,7 +458,6 @@ class CausalFidelityTS(ExplanationMetric):
         steps = np.linspace(0, self.nb_features * self.max_percentage_perturbed, self.steps+1,
                             dtype=np.int32)
 
-        scores = []
         if self.causal_mode == "deletion":
             start = self.inputs_flatten
             end = baselines_flatten
@@ -443,6 +467,7 @@ class CausalFidelityTS(ExplanationMetric):
         else:
             raise NotImplementedError(f'Unknown causal mode `{self.causal_mode}`.')
 
+        scores_dict = {}
         for step in steps:
             ids_to_flip = most_important_features[:, :step]
             perturbed_inputs = start.copy()
@@ -455,13 +480,9 @@ class CausalFidelityTS(ExplanationMetric):
             score = self.model.evaluate(perturbed_inputs, self.targets,
                                         self.batch_size, verbose=0,
                                         return_dict=True)
-            scores.append(score[self.metric])
+            scores_dict[step] = score[self.metric]
 
-        # compute auc with trapeze
-        np_scores = np.array(scores)
-        auc = np.mean(np_scores[:-1] + np_scores[1:]) * 0.5
-
-        return auc
+        return scores_dict
 
 
 class DeletionTS(CausalFidelityTS):
