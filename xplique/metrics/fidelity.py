@@ -10,7 +10,7 @@ from scipy.stats import spearmanr
 
 from .base import ExplanationMetric
 from ..commons import batch_predictions_one_hot
-from ..types import Union, Callable, Optional
+from ..types import Union, Callable, Optional, Dict
 
 
 class MuFidelity(ExplanationMetric):
@@ -154,6 +154,7 @@ class CausalFidelity(ExplanationMetric):
         Value of the baseline state, will be called with the inputs if it is a function.
     steps
         Number of steps between the start and the end state.
+        Can be set to -1 for all possible steps to be computed.
     max_percentage_perturbed
         Maximum percentage of the input perturbed.
     """
@@ -172,14 +173,17 @@ class CausalFidelity(ExplanationMetric):
         super().__init__(model, inputs, targets, batch_size)
         self.causal_mode = causal_mode
         self.baseline_mode = baseline_mode
-        self.steps = steps
 
         self.nb_features = np.prod(inputs.shape[1:-1])
         self.inputs_flatten = inputs.reshape((len(inputs), self.nb_features, inputs.shape[-1]))
 
         assert 0.0 < max_percentage_perturbed <= 1.0, "`max_percentage_perturbed` must be" \
                                                       "in ]O, 1]."
-        self.max_percentage_perturbed = max_percentage_perturbed
+        self.max_nb_perturbed = tf.math.floor(self.nb_features * max_percentage_perturbed)
+
+        if steps == -1:
+            steps = self.max_nb_perturbed
+        self.steps = steps
 
     def evaluate(self,
                  explanations: Union[tf.Tensor, np.ndarray]) -> float:
@@ -197,6 +201,41 @@ class CausalFidelity(ExplanationMetric):
             Metric score, area over the deletion (lower is better) or insertion (higher is
             better) curve.
         """
+        scores_dict = self.detailed_evaluate(explanations)
+
+        # compute auc using trapezoidal rule (the steps are equally distributed)
+        np_scores = np.array(list(scores_dict.values()))
+        auc = np.mean(np_scores[:-1] + np_scores[1:]) * 0.5
+
+        return auc
+
+    def detailed_evaluate(self,
+                          explanations: Union[tf.Tensor, np.ndarray]) -> Dict[int, float]:
+        """
+        Evaluate model performance for successive perturbations of an input.
+        Used to compute causal score.
+
+        The successive perturbations in the Insertion and Deletion metrics create a list of scores.
+        This list of scores make a score evolution curve.
+        The AUC of such curve is used as an explanation metric.
+        However, the curve in itself is rich in information,
+        its visualization and interpretation can bring further comprehension
+        on the explanation and the model.
+        Therefore this method was added so that it is possible to construct such curves.
+
+        Parameters
+        ----------
+        explanations
+            Explanation for the inputs, labels to evaluate.
+
+        Returns
+        -------
+        causal_score_dict
+            Dictionary of scores obtain for different perturbations
+            Keys are the steps, i.e the number of features perturbed
+            Values are the scores, the score of the model
+                on the inputs with the corresponding number of features perturbed
+        """
         explanations = np.array(explanations)
         assert len(explanations) == len(self.inputs), "The number of explanations must be the " \
                                                       "same as the number of inputs"
@@ -213,10 +252,8 @@ class CausalFidelity(ExplanationMetric):
             np.ones_like(self.inputs, dtype=np.float32) * self.baseline_mode
         baselines_flatten = baselines.reshape(self.inputs_flatten.shape)
 
-        steps = np.linspace(0, self.nb_features * self.max_percentage_perturbed, self.steps+1,
-                            dtype=np.int32)
+        steps = np.linspace(0, self.max_nb_perturbed, self.steps+1, dtype=np.int32)
 
-        scores = []
         if self.causal_mode == "deletion":
             start = self.inputs_flatten
             end = baselines_flatten
@@ -226,6 +263,7 @@ class CausalFidelity(ExplanationMetric):
         else:
             raise NotImplementedError(f'Unknown causal mode `{self.causal_mode}`.')
 
+        scores_dict = {}
         for step in steps:
             ids_to_flip = most_important_features[:, :step]
             batch_inputs = start.copy()
@@ -237,13 +275,10 @@ class CausalFidelity(ExplanationMetric):
 
             predictions = batch_predictions_one_hot(self.model, batch_inputs,
                                                     self.targets, self.batch_size)
-            scores.append(predictions)
 
-        # compute auc using trapezoidal rule (the steps are equally reparted)
-        avg_scores = np.mean(scores, -1)
-        auc = np.mean(avg_scores[:-1] + avg_scores[1:]) * 0.5
+            scores_dict[step] = np.mean(predictions)
 
-        return auc
+        return scores_dict
 
 
 class Deletion(CausalFidelity):
@@ -269,6 +304,7 @@ class Deletion(CausalFidelity):
         Value of the baseline state, will be called with the inputs if it is a function.
     steps
         Number of steps between the start and the end state.
+        Can be set to -1 for all possible steps to be computed.
     max_percentage_perturbed
         Maximum percentage of the input perturbed.
     """
@@ -309,6 +345,7 @@ class Insertion(CausalFidelity):
         Value of the baseline state, will be called with the inputs if it is a function.
     steps
         Number of steps between the start and the end state.
+        Can be set to -1 for all possible steps to be computed.
     max_percentage_perturbed
         Maximum percentage of the input perturbed.
     """
@@ -382,11 +419,11 @@ class CausalFidelityTS(ExplanationMetric):
 
         assert 0 < max_percentage_perturbed <= 1, \
             "max_percentage_perturbed should be between 0 and 1"
-        self.max_percentage_perturbed = max_percentage_perturbed
+        self.max_nb_perturbed = int(self.nb_features * max_percentage_perturbed)
 
         if steps == -1:
-            steps = self.max_percentage_perturbed * self.nb_features
-        self.steps = int(steps)
+            steps = self.max_nb_perturbed
+        self.steps = steps
 
     def evaluate(self,
                  explanations: Union[tf.Tensor, np.ndarray]) -> float:
@@ -401,8 +438,7 @@ class CausalFidelityTS(ExplanationMetric):
         Returns
         -------
         causal_score
-            Metric score, area over the deletion (lower is better) or insertion (higher is
-            better) curve.
+            Metric score (for interpretation, see score interpretation in the documentation).
         """
         scores_dict = self.detailed_evaluate(explanations)
 
@@ -413,10 +449,18 @@ class CausalFidelityTS(ExplanationMetric):
         return auc
 
     def detailed_evaluate(self,
-                          explanations: Union[tf.Tensor, np.ndarray]) -> dict:
+                          explanations: Union[tf.Tensor, np.ndarray]) -> Dict[int, float]:
         """
         Evaluate model performance for successive perturbations of an input.
-        Used to compute causal score for time series explanations
+        Used to compute causal score for time series explanations.
+
+        The successive perturbations in the Insertion and Deletion metrics create a list of scores.
+        This list of scores make a score evolution curve.
+        The AUC of such curve is used as an explanation metric.
+        However, the curve in itself is rich in information,
+        its visualization and interpretation can bring further comprehension
+        on the explanation and the model.
+        Therefore this method was added so that it is possible to construct such curves.
 
         Parameters
         ----------
@@ -426,8 +470,10 @@ class CausalFidelityTS(ExplanationMetric):
         Returns
         -------
         causal_score_dict
-            Metric score, area over the deletion (lower is better) or insertion (higher is
-            better) curve.
+            Dictionary of scores obtain for different perturbations
+            Keys are the steps, i.e the number of features perturbed
+            Values are the scores, the score of the model
+                on the inputs with the corresponding number of features perturbed
         """
         explanations = np.array(explanations)
         assert explanations.shape == self.inputs.shape, "The number of explanations must be the " \
@@ -455,8 +501,7 @@ class CausalFidelityTS(ExplanationMetric):
 
         baselines_flatten = baselines.reshape(self.inputs_flatten.shape)
 
-        steps = np.linspace(0, self.nb_features * self.max_percentage_perturbed, self.steps+1,
-                            dtype=np.int32)
+        steps = np.linspace(0, self.max_nb_perturbed, self.steps+1, dtype=np.int32)
 
         if self.causal_mode == "deletion":
             start = self.inputs_flatten
