@@ -64,7 +64,8 @@ class AverageStability(ExplainerMetric):
         self.noisy_masks = tf.random.uniform((nb_samples, *inputs.shape[1:]), 0, 1.0 / nb_variables)
 
     def evaluate(self,
-                 explainer: Callable) -> float:
+                 explainer: Callable,
+                 base_explanations: np.array = None) -> float:
         """
         Evaluate the fidelity score.
 
@@ -78,10 +79,11 @@ class AverageStability(ExplainerMetric):
         stability_score
             Average distance between the explanations
         """
-        explanations = np.array(explainer(self.inputs, self.targets))
+        if base_explanations is None:
+            base_explanations = np.array(explainer(self.inputs, self.targets))
 
         distances = []
-        for inp, label, phi in zip(self.inputs, self.targets, explanations):
+        for inp, label, phi in zip(self.inputs, self.targets, base_explanations):
             label = tf.repeat(label[None, :], self.nb_samples, 0)
             neighbors = inp + self.noisy_masks
             phis_neighbors = np.array(explainer(neighbors, label))

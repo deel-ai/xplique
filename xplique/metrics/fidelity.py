@@ -177,7 +177,7 @@ class CausalFidelity(ExplanationMetric):
         self.inputs_flatten = inputs.reshape((len(inputs), self.nb_features, inputs.shape[-1]))
 
         assert 0.0 < max_percentage_perturbed <= 1.0, "`max_percentage_perturbed` must be" \
-                                                      "in ]O, 1]."
+                                                      "in ]0, 1]."
         self.max_percentage_perturbed = max_percentage_perturbed
 
     def evaluate(self,
@@ -243,7 +243,7 @@ class CausalFidelity(ExplanationMetric):
         avg_scores = np.mean(scores, -1)
         auc = np.mean(avg_scores[:-1] + avg_scores[1:]) * 0.5
 
-        return auc,scores
+        return auc, scores
 
     def evaluateX(self,
                  explanations: Union[tf.Tensor, np.array],
