@@ -43,8 +43,8 @@ class AverageStability(ExplainerMetric):
                  targets: Optional[Union[tf.Tensor, np.ndarray]] = None,
                  batch_size: Optional[int] = 64,
                  radius: float = 0.1,
-                 distance: str = 'l2',
-                 nb_samples: int = 200):
+                 distance: Union[str, Callable] = 'l2',
+                 nb_samples: int = 20):
         # pylint: disable=R0913
         super().__init__(model, inputs, targets, batch_size)
         self.radius = radius
@@ -65,7 +65,9 @@ class AverageStability(ExplainerMetric):
 
     def evaluate(self,
                  explainer: Callable,
-                 base_explanations: np.array = None) -> float:
+                 base_explanations: Optional[Union[tf.Tensor, np.ndarray]] = None,
+        ) -> float:
+        # pylint: disable=W0221
         """
         Evaluate the fidelity score.
 
@@ -73,6 +75,9 @@ class AverageStability(ExplainerMetric):
         ----------
         explainer
             Explainer or Explanations associated to each inputs.
+        base_explanations
+            Explanation for the inputs under study. Calculates them automatically if they are
+            not provided.
 
         Returns
         -------
