@@ -20,15 +20,18 @@ class Lime(BlackBoxExplainer):
     Ref. Ribeiro & al., "Why Should I Trust You?": Explaining the Predictions of Any Classifier.
     https://arxiv.org/abs/1602.04938
 
+    Notes
+    -----
+
     Note that the quality of an explanation relies strongly on your choice of the interpretable
     model, the similarity kernel and the map function mapping a sample into an interpretable space.
-    The similarity kernel will define how close the pertubed samples are from the original sample
+    The similarity kernel will define how close the perturbed samples are from the original sample
     you want to explain.
-    For instance, if you have large images (e.g 299x299x3) the default similarity kernel with the
-    kernel width of 1 will compute similarities really close to 0 consequently the interpretable
-    model will not train. In order to makes it work you have to use (for example) a larger kernel
+    For instance, if you have large images (e.g 299x299x3) a similarity kernel with the argument
+    kernel width of 1 will compute similarities really close to 0. Consequently the interpretable
+    model will not train. In order to make it work you have to use (for example) a larger kernel
     width.
-    Moreover, depending on the similarities vector you obtain some interpretable model will fit
+    Moreover, depending on the similarities vector some interpretable model will fit
     better than other (e.g Ridge on large colored image might perform better than Lasso).
     Finally, your map function will defines how many features your linear model has to learn.
     Basically, an identity mapping (map each pixel as a single feature), on large image means there
@@ -37,6 +40,56 @@ class Lime(BlackBoxExplainer):
 
     N.B: This module was built to be deployed on GPU to be fully efficient. Considering the number
     of samples and number of inputs you want to process it might even be necessary.
+
+    Parameters
+    ----------
+    model
+        The model from which we want to obtain explanations
+    batch_size
+        Number of perturbed samples to process at once, mandatory when nb_samples is huge.
+        Notice, it is different compare to WhiteBox explainers which batch the inputs.
+        Here inputs are process one by one.
+    interpretable_model
+        Model object to train interpretable model.
+        See the documentation for more information.
+    similarity_kernel
+        Function which considering an input, perturbed instances of these input and
+        the interpretable version of those perturbed samples compute the similarities between
+        the input and the perturbed samples.
+        See the documentation for more information.
+    pertub_func
+        Function which generate perturbed interpretable samples in the interpretation space from
+        the number of interpretable features (e.g nb of super pixel) and the number of perturbed
+        samples you want per original input.
+        See the documentation for more information.
+    ref_value
+        It defines reference value which replaces each feature when the corresponding
+        interpretable feature is set to 0.
+        It should be provided as: a ndarray of shape (1) if there is no channels in your input
+        and (C,) otherwise
+
+        The default ref value is set to (0.5,0.5,0.5) for inputs with 3 channels (corresponding
+        to a grey pixel when inputs are normalized by 255) and to 0 otherwise.
+    map_to_interpret_space
+        Function which group features of an input corresponding to the same interpretable
+        feature (e.g super-pixel).
+        It allows to transpose from (resp. to) the original input space to (resp. from)
+        the interpretable space.
+        See the documentation for more information.
+    nb_samples
+        The number of perturbed samples you want to generate for each input sample.
+        Default to 150.
+    prob
+        The probability argument for the default pertub function.
+    distance_mode
+        The distance mode used in the default similarity kernel, you can choose either
+        "euclidean" or "cosine" (will compute cosine similarity).
+        Default value set to "euclidean".
+    kernel_width
+        Width of your kernel. It is important to make it evolving depending on your inputs size
+        otherwise you will get all similarity close to 0 leading to poor performance or NaN
+        values.
+        Default to 45 (i.e adapted for RGB images).
     """
     def __init__(
         self,
@@ -52,124 +105,6 @@ class Lime(BlackBoxExplainer):
         kernel_width: float = 45.0,
         prob: float = 0.5
         ): # pylint: disable=R0913
-        """
-        Parameters
-        ----------
-        model
-            Model that you want to explain.
-
-        batch_size
-            Number of pertubed samples to process at once, mandatory when nb_samples is huge.
-            Notice, it is different compare to WhiteBox explainers which batch the inputs.
-            Here inputs are process one by one.
-
-        interpretable_model
-            Model object to train interpretable model.
-            A Model object provides a `fit` method to train the model,
-            containing three array:
-
-            - interpretable_inputs: ndarray (2D nb_samples x num_interp_features),
-            - expected_outputs: ndarray (1D nb_samples),
-            - weights: ndarray (1D nb_samples)
-
-            The model object should also provide a `predict` and `fit` method.
-            It should also have a coef_ attributes (the interpretable explanation) at least
-            once `fit` is called.
-            As interpretable model you can use linear models from scikit-learn.
-            Note that here nb_samples doesn't indicates the length of inputs but the number of
-            pertubed samples we want to generate for each input.
-
-        similarity_kernel
-            Function which considering an input, pertubed instances of thoses samples and
-            the interpretable version of those pertubed samples compute the similarities.
-            The similarities can be computed in the original input space or in the interpretable
-            space.
-            You can provide a custom function. Note that to use a custom function, you have to
-            follow the following scheme:
-
-            def custom_similarity(
-                original_input, interpret_samples , pertubed_samples
-            ) -> tf.tensor (shape=(nb_samples,), dtype = tf.float32):
-                ** some tf actions **
-                return similarities
-
-            where:
-                original_input has shape (W (,H,C))
-                interpret_samples is a tf.tensor (nb_samples, num_interp_features)
-                pertubed_samples are tf.tensor (nb_samples, W (,H, C))
-            If it is possible you can add the tf.function decorator.
-
-            The default similarity kernel use the euclidean distance between the original input and
-            sample in the input space.
-
-        pertub_function
-            Function which generate pertubed interpretable samples in the interpretation space from
-            the number of interpretable features (e.g nb of super pixel) and the number of pertubed
-            samples you want per original sample.
-            The generated interp_samples belong to {0,1}^num_features. Where 1 indicates that we
-            keep the corresponding feature (e.g super pixel) in the mapping.
-            To use your own custom pertub function you should use the following scheme:
-
-            @tf.function
-            def custom_pertub_function(num_features, nb_samples) ->
-            tf.tensor (shape=(nb_samples, num_interp_features), dtype=tf.int32):
-                ** some tf actions**
-                return pertubed_sample
-
-            The default pertub function provided keep a feature (e.g super pixel) with a
-            probability 0.5.
-            If you want to change it, defines your own prob value when initiating the explainer.
-
-        ref_value
-            It defines reference value which replaces each feature when the corresponding
-            interpretable feature is set to 0.
-            It should be provided as: a ndarray of shape (1) if there is no channels in your input
-            and (C,) otherwise
-
-            The default ref value is set to (0.5,0.5,0.5) for inputs with 3 channels (corresponding
-            to a grey pixel when inputs are normalized by 255) and to 0 otherwise.
-
-        map_to_interpret_space
-            Function which group an input features which correspond to the same interpretable
-            feature (e.g super-pixel).
-            It allows to transpose from (resp. to) the original input space to (resp. from)
-            the interpretable space.
-            The default mapping is:
-                - the quickshift segmentation algorithm for inputs with (N, W, H, C) shape,
-                we assume here such shape is used to represent (W, H, C) images.
-                - the felzenszwalb segmentation algorithm for inputs with (N, W, H) shape,
-                we assume here such shape is used to represent (W, H) images.
-                - an identity mapping if inputs has shape (N, W), we assume here your inputs
-                are tabular data.
-
-            To use your own custom map function you should use the following scheme:
-
-            def custom_map_to_interpret_space(input: tf.tensor (W (, H, C) )) ->
-            tf.tensor (W (, H)):
-                **some grouping techniques**
-                return mappings
-
-            For instance you can use the scikit-image (as we did for the quickshift algorithm)
-            library to defines super pixels on your images.
-
-        nb_samples
-            The number of pertubed samples you want to generate for each input sample.
-            Default to 150.
-
-        prob
-            The probability argument for the default pertub function.
-
-        distance_mode
-            The distance mode used in the default similarity kernel, you can choose either
-            "euclidean" or "cosine" (will compute cosine similarity).
-            Default value set to "euclidean".
-
-        kernel_width
-            Width of your kernel. It is important to make it evolving depending on your inputs size
-            otherwise you will get all similarity close to 0 leading to poor performance or NaN
-            values.
-            Default to 45 (i.e adapted for RGB images).
-        """
 
         if not all(hasattr(interpretable_model, attr) for attr in ['fit', 'predict']):
             raise ValueError(
@@ -186,10 +121,10 @@ class Lime(BlackBoxExplainer):
 
         if (nb_samples>=500) and (batch_size is None):
             warnings.warn(
-                "You set a number of pertubed samples per input >= 500 and "
+                "You set a number of perturbed samples per input >= 500 and "
                 "batch_size is set to None"
                 "This mean that you will ask your model to handle more than 500"
-                " pertubed samples per input at once."
+                " perturbed samples per input at once."
                 "This can lead to OOM issue. To avoid it you can set the"
                 " batch_size argument."
             )
@@ -206,7 +141,7 @@ class Lime(BlackBoxExplainer):
     @sanitize_input_output
     def explain(self,
                 inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
-                targets: Optional[Union[tf.Tensor, np.ndarray]] = None) -> np.ndarray:
+                targets: Optional[Union[tf.Tensor, np.ndarray]] = None) -> tf.Tensor:
         """
         This method attributes the output of the model with given targets
         to the inputs of the model using the approach described above,
@@ -216,18 +151,20 @@ class Lime(BlackBoxExplainer):
         Parameters
         ----------
         inputs
-            Tensor or numpy array of shape (N, W (, H, C))
-            Input samples, with N number of samples, W (& H) the sample dimension(s) (and C the
-            number of channels).
-
+            Dataset, Tensor or Array. Input samples to be explained.
+            If Dataset, targets should not be provided (included in Dataset).
+            Expected shape among (N, W), (N, T, W), (N, W, H, C).
+            More information in the documentation.
         targets
-            Tensor or numpy array of shape (N, L)
-            One-hot encoded labels or regression target (e.g {+1, -1}), one for each input.s.
+            Tensor or Array. One-hot encoding of the model's output from which an explanation
+            is desired. One encoding per input and only one output at a time. Therefore,
+            the expected shape is (N, output_size).
+            More information in the documentation.
 
         Returns
         -------
         explanations
-            Numpy array of shape: (N, W (, H))
+            Interpretable coefficients, same shape as the inputs, except for the channels.
             Coefficients of the interpretable model. Those coefficients having the size of the
             interpretable space will be given the same value to coefficient which were grouped
             together (e.g belonging to the same super-pixel).
@@ -303,47 +240,38 @@ class Lime(BlackBoxExplainer):
         Parameters
         ----------
         model
-            Model to explain.
-
+            The model from which we want to obtain explanations
         inputs
-            Tensor of shape (N, W (, H, C))
-            Input samples, with N number of samples, W (& H) the sample dimension(s) (and C the
-            number of channels).
-
+            Dataset, Tensor or Array. Input samples to be explained.
+            If Dataset, targets should not be provided (included in Dataset).
+            Expected shape among (N, W), (N, T, W), (N, W, H, C).
+            More information in the documentation.
         targets
-            Tensor of shape (N, L)
-            One-hot encoded labels or regression target (e.g {+1, -1}), one for each sample.
-
+            Tensor or Array. One-hot encoding of the model's output from which an explanation
+            is desired. One encoding per input and only one output at a time.
+            More information in the documentation.
         inference_function
             Function that allows to get the probability output of the model
-
         interpretable_model
             Model object to train interpretable model.
-
         similarity_kernel
-            Function which considering an input, pertubed instances of thoses samples and the
-            interpretable version of those pertubed samples compute the similarities.
-            The similarities can be computed in the original input space or in the interpretable
-            space.
-
+            Function which considering an input, perturbed instances of thoses samples and the
+            interpretable version of those perturbed samples compute the similarities.
         pertub_function
-            Function which generate pertubed interpretable samples in the interpretation space.
-
+            Function which generate perturbed interpretable samples in the interpretation space.
         ref_values
             It defines reference value which replaces each feature when the corresponding
             interpretable feature is set to 0.
-
         map_to_interpret_space
-            Function which group an input features which correspond to the same interpretable
+            Function which group features of an input corresponding to the same interpretable
             feature (e.g super-pixel).
-
         nb_samples
-            The number of pertubed samples you want to generate for each input sample.
+            The number of perturbed samples you want to generate for each input sample.
 
         Returns
         -------
         explanations
-            Tensor of shape: (N, W (, H))
+            A Tensor
             Coefficients of the interpretable model. Those coefficients having the size of the
             interpretable space will be given the same value to coefficient which were grouped
             together (e.g belonging to the same super-pixel).
@@ -364,32 +292,32 @@ class Lime(BlackBoxExplainer):
                     "model. You should consider using a map function which select less features."
                 )
 
-            # get pertubed interpretable samples of the input
+            # get perturbed interpretable samples of the input
             interpret_samples = pertub_func(num_features, nb_samples)
 
-            # get the pertubed targets value and the similarities value
-            pertubed_targets = []
+            # get the perturbed targets value and the similarities value
+            perturbed_targets = []
             similarities = []
             for int_samples in tf.data.Dataset.from_tensor_slices(
                 interpret_samples
             ).batch(batch_size):
 
                 masks = Lime._get_masks(int_samples, mapping)
-                pertubed_samples = Lime._apply_masks(inp, masks, ref_value)
+                perturbed_samples = Lime._apply_masks(inp, masks, ref_value)
 
                 augmented_target = tf.expand_dims(target, axis=0)
-                augmented_target = tf.repeat(augmented_target, len(pertubed_samples), axis=0)
+                augmented_target = tf.repeat(augmented_target, len(perturbed_samples), axis=0)
 
-                batch_pertubed_targets = inference_function(model,
-                                                            pertubed_samples,
+                batch_perturbed_targets = inference_function(model,
+                                                            perturbed_samples,
                                                             augmented_target)
 
-                pertubed_targets.append(batch_pertubed_targets)
+                perturbed_targets.append(batch_perturbed_targets)
 
-                batch_similarities = similarity_kernel(inp, int_samples, pertubed_samples)
+                batch_similarities = similarity_kernel(inp, int_samples, perturbed_samples)
                 similarities.append(batch_similarities)
 
-            pertubed_targets = tf.concat(pertubed_targets, axis=0)
+            perturbed_targets = tf.concat(perturbed_targets, axis=0)
             similarities = tf.concat(similarities, axis=0)
 
             # train the interpretable model
@@ -397,7 +325,7 @@ class Lime(BlackBoxExplainer):
 
             explain_model.fit(
                 interpret_samples.numpy(),
-                pertubed_targets.numpy(),
+                perturbed_targets.numpy(),
                 sample_weight=similarities.numpy()
             )
 
@@ -435,14 +363,13 @@ class Lime(BlackBoxExplainer):
                 nb_samples number of samples
                 num_features the dimension of the interpretable space.
         mapping
-            Tensor of shape (W (, H))
+            Tensor
             The mapping of the original input from which we drawn interpretable samples.
             Its size is equal to width (and height) of the original input
 
         Returns
         -------
         masks
-            Tensor of shape (nb_samples, W (, H))
             The masks corresponding to each interpretable samples
         """
         tf_masks = tf.gather(interpret_samples, indices=mapping, axis=1)
@@ -454,27 +381,23 @@ class Lime(BlackBoxExplainer):
                      sample_masks: tf.Tensor,
                      ref_value: tf.Tensor) -> tf.Tensor:
         """
-        This method apply masks obtained from the pertubed interpretable samples to the
-        original input (i.e we get pertubed samples in the original space).
+        This method apply masks obtained from the perturbed interpretable samples to the
+        original input (i.e we get perturbed samples in the original space).
 
         Parameters
         ----------
         original_input
-            Tensor of shape (W (, H, C))
             The input we want to explain
         sample_masks
-            Tensor of shape (nb_samples, W (, H))
-            The masks we obtained from the pertubed instances in the interpretable space
+            The masks we obtained from the perturbed instances in the interpretable space
         ref_value
-            Tensor of shape (1) or (C,)
             The reference value which replaces each feature when the corresponding
             interpretable feature is set to 0
 
         Returns
         -------
-        pertubed_samples
-            Tensor of shape (nb_samples, W (, H, C))
-            The pertubed samples corresponding to the masks applied to the original input
+        perturbed_samples
+            The perturbed samples corresponding to the masks applied to the original input
         """
         pert_samples = tf.expand_dims(original_input, axis=0)
         pert_samples = tf.repeat(pert_samples, repeats=len(sample_masks), axis=0)
@@ -512,20 +435,15 @@ class Lime(BlackBoxExplainer):
         Parameters
         ----------
         explanation
-            Tensor of shape (num_features)
             Explanation value for each super pixel
         mapping
-            Tensor of shape (W (,H))
             The mapping of the original input from which we drawn interpretable samples
             (i.e features index).
-            Its size is equal to width of the original input
 
         Returns
         -------
         broadcast_explanation
-            Tensor of shape (W)
             The explanation of the current input considered
-
         """
 
         broadcast_explanation = tf.gather(explanation, indices=mapping, axis=0)
@@ -553,13 +471,13 @@ class Lime(BlackBoxExplainer):
             num_features
                 The number of interpretable features (e.g super pixel).
             nb_samples
-                The number of pertubed interpretable samples we want
+                The number of perturbed interpretable samples we want
             prob:
                 It defines the probability to draw a 1
 
             Returns
             -------
-            interpretable_pertubed_samples
+            interpretable_perturbed_samples
                 Tensor of shape (nb_samples, num_features)
             """
 
@@ -580,7 +498,7 @@ class Lime(BlackBoxExplainer):
     ) -> Callable[[tf.Tensor, tf.Tensor, tf.Tensor], tf.Tensor]:
         """
         This method allow to get the function which compute:
-            exp(-D(original_input,pertubed_sample)^2/kernel_width^2)
+            exp(-D(original_input,perturbed_sample)^2/kernel_width^2)
         Where D is the distance defined by distance mode.
 
         Parameters
@@ -593,9 +511,8 @@ class Lime(BlackBoxExplainer):
         Returns
         -------
         similarity_kernel
-            This callable should return distances between inputs and its pertubed samples
+            This callable should return distances between inputs and its perturbed samples
             (either in original space or in the interpretable space).
-
         """
         kernel_width = tf.cast(kernel_width,dtype=tf.float32)
 
@@ -610,7 +527,7 @@ class Lime(BlackBoxExplainer):
             def _euclidean_similarity_kernel(
                 original_input,
                 interp_samples,
-                pertubed_samples
+                perturbed_samples
             ) -> tf.Tensor:
             # pylint: disable=unused-argument
 
@@ -618,7 +535,7 @@ class Lime(BlackBoxExplainer):
                 augmented_input = tf.repeat(augmented_input, repeats=len(interp_samples), axis=0)
 
                 flatten_inputs = tf.reshape(augmented_input, [len(interp_samples),-1])
-                flatten_samples = tf.reshape(pertubed_samples, [len(interp_samples),-1])
+                flatten_samples = tf.reshape(perturbed_samples, [len(interp_samples),-1])
 
                 distances = tf.norm(flatten_inputs - flatten_samples, ord='euclidean', axis=1)
 
@@ -639,7 +556,7 @@ class Lime(BlackBoxExplainer):
             def _cosine_similarity_kernel(
                 original_input,
                 interp_samples,
-                pertubed_samples
+                perturbed_samples
             ) -> tf.Tensor:
             # pylint: disable=unused-argument
 
@@ -647,7 +564,7 @@ class Lime(BlackBoxExplainer):
                 augmented_input = tf.repeat(augmented_input, repeats=len(interp_samples), axis=0)
 
                 flatten_inputs = tf.reshape(augmented_input, [len(interp_samples),-1])
-                flatten_samples = tf.reshape(pertubed_samples, [len(interp_samples),-1])
+                flatten_samples = tf.reshape(perturbed_samples, [len(interp_samples),-1])
 
                 distances = 1.0 - cosine_similarity(flatten_inputs, flatten_samples, axis=1)
                 similarities = tf.exp(-1.0 * (distances**2) / (kernel_width**2))
@@ -666,14 +583,11 @@ class Lime(BlackBoxExplainer):
         Parameters
         ----------
         inputs
-            Tensor of shape (W, H, C)
-            Input sample, W & H the sample dimensions, and C the
-            number of channels.
+            A single Input sample
 
         Returns
         -------
         mappings
-            Tensor of shape (W, H)
             Mappings which map each pixel to the corresponding segment
         """
         mapping = quickshift(inp.numpy().astype('double'), ratio=0.5, kernel_size=2)
@@ -689,13 +603,11 @@ class Lime(BlackBoxExplainer):
         Parameters
         ----------
         inputs
-            Tensor of shape (W, H)
-            Input sample, W & H the sample dimensions.
+            A single Input sample
 
         Returns
         -------
         mappings
-            Tensor of shape (W, H)
             Mappings which map each pixel to the corresponding segment
         """
         mapping = felzenszwalb(inp.numpy().astype('double'))
@@ -711,14 +623,12 @@ class Lime(BlackBoxExplainer):
 
         Parameters
         ----------
-        input
-            Tensor of shape (W)
-            Input sample, W the sample dimensions.
+        inp
+            A single Input sample
 
         Returns
         -------
         mappings
-            Tensor of shape (W)
             Mappings which map each pixel to the corresponding segment
         """
         mapping = tf.range(len(inp))
