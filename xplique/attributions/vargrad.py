@@ -17,13 +17,16 @@ class VarGrad(SmoothGrad):
     Parameters
     ----------
     model
-        Model used for computing explanations.
+        The model from which we want to obtain explanations
     output_layer
-        Layer to target for the output (e.g logits or after softmax), if int, will be be interpreted
-        as layer index, if string will look for the layer name. Default to the last layer, it is
-        recommended to use the layer before Softmax.
+        Layer to target for the outputs (e.g logits or after softmax).
+        If an `int` is provided it will be interpreted as a layer index.
+        If a `string` is provided it will look for the layer name.
+
+        Default to the last layer.
+        It is recommended to use the layer before Softmax.
     batch_size
-        Number of samples to explain at once, if None compute all at once.
+        Number of inputs to explain at once, if None compute all at once.
     nb_samples
         Number of noisy samples generated for the smoothing procedure.
     noise

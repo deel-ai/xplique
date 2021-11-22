@@ -22,13 +22,16 @@ class DeconvNet(WhiteBoxExplainer):
     Parameters
     ----------
     model
-        Model used for computing explanations.
+        The model from which we want to obtain explanations
     output_layer
-        Layer to target for the output (e.g logits or after softmax), if int, will be be interpreted
-        as layer index, if string will look for the layer name. Default to the last layer, it is
-        recommended to use the layer before Softmax.
+        Layer to target for the outputs (e.g logits or after softmax).
+        If an `int` is provided it will be interpreted as a layer index.
+        If a `string` is provided it will look for the layer name.
+
+        Default to the last layer.
+        It is recommended to use the layer before Softmax.
     batch_size
-        Number of samples to explain at once, if None compute all at once.
+        Number of inputs to explain at once, if None compute all at once.
     """
 
     def __init__(self,
@@ -49,9 +52,15 @@ class DeconvNet(WhiteBoxExplainer):
         Parameters
         ----------
         inputs
-            Input samples to be explained.
+            Dataset, Tensor or Array. Input samples to be explained.
+            If Dataset, targets should not be provided (included in Dataset).
+            Expected shape among (N, W), (N, T, W), (N, W, H, C).
+            More information in the documentation.
         targets
-            One-hot encoded labels or regression target (e.g {+1, -1}), one for each sample.
+            Tensor or Array. One-hot encoding of the model's output from which an explanation
+            is desired. One encoding per input and only one output at a time. Therefore,
+            the expected shape is (N, output_size).
+            More information in the documentation.
 
         Returns
         -------
