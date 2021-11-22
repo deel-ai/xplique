@@ -11,13 +11,37 @@ from ..types import Callable, Union, Optional
 
 class KernelShap(Lime):
     """
-    By setting appropriately the pertubation function, the similarity kernel and the interpretable
+    By setting appropriately the perturbation function, the similarity kernel and the interpretable
     model in the LIME framework we can theoretically obtain the Shapley Values more efficiently.
     Therefore, KernelShap is a method based on LIME with specific attributes.
 
     More information regarding this method and proof of equivalence can be found in the
     original paper here:
     https://arxiv.org/abs/1705.07874
+
+    Parameters
+    ----------
+    model
+        The model from which we want to obtain explanations.
+    batch_size
+        Number of perturbed samples to process at once, mandatory when nb_samples is huge.
+        Notice, it is different compare to WhiteBox explainers which batch the inputs.
+        Here inputs are process one by one.
+    map_to_interpret_space
+        Function which group features of an input corresponding to the same interpretable
+        feature (e.g super-pixel).
+        It allows to transpose from (resp. to) the original input space to (resp. from)
+        the interpretable space.
+    nb_samples
+        The number of perturbed samples you want to generate for each input sample.
+        Default to 800.
+    ref_value
+        It defines reference value which replaces each feature when the corresponding
+        interpretable feature is set to 0.
+        It should be provided as: a ndarray of shape (1) if there is no channels in your input
+        and (C,) otherwise.
+        The default ref value is set to (0.5,0.5,0.5) for inputs with 3 channels (corresponding
+        to a grey pixel when inputs are normalized by 255) and to 0 otherwise.
     """
     def __init__(self,
                  model: Callable,
@@ -25,52 +49,7 @@ class KernelShap(Lime):
                  map_to_interpret_space: Optional[Callable] = None,
                  nb_samples: int = 800,
                  ref_value: Optional[np.ndarray] = None):
-        """
-        Parameters
-        ----------
-        model
-            Model that you want to explain.
 
-        batch_size
-            The batch size to predict the pertubed samples targets value.
-            Default to 64.
-
-        map_to_interpret_space
-            Function which group an input features which correspond to the same interpretable
-            feature (e.g super-pixel).
-            It allows to transpose from (resp. to) the original input space to (resp. from)
-            the interpretable space.
-            The default mapping is:
-                - the quickshift segmentation algorithm for inputs with (N, W, H, C) shape,
-                we assume here such shape is used to represent (W, H, C) images.
-                - the felzenszwalb segmentation algorithm for inputs with (N, W, H) shape,
-                we assume here such shape is used to represent (W, H) images.
-                - an identity mapping if inputs has shape (N, W), we assume here your inputs
-                are tabular data.
-
-            To use your own custom map function you should use the following scheme:
-
-            def custom_map_to_interpret_space(inputs: tf.tensor (N, W (, H, C) )) ->
-            tf.tensor (N, W (, H)):
-                **some grouping techniques**
-                return mappings
-
-            For instance you can use the scikit-image (as we did for the quickshift algorithm)
-            library to defines super pixels on your images..
-
-        nb_samples
-            The number of pertubed samples you want to generate for each input sample.
-            Default to 800.
-
-        ref_values
-            It defines reference value which replaces each feature when the corresponding
-            interpretable feature is set to 0.
-            It should be provided as: a ndarray of shape (1) if there is no channels in your input
-            and (C,) otherwise
-
-            The default ref value is set to (0.5,0.5,0.5) for inputs with 3 channels (corresponding
-            to a grey pixel when inputs are normalized by 255) and to 0 otherwise.
-        """
         Lime.__init__(
             self,
             model,
@@ -90,7 +69,7 @@ class KernelShap(Lime):
     def _kernel_shap_pertub_func(nb_features: Union[int, tf.Tensor],
                                  nb_samples: int) -> tf.Tensor:
         """
-        The pertubed instances are sampled that way:
+        The perturbed instances are sampled that way:
          - We choose a number of selected features k, considering the distribution
                 p(k) = (nb_features - 1) / (k * (nb_features - k))
             where nb_features is the total number of features in the interpretable space
@@ -148,13 +127,13 @@ class KernelShap(Lime):
     def _kernel_shap_similarity_kernel(
         original_input,
         interpret_samples,
-        pertubed_samples
+        perturbed_samples
     ) -> tf.Tensor:
     # pylint: disable=unused-argument
         """
-        This method compute the similarity between interpretable pertubed samples and
+        This method compute the similarity between interpretable perturbed samples and
         the original input (i.e a tf.ones(num_features)). The trick used for computation
-        reason is to instead of using the original similarity kernel to pick random pertubed
+        reason is to instead of using the original similarity kernel to pick random perturbed
         instances of interpretable sample in order to follow a certain probability rule, we
         let the pertub function create the pertub interpretable sample directly following
         this probability. Therefore, from the pertub function we can pick them with

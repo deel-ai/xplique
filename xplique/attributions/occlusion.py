@@ -23,9 +23,10 @@ class Occlusion(BlackBoxExplainer):
     Parameters
     ----------
     model
-        Model used for computing explanations.
+        The model from which we want to obtain explanations
     batch_size
-        Number of masked samples to process at once, if None process all at once.
+        Number of pertubed samples to explain at once.
+        Default to 32.
     patch_size
         Size of the patches to apply, if integer then assume an hypercube.
     patch_stride
@@ -56,9 +57,15 @@ class Occlusion(BlackBoxExplainer):
         Parameters
         ----------
         inputs
-            Input samples to be explained.
+            Dataset, Tensor or Array. Input samples to be explained.
+            If Dataset, targets should not be provided (included in Dataset).
+            Expected shape among (N, W), (N, T, W), (N, W, H, C).
+            More information in the documentation.
         targets
-            One-hot encoded labels or regression target (e.g {+1, -1}), one for each sample.
+            Tensor or Array. One-hot encoding of the model's output from which an explanation
+            is desired. One encoding per input and only one output at a time. Therefore,
+            the expected shape is (N, output_size).
+            More information in the documentation.
 
         Returns
         -------
