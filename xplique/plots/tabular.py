@@ -13,9 +13,9 @@ def _sanitize_features_name(explanations, features_name):
     if features_name is None:
         single_explanation = len(explanations.shape)==1
         if single_explanation:
-            features_name = ["Feature %s"%(j) for j in range(len(explanations))]
+            features_name = [f"Feature {str(j)}" for j in range(len(explanations))]
         else:
-            features_name = ["Feature %s"%(j) for j in range(explanations.shape[1])]
+            features_name = [f"Feature {str(j)}" for j in range(explanations.shape[1])]
     return features_name
 
 def _select_features(explanations, max_display, features_name):
@@ -151,7 +151,9 @@ def plot_feature_impact(
         if features_value is None:
             yticklabels.append(features_name[idx_kept])
         else:
-            yticklabels.append("%0.03f"%(features_value[idx_kept]) +" = "+ features_name[idx_kept])
+            yticklabels.append(
+                f"{str(round(features_value[idx_kept], 3))} = {features_name[idx_kept]}"
+            )
 
     y_pos = np.arange(num_features_kept)  # the label locations
 
@@ -180,7 +182,7 @@ def plot_feature_impact(
             axes.text(
                 explanation_kept[i] - 0.02*xscale,
                 y_pos[i],
-                str("%0.02f"%explanation_kept[i]),
+                f"{str(round(explanation_kept[i], 2))}",
                 horizontalalignment='right',
                 verticalalignment='center',
                 fontsize=10
@@ -189,7 +191,7 @@ def plot_feature_impact(
             axes.text(
                 explanation_kept[i] + 0.02*xscale,
                 y_pos[i],
-                str("%0.02f"%explanation_kept[i]),
+                f"{str(round(explanation_kept[i], 2))}",
                 horizontalalignment='left',
                 verticalalignment='center',
                 fontsize=10
