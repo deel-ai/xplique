@@ -26,8 +26,6 @@ These governance committee members are the only ones able to merge pull requests
 
 The governance committee identifies among the contributors who by their merits can join the committee.
 
-.....
-
 ###	Contributors
 
 A contributor is anyone who comments any aspects relating to the project: comments on an issue or pull request, documentation, architecture, code and validation tests or anybody with a merged pull request.
@@ -37,8 +35,6 @@ All governance committee membres are contributors.
 ### Maintainers
 
 All contributors with write rights (commit rigths) are maintainers.
-
-....
 
 ### Contributions
 
