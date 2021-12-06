@@ -31,42 +31,17 @@ repos:
     hooks:
       - id: reorder-python-imports
 
-  - repo: https://github.com/asottile/seed-isort-config
-    rev: v1.9.2
-    hooks:
-      - id: seed-isort-config
-
   - repo: https://github.com/psf/black
     rev: 21.6b0
     hooks:
     - id: black
 
-  - repo: https://github.com/pycqa/pylint
-    rev: pylint-2.6.0
+  - repo: https://github.com/pre-commit/mirrors-pylint
+    rev: v3.0.0a3
     hooks:
-    - id: pylint
-      args:
-      - --max-line-length=100
-      - --ignore-imports=yes
-      - -d duplicate-code
-        # - --min-similarity-lines=6
-        # - --ignore-comments=yes
-        # - --ignore-docstrings=yes
-        # - --ignore-imports=no
+      - id: pylint
+        args: [--disable=all, --enable=unused-import --max-line-length=100]
 
-  # - repo: https://github.com/PyCQA/flake8
-  #   rev: 4.0.1
-  #   hooks:
-  #   - id: flake8
-  #     additional_dependencies:
-  #       - flake8-bugbear==21.3.2
-  #       # 1.6.0 has a bug
-  #       # https://gitlab.com/pycqa/flake8-docstrings/-/issues/51
-  #       - flake8-docstrings==1.5.0
-  #       - flake8-logging-format==0.6.0
-  #       - flake8-print==4.0.0
-  #       - pep8-naming==0.11.1
-  #     exclude: ^(tests)
 
   - repo: https://github.com/commitizen-tools/commitizen
     rev: v2.20.0
@@ -84,9 +59,3 @@ repos:
         args:
           - --license-filepath
           - LICENSES/headers/MIT-Clause.txt
-
-  - repo: https://github.com/commitizen-tools/commitizen
-    rev: v2.20.0
-    hooks:
-      - id: commitizen
-        stages: [commit-msg]
