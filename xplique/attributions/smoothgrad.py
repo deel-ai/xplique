@@ -1,13 +1,17 @@
 """
 Module related to SmoothGrad method
 """
-
-import tensorflow as tf
 import numpy as np
+import tensorflow as tf
 
-from .base import WhiteBoxExplainer, sanitize_input_output
-from ..commons import repeat_labels, batch_gradient, batch_tensor
-from ..types import Tuple, Union, Optional
+from ..commons import batch_gradient
+from ..commons import batch_tensor
+from ..commons import repeat_labels
+from ..types import Optional
+from ..types import Tuple
+from ..types import Union
+from .base import sanitize_input_output
+from .base import WhiteBoxExplainer
 
 
 class SmoothGrad(WhiteBoxExplainer):
@@ -34,20 +38,24 @@ class SmoothGrad(WhiteBoxExplainer):
         Scalar, noise used as standard deviation of a normal law centered on zero.
     """
 
-    def __init__(self,
-                 model: tf.keras.Model,
-                 output_layer: Optional[Union[str, int]] = -1,
-                 batch_size: Optional[int] = 32,
-                 nb_samples: int = 50,
-                 noise: float = 0.2):
+    def __init__(
+        self,
+        model: tf.keras.Model,
+        output_layer: Optional[Union[str, int]] = -1,
+        batch_size: Optional[int] = 32,
+        nb_samples: int = 50,
+        noise: float = 0.2,
+    ):
         super().__init__(model, output_layer, batch_size)
         self.nb_samples = nb_samples
         self.noise = noise
 
     @sanitize_input_output
-    def explain(self,
-                inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
-                targets: Optional[Union[tf.Tensor, np.ndarray]] = None) -> tf.Tensor:
+    def explain(
+        self,
+        inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
+        targets: Optional[Union[tf.Tensor, np.ndarray]] = None,
+    ) -> tf.Tensor:
         """
         Compute SmoothGrad for a batch of samples.
 
@@ -66,26 +74,35 @@ class SmoothGrad(WhiteBoxExplainer):
         smoothed_gradients = None
         batch_size = self.batch_size or len(inputs)
 
-        noisy_mask = SmoothGrad._get_noisy_mask((self.nb_samples, *inputs.shape[1:]), self.noise)
+        noisy_mask = SmoothGrad._get_noisy_mask(
+            (self.nb_samples, *inputs.shape[1:]), self.noise
+        )
 
-        for x_batch, y_batch in batch_tensor((inputs, targets),
-                                             max(batch_size // self.nb_samples, 1)):
+        for x_batch, y_batch in batch_tensor(
+            (inputs, targets), max(batch_size // self.nb_samples, 1)
+        ):
             noisy_inputs = SmoothGrad._apply_noise(x_batch, noisy_mask)
             repeated_targets = repeat_labels(y_batch, self.nb_samples)
             # compute the gradient of each noisy samples generated
-            gradients = batch_gradient(self.model, noisy_inputs, repeated_targets, batch_size)
+            gradients = batch_gradient(
+                self.model, noisy_inputs, repeated_targets, batch_size
+            )
             # group by inputs and compute the average gradient
-            gradients = tf.reshape(gradients, (-1, self.nb_samples, *gradients.shape[1:]))
+            gradients = tf.reshape(
+                gradients, (-1, self.nb_samples, *gradients.shape[1:])
+            )
             reduced_gradients = self._reduce_gradients(gradients)
 
-            smoothed_gradients = reduced_gradients if smoothed_gradients is None else tf.concat(
-                [smoothed_gradients, reduced_gradients], axis=0)
+            smoothed_gradients = (
+                reduced_gradients
+                if smoothed_gradients is None
+                else tf.concat([smoothed_gradients, reduced_gradients], axis=0)
+            )
 
         return smoothed_gradients
 
     @staticmethod
-    def _get_noisy_mask(shape: Tuple[int, int, int, int],
-                        noise: float) -> tf.Tensor:
+    def _get_noisy_mask(shape: Tuple[int, int, int, int], noise: float) -> tf.Tensor:
         """
         Create a random noise mask of the specified shape.
 
@@ -105,8 +122,7 @@ class SmoothGrad(WhiteBoxExplainer):
 
     @staticmethod
     @tf.function
-    def _apply_noise(inputs: tf.Tensor,
-                     noisy_mask: tf.Tensor) -> tf.Tensor:
+    def _apply_noise(inputs: tf.Tensor, noisy_mask: tf.Tensor) -> tf.Tensor:
         """
         Duplicate the samples and apply a noisy mask to each of them.
 
@@ -125,7 +141,9 @@ class SmoothGrad(WhiteBoxExplainer):
         """
         nb_samples = len(noisy_mask)
 
-        noisy_inputs = tf.repeat(tf.expand_dims(inputs, axis=1), repeats=nb_samples, axis=1)
+        noisy_inputs = tf.repeat(
+            tf.expand_dims(inputs, axis=1), repeats=nb_samples, axis=1
+        )
         noisy_inputs = noisy_inputs + noisy_mask
         noisy_inputs = tf.reshape(noisy_inputs, (-1, *noisy_inputs.shape[2:]))
 

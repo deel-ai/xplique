@@ -12,12 +12,14 @@ def test_tcav_computation():
     x = np.random.random((1000, 2))
     y = np.array(x > 0.5, np.float32)
 
-    model = tf.keras.Sequential([
-        tf.keras.layers.Input(2),
-        tf.keras.layers.Lambda(lambda x: tf.cast(x > 0.5, tf.float32)),
-        tf.keras.layers.Dense(2, activation='linear')
-    ])
-    model.compile(loss='mse', optimizer=tf.keras.optimizers.Adam(0.1))
+    model = tf.keras.Sequential(
+        [
+            tf.keras.layers.Input(2),
+            tf.keras.layers.Lambda(lambda x: tf.cast(x > 0.5, tf.float32)),
+            tf.keras.layers.Dense(2, activation="linear"),
+        ]
+    )
+    model.compile(loss="mse", optimizer=tf.keras.optimizers.Adam(0.1))
     model.fit(x, y, batch_size=32, epochs=1)
 
     # by forcing the model to learn this mapping, we should have the following

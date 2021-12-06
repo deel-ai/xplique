@@ -1,30 +1,39 @@
 """
 Optimisation functions
 """
-
 import tensorflow as tf
 
-from ..commons.model_override import override_relu_gradient, open_relu_policy
-from ..types import Optional, Union, List, Callable, Tuple
-from .preconditioning import fft_image, get_fft_scale, fft_to_rgb, to_valid_rgb
-from .transformations import generate_standard_transformations
+from ..commons.model_override import open_relu_policy
+from ..commons.model_override import override_relu_gradient
+from ..types import Callable
+from ..types import List
+from ..types import Optional
+from ..types import Tuple
+from ..types import Union
 from .objectives import Objective
+from .preconditioning import fft_image
+from .preconditioning import fft_to_rgb
+from .preconditioning import get_fft_scale
+from .preconditioning import to_valid_rgb
+from .transformations import generate_standard_transformations
 
 
-def optimize(objective: Objective,
-             optimizer: Optional[tf.keras.optimizers.Optimizer] = None,
-             nb_steps: int = 256,
-             use_fft: bool = True,
-             fft_decay: float = 0.85,
-             std: float = 0.01,
-             regularizers: Optional[List[Callable]] = None,
-             image_normalizer: str = 'sigmoid',
-             values_range: Tuple[float, float] = (0, 1),
-             transformations: Optional[Union[List[Callable], str]] = 'standard',
-             warmup_steps: int = False,
-             custom_shape: Optional[Tuple] = (512, 512),
-             save_every: Optional[int] = None) -> Tuple[List[tf.Tensor], List[str]]:
-             # pylint: disable=R0913,E1130
+def optimize(
+    objective: Objective,
+    optimizer: Optional[tf.keras.optimizers.Optimizer] = None,
+    nb_steps: int = 256,
+    use_fft: bool = True,
+    fft_decay: float = 0.85,
+    std: float = 0.01,
+    regularizers: Optional[List[Callable]] = None,
+    image_normalizer: str = "sigmoid",
+    values_range: Tuple[float, float] = (0, 1),
+    transformations: Optional[Union[List[Callable], str]] = "standard",
+    warmup_steps: int = False,
+    custom_shape: Optional[Tuple] = (512, 512),
+    save_every: Optional[int] = None,
+) -> Tuple[List[tf.Tensor], List[str]]:
+    # pylint: disable=R0913,E1130
     """
     Optimise a given objective using gradient ascent.
 
@@ -82,24 +91,29 @@ def optimize(objective: Objective,
     if custom_shape:
         img_shape = (img_shape[0], *custom_shape, img_shape[-1])
 
-    if transformations == 'standard':
+    if transformations == "standard":
         transformations = generate_standard_transformations(img_shape[1])
 
     if use_fft:
         inputs = tf.Variable(fft_image(img_shape, std), trainable=True)
         fft_scale = get_fft_scale(img_shape[1], img_shape[2], decay_power=fft_decay)
-        image_param = lambda inputs: to_valid_rgb(fft_to_rgb(img_shape, inputs, fft_scale),
-                                                  image_normalizer, values_range)
+        image_param = lambda inputs: to_valid_rgb(
+            fft_to_rgb(img_shape, inputs, fft_scale), image_normalizer, values_range
+        )
     else:
         inputs = tf.Variable(tf.random.normal(img_shape, std, dtype=tf.float32))
-        image_param = lambda inputs: to_valid_rgb(inputs, image_normalizer, values_range)
+        image_param = lambda inputs: to_valid_rgb(
+            inputs, image_normalizer, values_range
+        )
 
-    optimisation_step = _get_optimisation_step(objective_function,
-                                               len(model.outputs),
-                                               image_param,
-                                               input_shape,
-                                               transformations,
-                                               regularizers)
+    optimisation_step = _get_optimisation_step(
+        objective_function,
+        len(model.outputs),
+        image_param,
+        input_shape,
+        transformations,
+        regularizers,
+    )
 
     if warmup_steps:
         model_warmup = override_relu_gradient(model, open_relu_policy)
@@ -122,12 +136,13 @@ def optimize(objective: Objective,
 
 
 def _get_optimisation_step(
-        objective_function: Callable,
-        nb_outputs: int,
-        image_param: Callable,
-        input_shape: Tuple,
-        transformations: Optional[Callable] = None,
-        regularizers: Optional[List[Callable]] = None) -> Callable:
+    objective_function: Callable,
+    nb_outputs: int,
+    image_param: Callable,
+    input_shape: Tuple,
+    transformations: Optional[Callable] = None,
+    regularizers: Optional[List[Callable]] = None,
+) -> Callable:
     """
     Generate a function that optimize the objective function for a single step.
 

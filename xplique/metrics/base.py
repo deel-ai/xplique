@@ -1,14 +1,16 @@
 """
 Module related to abstract attribution metric
 """
+from abc import ABC
+from abc import abstractmethod
 
-from abc import ABC, abstractmethod
-
-import tensorflow as tf
 import numpy as np
+import tensorflow as tf
 
 from ..commons import numpy_sanitize
-from ..types import Callable, Optional, Union
+from ..types import Callable
+from ..types import Optional
+from ..types import Union
 
 
 class BaseAttributionMetric(ABC):
@@ -27,11 +29,13 @@ class BaseAttributionMetric(ABC):
         Number of samples to evaluate at once, if None compute all at once.
     """
 
-    def __init__(self,
-                 model: Callable,
-                 inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
-                 targets: Optional[Union[tf.Tensor, np.ndarray]] = None,
-                 batch_size: Optional[int] = 64):
+    def __init__(
+        self,
+        model: Callable,
+        inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
+        targets: Optional[Union[tf.Tensor, np.ndarray]] = None,
+        batch_size: Optional[int] = 64,
+    ):
         self.model = model
         self.inputs, self.targets = numpy_sanitize(inputs, targets)
         self.batch_size = batch_size
@@ -54,8 +58,7 @@ class ExplainerMetric(BaseAttributionMetric, ABC):
     """
 
     @abstractmethod
-    def evaluate(self,
-                 explainer: Callable) -> float:
+    def evaluate(self, explainer: Callable) -> float:
         """
         Compute the score of the given explainer.
 
@@ -71,8 +74,7 @@ class ExplainerMetric(BaseAttributionMetric, ABC):
         """
         raise NotImplementedError()
 
-    def __call__(self,
-                 explainer: Callable) -> float:
+    def __call__(self, explainer: Callable) -> float:
         """Evaluate alias"""
         return self.evaluate(explainer)
 
@@ -94,8 +96,7 @@ class ExplanationMetric(BaseAttributionMetric, ABC):
     """
 
     @abstractmethod
-    def evaluate(self,
-                 explanations: Union[tf.Tensor, np.array]) -> float:
+    def evaluate(self, explanations: Union[tf.Tensor, np.array]) -> float:
         """
         Compute the score of the given explanations.
 
@@ -111,7 +112,6 @@ class ExplanationMetric(BaseAttributionMetric, ABC):
         """
         raise NotImplementedError()
 
-    def __call__(self,
-                 explanations: Union[tf.Tensor, np.array]) -> float:
+    def __call__(self, explanations: Union[tf.Tensor, np.array]) -> float:
         """Evaluate alias"""
         return self.evaluate(explanations)

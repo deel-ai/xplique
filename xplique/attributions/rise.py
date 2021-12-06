@@ -1,13 +1,17 @@
 """
 Module related to RISE method
 """
-
-import tensorflow as tf
 import numpy as np
+import tensorflow as tf
 
-from .base import BlackBoxExplainer, sanitize_input_output
-from ..commons import repeat_labels, batch_tensor
-from ..types import Callable, Optional, Union, Tuple
+from ..commons import batch_tensor
+from ..commons import repeat_labels
+from ..types import Callable
+from ..types import Optional
+from ..types import Tuple
+from ..types import Union
+from .base import BlackBoxExplainer
+from .base import sanitize_input_output
 
 
 class Rise(BlackBoxExplainer):
@@ -38,24 +42,29 @@ class Rise(BlackBoxExplainer):
     # zero, then the nominator will also be zero).
     EPSILON = tf.constant(1e-4)
 
-    def __init__(self,
-                 model: Callable,
-                 batch_size: Optional[int] = 32,
-                 nb_samples: int = 4000,
-                 grid_size: int = 7,
-                 preservation_probability: float = .5):
+    def __init__(
+        self,
+        model: Callable,
+        batch_size: Optional[int] = 32,
+        nb_samples: int = 4000,
+        grid_size: int = 7,
+        preservation_probability: float = 0.5,
+    ):
         super().__init__(model, batch_size)
 
         self.nb_samples = nb_samples
         self.grid_size = grid_size
         self.preservation_probability = preservation_probability
-        self.binary_masks = Rise._get_masks(self.nb_samples, self.grid_size,
-                                            self.preservation_probability)
+        self.binary_masks = Rise._get_masks(
+            self.nb_samples, self.grid_size, self.preservation_probability
+        )
 
     @sanitize_input_output
-    def explain(self,
-                inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
-                targets: Optional[Union[tf.Tensor, np.ndarray]] = None) -> tf.Tensor:
+    def explain(
+        self,
+        inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
+        targets: Optional[Union[tf.Tensor, np.ndarray]] = None,
+    ) -> tf.Tensor:
         """
         Compute RISE for a batch of samples.
 
@@ -77,34 +86,44 @@ class Rise(BlackBoxExplainer):
         # since the number of masks is often very large, we process the entries one by one
         for single_input, single_target in zip(inputs, targets):
 
-            rise_nominator   = tf.zeros((*single_input.shape[:-1], 1))
+            rise_nominator = tf.zeros((*single_input.shape[:-1], 1))
             rise_denominator = tf.zeros((*single_input.shape[:-1], 1))
 
             # we iterate on the binary masks since they are cheap in memory
             for batch_masks in batch_tensor(self.binary_masks, batch_size):
                 # the upsampling/cropping phase is performed on the batched masks
-                masked_inputs, masks_upsampled = Rise._apply_masks(single_input, batch_masks)
-                repeated_targets = repeat_labels(single_target[tf.newaxis, :], len(batch_masks))
+                masked_inputs, masks_upsampled = Rise._apply_masks(
+                    single_input, batch_masks
+                )
+                repeated_targets = repeat_labels(
+                    single_target[tf.newaxis, :], len(batch_masks)
+                )
 
-                predictions = self.inference_function(self.model, masked_inputs, repeated_targets)
+                predictions = self.inference_function(
+                    self.model, masked_inputs, repeated_targets
+                )
 
-                rise_nominator += tf.reduce_sum(tf.reshape(predictions, (-1, 1, 1, 1))
-                                                * masks_upsampled, 0)
+                rise_nominator += tf.reduce_sum(
+                    tf.reshape(predictions, (-1, 1, 1, 1)) * masks_upsampled, 0
+                )
                 rise_denominator += tf.reduce_sum(masks_upsampled, 0)
 
             rise_map = rise_nominator / (rise_denominator + Rise.EPSILON)
             rise_map = rise_map[tf.newaxis, :, :, 0]
 
-            rise_maps = rise_map if rise_maps is None else tf.concat([rise_maps, rise_map], axis=0)
+            rise_maps = (
+                rise_map
+                if rise_maps is None
+                else tf.concat([rise_maps, rise_map], axis=0)
+            )
 
         return rise_maps
 
-
     @staticmethod
     @tf.function
-    def _get_masks(nb_samples: int,
-                   grid_size: int,
-                   preservation_probability: float) -> tf.Tensor:
+    def _get_masks(
+        nb_samples: int, grid_size: int, preservation_probability: float
+    ) -> tf.Tensor:
         """
         Random mask generation.
         Start by generating random mask in a lower dimension. Then,a bilinear interpolation to
@@ -137,8 +156,8 @@ class Rise(BlackBoxExplainer):
     @staticmethod
     @tf.function
     def _apply_masks(
-        single_input: tf.Tensor,
-        binary_masks: tf.Tensor) -> Tuple[tf.Tensor, tf.Tensor]:
+        single_input: tf.Tensor, binary_masks: tf.Tensor
+    ) -> Tuple[tf.Tensor, tf.Tensor]:
         """
         Given input samples and masks, apply it for every sample and repeat the labels.
 
@@ -160,11 +179,13 @@ class Rise(BlackBoxExplainer):
         upsampled_size = single_input.shape[0] * (1.0 + 1.0 / binary_masks.shape[1])
         upsampled_size = tf.cast(upsampled_size, tf.int32)
 
-        upsampled_masks = tf.image.resize(tf.cast(binary_masks, tf.float32),
-                                          (upsampled_size, upsampled_size))
+        upsampled_masks = tf.image.resize(
+            tf.cast(binary_masks, tf.float32), (upsampled_size, upsampled_size)
+        )
 
-        masks = tf.image.random_crop(upsampled_masks, (len(binary_masks),
-                                                       *single_input.shape[:-1], 1))
+        masks = tf.image.random_crop(
+            upsampled_masks, (len(binary_masks), *single_input.shape[:-1], 1)
+        )
 
         masked_input = tf.expand_dims(single_input, 0) * masks
 

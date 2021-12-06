@@ -3,9 +3,9 @@
 MuFidelity is a fidelity metric measuring the correlation between important variables defined by the explanation method and the decline in the model score when these variables are reset to a baseline state.
 
 !!! quote
-    [...]  when we set particular features $x_s$ to a baseline value $x_0$ the change in predictor’s 
+    [...]  when we set particular features $x_s$ to a baseline value $x_0$ the change in predictor’s
     output should be proportional to the sum of attribution scores.
-    
+
     -- <cite>[Evaluating and Aggregating Feature-based Model Explanations (2020)](https://arxiv.org/abs/2005.00631)</cite>[^1]
 
 Formally, given a predictor $f$, an explanation function $g$, a point $x \in \mathbb{R}^n$ and a subset size $k$ the MuFidelity metric is defined as:

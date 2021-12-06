@@ -1,15 +1,19 @@
 """
 Module related to Occlusion sensitivity method
 """
-
 from math import ceil
 
 import numpy as np
 import tensorflow as tf
 
-from .base import BlackBoxExplainer, sanitize_input_output
-from ..commons import repeat_labels, batch_tensor
-from ..types import Callable, Tuple, Union, Optional
+from ..commons import batch_tensor
+from ..commons import repeat_labels
+from ..types import Callable
+from ..types import Optional
+from ..types import Tuple
+from ..types import Union
+from .base import BlackBoxExplainer
+from .base import sanitize_input_output
 
 
 class Occlusion(BlackBoxExplainer):
@@ -34,12 +38,14 @@ class Occlusion(BlackBoxExplainer):
         Value used as occlusion.
     """
 
-    def __init__(self,
-                 model: Callable,
-                 batch_size: Optional[int] = 32,
-                 patch_size: Union[int, Tuple[int, int]] = 3,
-                 patch_stride: Union[int, Tuple[int, int]] = 3,
-                 occlusion_value: float = 0.0):
+    def __init__(
+        self,
+        model: Callable,
+        batch_size: Optional[int] = 32,
+        patch_size: Union[int, Tuple[int, int]] = 3,
+        patch_stride: Union[int, Tuple[int, int]] = 3,
+        occlusion_value: float = 0.0,
+    ):
         super().__init__(model, batch_size)
 
         self.patch_size = patch_size
@@ -47,9 +53,11 @@ class Occlusion(BlackBoxExplainer):
         self.occlusion_value = occlusion_value
 
     @sanitize_input_output
-    def explain(self,
-                inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
-                targets: Optional[Union[tf.Tensor, np.ndarray]] = None) -> tf.Tensor:
+    def explain(
+        self,
+        inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
+        targets: Optional[Union[tf.Tensor, np.ndarray]] = None,
+    ) -> tf.Tensor:
         """
         Compute Occlusion sensitivity for a batch of samples.
 
@@ -78,23 +86,32 @@ class Occlusion(BlackBoxExplainer):
         occlusion_maps = None
         batch_size = self.batch_size or len(inputs)
 
-        masks = Occlusion._get_masks((*inputs.shape[1:],), self.patch_size, self.patch_stride)
-        base_scores = self.batch_inference_function(self.model, inputs, targets, batch_size)
+        masks = Occlusion._get_masks(
+            (*inputs.shape[1:],), self.patch_size, self.patch_stride
+        )
+        base_scores = self.batch_inference_function(
+            self.model, inputs, targets, batch_size
+        )
 
         # since the number of masks is often very large, we process the entries one by one
-        for single_input, single_target, single_base_score in zip(inputs, targets, base_scores):
+        for single_input, single_target, single_base_score in zip(
+            inputs, targets, base_scores
+        ):
 
             occlusion_map = tf.zeros(masks.shape[1:])
 
             for batch_masks in batch_tensor(masks, batch_size):
 
-                occluded_inputs = Occlusion._apply_masks(single_input, batch_masks,
-                                                         self.occlusion_value)
-                repeated_targets = repeat_labels(single_target[tf.newaxis, :], len(batch_masks))
+                occluded_inputs = Occlusion._apply_masks(
+                    single_input, batch_masks, self.occlusion_value
+                )
+                repeated_targets = repeat_labels(
+                    single_target[tf.newaxis, :], len(batch_masks)
+                )
 
-                batch_scores = self.inference_function(self.model,
-                                                       occluded_inputs,
-                                                       repeated_targets)
+                batch_scores = self.inference_function(
+                    self.model, occluded_inputs, repeated_targets
+                )
 
                 batch_sensitivity = Occlusion._compute_sensitivity(
                     single_base_score, batch_scores, batch_masks
@@ -102,15 +119,20 @@ class Occlusion(BlackBoxExplainer):
 
                 occlusion_map += batch_sensitivity
 
-            occlusion_maps = occlusion_map if occlusion_maps is None else \
-                tf.concat([occlusion_maps, occlusion_map], axis=0)
+            occlusion_maps = (
+                occlusion_map
+                if occlusion_maps is None
+                else tf.concat([occlusion_maps, occlusion_map], axis=0)
+            )
 
         return occlusion_maps
 
     @staticmethod
-    def _get_masks(input_shape: Union[Tuple[int, int, int], Tuple[int, int], Tuple[int]],
-                   patch_size: Union[int, Tuple[int, int]],
-                   patch_stride: Union[int, Tuple[int, int]]) -> tf.Tensor:
+    def _get_masks(
+        input_shape: Union[Tuple[int, int, int], Tuple[int, int], Tuple[int]],
+        patch_size: Union[int, Tuple[int, int]],
+        patch_stride: Union[int, Tuple[int, int]],
+    ) -> tf.Tensor:
         """
         Create all the possible patches for the given configuration.
 
@@ -134,32 +156,47 @@ class Occlusion(BlackBoxExplainer):
         is_tabular = len(input_shape) == 1
 
         if is_tabular:
-            x_anchors = [x * patch_stride for x in
-                         range(0, ceil((input_shape[0] - patch_size + 1) / patch_stride))]
+            x_anchors = [
+                x * patch_stride
+                for x in range(
+                    0, ceil((input_shape[0] - patch_size + 1) / patch_stride)
+                )
+            ]
 
             for x_anchor in x_anchors:
                 mask = np.zeros(input_shape, dtype=bool)
-                mask[x_anchor:x_anchor + patch_size] = 1
+                mask[x_anchor : x_anchor + patch_size] = 1
                 masks.append(mask)
         else:
-            x_anchors = [x * patch_stride[0] for x in
-                         range(0, ceil((input_shape[0] - patch_size[0] + 1) / patch_stride[0]))]
-            y_anchors = [y * patch_stride[1] for y in
-                         range(0, ceil((input_shape[1] - patch_size[1] + 1) / patch_stride[1]))]
+            x_anchors = [
+                x * patch_stride[0]
+                for x in range(
+                    0, ceil((input_shape[0] - patch_size[0] + 1) / patch_stride[0])
+                )
+            ]
+            y_anchors = [
+                y * patch_stride[1]
+                for y in range(
+                    0, ceil((input_shape[1] - patch_size[1] + 1) / patch_stride[1])
+                )
+            ]
 
             for x_anchor in x_anchors:
                 for y_anchor in y_anchors:
                     mask = np.zeros(input_shape[:2], dtype=bool)
-                    mask[x_anchor:x_anchor + patch_size[0], y_anchor:y_anchor + patch_size[1]] = 1
+                    mask[
+                        x_anchor : x_anchor + patch_size[0],
+                        y_anchor : y_anchor + patch_size[1],
+                    ] = 1
                     masks.append(mask)
 
         return tf.cast(masks, dtype=tf.bool)
 
     @staticmethod
     @tf.function
-    def _apply_masks(current_input: tf.Tensor,
-                     masks: tf.Tensor,
-                     occlusion_value: float) -> tf.Tensor:
+    def _apply_masks(
+        current_input: tf.Tensor, masks: tf.Tensor, occlusion_value: float
+    ) -> tf.Tensor:
         """
         Given input samples and an occlusion mask template, apply it for every sample.
 
@@ -193,9 +230,9 @@ class Occlusion(BlackBoxExplainer):
 
     @staticmethod
     @tf.function
-    def _compute_sensitivity(baseline_scores: tf.Tensor,
-                             occluded_scores: tf.Tensor,
-                             masks: tf.Tensor) -> tf.Tensor:
+    def _compute_sensitivity(
+        baseline_scores: tf.Tensor, occluded_scores: tf.Tensor, masks: tf.Tensor
+    ) -> tf.Tensor:
         """
         Compute the sensitivity score given the score of the occluded inputs
 
@@ -219,7 +256,9 @@ class Occlusion(BlackBoxExplainer):
 
         score_delta = baseline_scores - occluded_scores
         # reshape the delta score to fit masks
-        score_delta = tf.reshape(score_delta, (*score_delta.shape, *(1,) * len(masks.shape[1:])))
+        score_delta = tf.reshape(
+            score_delta, (*score_delta.shape, *(1,) * len(masks.shape[1:]))
+        )
 
         sensitivity = score_delta * tf.cast(masks, tf.float32)
         sensitivity = tf.reduce_sum(sensitivity, axis=1)

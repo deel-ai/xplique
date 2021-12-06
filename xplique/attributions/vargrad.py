@@ -1,7 +1,6 @@
 """
 Module related to VarGrad method
 """
-
 import tensorflow as tf
 
 from .smoothgrad import SmoothGrad

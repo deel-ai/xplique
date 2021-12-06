@@ -3,15 +3,17 @@ Pretty plots option for explanations
 """
 from math import ceil
 
-import tensorflow as tf
 import numpy as np
+import tensorflow as tf
 from matplotlib import pyplot as plt
 
-from ..types import Optional, Union
+from ..types import Optional
+from ..types import Union
 
 
-def _standardize_image(image: Union[tf.Tensor, np.ndarray],
-                       clip_percentile: Optional[float] = None) -> np.ndarray:
+def _standardize_image(
+    image: Union[tf.Tensor, np.ndarray], clip_percentile: Optional[float] = None
+) -> np.ndarray:
     """
     Prepares an image for matplotlib. Applies a normalization and, if specified, a clipping
     operation to remove outliers.
@@ -46,15 +48,15 @@ def _standardize_image(image: Union[tf.Tensor, np.ndarray],
 
 
 def plot_attributions(
-        explanations: Union[tf.Tensor, np.ndarray],
-        images: Optional[Union[tf.Tensor, np.ndarray]] = None,
-        cmap: str = "viridis",
-        alpha: float = 0.5,
-        clip_percentile: Optional[float] = 0.1,
-        absolute_value: bool = False,
-        cols: int = 5,
-        img_size: float = 2.,
-        **plot_kwargs
+    explanations: Union[tf.Tensor, np.ndarray],
+    images: Optional[Union[tf.Tensor, np.ndarray]] = None,
+    cmap: str = "viridis",
+    alpha: float = 0.5,
+    clip_percentile: Optional[float] = 0.1,
+    absolute_value: bool = False,
+    cols: int = 5,
+    img_size: float = 2.0,
+    **plot_kwargs
 ):
     """
     Displays a series of explanations and their associated images if these are provided.
@@ -85,8 +87,9 @@ def plot_attributions(
         Additional parameters passed to `plt.imshow()`.
     """
     if images is not None:
-        assert len(images) == len(explanations), "If you provide images, there must be as many" \
-                                                 "as explanations."
+        assert len(images) == len(explanations), (
+            "If you provide images, there must be as many" "as explanations."
+        )
     rows = ceil(len(explanations) / cols)
 
     # to plot heatmap we need to reduce the channel informations
@@ -103,34 +106,38 @@ def plot_attributions(
     # define the figure margin, width, height in inch
     margin = 0.3
     spacing = 0.3
-    figwidth = cols * img_size + (cols-1) * spacing + 2 * margin
-    figheight = rows * img_size * l_height/l_width + (rows-1) * spacing + 2 * margin
+    figwidth = cols * img_size + (cols - 1) * spacing + 2 * margin
+    figheight = rows * img_size * l_height / l_width + (rows - 1) * spacing + 2 * margin
 
-    left = margin/figwidth
-    bottom = margin/figheight
+    left = margin / figwidth
+    bottom = margin / figheight
 
     fig = plt.figure()
     fig.set_size_inches(figwidth, figheight)
 
     fig.subplots_adjust(
-        left = left,
-        bottom = bottom,
-        right = 1.-left,
-        top = 1.-bottom,
-        wspace = spacing/img_size,
-        hspace= spacing/img_size * l_width/l_height
+        left=left,
+        bottom=bottom,
+        right=1.0 - left,
+        top=1.0 - bottom,
+        wspace=spacing / img_size,
+        hspace=spacing / img_size * l_width / l_height,
     )
 
     for i, explanation in enumerate(explanations):
-        plt.subplot(rows, cols, i+1)
+        plt.subplot(rows, cols, i + 1)
 
         if images is not None:
             img = _standardize_image(images[i])
             if img.shape[-1] == 1:
-                plt.imshow(img[:,:,0], cmap="Greys")
+                plt.imshow(img[:, :, 0], cmap="Greys")
             else:
                 plt.imshow(img)
 
-        plt.imshow(_standardize_image(explanation, clip_percentile), cmap=cmap, alpha=alpha,
-                   **plot_kwargs)
-        plt.axis('off')
+        plt.imshow(
+            _standardize_image(explanation, clip_percentile),
+            cmap=cmap,
+            alpha=alpha,
+            **plot_kwargs
+        )
+        plt.axis("off")

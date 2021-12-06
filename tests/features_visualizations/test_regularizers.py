@@ -1,9 +1,11 @@
-import tensorflow as tf
 import numpy as np
+import tensorflow as tf
 
-from xplique.features_visualizations.regularizers import (l1_reg, l2_reg, l_inf_reg,
-                                                          total_variation_reg)
 from ..utils import almost_equal
+from xplique.features_visualizations.regularizers import l1_reg
+from xplique.features_visualizations.regularizers import l2_reg
+from xplique.features_visualizations.regularizers import l_inf_reg
+from xplique.features_visualizations.regularizers import total_variation_reg
 
 
 def test_lp_norm():
@@ -18,9 +20,9 @@ def test_lp_norm():
 
 
 def test_tv():
-    vec = tf.cast([[[0., 0., 0.],
-                    [0., 2., 0.],
-                    [0., 0., 1.]]], tf.float32)[:, :, :, tf.newaxis]
+    vec = tf.cast([[[0.0, 0.0, 0.0], [0.0, 2.0, 0.0], [0.0, 0.0, 1.0]]], tf.float32)[
+        :, :, :, tf.newaxis
+    ]
     tv = total_variation_reg(1.0)
 
     assert almost_equal(tv(vec)[0], 10.0)

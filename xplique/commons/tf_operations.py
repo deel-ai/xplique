@@ -1,10 +1,12 @@
 """
 Custom tensorflow operations
 """
-
 import tensorflow as tf
 
-from ..types import Callable, Optional, Union, Tuple
+from ..types import Callable
+from ..types import Optional
+from ..types import Tuple
+from ..types import Union
 
 
 def repeat_labels(labels: tf.Tensor, nb_repetitions: int) -> tf.Tensor:
@@ -33,9 +35,9 @@ def repeat_labels(labels: tf.Tensor, nb_repetitions: int) -> tf.Tensor:
 
 
 @tf.function
-def predictions_one_hot(model: Callable,
-                        inputs: tf.Tensor,
-                        targets: tf.Tensor) -> tf.Tensor:
+def predictions_one_hot(
+    model: Callable, inputs: tf.Tensor, targets: tf.Tensor
+) -> tf.Tensor:
     """
     Compute predictions scores, only for the label class, for a batch of samples.
 
@@ -56,10 +58,9 @@ def predictions_one_hot(model: Callable,
     scores = tf.reduce_sum(model(inputs) * targets, axis=-1)
     return scores
 
+
 @tf.function
-def gradient(model: Callable,
-             inputs: tf.Tensor,
-             targets: tf.Tensor) -> tf.Tensor:
+def gradient(model: Callable, inputs: tf.Tensor, targets: tf.Tensor) -> tf.Tensor:
     """
     Compute gradients for a batch of samples.
 
@@ -77,17 +78,19 @@ def gradient(model: Callable,
     gradients
         Gradients computed, with the same shape as the inputs.
     """
-    with tf.GradientTape(watch_accessed_variables=False) as tape: # type: ignore
+    with tf.GradientTape(watch_accessed_variables=False) as tape:  # type: ignore
         tape.watch(inputs)
         score = tf.reduce_sum(tf.multiply(model(inputs), targets), axis=1)
     return tape.gradient(score, inputs)
 
 
-def inference_batching(operation: Callable,
-                       model: Callable,
-                       inputs: tf.Tensor,
-                       targets: tf.Tensor,
-                       batch_size: Optional[int]) -> tf.Tensor:
+def inference_batching(
+    operation: Callable,
+    model: Callable,
+    inputs: tf.Tensor,
+    targets: tf.Tensor,
+    batch_size: Optional[int],
+) -> tf.Tensor:
     """
     Take care of batching an inference operation: (model, inputs, labels).
 
@@ -111,20 +114,21 @@ def inference_batching(operation: Callable,
     """
     if batch_size is not None:
         dataset = tf.data.Dataset.from_tensor_slices((inputs, targets))
-        results = tf.concat([
-            operation(model, x, y)
-            for x, y in dataset.batch(batch_size)
-        ], axis=0)
+        results = tf.concat(
+            [operation(model, x, y) for x, y in dataset.batch(batch_size)], axis=0
+        )
     else:
         results = operation(model, inputs, targets)
 
     return results
 
 
-def batch_predictions_one_hot(model: Callable,
-                              inputs: tf.Tensor,
-                              targets: tf.Tensor,
-                              batch_size: Optional[int] = None) -> tf.Tensor:
+def batch_predictions_one_hot(
+    model: Callable,
+    inputs: tf.Tensor,
+    targets: tf.Tensor,
+    batch_size: Optional[int] = None,
+) -> tf.Tensor:
     """
     Compute predictions scores, only for the label class, for the samples passed. Take
     care of splitting in multiple batches if batch_size is specified.
@@ -148,10 +152,9 @@ def batch_predictions_one_hot(model: Callable,
     return inference_batching(predictions_one_hot, model, inputs, targets, batch_size)
 
 
-def batch_gradient(model: Callable,
-                   inputs: tf.Tensor,
-                   targets: tf.Tensor,
-                   batch_size: Optional[int]) -> tf.Tensor:
+def batch_gradient(
+    model: Callable, inputs: tf.Tensor, targets: tf.Tensor, batch_size: Optional[int]
+) -> tf.Tensor:
     """
     Compute the gradients of the sample passed, take care of splitting the samples in
     multiple batches if batch_size is specified.
@@ -175,8 +178,7 @@ def batch_gradient(model: Callable,
     return inference_batching(gradient, model, inputs, targets, batch_size)
 
 
-def batch_tensor(tensors: Union[Tuple, tf.Tensor],
-                 batch_size: Optional[int] = None):
+def batch_tensor(tensors: Union[Tuple, tf.Tensor], batch_size: Optional[int] = None):
     """
     Create a tensorflow dataset of tensors or series of tensors.
 

@@ -1,15 +1,18 @@
 """
 Override relu gradients policy
 """
-
 import tensorflow as tf
-from tensorflow.keras.models import clone_model # pylint: disable=E0611
+from tensorflow.keras.models import clone_model  # pylint: disable=E0611
 
-from ..types import Tuple, Callable, Union, Optional
+from ..types import Callable
+from ..types import Optional
+from ..types import Tuple
+from ..types import Union
 
 
-def guided_relu_policy(max_value: Optional[float] = None,
-                       threshold: float = 0.0) -> Callable:
+def guided_relu_policy(
+    max_value: Optional[float] = None, threshold: float = 0.0
+) -> Callable:
     """
     Generate a guided relu activation function.
     Some models have relu with different threshold and plateau settings than a classic relu,
@@ -59,8 +62,9 @@ def guided_relu_policy(max_value: Optional[float] = None,
     return guided_relu
 
 
-def deconv_relu_policy(max_value: Optional[float] = None,
-                       threshold: float = 0.0) -> Callable:
+def deconv_relu_policy(
+    max_value: Optional[float] = None, threshold: float = 0.0
+) -> Callable:
     """
     Generate a deconv relu activation function.
     Some models have relu with different threshold and plateau settings than a classic relu,
@@ -109,8 +113,9 @@ def deconv_relu_policy(max_value: Optional[float] = None,
     return deconv_relu
 
 
-def open_relu_policy(max_value: Optional[float] = None,
-                     threshold: float = 0.0) -> Callable:
+def open_relu_policy(
+    max_value: Optional[float] = None, threshold: float = 0.0
+) -> Callable:
     """
     Generate a relu activation function which allows gradients to pass.
 
@@ -187,12 +192,14 @@ def has_relu_activation(layer: tf.keras.layers.Layer) -> bool:
     has_relu
         True if the layer has a relu activation.
     """
-    if not hasattr(layer, 'activation'):
+    if not hasattr(layer, "activation"):
         return False
     return layer.activation in [tf.nn.relu, tf.keras.activations.relu]
 
 
-def override_relu_gradient(model: tf.keras.Model, relu_policy: Callable) -> tf.keras.Model:
+def override_relu_gradient(
+    model: tf.keras.Model, relu_policy: Callable
+) -> tf.keras.Model:
     """
     Given a model, commute all original ReLU by a new given ReLU policy.
 
@@ -210,13 +217,13 @@ def override_relu_gradient(model: tf.keras.Model, relu_policy: Callable) -> tf.k
     cloned_model = clone_model(model)
     cloned_model.set_weights(model.get_weights())
 
-    for layer_id in range(len(cloned_model.layers)): # pylint: disable=C0200
+    for layer_id in range(len(cloned_model.layers)):  # pylint: disable=C0200
         layer = cloned_model.layers[layer_id]
         if has_relu_activation(layer):
             layer.activation = relu_policy()
         elif is_relu(layer):
-            max_value = layer.max_value if hasattr(layer, 'max_value') else None
-            threshold = layer.threshold if hasattr(layer, 'threshold') else None
+            max_value = layer.max_value if hasattr(layer, "max_value") else None
+            threshold = layer.threshold if hasattr(layer, "threshold") else None
             cloned_model.layers[layer_id].call = relu_policy(max_value, threshold)
 
     return cloned_model

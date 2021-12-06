@@ -1,4 +1,5 @@
-from setuptools import setup, find_packages
+from setuptools import find_packages
+from setuptools import setup
 
 with open("README.md", encoding="utf-8") as fh:
     README = fh.read()
@@ -12,8 +13,14 @@ setup(
     author="Thomas FEL",
     author_email="thomas.fel@brown.edu",
     license="MIT",
-    install_requires=['tensorflow>=2.1.0', 'numpy', 'scikit-learn', 'scikit-image',
-                      'matplotlib', 'scipy'],
+    install_requires=[
+        "tensorflow>=2.1.0",
+        "numpy",
+        "scikit-learn",
+        "scikit-image",
+        "matplotlib",
+        "scipy",
+    ],
     extras_require={
         "tests": ["pytest", "pylint"],
         "docs": ["mkdocs", "mkdocs-material", "numkdoc"],

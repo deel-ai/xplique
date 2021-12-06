@@ -1,12 +1,13 @@
 """
 Module related to the Testing of CAVs
 """
-
-import tensorflow as tf
 import numpy as np
+import tensorflow as tf
 
-from ..commons import find_layer, batch_tensor
-from ..types import Union, Optional
+from ..commons import batch_tensor
+from ..commons import find_layer
+from ..types import Optional
+from ..types import Union
 
 
 class Tcav:
@@ -28,21 +29,22 @@ class Tcav:
         Batch size during the predictions.
     """
 
-    def __init__(self,
-                 model: tf.keras.Model,
-                 target_layer: Union[str, int],
-                 batch_size: Optional[int] = 64):
+    def __init__(
+        self,
+        model: tf.keras.Model,
+        target_layer: Union[str, int],
+        batch_size: Optional[int] = 64,
+    ):
         self.model = model
         self.batch_size = batch_size
 
         # configure model bottleneck
         target_layer = find_layer(model, target_layer)
-        self.multi_head = tf.keras.Model(model.input, [target_layer.output, model.output])
+        self.multi_head = tf.keras.Model(
+            model.input, [target_layer.output, model.output]
+        )
 
-    def score(self,
-              inputs: tf.Tensor,
-              label: int,
-              cav: tf.Tensor) -> float:
+    def score(self, inputs: tf.Tensor, label: int, cav: tf.Tensor) -> float:
         """
         Compute and return the TCAV score of the CAV associated to class tested.
 
@@ -69,11 +71,12 @@ class Tcav:
         batch_size = self.batch_size or len(inputs)
 
         for x_batch in batch_tensor(inputs, batch_size):
-            batch_dd = Tcav.directional_derivative(self.multi_head,
-                                                   x_batch, label,
-                                                   cav)
-            directional_derivatives = batch_dd if directional_derivatives is None else \
-                tf.concat([directional_derivatives, batch_dd], axis=0)
+            batch_dd = Tcav.directional_derivative(self.multi_head, x_batch, label, cav)
+            directional_derivatives = (
+                batch_dd
+                if directional_derivatives is None
+                else tf.concat([directional_derivatives, batch_dd], axis=0)
+            )
 
         # tcav is the number of positive directional derivatives
         tcav = np.mean(directional_derivatives > 0.0)
@@ -84,10 +87,9 @@ class Tcav:
 
     @staticmethod
     @tf.function
-    def directional_derivative(multi_head_model: tf.keras.Model,
-                               inputs: tf.Tensor,
-                               label: int,
-                               cav: tf.Tensor) -> tf.Tensor:
+    def directional_derivative(
+        multi_head_model: tf.keras.Model, inputs: tf.Tensor, label: int, cav: tf.Tensor
+    ) -> tf.Tensor:
         """
         Compute the gradient of the label relative to the activations of the CAV layer.
 

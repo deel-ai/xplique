@@ -1,13 +1,16 @@
 """
 Module related to DeconvNet method
 """
-
-import tensorflow as tf
 import numpy as np
+import tensorflow as tf
 
-from .base import WhiteBoxExplainer, sanitize_input_output
-from ..commons import override_relu_gradient, deconv_relu_policy, batch_gradient
-from ..types import Union, Optional
+from ..commons import batch_gradient
+from ..commons import deconv_relu_policy
+from ..commons import override_relu_gradient
+from ..types import Optional
+from ..types import Union
+from .base import sanitize_input_output
+from .base import WhiteBoxExplainer
 
 
 class DeconvNet(WhiteBoxExplainer):
@@ -31,17 +34,21 @@ class DeconvNet(WhiteBoxExplainer):
         Number of samples to explain at once, if None compute all at once.
     """
 
-    def __init__(self,
-                 model: tf.keras.Model,
-                 output_layer: Optional[Union[str, int]] = -1,
-                 batch_size: Optional[int] = 32):
+    def __init__(
+        self,
+        model: tf.keras.Model,
+        output_layer: Optional[Union[str, int]] = -1,
+        batch_size: Optional[int] = 32,
+    ):
         super().__init__(model, output_layer, batch_size)
         self.model = override_relu_gradient(self.model, deconv_relu_policy)
 
     @sanitize_input_output
-    def explain(self,
-                inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
-                targets: Optional[Union[tf.Tensor, np.ndarray]] = None) -> tf.Tensor:
+    def explain(
+        self,
+        inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
+        targets: Optional[Union[tf.Tensor, np.ndarray]] = None,
+    ) -> tf.Tensor:
         """
         Compute DeconvNet for a batch of samples.
         Accept Tensor, numpy array or tf.data.Dataset (in that case targets is None)

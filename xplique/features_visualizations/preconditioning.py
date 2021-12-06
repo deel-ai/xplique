@@ -5,18 +5,20 @@ Adaptation of the original Lucid library :
 https://github.com/tensorflow/lucid/blob/master/lucid/optvis/param/color.py
 Credit is due to the original Lucid authors.
 """
-
-
 import numpy as np
 import tensorflow as tf
 
-from ..types import Tuple, Union, Callable
-
+from ..types import Callable
+from ..types import Tuple
+from ..types import Union
 
 imagenet_color_correlation = tf.cast(
-      [[0.56282854, 0.58447580, 0.58447580],
-       [0.19482528, 0.00000000,-0.19482528],
-       [0.04329450,-0.10823626, 0.06494176]], tf.float32
+    [
+        [0.56282854, 0.58447580, 0.58447580],
+        [0.19482528, 0.00000000, -0.19482528],
+        [0.04329450, -0.10823626, 0.06494176],
+    ],
+    tf.float32,
 )
 
 
@@ -41,9 +43,11 @@ def recorrelate_colors(images: tf.Tensor) -> tf.Tensor:
     return tf.reshape(images_flat, tf.shape(images))
 
 
-def to_valid_rgb(images: tf.Tensor,
-                 normalizer: Union[str, Callable] = 'sigmoid',
-                 values_range: Tuple[float, float] = (0, 1)) -> tf.Tensor:
+def to_valid_rgb(
+    images: tf.Tensor,
+    normalizer: Union[str, Callable] = "sigmoid",
+    values_range: Tuple[float, float] = (0, 1),
+) -> tf.Tensor:
     """
     Apply transformations to map tensors to valid rgb images.
 
@@ -65,9 +69,9 @@ def to_valid_rgb(images: tf.Tensor,
     """
     images = recorrelate_colors(images)
 
-    if normalizer == 'sigmoid':
+    if normalizer == "sigmoid":
         images = tf.nn.sigmoid(images)
-    elif normalizer == 'clip':
+    elif normalizer == "clip":
         images = tf.clip_by_value(images, values_range[0], values_range[1])
     else:
         images = normalizer(images)
@@ -103,9 +107,9 @@ def fft_2d_freq(width: int, height: int) -> np.ndarray:
     freq_y = np.fft.fftfreq(height)[:, np.newaxis]
 
     cut_off = int(width % 2 == 1)
-    freq_x = np.fft.fftfreq(width)[:width//2+1+cut_off]
+    freq_x = np.fft.fftfreq(width)[: width // 2 + 1 + cut_off]
 
-    return np.sqrt(freq_x**2 + freq_y**2)
+    return np.sqrt(freq_x ** 2 + freq_y ** 2)
 
 
 def get_fft_scale(width: int, height: int, decay_power: float = 1.0) -> tf.Tensor:
@@ -185,7 +189,6 @@ def fft_image(shape: Tuple, std: float = 0.01) -> tf.Tensor:
     batch, width, height, channels = shape
     frequencies = fft_2d_freq(width, height)
 
-    buffer = tf.random.normal((2, batch, channels)+frequencies.shape,
-                              stddev=std)
+    buffer = tf.random.normal((2, batch, channels) + frequencies.shape, stddev=std)
 
     return buffer

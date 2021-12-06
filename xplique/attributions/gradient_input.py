@@ -1,13 +1,14 @@
 """
 Module related to Gradient x Input method
 """
-
-import tensorflow as tf
 import numpy as np
+import tensorflow as tf
 
-from .base import WhiteBoxExplainer, sanitize_input_output
 from ..commons import batch_gradient
-from ..types import Optional, Union
+from ..types import Optional
+from ..types import Union
+from .base import sanitize_input_output
+from .base import WhiteBoxExplainer
 
 
 class GradientInput(WhiteBoxExplainer):
@@ -28,9 +29,11 @@ class GradientInput(WhiteBoxExplainer):
     """
 
     @sanitize_input_output
-    def explain(self,
-                inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
-                targets: Optional[Union[tf.Tensor, np.ndarray]] = None) -> tf.Tensor:
+    def explain(
+        self,
+        inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
+        targets: Optional[Union[tf.Tensor, np.ndarray]] = None,
+    ) -> tf.Tensor:
         """
         Compute gradients x inputs for a batch of samples.
 

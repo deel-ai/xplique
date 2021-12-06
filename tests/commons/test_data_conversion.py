@@ -1,23 +1,25 @@
-import tensorflow as tf
 import numpy as np
-
-from xplique.commons import tensor_sanitize, numpy_sanitize
+import tensorflow as tf
 
 from ..utils import generate_data
+from xplique.commons import numpy_sanitize
+from xplique.commons import tensor_sanitize
 
 
 def test_tensor_sanitize():
     """Ensure we get tf.Tensor for numpy array, tf tensor and tf.data.Dataset"""
     nb_samples = 71
-    inputs_shapes = [
-        (32, 32, 1), (32, 32, 3)
-    ]
+    inputs_shapes = [(32, 32, 1), (32, 32, 3)]
 
     for shape in inputs_shapes:
         inputs_np, targets_np = generate_data(shape, 10, nb_samples)
-        inputs_tf, targets_tf = tf.cast(inputs_np, tf.float32), tf.cast(targets_np, tf.float32)
+        inputs_tf, targets_tf = tf.cast(inputs_np, tf.float32), tf.cast(
+            targets_np, tf.float32
+        )
         dataset = tf.data.Dataset.from_tensor_slices((inputs_np, targets_np))
-        dataset_batched = tf.data.Dataset.from_tensor_slices((inputs_np, targets_np)).batch(10)
+        dataset_batched = tf.data.Dataset.from_tensor_slices(
+            (inputs_np, targets_np)
+        ).batch(10)
 
         for inputs, targets in [
             (inputs_np, targets_np),

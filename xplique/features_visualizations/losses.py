@@ -1,7 +1,6 @@
 """
 Losses used for feature visualizations
 """
-
 import tensorflow as tf
 
 
@@ -31,7 +30,9 @@ def cosine_similarity(tensor_a: tf.Tensor, tensor_b: tf.Tensor) -> tf.Tensor:
 
 
 @tf.function
-def dot_cossim(tensor_a: tf.Tensor, tensor_b: tf.Tensor, cossim_pow: float = 2.0) -> tf.Tensor:
+def dot_cossim(
+    tensor_a: tf.Tensor, tensor_b: tf.Tensor, cossim_pow: float = 2.0
+) -> tf.Tensor:
     """
     Return the product of the cosine similarity and the dot product for batchs of vectors passed.
     This original looking loss was proposed by the authors of lucid and seeks to both optimise

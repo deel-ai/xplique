@@ -6,8 +6,8 @@ The Insertion Fidelity metric measures how well a saliency-map–based explanati
     The insertion metric, on the other hand, captures the importance of the
     pixels in terms of their ability to synthesize an image and is measured by the rise in the
     probability of the class of interest as pixels are added according to the generated importance
-    map. 
-    
+    map.
+
     -- <cite>[RISE: Randomized Input Sampling for Explanation of Black-box Models (2018)](https://arxiv.org/abs/1806.07421)</cite>[^1]
 
 The better the method, the higher the score.

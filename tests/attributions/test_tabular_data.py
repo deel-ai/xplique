@@ -1,10 +1,21 @@
 import numpy as np
 import tensorflow as tf
 
-from xplique.attributions import (Saliency, GradientInput, IntegratedGradients, SmoothGrad, VarGrad,
-                                  SquareGrad, Occlusion, Rise, GuidedBackprop, DeconvNet, Lime,
-                                  KernelShap)
-from ..utils import generate_regression_model, generate_data
+from ..utils import generate_data
+from ..utils import generate_regression_model
+from xplique.attributions import DeconvNet
+from xplique.attributions import GradientInput
+from xplique.attributions import GuidedBackprop
+from xplique.attributions import IntegratedGradients
+from xplique.attributions import KernelShap
+from xplique.attributions import Lime
+from xplique.attributions import Occlusion
+from xplique.attributions import Rise
+from xplique.attributions import Saliency
+from xplique.attributions import SmoothGrad
+from xplique.attributions import SquareGrad
+from xplique.attributions import VarGrad
+
 
 def _default_methods(model, output_layer_index):
     return [
@@ -21,6 +32,7 @@ def _default_methods(model, output_layer_index):
         Occlusion(model, patch_size=1, patch_stride=1),
     ]
 
+
 def test_tabular_data():
     """Test applied to most attributions method"""
 
@@ -29,32 +41,37 @@ def test_tabular_data():
     output_layer_index = -1
 
     inputs_np, targets_np = generate_data(features_shape, output_shape, samples)
-    inputs_tf, targets_tf = tf.cast(inputs_np, tf.float32), tf.cast(targets_np, tf.float32)
+    inputs_tf, targets_tf = tf.cast(inputs_np, tf.float32), tf.cast(
+        targets_np, tf.float32
+    )
     dataset = tf.data.Dataset.from_tensor_slices((inputs_np, targets_np))
     # batched_dataset = tf.data.Dataset.from_tensor_slices((inputs_np, targets_np)).batch(4)
 
     methods = _default_methods(model, output_layer_index)
 
-    for inputs, targets in [(inputs_np, targets_np),
-                            (inputs_tf, targets_tf),
-                            (dataset, None),
-                            # (batched_dataset, None)
-                            ]:
+    for inputs, targets in [
+        (inputs_np, targets_np),
+        (inputs_tf, targets_tf),
+        (dataset, None),
+        # (batched_dataset, None)
+    ]:
         for method in methods:
             try:
                 explanations = method.explain(inputs, targets)
             except:
                 raise AssertionError(
-                    "Explanation failed for method ", method.__class__.__name__)
+                    "Explanation failed for method ", method.__class__.__name__
+                )
 
             # all explanation must have an explain method
-            assert hasattr(method, 'explain')
+            assert hasattr(method, "explain")
 
             # all explanations returned must be numpy array
             assert isinstance(explanations, tf.Tensor)
 
             # all explanations shape should match features shape
             assert explanations.shape == [samples, *features_shape]
+
 
 def test_multioutput_regression():
     """
@@ -66,32 +83,37 @@ def test_multioutput_regression():
     output_layer_index = -1
 
     inputs_np, targets_np = generate_data(features_shape, output_shape, samples)
-    inputs_tf, targets_tf = tf.cast(inputs_np, tf.float32), tf.cast(targets_np, tf.float32)
+    inputs_tf, targets_tf = tf.cast(inputs_np, tf.float32), tf.cast(
+        targets_np, tf.float32
+    )
     dataset = tf.data.Dataset.from_tensor_slices((inputs_np, targets_np))
     # batched_dataset = tf.data.Dataset.from_tensor_slices((inputs_np, targets_np)).batch(4)
 
     methods = _default_methods(model, output_layer_index)
 
-    for inputs, targets in [(inputs_np, targets_np),
-                            (inputs_tf, targets_tf),
-                            (dataset, None),
-                            # (batched_dataset, None)
-                            ]:
+    for inputs, targets in [
+        (inputs_np, targets_np),
+        (inputs_tf, targets_tf),
+        (dataset, None),
+        # (batched_dataset, None)
+    ]:
         for method in methods:
             try:
                 explanations = method.explain(inputs, targets)
             except:
                 raise AssertionError(
-                    "Explanation failed for method ", method.__class__.__name__)
+                    "Explanation failed for method ", method.__class__.__name__
+                )
 
             # all explanation must have an explain method
-            assert hasattr(method, 'explain')
+            assert hasattr(method, "explain")
 
             # all explanations returned must be numpy array
             assert isinstance(explanations, tf.Tensor)
 
             # all explanations shape should match features shape
             assert explanations.shape == [samples, *features_shape]
+
 
 def test_batch_size():
     """
@@ -126,5 +148,8 @@ def test_batch_size():
                 explanations = method.explain(inputs, targets)
             except:
                 raise AssertionError(
-                    "Explanation failed for method ", method.__class__.__name__,
-                    " batch size ", bs)
+                    "Explanation failed for method ",
+                    method.__class__.__name__,
+                    " batch size ",
+                    bs,
+                )

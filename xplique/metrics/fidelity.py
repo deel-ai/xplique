@@ -1,7 +1,6 @@
 """
 Fidelity (or Faithfulness) metrics
 """
-
 from inspect import isfunction
 from math import floor
 
@@ -9,9 +8,11 @@ import numpy as np
 import tensorflow as tf
 from scipy.stats import spearmanr
 
-from .base import ExplanationMetric
 from ..commons import batch_predictions_one_hot
-from ..types import Union, Callable, Optional
+from ..types import Callable
+from ..types import Optional
+from ..types import Union
+from .base import ExplanationMetric
 
 
 class MuFidelity(ExplanationMetric):
@@ -53,15 +54,17 @@ class MuFidelity(ExplanationMetric):
         Number of different subsets to try on each input to measure the correlation.
     """
 
-    def __init__(self,
-                 model: Callable,
-                 inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
-                 targets: Optional[Union[tf.Tensor, np.ndarray]] = None,
-                 batch_size: Optional[int] = 64,
-                 grid_size: Optional[int] = 9,
-                 subset_percent: float = 0.2,
-                 baseline_mode: Union[Callable, float] = 0.0,
-                 nb_samples: int = 200):
+    def __init__(
+        self,
+        model: Callable,
+        inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
+        targets: Optional[Union[tf.Tensor, np.ndarray]] = None,
+        batch_size: Optional[int] = 64,
+        grid_size: Optional[int] = 9,
+        subset_percent: float = 0.2,
+        baseline_mode: Union[Callable, float] = 0.0,
+        nb_samples: int = 200,
+    ):
         # pylint: disable=R0913
         super().__init__(model, inputs, targets, batch_size)
         self.grid_size = grid_size
@@ -81,14 +84,17 @@ class MuFidelity(ExplanationMetric):
 
         # and interpolate them if needed
         subset_masks = subset_masks.astype(np.float32).reshape(
-            (self.nb_samples, self.grid_size, self.grid_size, 1))
-        self.subset_masks = tf.image.resize(subset_masks, inputs.shape[1:-1], method="nearest")
+            (self.nb_samples, self.grid_size, self.grid_size, 1)
+        )
+        self.subset_masks = tf.image.resize(
+            subset_masks, inputs.shape[1:-1], method="nearest"
+        )
 
-        self.base_predictions = batch_predictions_one_hot(self.model, inputs,
-                                                          targets, self.batch_size)
+        self.base_predictions = batch_predictions_one_hot(
+            self.model, inputs, targets, self.batch_size
+        )
 
-    def evaluate(self,
-                 explanations: Union[tf.Tensor, np.ndarray]) -> float:
+    def evaluate(self, explanations: Union[tf.Tensor, np.ndarray]) -> float:
         """
         Evaluate the fidelity score.
 
@@ -105,20 +111,28 @@ class MuFidelity(ExplanationMetric):
             explanations.
         """
         explanations = np.array(explanations)
-        assert len(explanations) == len(self.inputs), "The number of explanations must be the " \
-                                                      "same as the number of inputs"
+        assert len(explanations) == len(self.inputs), (
+            "The number of explanations must be the " "same as the number of inputs"
+        )
 
         correlations = []
-        for inp, label, phi, base in zip(self.inputs, self.targets, explanations,
-                                         self.base_predictions):
+        for inp, label, phi, base in zip(
+            self.inputs, self.targets, explanations, self.base_predictions
+        ):
             label = tf.repeat(label[None, :], self.nb_samples, 0)
-            baseline = self.baseline_mode(inp) if isfunction(self.baseline_mode) else \
-                self.baseline_mode
+            baseline = (
+                self.baseline_mode(inp)
+                if isfunction(self.baseline_mode)
+                else self.baseline_mode
+            )
             # use the masks to set the selected subsets to baseline state
-            degraded_inputs = inp * self.subset_masks + (1.0 - self.subset_masks) * baseline
+            degraded_inputs = (
+                inp * self.subset_masks + (1.0 - self.subset_masks) * baseline
+            )
             # measure the two terms that should be correlated
-            preds = base - batch_predictions_one_hot(self.model, degraded_inputs,
-                                                     label, self.batch_size)
+            preds = base - batch_predictions_one_hot(
+                self.model, degraded_inputs, label, self.batch_size
+            )
 
             attrs = tf.reduce_sum(phi * (1.0 - self.subset_masks), (1, 2, 3))
             corr_score = spearmanr(preds, attrs)[0]
@@ -159,16 +173,17 @@ class CausalFidelity(ExplanationMetric):
         Maximum percentage of the input perturbed.
     """
 
-    def __init__(self,
-                 model: tf.keras.Model,
-                 inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
-                 targets: Optional[Union[tf.Tensor, np.ndarray]] = None,
-                 batch_size: Optional[int] = 64,
-                 causal_mode: str = "deletion",
-                 baseline_mode: Union[float, Callable] = 0.0,
-                 steps: int = 10,
-                 max_percentage_perturbed: float = 1.0,
-                 ):
+    def __init__(
+        self,
+        model: tf.keras.Model,
+        inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
+        targets: Optional[Union[tf.Tensor, np.ndarray]] = None,
+        batch_size: Optional[int] = 64,
+        causal_mode: str = "deletion",
+        baseline_mode: Union[float, Callable] = 0.0,
+        steps: int = 10,
+        max_percentage_perturbed: float = 1.0,
+    ):
         # pylint: disable=R0913
         super().__init__(model, inputs, targets, batch_size)
         self.causal_mode = causal_mode
@@ -176,14 +191,16 @@ class CausalFidelity(ExplanationMetric):
         self.steps = steps
 
         self.nb_features = np.prod(inputs.shape[1:-1])
-        self.inputs_flatten = inputs.reshape((len(inputs), self.nb_features, inputs.shape[-1]))
+        self.inputs_flatten = inputs.reshape(
+            (len(inputs), self.nb_features, inputs.shape[-1])
+        )
 
-        assert 0.0 < max_percentage_perturbed <= 1.0, "`max_percentage_perturbed` must be" \
-                                                      "in ]O, 1]."
+        assert 0.0 < max_percentage_perturbed <= 1.0, (
+            "`max_percentage_perturbed` must be" "in ]O, 1]."
+        )
         self.max_percentage_perturbed = max_percentage_perturbed
 
-    def evaluate(self,
-                 explanations: Union[tf.Tensor, np.ndarray]) -> float:
+    def evaluate(self, explanations: Union[tf.Tensor, np.ndarray]) -> float:
         """
         Evaluate the causal score.
 
@@ -199,8 +216,9 @@ class CausalFidelity(ExplanationMetric):
             better) curve.
         """
         explanations = np.array(explanations)
-        assert len(explanations) == len(self.inputs), "The number of explanations must be the " \
-                                                      "same as the number of inputs"
+        assert len(explanations) == len(self.inputs), (
+            "The number of explanations must be the " "same as the number of inputs"
+        )
         # the reference does not specify how to manage the channels of the explanations
         if len(explanations.shape) == 4:
             explanations = np.mean(explanations, -1)
@@ -210,12 +228,19 @@ class CausalFidelity(ExplanationMetric):
         # for each sample, sort by most important features according to the explanation
         most_important_features = np.argsort(explanations_flatten, axis=-1)[:, ::-1]
 
-        baselines = self.baseline_mode(self.inputs) if isfunction(self.baseline_mode) else \
-            np.ones_like(self.inputs, dtype=np.float32) * self.baseline_mode
+        baselines = (
+            self.baseline_mode(self.inputs)
+            if isfunction(self.baseline_mode)
+            else np.ones_like(self.inputs, dtype=np.float32) * self.baseline_mode
+        )
         baselines_flatten = baselines.reshape(self.inputs_flatten.shape)
 
-        steps = np.linspace(0, self.nb_features * self.max_percentage_perturbed, self.steps,
-                            dtype=np.int32)
+        steps = np.linspace(
+            0,
+            self.nb_features * self.max_percentage_perturbed,
+            self.steps,
+            dtype=np.int32,
+        )
 
         scores = []
         if self.causal_mode == "deletion":
@@ -225,7 +250,7 @@ class CausalFidelity(ExplanationMetric):
             start = baselines_flatten
             end = self.inputs_flatten
         else:
-            raise NotImplementedError(f'Unknown causal mode `{self.causal_mode}`.')
+            raise NotImplementedError(f"Unknown causal mode `{self.causal_mode}`.")
 
         for step in steps:
             ids_to_flip = most_important_features[:, :step]
@@ -236,8 +261,9 @@ class CausalFidelity(ExplanationMetric):
 
             batch_inputs = batch_inputs.reshape((-1, *self.inputs.shape[1:]))
 
-            predictions = batch_predictions_one_hot(self.model, batch_inputs,
-                                                    self.targets, self.batch_size)
+            predictions = batch_predictions_one_hot(
+                self.model, batch_inputs, self.targets, self.batch_size
+            )
             scores.append(predictions)
 
         # compute auc using trapezoidal rule (the steps are equally reparted)
@@ -274,17 +300,26 @@ class Deletion(CausalFidelity):
         Maximum percentage of the input perturbed.
     """
 
-    def __init__(self,
-                 model: tf.keras.Model,
-                 inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
-                 targets: Optional[Union[tf.Tensor, np.ndarray]] = None,
-                 batch_size: Optional[int] = 64,
-                 baseline_mode: Union[float, Callable] = 0.0,
-                 steps: int = 10,
-                 max_percentage_perturbed: float = 1.0
-                 ):
-        super().__init__(model, inputs, targets, batch_size, "deletion",
-                         baseline_mode, steps, max_percentage_perturbed)
+    def __init__(
+        self,
+        model: tf.keras.Model,
+        inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
+        targets: Optional[Union[tf.Tensor, np.ndarray]] = None,
+        batch_size: Optional[int] = 64,
+        baseline_mode: Union[float, Callable] = 0.0,
+        steps: int = 10,
+        max_percentage_perturbed: float = 1.0,
+    ):
+        super().__init__(
+            model,
+            inputs,
+            targets,
+            batch_size,
+            "deletion",
+            baseline_mode,
+            steps,
+            max_percentage_perturbed,
+        )
 
 
 class Insertion(CausalFidelity):
@@ -314,17 +349,26 @@ class Insertion(CausalFidelity):
         Maximum percentage of the input perturbed.
     """
 
-    def __init__(self,
-                 model: tf.keras.Model,
-                 inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
-                 targets: Optional[Union[tf.Tensor, np.ndarray]] = None,
-                 batch_size: Optional[int] = 64,
-                 baseline_mode: Union[float, Callable] = 0.0,
-                 steps: int = 10,
-                 max_percentage_perturbed: float = 1.0
-                 ):
-        super().__init__(model, inputs, targets, batch_size, "insertion",
-                         baseline_mode, steps, max_percentage_perturbed)
+    def __init__(
+        self,
+        model: tf.keras.Model,
+        inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
+        targets: Optional[Union[tf.Tensor, np.ndarray]] = None,
+        batch_size: Optional[int] = 64,
+        baseline_mode: Union[float, Callable] = 0.0,
+        steps: int = 10,
+        max_percentage_perturbed: float = 1.0,
+    ):
+        super().__init__(
+            model,
+            inputs,
+            targets,
+            batch_size,
+            "insertion",
+            baseline_mode,
+            steps,
+            max_percentage_perturbed,
+        )
 
 
 class CausalFidelityTS(ExplanationMetric):
@@ -358,17 +402,18 @@ class CausalFidelityTS(ExplanationMetric):
 
     # pylint: disable=too-many-instance-attributes
 
-    def __init__(self,
-                 model: tf.keras.Model,
-                 inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
-                 targets: Optional[Union[tf.Tensor, np.ndarray]] = None,
-                 metric: str = "loss",
-                 batch_size: Optional[int] = 64,
-                 causal_mode: str = "deletion",
-                 baseline_mode: Union[float, str] = 0.0,
-                 steps: int = 10,
-                 max_percentage_perturbed: float = 1.0,
-                 ):  # pylint: disable=R0913
+    def __init__(
+        self,
+        model: tf.keras.Model,
+        inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
+        targets: Optional[Union[tf.Tensor, np.ndarray]] = None,
+        metric: str = "loss",
+        batch_size: Optional[int] = 64,
+        causal_mode: str = "deletion",
+        baseline_mode: Union[float, str] = 0.0,
+        steps: int = 10,
+        max_percentage_perturbed: float = 1.0,
+    ):  # pylint: disable=R0913
         super().__init__(model, inputs, targets, batch_size)
         self.baseline_mode = baseline_mode
         self.causal_mode = causal_mode
@@ -377,25 +422,25 @@ class CausalFidelityTS(ExplanationMetric):
 
         self.nb_samples = inputs.shape[0]
         self.nb_features = np.prod(inputs.shape[1:])
-        self.inputs_flatten = inputs.reshape(
-            (self.nb_samples, self.nb_features, 1)
-        )
+        self.inputs_flatten = inputs.reshape((self.nb_samples, self.nb_features, 1))
 
-        assert 0 < max_percentage_perturbed <= 1, \
-            "max_percentage_perturbed should be between 0 and 1"
-        max_nb_perturbation = floor(max_percentage_perturbed*self.nb_features)
+        assert (
+            0 < max_percentage_perturbed <= 1
+        ), "max_percentage_perturbed should be between 0 and 1"
+        max_nb_perturbation = floor(max_percentage_perturbed * self.nb_features)
 
         if steps == -1:
             steps = max_nb_perturbation
-        assert 1 < steps <= max_nb_perturbation, \
-            f"The number of steps must be between 2 and {max_nb_perturbation} (or '-1')."
+        assert (
+            1 < steps <= max_nb_perturbation
+        ), f"The number of steps must be between 2 and {max_nb_perturbation} (or '-1')."
         self.steps = int(steps)
         self.max_nb_perturbation = max_nb_perturbation
-        self.model_baseline = self.model.evaluate(self.inputs, self.targets,
-                                                  verbose=0, return_dict=True)[self.metric]
+        self.model_baseline = self.model.evaluate(
+            self.inputs, self.targets, verbose=0, return_dict=True
+        )[self.metric]
 
-    def evaluate(self,
-                 explanations: Union[tf.Tensor, np.ndarray]) -> float:
+    def evaluate(self, explanations: Union[tf.Tensor, np.ndarray]) -> float:
         """
         Evaluate the causal score for time series explanations.
 
@@ -411,8 +456,9 @@ class CausalFidelityTS(ExplanationMetric):
             better) curve.
         """
         explanations = np.array(explanations)
-        assert explanations.shape == self.inputs.shape, "The number of explanations must be the " \
-                                                        "same as the number of inputs"
+        assert explanations.shape == self.inputs.shape, (
+            "The number of explanations must be the " "same as the number of inputs"
+        )
 
         explanations_flatten = explanations.reshape((len(explanations), -1))
 
@@ -432,7 +478,9 @@ class CausalFidelityTS(ExplanationMetric):
         elif self.baseline_mode == "negative":
             baselines = -self.inputs
         else:
-            raise NotImplementedError(f'Unknown perturbation type `{self.baseline_mode}`.')
+            raise NotImplementedError(
+                f"Unknown perturbation type `{self.baseline_mode}`."
+            )
 
         baselines_flatten = baselines.reshape(self.inputs_flatten.shape)
 
@@ -446,7 +494,7 @@ class CausalFidelityTS(ExplanationMetric):
             start = baselines_flatten
             end = self.inputs_flatten
         else:
-            raise NotImplementedError(f'Unknown causal mode `{self.causal_mode}`.')
+            raise NotImplementedError(f"Unknown causal mode `{self.causal_mode}`.")
 
         for step in steps:
             ids_to_flip = most_important_features[:, :step]
@@ -457,9 +505,13 @@ class CausalFidelityTS(ExplanationMetric):
 
             perturbed_inputs = perturbed_inputs.reshape((-1, *self.inputs.shape[1:]))
 
-            score = self.model.evaluate(perturbed_inputs, self.targets,
-                                        self.batch_size, verbose=0,
-                                        return_dict=True)
+            score = self.model.evaluate(
+                perturbed_inputs,
+                self.targets,
+                self.batch_size,
+                verbose=0,
+                return_dict=True,
+            )
             scores.append(score[self.metric])
 
         auc = abs(np.mean(scores) - self.model_baseline)
@@ -503,18 +555,28 @@ class DeletionTS(CausalFidelityTS):
         Maximum percentage of the input perturbed.
     """
 
-    def __init__(self,
-                 model: tf.keras.Model,
-                 inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
-                 targets: Optional[Union[tf.Tensor, np.ndarray]] = None,
-                 metric: str = "loss",
-                 batch_size: Optional[int] = 64,
-                 baseline_mode: Union[float, str] = 0.0,
-                 steps: int = 10,
-                 max_percentage_perturbed: float = 1.0,
-                 ):  # pylint: disable=R0913
-        super().__init__(model, inputs, targets, metric, batch_size,
-                         "deletion", baseline_mode, steps, max_percentage_perturbed)
+    def __init__(
+        self,
+        model: tf.keras.Model,
+        inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
+        targets: Optional[Union[tf.Tensor, np.ndarray]] = None,
+        metric: str = "loss",
+        batch_size: Optional[int] = 64,
+        baseline_mode: Union[float, str] = 0.0,
+        steps: int = 10,
+        max_percentage_perturbed: float = 1.0,
+    ):  # pylint: disable=R0913
+        super().__init__(
+            model,
+            inputs,
+            targets,
+            metric,
+            batch_size,
+            "deletion",
+            baseline_mode,
+            steps,
+            max_percentage_perturbed,
+        )
 
 
 class InsertionTS(CausalFidelityTS):
@@ -550,15 +612,25 @@ class InsertionTS(CausalFidelityTS):
         Maximum percentage of the input perturbed.
     """
 
-    def __init__(self,
-                 model: tf.keras.Model,
-                 inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
-                 targets: Optional[Union[tf.Tensor, np.ndarray]] = None,
-                 metric: str = "loss",
-                 batch_size: Optional[int] = 64,
-                 baseline_mode: Union[float, str] = 0.0,
-                 steps: int = 10,
-                 max_percentage_perturbed: float = 1.0,
-                 ):  # pylint: disable=R0913
-        super().__init__(model, inputs, targets, metric, batch_size,
-                         "insertion", baseline_mode, steps, max_percentage_perturbed)
+    def __init__(
+        self,
+        model: tf.keras.Model,
+        inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
+        targets: Optional[Union[tf.Tensor, np.ndarray]] = None,
+        metric: str = "loss",
+        batch_size: Optional[int] = 64,
+        baseline_mode: Union[float, str] = 0.0,
+        steps: int = 10,
+        max_percentage_perturbed: float = 1.0,
+    ):  # pylint: disable=R0913
+        super().__init__(
+            model,
+            inputs,
+            targets,
+            metric,
+            batch_size,
+            "insertion",
+            baseline_mode,
+            steps,
+            max_percentage_perturbed,
+        )

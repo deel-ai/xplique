@@ -7,7 +7,7 @@ the important pixels.
     The deletion metric measures the drop in the probability of a class as important pixels (given
     by the saliency map) are gradually removed from the image. A sharp drop, and thus a small
     area under the probability curve, are indicative of a good explanation.
-    
+
     -- <cite>[RISE: Randomized Input Sampling for Explanation of Black-box Models (2018)](https://arxiv.org/abs/1806.07421)</cite>[^1]
 
 The better the method, the smaller the score.

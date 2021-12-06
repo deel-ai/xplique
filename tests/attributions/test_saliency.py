@@ -1,5 +1,6 @@
+from ..utils import generate_data
+from ..utils import generate_model
 from xplique.attributions import Saliency
-from ..utils import generate_data, generate_model
 
 
 def test_output_shape():

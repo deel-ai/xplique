@@ -1,11 +1,25 @@
 import numpy as np
 
-from xplique.attributions import (Saliency, GradientInput, IntegratedGradients, SmoothGrad, VarGrad,
-                                  SquareGrad, GradCAM, Occlusion, Rise, GuidedBackprop, DeconvNet,
-                                  GradCAMPP)
-from xplique.metrics import MuFidelity, Deletion, Insertion, AverageStability
-from xplique.metrics.base import ExplanationMetric, ExplainerMetric
-from ..utils import generate_data, generate_model
+from ..utils import generate_data
+from ..utils import generate_model
+from xplique.attributions import DeconvNet
+from xplique.attributions import GradCAM
+from xplique.attributions import GradCAMPP
+from xplique.attributions import GradientInput
+from xplique.attributions import GuidedBackprop
+from xplique.attributions import IntegratedGradients
+from xplique.attributions import Occlusion
+from xplique.attributions import Rise
+from xplique.attributions import Saliency
+from xplique.attributions import SmoothGrad
+from xplique.attributions import SquareGrad
+from xplique.attributions import VarGrad
+from xplique.metrics import AverageStability
+from xplique.metrics import Deletion
+from xplique.metrics import Insertion
+from xplique.metrics import MuFidelity
+from xplique.metrics.base import ExplainerMetric
+from xplique.metrics.base import ExplanationMetric
 
 
 def _default_methods(model, output_layer_index=-2):
@@ -38,13 +52,13 @@ def test_common():
         Deletion(model, x, y, steps=3),
         Insertion(model, x, y, steps=3),
         MuFidelity(model, x, y, nb_samples=3),
-        AverageStability(model, x, y, nb_samples=3)
+        AverageStability(model, x, y, nb_samples=3),
     ]
 
     for explainer in explainers:
         explanations = explainer(x, y)
         for metric in metrics:
-            assert hasattr(metric, 'evaluate')
+            assert hasattr(metric, "evaluate")
             if isinstance(metric, ExplainerMetric):
                 score = metric(explainer)
             else:

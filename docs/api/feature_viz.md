@@ -4,7 +4,7 @@ One of the specificities of neural networks is their differentiability. This cha
 This gradient then allows us to iteratively modify the input in order to maximize an objective such as a neuron, a channel or a combination of objectives.
 
 !!! quote
-    If we want to understand individual features, we can search for examples where they have high values 
+    If we want to understand individual features, we can search for examples where they have high values
     either for a neuron at an individual position, or for an entire channel.
     -- <cite>[Feature Visualization -- How neural networks build up their understanding of images (2017)](https://distill.pub/2017/feature-visualization)</cite>[^1]
 
@@ -26,7 +26,7 @@ from xplique.features_visualizations import optimize
 # load a model...
 
 # targeting the 10 logits of the layer 'logits'
-# we can also target a layer by its index, like -1 for the last layer 
+# we can also target a layer by its index, like -1 for the last layer
 logits_obj = Objective.neuron(model, "logits", list(range(10)))
 images, obj_names = optimize(logits_obj) # 10 images, one for each logits
 ```

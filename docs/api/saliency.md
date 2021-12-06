@@ -7,8 +7,8 @@ input.
     An interpretation of computing the image-specific class saliency using the class score derivative
     is that the magnitude of the derivative indicates which pixels need to be changed the least
     to affect the class score the most. One can expect that such pixels correspond to the object location
-    in the image. 
-    
+    in the image.
+
     -- <cite>[Deep Inside Convolutional Networks: Visualising Image Classification Models and Saliency Maps (2013)](https://arxiv.org/abs/1312.6034)</cite>[^1]
 
 More precisely, the explanation $\phi_x$ for an input $x$, for a given class $c$ is defined as

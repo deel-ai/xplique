@@ -1,16 +1,16 @@
 """
 Custom callable operations
 """
-
 import tensorflow as tf
 
+from ..types import Callable
+from ..types import Optional
 from .tf_operations import inference_batching
-from ..types import Callable, Optional
+
 
 def predictions_one_hot_callable(
-    model: Callable,
-    inputs: tf.Tensor,
-    targets: tf.Tensor) -> tf.Tensor:
+    model: Callable, inputs: tf.Tensor, targets: tf.Tensor
+) -> tf.Tensor:
     """
     Compute predictions scores, only for the label class, for a batch of samples.
 
@@ -37,7 +37,7 @@ def predictions_one_hot_callable(
         pred = model.get_tensor(model.get_output_details()[0]["index"])
 
     # can be a sklearn model or xgboost model
-    elif hasattr(model, 'predict_proba'):
+    elif hasattr(model, "predict_proba"):
         pred = model.predict_proba(inputs.numpy())
 
     # can be another model thus it needs to implement a call function
@@ -50,10 +50,12 @@ def predictions_one_hot_callable(
     return scores
 
 
-def batch_predictions_one_hot_callable(model: Callable,
-                              inputs: tf.Tensor,
-                              targets: tf.Tensor,
-                              batch_size: Optional[int] = None) -> tf.Tensor:
+def batch_predictions_one_hot_callable(
+    model: Callable,
+    inputs: tf.Tensor,
+    targets: tf.Tensor,
+    batch_size: Optional[int] = None,
+) -> tf.Tensor:
     """
     Compute predictions scores, only for the label class, for the samples passed. Take
     care of splitting in multiple batches if batch_size is specified.
@@ -74,4 +76,6 @@ def batch_predictions_one_hot_callable(model: Callable,
     scores
         Predictions scores computed, only for the label class.
     """
-    return inference_batching(predictions_one_hot_callable, model, inputs, targets, batch_size)
+    return inference_batching(
+        predictions_one_hot_callable, model, inputs, targets, batch_size
+    )

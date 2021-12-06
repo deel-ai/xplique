@@ -45,9 +45,9 @@ The _Concepts_ module allows you to extract human concepts from a model and to t
 Finally, the _Metrics_ module covers the current metrics used in explainability. Used in conjunction with the _Attribution Methods_ module, it allows you to test the different methods or evaluate the explanations of a model.
 
 <p align="center" width="100%">
-    <img width="36.216%" src="./assets/attributions.png"> 
-    <img width="38.88%" src="./assets/feature_viz.png"> 
-    <img width="22.248%" src="./assets/concepts.png"> 
+    <img width="36.216%" src="./assets/attributions.png">
+    <img width="38.88%" src="./assets/feature_viz.png">
+    <img width="22.248%" src="./assets/concepts.png">
 </p>
 
 <br>
@@ -195,7 +195,7 @@ All the attributions method presented below handle both **Classification** and *
 | Concept Activation Vector (CAV) | TF            | [Paper](https://arxiv.org/pdf/1711.11279.pdf) |
 | Testing CAV (TCAV)              | TF            | [Paper](https://arxiv.org/pdf/1711.11279.pdf) |
 | (WIP) Robust TCAV               |               |
-| (WIP) Automatic Concept Extraction (ACE)        |               
+| (WIP) Automatic Concept Extraction (ACE)        |
 
 | **Feature Visualization** [(Paper)](https://distill.pub/2017/feature-visualization/) | Type of Model | Details                                                                                                            |
 | :----------------------------------------------------------------------------------- | :------------ | :----------------------------------------------------------------------------------------------------------------- |
@@ -216,7 +216,7 @@ Feel free to propose your ideas or come and contribute with us on the Xplique to
 
 ## 👀 See Also
 
-This library is one approach of many to explain your model. We don't expect it to be the perfect    
+This library is one approach of many to explain your model. We don't expect it to be the perfect
  solution; we create it to explore one point in the space of possibilities.
 
 Other tools to explain your model include:

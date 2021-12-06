@@ -1,9 +1,12 @@
-import tensorflow as tf
 import numpy as np
+import tensorflow as tf
 
-from ..utils import generate_model, generate_data, almost_equal
+from ..utils import almost_equal
+from ..utils import generate_data
+from ..utils import generate_model
+from xplique.attributions import GradientInput
+from xplique.attributions import Saliency
 from xplique.metrics import MeGe
-from xplique.attributions import Saliency, GradientInput
 
 
 def test_best_mege():

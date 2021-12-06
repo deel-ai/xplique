@@ -12,9 +12,9 @@ work is not in vain.
 
 - Clone the repo `git clone https://github.com/deel-ai/xplique.git`.
 - Go to your freshly downloaded repo `cd xplique`
-- Create a virtual environment and install the necessary dependencies for development `make prepare-dev && source xplique_dev_env/bin/activate`. 
+- Create a virtual environment and install the necessary dependencies for development `make prepare-dev && source xplique_dev_env/bin/activate`.
 - You are ready to install the library `pip install -e .` or run the test suite `make test`.
- 
+
 Welcome to the team 🔥🚀 !
 
 ## Setup without make ⚙️
@@ -105,11 +105,10 @@ Something that will increase the chance that your pull request is accepted:
 
 ## Documentation 📚
 
-Xplique is a small library but documentation is often a huge time sink for 
-users. That's why we greatly appreciate any time spent fixing typos or 
+Xplique is a small library but documentation is often a huge time sink for
+users. That's why we greatly appreciate any time spent fixing typos or
 clarifying sections in the documentation. To setup a local live-server to update
 the documentation: `make serve-doc` or activate your virtual env and:
 ```
 CUDA_VISIBLE_DEVICES=-1 mkdocs serve
-``` 
- 
+```

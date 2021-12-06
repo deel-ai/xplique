@@ -1,18 +1,24 @@
 """
 Module related to abstract explainer
 """
-
-from abc import ABC, abstractmethod
 import warnings
+from abc import ABC
+from abc import abstractmethod
 
-import tensorflow as tf
 import numpy as np
+import tensorflow as tf
 
-from ..types import Callable, Dict, Tuple, Union, Optional
-from ..commons import find_layer, tensor_sanitize, batch_predictions_one_hot, \
-                      predictions_one_hot, batch_predictions_one_hot_callable, \
-                      predictions_one_hot_callable
-
+from ..commons import batch_predictions_one_hot
+from ..commons import batch_predictions_one_hot_callable
+from ..commons import find_layer
+from ..commons import predictions_one_hot
+from ..commons import predictions_one_hot_callable
+from ..commons import tensor_sanitize
+from ..types import Callable
+from ..types import Dict
+from ..types import Optional
+from ..types import Tuple
+from ..types import Union
 
 
 def sanitize_input_output(explanation_method: Callable):
@@ -23,9 +29,13 @@ def sanitize_input_output(explanation_method: Callable):
     explanation_method
         Function to wrap, should return an tf.tensor.
     """
-    def sanitize(self, inputs: Union[tf.data.Dataset, tf.Tensor, np.array],
-                 targets: Optional[Union[tf.Tensor, np.array]],
-                 *args):
+
+    def sanitize(
+        self,
+        inputs: Union[tf.data.Dataset, tf.Tensor, np.array],
+        targets: Optional[Union[tf.Tensor, np.array]],
+        *args
+    ):
         # ensure we have tf.tensor
         inputs, targets = tensor_sanitize(inputs, targets)
         # then enter the explanation function
@@ -70,9 +80,11 @@ class BlackBoxExplainer(ABC):
         self.batch_size = batch_size
 
     @abstractmethod
-    def explain(self,
-                inputs: Union[tf.data.Dataset, tf.Tensor, np.array],
-                targets: Optional[Union[tf.Tensor, np.array]] = None) -> tf.Tensor:
+    def explain(
+        self,
+        inputs: Union[tf.data.Dataset, tf.Tensor, np.array],
+        targets: Optional[Union[tf.Tensor, np.array]] = None,
+    ) -> tf.Tensor:
         """
         Compute the explanations of the given samples.
         Accept Tensor, numpy array or tf.data.Dataset (in that case targets is None)
@@ -91,9 +103,7 @@ class BlackBoxExplainer(ABC):
         """
         raise NotImplementedError()
 
-    def __call__(self,
-                 inputs: tf.Tensor,
-                 labels: tf.Tensor) -> tf.Tensor:
+    def __call__(self, inputs: tf.Tensor, labels: tf.Tensor) -> tf.Tensor:
         """Explain alias"""
         return self.explain(inputs, labels)
 
@@ -114,10 +124,12 @@ class WhiteBoxExplainer(BlackBoxExplainer, ABC):
         Number of samples to explain at once, if None compute all at once.
     """
 
-    def __init__(self,
-                 model: tf.keras.Model,
-                 output_layer: Optional[Union[str, int]] = None,
-                 batch_size: Optional[int] = 64):
+    def __init__(
+        self,
+        model: tf.keras.Model,
+        output_layer: Optional[Union[str, int]] = None,
+        batch_size: Optional[int] = 64,
+    ):
 
         if output_layer is not None:
             # reconfigure the model (e.g skip softmax to target logits)
@@ -126,9 +138,14 @@ class WhiteBoxExplainer(BlackBoxExplainer, ABC):
 
             # sanity check, output layer before softmax
             try:
-                if target_layer.activation.__name__ == tf.keras.activations.softmax.__name__:
-                    warnings.warn("Output is after softmax, it is recommended to "
-                                  "use the layer before.")
+                if (
+                    target_layer.activation.__name__
+                    == tf.keras.activations.softmax.__name__
+                ):
+                    warnings.warn(
+                        "Output is after softmax, it is recommended to "
+                        "use the layer before."
+                    )
             except AttributeError:
                 pass
 
