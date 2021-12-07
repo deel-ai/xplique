@@ -25,6 +25,7 @@ prepare-dev:
 	. xplique_dev_env/bin/activate && pip install -r requirements_dev.txt
 	. xplique_dev_env/bin/activate && pre-commit install
 	. xplique_dev_env/bin/activate && pre-commit install-hooks
+	. xplique_dev_env/bin/activate && pre-commit install --hook-type commit-msg
 
 test:
 	. xplique_dev_env/bin/activate && tox
