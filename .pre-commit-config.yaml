@@ -40,7 +40,7 @@ repos:
     rev: v3.0.0a3
     hooks:
       - id: pylint
-        args: [--disable=all, --enable=unused-import --max-line-length=100]
+        args: [--enable=unused-import --max-line-length=100, --disable=all]
 
 
   - repo: https://github.com/commitizen-tools/commitizen
