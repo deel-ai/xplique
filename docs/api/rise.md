@@ -1,13 +1,13 @@
 # RISE
 
-The RISE method consist of probing the model with randomly masked versions of the input image and 
+The RISE method consist of probing the model with randomly masked versions of the input image and
 obtaining the corresponding outputs to deduce critical areas.
 
 !!! quote
     \[...] we estimate the importance of pixels by dimming them in random combinations,
     reducing their intensities down to zero. We model this by multiplying an image with a \[0,1\]
-    valued mask. 
-     
+    valued mask.
+
      -- <cite>[RISE: Randomized Input Sampling for Explanation of Black-box Models (2018)](https://arxiv.org/abs/1806.07421)</cite>[^1]
 
 

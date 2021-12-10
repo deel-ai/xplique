@@ -1,29 +1,29 @@
 # Integrated Gradients
 
-Integrated Gradients is a visualization technique resulting of a theoretical search for an 
+Integrated Gradients is a visualization technique resulting of a theoretical search for an
 explanatory method that satisfies two axioms, Sensitivity and Implementation Invariance
-(Sundararajan et al[^1]). 
+(Sundararajan et al[^1]).
 
 !!! quote
-    We consider the straightline path (in $R^n$) from the baseline $\bar{x}$ to the input $x$, and compute the 
-    gradients at all points along the path. Integrated gradients are obtained by cumulating these 
+    We consider the straightline path (in $R^n$) from the baseline $\bar{x}$ to the input $x$, and compute the
+    gradients at all points along the path. Integrated gradients are obtained by cumulating these
     gradients.
-    
+
     -- <cite>[Axiomatic Attribution for Deep Networks (2017)](https://arxiv.org/abs/1703.01365)</cite>[^1]
 
 Rather than calculating only the gradient relative to the image, the method consists of averaging
-the gradient values along the path from a baseline state to the current value. The baseline state 
+the gradient values along the path from a baseline state to the current value. The baseline state
 is often set to zero, representing the complete absence of features.
 
 More precisely, with $\bar{x}$ the baseline state, $x$ the image, $c$ the class of interest and
 $S_c$ the unormalized class score (layer before softmax). The Integrated Gradient is defined as
 
-$$IG(x) = (x - \bar{x}) \cdot \int_0^1{ \frac { \partial{S_c(\tilde{x})} } { \partial{\tilde{x}} } 
+$$IG(x) = (x - \bar{x}) \cdot \int_0^1{ \frac { \partial{S_c(\tilde{x})} } { \partial{\tilde{x}} }
             \Big|_{ \tilde{x} = \bar{x} + \alpha(x - \bar{x}) } d\alpha }$$
 
 
 In order to approximate from a finite number of steps, the implementation here use the
-Trapezoidal rule[^3] and not a left-Riemann summation, which allows for more accurate results 
+Trapezoidal rule[^3] and not a left-Riemann summation, which allows for more accurate results
 and improved performance. (see the paper below for a comparison of the methods[^2]).
 
 ## Example

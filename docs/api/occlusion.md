@@ -6,7 +6,7 @@ images, and use the variations of the model prediction to deduce critical areas.
 !!! quote
     \[...] this method, referred to as Occlusion, replacing one feature $x_i$ at the time with a
      baseline and measuring the effect of this perturbation on the target output.
-     
+
      -- <cite>[Towards better understanding of the gradient-based attribution methods for Deep Neural Networks (2017)](https://arxiv.org/abs/1711.06104)</cite>[^2]
 
 
@@ -23,7 +23,7 @@ from xplique.attributions import Occlusion
 # load images, labels and model
 # ...
 
-method = Occlusion(model, patch_size=(10, 10), 
+method = Occlusion(model, patch_size=(10, 10),
                    patch_stride=(2, 2), occlusion_value=0.5)
 explanations = method.explain(images, labels)
 ```

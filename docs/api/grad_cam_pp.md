@@ -1,7 +1,7 @@
 # Grad-CAM++
 
 Grad-CAM++ is a technique for producing visual explanations that can be used on Convolutional Neural
-Netowrk (CNN) which uses both gradients and the feature maps of the last convolutional layer. 
+Netowrk (CNN) which uses both gradients and the feature maps of the last convolutional layer.
 
 ## Example
 

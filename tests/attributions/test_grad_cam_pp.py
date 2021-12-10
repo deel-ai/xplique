@@ -33,7 +33,7 @@ def test_output_shape():
         model = _generate_model(input_shape, nb_labels)
 
         method = GradCAMPP(model, -2)
-        outputs = method.explain(samples, labels)   
+        outputs = method.explain(samples, labels)
 
         assert samples.shape[:3] == outputs.shape[:3]
 

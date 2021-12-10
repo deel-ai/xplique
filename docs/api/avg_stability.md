@@ -3,8 +3,8 @@
 Average Stability is a Stability metric measuring how similar are explanations of similar inputs.
 
 !!! quote
-    [...]  We want to ensure that, if inputs are near each other and their model outputs are similar, then their explanations should be close to each other. 
-    
+    [...]  We want to ensure that, if inputs are near each other and their model outputs are similar, then their explanations should be close to each other.
+
     -- <cite>[Evaluating and Aggregating Feature-based Model Explanations (2020)](https://arxiv.org/abs/2005.00631)</cite>[^1]
 
 Formally, given a predictor $f$, an explanation function $g$, a point $x$, a radius $r$ and a two distance metric: $\rho$ over the inputs and $D$ over the explanations, the AverageStability is defined as:
