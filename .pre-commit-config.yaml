@@ -7,3 +7,4 @@ repos:
     -   id: check-ast
     -   id: check-docstring-first
     -   id: check-merge-conflict
+    -   id: end-of-file-fixer
