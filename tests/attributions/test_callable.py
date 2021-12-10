@@ -9,7 +9,7 @@ import tensorflow as tf
 from sklearn.svm import SVC
 from sklearn.ensemble import RandomForestClassifier
 
-from xplique.attributions import (Occlusion, Rise, Lime, KernelShap)
+from xplique.attributions import (Occlusion, Rise, Lime, KernelShap, SobolAttributionMethod)
 from xplique.commons.tf_operations import predictions_one_hot, batch_predictions_one_hot
 from xplique.commons.callable_operations import predictions_one_hot_callable, \
     batch_predictions_one_hot_callable
@@ -28,7 +28,8 @@ def _default_methods_images(model):
         Rise(model),
         Occlusion(model),
         Lime(model, map_to_interpret_space=_map_to_interpret_space),
-        KernelShap(model, map_to_interpret_space=_map_to_interpret_space)
+        KernelShap(model, map_to_interpret_space=_map_to_interpret_space),
+        SobolAttributionMethod(model, grid_size=2, nb_design=2)
     ]
 
 def _map_to_interpret_space(inp):
