@@ -204,6 +204,8 @@ All the attributions method presented below handle both **Classification** and *
 | SmoothGrad             | TF            | [Paper](https://arxiv.org/abs/1706.03825) | ✔                  | ✔                 | WIP                | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1kHPB07XExQ0CvTIk51Hm5qS2Vl66OUH2) |
 | SquareGrad             | TF            | [Paper](https://arxiv.org/abs/1806.10758) | ✔                  | ✔                 | WIP                | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/14c0tb_MMNQzpCFyTtaCgQUfG1OpnFPI0) |
 | VarGrad                | TF            | [Paper](https://arxiv.org/abs/1810.03292) | ✔                  | ✔                 | WIP                | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1x_sNUM5xhAvzg1KmO5ZBlkxQpgxZyoux) |
+| Sobol Attribution      | TF            | [Paper](https://arxiv.org/abs/2111.04138) |                    | ✔                 |                    | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1XproaVxXjO9nrBSyyy7BuKJ1vy21iHs2) |
+
 
 * : See the [Callable documentation](https://deel-ai.github.io/xplique/callable.html)
 
