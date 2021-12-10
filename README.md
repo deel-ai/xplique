@@ -13,8 +13,11 @@
     <a href="https://github.com/deel-ai/xplique/actions/workflows/python-tests.yml">
         <img alt="Tox" src="https://github.com/deel-ai/xplique/actions/workflows/python-tests.yml/badge.svg">
     </a>
-     <a href="https://github.com/deel-ai/xplique/actions/workflows/python-publish.yml">
+    <a href="https://github.com/deel-ai/xplique/actions/workflows/python-publish.yml">
         <img alt="Pypi" src="https://github.com/deel-ai/xplique/actions/workflows/python-publish.yml/badge.svg">
+    </a>
+    <a href="https://pepy.tech/project/xplique">
+        <img alt="Pepy" src="https://pepy.tech/badge/xplique">
     </a>
     <a href="#">
         <img src="https://img.shields.io/badge/License-MIT-efefef">
