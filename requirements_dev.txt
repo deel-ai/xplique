@@ -12,3 +12,4 @@ tox
 bump2version
 mypy
 mypy-extensions
+pre-commit
