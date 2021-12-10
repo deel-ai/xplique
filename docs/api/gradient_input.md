@@ -1,17 +1,17 @@
 # Gradient $\odot$ Input
 
-Gradient $\odot$ Input is a visualization techniques based on the gradient of a class score relative to 
+Gradient $\odot$ Input is a visualization techniques based on the gradient of a class score relative to
 the input, element-wise with the input. This method was introduced by Shrikumar et al., 2016[^1], in
 an old version of their DeepLIFT paper[^2].
 
 !!! quote
     Gradient inputs was at first proposed as a technique to improve the sharpness of the attribution maps.
-    The attribution is computed taking the (signed) partial derivatives of the output with respect to 
+    The attribution is computed taking the (signed) partial derivatives of the output with respect to
     the input and multiplying them with the input itself.
-    
+
     -- <cite>[Towards better understanding of the gradient-based attribution methods for Deep Neural Networks (2017)](https://arxiv.org/abs/1711.06104)</cite>[^3]
 
-A theoretical analysis conducted by Ancona et al, 2018[^3] showed that Gradient $\odot$ Input is 
+A theoretical analysis conducted by Ancona et al, 2018[^3] showed that Gradient $\odot$ Input is
 equivalent to $\epsilon$-LRP and DeepLift methods under certain conditions: using a baseline of zero, and with
 all biases to zero.
 
