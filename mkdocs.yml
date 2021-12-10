@@ -22,6 +22,7 @@ nav:
       - VarGrad: api/attributions/vargrad.md
       - Lime: api/attributions/lime.md
       - KernelSHAP: api/attributions/kernel_shap.md
+      - Sobol Attribution Method: api/attributions/sobol.md
   - Concept based:
       - Cav: api/concepts/cav.md
       - Tcav: api/concepts/tcav.md
