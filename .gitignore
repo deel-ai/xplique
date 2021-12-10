@@ -52,6 +52,7 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+xplique_dev_env/
 
 # mkdocs documentation
 /site
