@@ -14,7 +14,7 @@ class TemplateTorchWrapper(nn.Module):
   def __init__(self, torch_model):
     super(TemplateTorchWrapper, self).__init__()
     self.model = torch_model
-  
+
   def __call__(self, inputs):
     # transform your numpy inputs to torch
     torch_inputs = self._transform_np_inputs(inputs)
@@ -26,7 +26,7 @@ class TemplateTorchWrapper(nn.Module):
     # convert to tf.Tensor
     outputs = tf.cast(outputs, tf.float32)
     return outputs
-  
+
   def _transform_np_inputs(self, np_inputs):
     # include in this function all transformation
     # needed for your torch model to work, here
@@ -44,7 +44,7 @@ As a matter of fact, if the instance of your model doesn't belong to [`tf.keras.
 to make inference the following will happen:
 
 ```python
-# inputs are automatically transform to tf.Tensor when using an explainer 
+# inputs are automatically transform to tf.Tensor when using an explainer
 pred = model(inputs.numpy())
 pred = tf.cast(pred, dtype=tf.float32)
 scores = tf.reduce_sum(pred * targets, axis=-1)

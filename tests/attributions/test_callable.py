@@ -146,7 +146,7 @@ class RandomNpCallable():
     def fit(self, inputs, targets):
         pass
     def __call__(self, inputs):
-        return np.random.random((inputs.shape[0], self.nb_labels))  
+        return np.random.random((inputs.shape[0], self.nb_labels))
 
 def test_tf_models_tabular():
     """
@@ -243,4 +243,4 @@ def test_callable_models_images():
 
                 explanations = explainer(inputs, targets)
 
-                assert explanations.shape == (samples, *input_shape[:2])  
+                assert explanations.shape == (samples, *input_shape[:2])

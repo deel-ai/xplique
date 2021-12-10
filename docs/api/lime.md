@@ -1,7 +1,7 @@
 # LIME
 
 The Lime method use an interpretable model to provide an explanation.
-More specifically, you map inputs ($x \in R^d$) to an interpretable space (e.g super-pixels) of size num_interpetable_features. 
+More specifically, you map inputs ($x \in R^d$) to an interpretable space (e.g super-pixels) of size num_interpetable_features.
 From there you generate pertubed interpretable samples ($z' \in \{0,1\}^{num\_interpretable\_samples}$
 where $1$ means we keep this specific interpretable feature).
 
@@ -19,8 +19,8 @@ Thus, you will have an interpretable explanation (i.e in the interpretable space
 broadcasted afterwards to the original space considering the mapping you used.
 
 !!! quote
-    The overall goal of LIME is to identify an interpretable model over the interpretable representation that is locally faithful to the classifier. 
-     
+    The overall goal of LIME is to identify an interpretable model over the interpretable representation that is locally faithful to the classifier.
+
      -- <cite>["Why Should I Trust You?": Explaining the Predictions of Any Classifier.](https://arxiv.org/abs/1602.04938)</cite>[^1]
 
 ## Example

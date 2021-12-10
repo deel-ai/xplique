@@ -31,4 +31,3 @@ By default, the map function use the quickshift segmentation of scikit-images
 
 
 [^1]: [A Unified Approach to Interpreting Model Predictions](https://arxiv.org/abs/1705.07874)
-   

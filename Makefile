@@ -26,7 +26,7 @@ prepare-dev:
 	. xplique_dev_env/bin/activate && pre-commit install-hooks
 
 test:
-	. xplique_dev_env/bin/activate && tox 
+	. xplique_dev_env/bin/activate && tox
 
 test-disable-gpu:
 	. xplique_dev_env/bin/activate && CUDA_VISIBLE_DEVICES=-1 tox
