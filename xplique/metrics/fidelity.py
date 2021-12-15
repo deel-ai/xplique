@@ -106,7 +106,7 @@ class MuFidelity(ExplanationMetric):
         """
         explanations = np.array(explanations)
         assert len(explanations) == len(self.inputs), "The number of explanations must be the " \
-                                                      "same as the number of inputs"
+                                                      "same as the number of inputs: %d vs %d"%(len(explanations),len(self.inputs))
 
         correlations = []
         for inp, label, phi, base in zip(self.inputs, self.targets, explanations,
@@ -200,7 +200,7 @@ class CausalFidelity(ExplanationMetric):
         """
         explanations = np.array(explanations)
         assert len(explanations) == len(self.inputs), "The number of explanations must be the " \
-                                                      "same as the number of inputs"
+                                                      "same as the number of inputs: %d vs %d"%(len(explanations),len(self.inputs))
         # the reference does not specify how to manage the channels of the explanations
         if len(explanations.shape) == 4:
             explanations = np.mean(explanations, -1)
