@@ -68,6 +68,11 @@ h4 code {
 img[alt*="Colab"] {
   transform: translateY(3px);
   padding-left: 5px;
+  width: 150px;
+}
+
+.md-typeset img, .md-typeset svg {
+    max-width: none;
 }
 
 .md-typeset .task-list-control [type=checkbox]:checked+.task-list-indicator::before {
@@ -105,6 +110,10 @@ table {
 
 .md-typeset table:not([class]) {
     display: table;
+}
+
+.md-typeset thead:not([class]) {
+    color: white;
 }
 
 table th a {
