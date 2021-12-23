@@ -37,6 +37,7 @@ class TemplateTorchWrapper(nn.Module):
     return torch_inputs
 
 wrapped_model = TemplateTorchWrapper(torch_model)
+explainer = Lime(wrapped_model)
 explanations = explainer.explain(images, labels)
 ```
 
