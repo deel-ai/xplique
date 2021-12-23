@@ -7,31 +7,35 @@ google_analytics:
 nav:
   - Home: index.md
   - Attributions methods:
-      - Saliency: api/saliency.md
-      - Gradient Input: api/gradient_input.md
-      - Occlusion sensitivity: api/occlusion.md
-      - Rise: api/rise.md
-      - Integrated Gradient: api/integrated_gradients.md
-      - SmoothGrad: api/smoothgrad.md
-      - Grad-CAM: api/grad_cam.md
-      - Grad-CAM++: api/grad_cam_pp.md
-      - DeconvNet: api/deconvnet.md
-      - Guided Backprop: api/guided_backpropagation.md
-      - SquareGrad: api/square_grad.md
-      - VarGrad: api/vargrad.md
-      - Lime: api/lime.md
-      - KernelSHAP: api/kernel_shap.md
+      - API Description: api/attributions/api_attributions.md
+      - Saliency: api/attributions/saliency.md
+      - Gradient Input: api/attributions/gradient_input.md
+      - Occlusion sensitivity: api/attributions/occlusion.md
+      - Rise: api/attributions/rise.md
+      - Integrated Gradient: api/attributions/integrated_gradients.md
+      - SmoothGrad: api/attributions/smoothgrad.md
+      - Grad-CAM: api/attributions/grad_cam.md
+      - Grad-CAM++: api/attributions/grad_cam_pp.md
+      - DeconvNet: api/attributions/deconvnet.md
+      - Guided Backprop: api/attributions/guided_backpropagation.md
+      - SquareGrad: api/attributions/square_grad.md
+      - VarGrad: api/attributions/vargrad.md
+      - Lime: api/attributions/lime.md
+      - KernelSHAP: api/attributions/kernel_shap.md
   - Concept based:
-      - Cav: api/cav.md
-      - Tcav: api/tcav.md
-  - Feature visualization: api/feature_viz.md
+      - Cav: api/concepts/cav.md
+      - Tcav: api/concepts/tcav.md
+  - Feature visualization:
+      - Feature visualization: api/feature_viz/feature_viz.md
   - Attributions metrics:
-      - Deletion: api/deletion.md
-      - Insertion: api/insertion.md
-      - Deletion TS: api/deletion_ts.md
-      - Insertion TS: api/insertion_ts.md
-      - MuFidelity: api/mu_fidelity.md
-      - AverageStability: api/avg_stability.md
+      - API Description: api/metrics/api_metrics.md
+      - Deletion: api/metrics/deletion.md
+      - Insertion: api/metrics/insertion.md
+      - Deletion TS: api/metrics/deletion_ts.md
+      - Insertion TS: api/metrics/insertion_ts.md
+      - MuFidelity: api/metrics/mu_fidelity.md
+      - AverageStability: api/metrics/avg_stability.md
+  - Tutorials: tutorials.md
   - Contributing: contributing.md
   - Callable: callable.md
 
@@ -52,6 +56,7 @@ theme:
         name: Switch to light mode
   icon:
     repo: fontawesome/brands/github
+
 plugins:
   - numkdoc
   - search
