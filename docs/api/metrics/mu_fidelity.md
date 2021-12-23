@@ -12,7 +12,8 @@ Formally, given a predictor $f$, an explanation function $g$, a point $x \in \ma
 
 $$ \mu F = \underset{S \subseteq \{1, ..., d\} \\ |S| = k}{Corr}( \sum_{i \in S} g(f, x)_i, f(x) - f(x_{[x_i = x_0 | i \in S]})) $$
 
-The better the method, the higher the score.
+!!!info
+    The better the method, the higher the score.
 
 ## Example
 
