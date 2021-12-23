@@ -36,6 +36,12 @@ method = SmoothGrad(model, nb_samples=50, noise=0.15)
 explanations = method.explain(images, labels)
 ```
 
+## Notebooks
+
+- [**Attribution Methods**: Getting started](https://colab.research.google.com/drive
+/1XproaVxXjO9nrBSyyy7BuKJ1vy21iHs2) <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1XproaVxXjO9nrBSyyy7BuKJ1vy21iHs2) </sub>
+- [**SmoothGrad**: Going Further](https://colab.research.google.com/drive/1kHPB07XExQ0CvTIk51Hm5qS2Vl66OUH2) <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1kHPB07XExQ0CvTIk51Hm5qS2Vl66OUH2) </sub>
+
 {{xplique.attributions.smoothgrad.SmoothGrad}}
 
 [^1]: [SmoothGrad: removing noise by adding noise (2017)](https://arxiv.org/abs/1706.03825)

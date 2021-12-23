@@ -38,6 +38,12 @@ method = IntegratedGradients(model, steps=50, baseline_value=0.0)
 explanations = method.explain(images, labels)
 ```
 
+## Notebooks
+
+- [**Attribution Methods**: Getting started](https://colab.research.google.com/drive
+/1XproaVxXjO9nrBSyyy7BuKJ1vy21iHs2) <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1XproaVxXjO9nrBSyyy7BuKJ1vy21iHs2) </sub>
+- [**Integrated Gradients**: Going Further](https://colab.research.google.com/drive/1Q4m-ZsygDEiU-cjTcmu1cjHqdfiBGf12) <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1Q4m-ZsygDEiU-cjTcmu1cjHqdfiBGf12) </sub>
+
 {{xplique.attributions.integrated_gradients.IntegratedGradients}}
 
 [^1]: [Axiomatic Attribution for Deep Networks](https://arxiv.org/abs/1703.01365)
