@@ -35,6 +35,13 @@ method = GradCAM(model)
 explanations = method.explain(images, labels)
 ```
 
+## Notebooks
+
+- [**Attribution Methods**: Getting started](https://colab.research.google.com/drive
+/1XproaVxXjO9nrBSyyy7BuKJ1vy21iHs2) <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1XproaVxXjO9nrBSyyy7BuKJ1vy21iHs2) </sub>
+- [**GradCam**: Going Further](https://colab.research.google.com/drive/1wJmPK3HZ1Uw1rBbeo8DtmmaRZUZ1Cs-i) <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1wJmPK3HZ1Uw1rBbeo8DtmmaRZUZ1Cs-i) </sub>
+
+
 {{xplique.attributions.grad_cam.GradCAM}}
 
 [^1]: [Visual Explanations from Deep Networks via Gradient-based Localization (2016).](https://arxiv.org/abs/1610.02391)

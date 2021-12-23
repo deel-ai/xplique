@@ -33,6 +33,12 @@ method = GradientInput(model)
 explanations = method.explain(images, labels)
 ```
 
+## Notebooks
+
+- [**Attribution Methods**: Getting started](https://colab.research.google.com/drive
+/1XproaVxXjO9nrBSyyy7BuKJ1vy21iHs2) <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1XproaVxXjO9nrBSyyy7BuKJ1vy21iHs2) </sub>
+- [**Gradient $\odot$ Input**: Going Further](https://colab.research.google.com/drive/1pHuiggijCZ0touf2gEtdM2QsiR4oFJwS) <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1pHuiggijCZ0touf2gEtdM2QsiR4oFJwS) </sub>
+
 {{xplique.attributions.gradient_input.GradientInput}}
 
 [^1]: [Not Just a Black Box: Learning Important Features Through Propagating Activation Differences](https://arxiv.org/abs/1605.01713)

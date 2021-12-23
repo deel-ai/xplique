@@ -24,4 +24,10 @@ method = SquareGrad(model, nb_samples=50, noise=0.15)
 explanations = method.explain(images, labels)
 ```
 
+## Notebooks
+
+- [**Attribution Methods**: Getting started](https://colab.research.google.com/drive
+/1XproaVxXjO9nrBSyyy7BuKJ1vy21iHs2) <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1XproaVxXjO9nrBSyyy7BuKJ1vy21iHs2) </sub>
+- [**SquareGrad**: Going Further](https://colab.research.google.com/drive/14c0tb_MMNQzpCFyTtaCgQUfG1OpnFPI0) <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/14c0tb_MMNQzpCFyTtaCgQUfG1OpnFPI0) </sub>
+
 {{xplique.attributions.SquareGrad}}
