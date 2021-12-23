@@ -1,6 +1,6 @@
 # Saliency Maps
 
-Saliency is visualization techniques based on the gradient of a class score relative to the
+Saliency is a visualization techniques based on the gradient of a class score relative to the
 input.
 
 !!! quote
@@ -28,6 +28,14 @@ from xplique.attributions import Saliency
 method = Saliency(model)
 explanations = method.explain(images, labels)
 ```
+
+## Notebooks
+
+- [**Attribution Methods**: Getting started](https://colab.research.google.com/drive
+/1XproaVxXjO9nrBSyyy7BuKJ1vy21iHs2) <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1XproaVxXjO9nrBSyyy7BuKJ1vy21iHs2) </sub>
+- [**Saliency**: Going Further](https://colab.research.google.com/drive
+/19oLUjmvrBIMTmNKXcJNbB6pJvkfutLEb) <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/19oLUjmvrBIMTmNKXcJNbB6pJvkfutLEb) </sub>
+
 
 {{xplique.attributions.saliency.Saliency}}
 

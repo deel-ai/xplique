@@ -11,7 +11,8 @@ Formally, given a predictor $f$, an explanation function $g$, a point $x$, a rad
 
 $$ S = \underset{z : \rho(x, z) \leq r}{\int} D(g(f, x), g(f, z))\ dz $$
 
-The better the method, the smaller the score.
+!!!info
+    The better the method, the smaller the score.
 
 ## Example
 
@@ -30,3 +31,7 @@ score = metric.evaluate(explainer)
 {{xplique.metrics.stability.AverageStability}}
 
 [^1]:[Evaluating and Aggregating Feature-based Model Explanations (2020)](https://arxiv.org/abs/2005.00631)
+
+!!!warning
+    AverageStability will compute several time explanations for all the inputs (pertubed more or less severly).
+    Thus, it might be very long to compute (especially if the explainer is already time consumming).
