@@ -30,7 +30,8 @@ class AverageStability(ExplainerMetric):
     batch_size
         Number of samples to explain at once, if None compute all at once.
     radius
-        Radius defining the neighborhood of the inputs with respect to l1 distance.
+        Maximum value of the uniform noise added to the inputs before recalculating their
+        explanations.
     distance
         Distance metric between the explanations.
     nb_samples
@@ -60,8 +61,8 @@ class AverageStability(ExplainerMetric):
             raise ValueError(f"{distance} is not a valid distance.")
 
         # prepare the noisy masks that will be used to generate the neighbors
-        nb_variables = np.prod(inputs.shape[1:])
-        self.noisy_masks = tf.random.uniform((nb_samples, *inputs.shape[1:]), 0, 1.0 / nb_variables)
+        self.noisy_masks = tf.random.uniform((nb_samples, *inputs.shape[1:]), 0,
+                                             self.radius)
 
     def evaluate(self,
                  explainer: Callable,
