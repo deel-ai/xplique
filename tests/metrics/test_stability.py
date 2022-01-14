@@ -26,6 +26,22 @@ def test_average_stability():
             assert score < np.prod(x.shape[:-1])
 
 
+def test_noise_radius():
+    # ensure the noise added correspond to the radius passed.
+    input_shape, nb_labels, nb_samples = ((32, 32, 3), 10, 20)
+    x, y = generate_data(input_shape, nb_labels, nb_samples)
+    model = generate_model(input_shape, nb_labels)
+
+    mean_noise = []
+
+    for radius in [1.0 * 10**i for i in range(-4, 4)]:
+        metric = AverageStability(model, x, y, radius=radius, nb_samples=1000)
+        mean_noise.append(np.mean(metric.noisy_masks))
+
+    # the list should striclty increase
+    assert all(i < j for i, j in zip(mean_noise, mean_noise[1:]))
+
+
 def test_perfect_stability():
     """Ensure we get perfect stability when explanation is the same"""
     input_shape, nb_labels, nb_samples = ((8, 8, 1), 2, 20)
