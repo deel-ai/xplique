@@ -199,6 +199,7 @@ def plot_feature_impact(
 
     # add some text for labels and custom y-axis tick labels
     axes.set_xlabel('Impact on output')
+    axes.set_ylabel('')
     axes.set_title('Features impact')
     axes.set_yticks(y_pos)
     axes.set_yticklabels(yticklabels)
