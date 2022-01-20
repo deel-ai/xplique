@@ -1,4 +1,4 @@
-# Deletion
+# Deletion_Tab
 
 The tabular data Deletion Fidelity metric measures the faithfulness of explanations on tabular data predictions.
 This metric computes the capacity of the model to make predictions while only the most important features are not perturbed[^1].
