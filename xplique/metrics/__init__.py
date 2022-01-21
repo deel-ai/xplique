@@ -2,6 +2,7 @@
 Explanations Metrics module
 """
 
-from .fidelity import MuFidelity, Deletion, Insertion, DeletionTS, InsertionTS, Deletion_Tab, Insertion_Tab
+# pylint: disable=
+from .fidelity import MuFidelity, Deletion, Insertion, DeletionTS, InsertionTS, DeletionTab, InsertionTab
 from .stability import AverageStability
 from .representativity import MeGe
