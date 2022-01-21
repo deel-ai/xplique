@@ -2,7 +2,7 @@ import tensorflow as tf
 import numpy as np
 
 from ..utils import generate_model, generate_timeseries_model, generate_regression_model, generate_data, almost_equal
-from xplique.metrics import Insertion, Deletion, MuFidelity, InsertionTS, DeletionTS, Insertion_Tab, Deletion_Tab
+from xplique.metrics import Insertion, Deletion, MuFidelity, InsertionTS, DeletionTS, InsertionTab, DeletionTab
 
 
 def test_mu_fidelity():
@@ -80,11 +80,11 @@ def test_regression_metrics():
     for step in [5, 10]:
         for baseline_mode in [0.0, lambda x: x-0.5]:
             for metric in ["loss", "accuracy"]:
-                score_insertion = Insertion_Tab(
+                score_insertion = InsertionTab(
                     model, x, y, metric=metric, baseline_mode=baseline_mode,
                     steps=step, max_percentage_perturbed=0.2,
                 )(explanations)
-                score_deletion = Deletion_Tab(
+                score_deletion = DeletionTab(
                     model, x, y, metric=metric, baseline_mode=baseline_mode,
                     steps=step, max_percentage_perturbed=0.2,
                 )(explanations)
