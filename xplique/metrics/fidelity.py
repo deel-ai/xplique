@@ -627,7 +627,7 @@ class InsertionTS(CausalFidelityTS):
                          "insertion", baseline_mode, steps, max_percentage_perturbed)
 
 
-class CausalFidelity_Tab(ExplanationMetric):
+class CausalFidelityTab(ExplanationMetric):
     """
     Used to compute the insertion and deletion metrics for tabular data explanations.
 
@@ -782,7 +782,7 @@ class CausalFidelity_Tab(ExplanationMetric):
         return scores_dict
 
 
-class Deletion_Tab(CausalFidelity_Tab):
+class DeletionTab(CausalFidelityTab):
     """
     Adaptation of the insertion metric for tabular data.
 
@@ -826,7 +826,7 @@ class Deletion_Tab(CausalFidelity_Tab):
                          "deletion", baseline_mode, steps, max_percentage_perturbed)
 
 
-class Insertion_Tab(CausalFidelity_Tab):
+class InsertionTab(CausalFidelityTab):
     """
     Adaptation of the insertion metric for tabular data.
 
