@@ -105,7 +105,8 @@ class MuFidelity(ExplanationMetric):
         """
         explanations = np.array(explanations)
         assert len(explanations) == len(self.inputs), "The number of explanations must be the " \
-                                                      "same as the number of inputs"
+                                            f"same as the number of inputs: {len(explanations)}"\
+                                            f" vs {len(self.inputs)}"
 
         correlations = []
         for inp, label, phi, base in zip(self.inputs, self.targets, explanations,
@@ -178,7 +179,7 @@ class CausalFidelity(ExplanationMetric):
         self.inputs_flatten = inputs.reshape((len(inputs), self.nb_features, inputs.shape[-1]))
 
         assert 0.0 < max_percentage_perturbed <= 1.0, "`max_percentage_perturbed` must be" \
-                                                      "in ]O, 1]."
+                                                      "in ]0, 1]."
         self.max_nb_perturbed = tf.math.floor(self.nb_features * max_percentage_perturbed)
 
         if steps == -1:
@@ -238,7 +239,9 @@ class CausalFidelity(ExplanationMetric):
         """
         explanations = np.array(explanations)
         assert len(explanations) == len(self.inputs), "The number of explanations must be the " \
-                                                      "same as the number of inputs"
+                                            f"same as the number of inputs: {len(explanations)}"\
+                                            f"vs {len(self.inputs)}"
+
         # the reference does not specify how to manage the channels of the explanations
         if len(explanations.shape) == 4:
             explanations = np.mean(explanations, -1)
