@@ -401,7 +401,7 @@ class CausalFidelityTS(ExplanationMetric):
                  metric: str = "loss",
                  batch_size: Optional[int] = 64,
                  causal_mode: str = "deletion",
-                 baseline_mode: Union[float, str] = 0.0,
+                 baseline_mode: Union[float, Callable] = 0.0,
                  steps: int = 10,
                  max_percentage_perturbed: float = 1.0,
                  ):  # pylint: disable=R0913
@@ -484,21 +484,8 @@ class CausalFidelityTS(ExplanationMetric):
         # for each sample, sort by most important features according to the explanation
         most_important_features = np.argsort(explanations_flatten, axis=-1)[:, ::-1]
 
-        if isinstance(self.baseline_mode, float):
-            baselines = np.full(self.inputs.shape, self.baseline_mode, dtype=np.float32)
-        elif self.baseline_mode == "zero":
-            baselines = np.zeros(self.inputs.shape)
-        elif self.baseline_mode == "inverse":
-            time_ax = 1
-            maximums = self.inputs.max(axis=time_ax)
-            maximums = np.expand_dims(maximums, axis=time_ax)
-            maximums = np.repeat(maximums, self.inputs.shape[time_ax], axis=time_ax)
-            baselines = maximums - self.inputs
-        elif self.baseline_mode == "negative":
-            baselines = -self.inputs
-        else:
-            raise NotImplementedError(f'Unknown perturbation type `{self.baseline_mode}`.')
-
+        baselines = self.baseline_mode(self.inputs) if isfunction(self.baseline_mode) else \
+            np.full(self.inputs.shape, self.baseline_mode, dtype=np.float32)
         baselines_flatten = baselines.reshape(self.inputs_flatten.shape)
 
         steps = np.linspace(0, self.max_nb_perturbed, self.steps+1, dtype=np.int32)
@@ -572,7 +559,7 @@ class DeletionTS(CausalFidelityTS):
                  targets: Optional[Union[tf.Tensor, np.ndarray]] = None,
                  metric: str = "loss",
                  batch_size: Optional[int] = 64,
-                 baseline_mode: Union[float, str] = 0.0,
+                 baseline_mode: Union[float, Callable] = 0.0,
                  steps: int = 10,
                  max_percentage_perturbed: float = 1.0,
                  ):  # pylint: disable=R0913
@@ -619,9 +606,97 @@ class InsertionTS(CausalFidelityTS):
                  targets: Optional[Union[tf.Tensor, np.ndarray]] = None,
                  metric: str = "loss",
                  batch_size: Optional[int] = 64,
-                 baseline_mode: Union[float, str] = 0.0,
+                 baseline_mode: Union[float, Callable] = 0.0,
                  steps: int = 10,
                  max_percentage_perturbed: float = 1.0,
                  ):  # pylint: disable=R0913
+        super().__init__(model, inputs, targets, metric, batch_size,
+                         "insertion", baseline_mode, steps, max_percentage_perturbed)
+
+
+class DeletionTab(CausalFidelityTS):
+    """
+    Adaptation of the deletion metric for tabular data.
+
+    Ref. Petsiuk & al., RISE: Randomized Input Sampling for Explanation of Black-box Models (2018).
+    https://arxiv.org/pdf/1806.07421.pdf
+    Ref. Schlegel et al., Towards a Rigorous Evaluation of XAI Methods (2019).
+
+    Parameters
+    ----------
+    model
+        Model used for computing metric.
+    inputs
+        Input samples under study.
+    targets
+        One-hot encoded labels or regression target (e.g {+1, -1}), one for each sample.
+    metric
+        The metric used to evaluate the model performance. One of the model metric keys when calling
+        the evaluate function (e.g 'loss', 'accuracy'...). Default to loss.
+    batch_size
+        Number of samples to explain at once, if None compute all at once.
+    baseline_mode
+        Value of the baseline state, will be called with the inputs if it is a function.
+    steps
+        Number of steps between the start and the end state.
+        Can be set to -1 for all possible steps to be computed.
+    max_percentage_perturbed
+        Maximum percentage of the input perturbed.
+    """ # pylint: disable=R0913
+
+    def __init__(self,
+                 model: tf.keras.Model,
+                 inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
+                 targets: Optional[Union[tf.Tensor, np.ndarray]] = None,
+                 metric: str = "loss",
+                 batch_size: Optional[int] = 64,
+                 baseline_mode: Union[float, Callable] = 0.0,
+                 steps: int = 10,
+                 max_percentage_perturbed: float = 1.0,
+                 ):
+        super().__init__(model, inputs, targets, metric, batch_size,
+                         "deletion", baseline_mode, steps, max_percentage_perturbed)
+
+
+class InsertionTab(CausalFidelityTS):
+    """
+    Adaptation of the insertion metric for tabular data.
+
+    Ref. Petsiuk & al., RISE: Randomized Input Sampling for Explanation of Black-box Models (2018).
+    https://arxiv.org/pdf/1806.07421.pdf
+    Ref. Schlegel et al., Towards a Rigorous Evaluation of XAI Methods (2019).
+
+    Parameters
+    ----------
+    model
+        Model used for computing metric.
+    inputs
+        Input samples under study.
+    targets
+        One-hot encoded labels or regression target (e.g {+1, -1}), one for each sample.
+    metric
+        The metric used to evaluate the model performance. One of the model metric keys when calling
+        the evaluate function (e.g 'loss', 'accuracy'...). Default to loss.
+    batch_size
+        Number of samples to explain at once, if None compute all at once.
+    baseline_mode
+        Value of the baseline state, will be called with the inputs if it is a function.
+    steps
+        Number of steps between the start and the end state.
+        Can be set to -1 for all possible steps to be computed.
+    max_percentage_perturbed
+        Maximum percentage of the input perturbed.
+    """ # pylint: disable=R0913
+
+    def __init__(self,
+                 model: tf.keras.Model,
+                 inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
+                 targets: Optional[Union[tf.Tensor, np.ndarray]] = None,
+                 metric: str = "loss",
+                 batch_size: Optional[int] = 64,
+                 baseline_mode: Union[float, Callable] = 0.0,
+                 steps: int = 10,
+                 max_percentage_perturbed: float = 1.0,
+                 ):
         super().__init__(model, inputs, targets, metric, batch_size,
                          "insertion", baseline_mode, steps, max_percentage_perturbed)
