@@ -199,10 +199,10 @@ def plot_feature_impact(
 
     # add some text for labels and custom y-axis tick labels
     axes.set_xlabel('Impact on output')
+    axes.set_ylabel('')
     axes.set_title('Features impact')
     axes.set_yticks(y_pos)
     axes.set_yticklabels(yticklabels)
-    axes.legend()
 
     # make the plot prettier
     fig.tight_layout()
@@ -293,6 +293,7 @@ def summary_plot_tabular(
 
     # build the figure
     row_height = 0.4
+    plt.figure()
     if plot_size is None:
         plt.gcf().set_size_inches(8, nb_features_kept * row_height + 1.5)
     elif isinstance(plot_size,(list, tuple)):
