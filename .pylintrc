@@ -3,8 +3,10 @@ disable=
     R0903, # allows to expose only one public method
     R0914, # allow multiples local variables
 
+    E0401, # pending issue with pylint see pylint#2603
+
     E1123, # issues between pylint and tensorflow since 2.2.0
-    E1120, # see https://github.com/PyCQA/pylint/issues/3613
+    E1120, # see pylint#3613
 
 [FORMAT]
 max-line-length=100
