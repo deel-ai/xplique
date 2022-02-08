@@ -14,7 +14,7 @@ def test_one_explanation():
     cmap = "coolwarm"
 
     features = ["feature_" + str(i) for i in range(nb_features)]
-    explanations = np.random.uniform(size=(nb_features, nb_time_steps))
+    explanations = np.random.uniform(size=(nb_time_steps, nb_features))
 
     plot_attributions(
         explanations,
@@ -33,14 +33,14 @@ def test_several_explanations():
     # test timeseries plot attribution method with several explanations
     nb_features = 7
     nb_time_steps = 26
-    title = "test one explanation"
+    title = "test several explanations"
     filepath = "tests/plots/timeseries_several_attributions_test.png"
     cmap = "coolwarm"
 
     features = ["feature_" + str(i) for i in range(nb_features)]
     explanations = {
         "method_" + str(i):
-            np.random.uniform(size=(nb_features, nb_time_steps))
+            np.random.uniform(size=(nb_time_steps, nb_features))
         for i in range(10)
     }
 

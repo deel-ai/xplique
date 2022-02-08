@@ -31,7 +31,7 @@ def _arrange_subplots(
     nb_subplots = len(explanations)
     expl_shape = list(explanations.values())[0].shape
     # matplotlib dimension are flipped compare to usual numpy of pandas
-    get_size = lambda x, y: (int(y * (1 + expl_shape[1] / 5)), int(x * (1 + expl_shape[0] / 5)))
+    get_size = lambda x, y: (int(y * (1 + expl_shape[0] / 5)), int(x * (1 + expl_shape[1] / 5)))
 
     found_arrange = False
     # iterate to found arrangement
@@ -39,7 +39,7 @@ def _arrange_subplots(
         for i in range(1, nb_subplots + 1):
             if nb_subplots % i == 0:
                 plot_size = get_size(i, nb_subplots / i)
-                if plot_size[1] <= plot_size[0] <= 2 * plot_size[1]:
+                if plot_size[0] <= plot_size[1] <= 2 * plot_size[0]:
                     found_arrange = True
                     nrows = i
                     ncols = int(nb_subplots / i)
@@ -78,12 +78,12 @@ def _show_heatmap(
     image
         output of ax.imshow().
     """
-    image = axe .imshow(explanations, cmap=cmap, **plot_kwargs)
+    image = axe.imshow(np.array(explanations).transpose(), cmap=cmap, **plot_kwargs)
 
     axe .set_title(title, fontsize=12)
 
     axe .set_xlabel("time-steps", fontsize=10)
-    time_steps = list(range(-explanations.shape[1], 0))
+    time_steps = list(range(-explanations.shape[0], 0))
     axe .set_xticks(np.arange(len(time_steps)))
     axe .set_xticklabels(time_steps, fontsize=5)
 
@@ -130,13 +130,17 @@ def plot_attributions(
     if isinstance(explanations, dict):
         # find the right arrangement
         subplot_kwargs = _arrange_subplots(explanations)
-        nrows = subplot_kwargs["nrows"]
+        nrows, ncols = subplot_kwargs["nrows"], subplot_kwargs["ncols"]
         fig, axes = plt.subplots(**subplot_kwargs)
 
         # plot multiple heatmaps
         for i, (method, explanation) in enumerate(explanations.items()):
+            if nrows == 1 or ncols == 1:
+                axe = axes[i]
+            else:
+                axe = axes[i % nrows, i // nrows]
             image = _show_heatmap(
-                axes[i % nrows, i//nrows],
+                axe,
                 explanation,
                 features,
                 title=method,
