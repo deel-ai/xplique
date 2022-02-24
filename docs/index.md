@@ -72,7 +72,7 @@ We propose some Hands-on tutorials to get familiar with the library and its api:
 
 <p align="center" width="100%">
     <a href="https://colab.research.google.com/drive/1XproaVxXjO9nrBSyyy7BuKJ1vy21iHs2">
-        <img width="95%" src="./docs/assets/attributions.png">
+        <img width="95%" src="./assets/attributions.png">
     </a>
 </p>
 
@@ -83,7 +83,7 @@ We propose some Hands-on tutorials to get familiar with the library and its api:
 
 <p align="center" width="100%">
     <a href="https://colab.research.google.com/drive/1iuEz46ZjgG97vTBH8p-vod3y14UETvVE">
-        <img width="95%" src="./docs/assets/concepts.png">
+        <img width="95%" src="./assets/concepts.png">
     </a>
 </p>
 
@@ -91,7 +91,7 @@ We propose some Hands-on tutorials to get familiar with the library and its api:
 
 <p align="center" width="100%">
     <a href="https://colab.research.google.com/drive/1st43K9AH-UL4eZM1S4QdyrOi7Epa5K8v"> 
-        <img width="95%" src="./docs/assets/feature_viz.png">
+        <img width="95%" src="./assets/feature_viz.png">
     </a>
 </p>
 
