@@ -44,6 +44,13 @@ def predictions_one_hot_callable(
     else:
         pred = model(inputs.numpy())
 
+    # make sure that the prediction shape is coherent
+    if inputs.shape[0] != 1:
+        # a batch of prediction is required
+        if len(pred.shape) == 1:
+            # The prediction dimension disappeared
+            pred = tf.expand_dims(pred, axis=1)
+
     pred = tf.cast(pred, dtype=tf.float32)
     scores = tf.reduce_sum(pred * targets, axis=-1)
 
