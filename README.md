@@ -33,13 +33,13 @@
   <a href="https://deel-ai.github.io/xplique/"><strong>Explore Xplique docs »</strong></a>
   <br>
   <br>
-  <a href="https://deel-ai.github.io/xplique/api/saliency">Attributions</a>
+  <a href="https://deel-ai.github.io/xplique/api/attributions/api_attributions/">Attributions</a>
   ·
-  <a href="https://deel-ai.github.io/xplique/api/cav">Concept</a>
+  <a href="https://deel-ai.github.io/xplique/api/concepts/cav/">Concept</a>
   ·
-  <a href="https://deel-ai.github.io/xplique/api/feature_viz">Feature Visualization</a>
+  <a href="https://deel-ai.github.io/xplique/api/feature_viz/feature_viz/">Feature Visualization</a>
   ·
-  <a href="https://deel-ai.github.io/xplique/api/deletion">Metrics</a>
+  <a href="https://deel-ai.github.io/xplique/api/metrics/api_metrics/">Metrics</a>
 </p>
 
 The library is composed of several modules, the _Attributions Methods_ module implements various methods (e.g Saliency, Grad-CAM, Integrated-Gradients...), with explanations, examples and links to official papers.
@@ -125,7 +125,7 @@ explanations = explainer.explain(images, labels)
 # or just `explainer(images, labels)`
 ```
 
-All attributions methods share a common API. You can find out more about it [here](https://deel-ai.github.io/xplique/api/attributions/api_attribution.html).
+All attributions methods share a common API. You can find out more about it [here](https://deel-ai.github.io/xplique/api/attributions/api_attributions/).
 
 ### Attributions Metrics
 
@@ -145,7 +145,7 @@ metric = Deletion(model, inputs, labels)
 score_grad_cam = metric(explanations)
 ```
 
-All attributions metrics share a common API. You can find out more about it [here](https://deel-ai.github.io/xplique/api/metrics/api_metrics.html)
+All attributions metrics share a common API. You can find out more about it [here](https://deel-ai.github.io/xplique/api/metrics/api_metrics/)
 
 ### Concepts Extraction
 
@@ -163,7 +163,7 @@ concept_vector = extractor(positive_samples,
                            negative_samples)
 ```
 
-More information on CAV [here](https://deel-ai.github.io/xplique/api/concepts/cav.html) and on TCAV [here](https://deel-ai.github.io/xplique/api/concepts/tcav.html).
+More information on CAV [here](https://deel-ai.github.io/xplique/api/concepts/cav/) and on TCAV [here](https://deel-ai.github.io/xplique/api/concepts/tcav/).
 
 ### Feature Visualization
 
@@ -182,7 +182,7 @@ obj = neuron_obj + 2.0 * channel_obj
 images, obj_names = optimize(obj)
 ```
 
-Want to know more ? Check the Feature Viz [documentation](https://deel-ai.github.io/xplique/api/feature_viz/feature_viz.html)
+Want to know more ? Check the Feature Viz [documentation](https://deel-ai.github.io/xplique/api/feature_viz/feature_viz/)
 
 ## 📦 What's Included
 
