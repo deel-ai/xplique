@@ -4,6 +4,7 @@ Module related to Grad-CAM method
 
 import tensorflow as tf
 import numpy as np
+import cv2
 
 from .base import WhiteBoxExplainer, sanitize_input_output
 from ..commons import find_layer
@@ -82,6 +83,7 @@ class GradCAM(WhiteBoxExplainer):
         grad_cam
             Grad-CAM explanations, same shape as the inputs except for the channels.
         """
+        # pylint: disable=E1101
         grad_cams = None
         batch_size = self.batch_size if self.batch_size is not None else len(inputs)
 
@@ -97,10 +99,12 @@ class GradCAM(WhiteBoxExplainer):
         # as Grad-CAM is based on the last convolutionnal layer, the explanation output has the
         # same dimensions as this layer, we need to resize the size of the explanations to match
         # the size of the inputs
-        input_shape: Tuple[int, int] = inputs.shape[1:3]
-        grad_cams = tf.image.resize(grad_cams[..., tf.newaxis], (*input_shape,))
+        input_shape = inputs.shape[1:3]
+        grad_cams = np.array([
+            cv2.resize(grad_cam, (*input_shape,), interpolation=cv2.INTER_CUBIC)
+            for grad_cam in grad_cams.numpy()])
 
-        return grad_cams[..., 0]
+        return grad_cams
 
     @staticmethod
     @tf.function
