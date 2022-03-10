@@ -10,7 +10,7 @@ setup(
     long_description=README,
     long_description_content_type="text/markdown",
     author="Thomas FEL",
-    author_email="thomas.fel@brown.edu",
+    author_email="thomas_fel@brown.edu",
     license="MIT",
     install_requires=['tensorflow>=2.1.0', 'numpy', 'scikit-learn', 'scikit-image',
                       'matplotlib', 'scipy', 'opencv-python'],
