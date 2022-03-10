@@ -51,8 +51,8 @@ def test_common():
             # all explanation must have an explain method
             assert hasattr(method, 'explain')
 
-            # all explanations returned must be numpy array
-            assert isinstance(explanations, tf.Tensor)
+            # all explanations returned must be either a tf.Tensor or ndarray
+            assert isinstance(explanations, (tf.Tensor, np.ndarray))
 
 
 def test_batch_size():
