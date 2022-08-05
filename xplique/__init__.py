@@ -13,3 +13,4 @@ from . import concepts
 from . import features_visualizations
 from . import commons
 from . import plots
+from . import example_based
