@@ -189,7 +189,7 @@ class ImageObjectDetectorScoreCalculator:
         objects = model(inp)
         score_values = []
         for obj, obj_ref in zip(objects, object_ref):
-            if obj is None:
+            if obj is None or obj.shape[0] == 0:
                 score_values.append(tf.constant(0.0, dtype=inp.dtype))
             else:
                 current_boxes, proba_detection, classification = \
