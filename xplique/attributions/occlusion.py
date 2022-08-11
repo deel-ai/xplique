@@ -185,7 +185,7 @@ class Occlusion(BlackBoxExplainer):
             All the occluded combinations for each inputs.
         """
         occluded_inputs = tf.expand_dims(current_input, axis=0)
-        occluded_inputs = tf.repeat(occluded_inputs, repeats=len(masks), axis=0)
+        occluded_inputs = tf.repeat(occluded_inputs, repeats=masks.shape[0], axis=0)
 
         # check if current input shape is (W, H, C)
         has_channels = len(current_input.shape) > 2
@@ -222,7 +222,7 @@ class Occlusion(BlackBoxExplainer):
             Value reflecting the effect of each occlusion patchs on the output
         """
         baseline_scores = tf.expand_dims(baseline_scores, axis=-1)
-        occluded_scores = tf.reshape(occluded_scores, (-1, len(masks)))
+        occluded_scores = tf.reshape(occluded_scores, (-1, masks.shape[0]))
 
         score_delta = baseline_scores - occluded_scores
         # reshape the delta score to fit masks

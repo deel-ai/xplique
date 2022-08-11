@@ -400,7 +400,7 @@ class Lime(BlackBoxExplainer):
             The perturbed samples corresponding to the masks applied to the original input
         """
         pert_samples = tf.expand_dims(original_input, axis=0)
-        pert_samples = tf.repeat(pert_samples, repeats=len(sample_masks), axis=0)
+        pert_samples = tf.repeat(pert_samples, repeats=sample_masks.shape[0], axis=0)
 
         # if there is channels we need to expand masks dimension
         if len(original_input.shape)==3:

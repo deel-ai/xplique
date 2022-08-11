@@ -170,7 +170,7 @@ class Rise(BlackBoxExplainer):
         upsampled_masks = tf.image.resize(tf.cast(binary_masks, tf.float32),
                                           (upsampled_size, upsampled_size))
 
-        masks = tf.image.random_crop(upsampled_masks, (len(binary_masks),
+        masks = tf.image.random_crop(upsampled_masks, (binary_masks.shape[0],
                                                        *single_input.shape[:-1], 1))
 
         masked_input = tf.expand_dims(single_input, 0) * masks
