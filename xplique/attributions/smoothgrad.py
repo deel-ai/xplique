@@ -132,7 +132,7 @@ class SmoothGrad(WhiteBoxExplainer):
         noisy_inputs
             Duplicated inputs with noisy mask applied.
         """
-        nb_samples = len(noisy_mask)
+        nb_samples = noisy_mask.shape[0]
 
         noisy_inputs = tf.repeat(tf.expand_dims(inputs, axis=1), repeats=nb_samples, axis=1)
         noisy_inputs = noisy_inputs + noisy_mask
