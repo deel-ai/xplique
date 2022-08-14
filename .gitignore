@@ -64,3 +64,6 @@ lab/
 # ide
 .idea
 .vscode
+
+# mac os
+.DS_Store
