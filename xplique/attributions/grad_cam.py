@@ -42,7 +42,7 @@ class GradCAM(WhiteBoxExplainer):
 
     def __init__(self,
                  model: tf.keras.Model,
-                 output_layer: Optional[Union[str, int]] = -1,
+                 output_layer: Optional[Union[str, int]] = None,
                  batch_size: Optional[int] = 32,
                  conv_layer: Optional[Union[str, int]] = None):
         super().__init__(model, output_layer, batch_size)
