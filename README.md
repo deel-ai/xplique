@@ -75,18 +75,24 @@ We propose some Hands-on tutorials to get familiar with the library and its api:
 
 <p align="center" width="100%">
     <a href="https://colab.research.google.com/drive/1XproaVxXjO9nrBSyyy7BuKJ1vy21iHs2">
-        <img width="95%" src="./docs/assets/attributions.png">
+        <img width="95%" src="./docs/assets/attributions.jpeg">
     </a>
 </p>
 
 - [**Attribution Methods**: Tabular data and Regression](https://colab.research.google.com/drive/1pjDJmAa9oeSquYtbYh6tksU6eTmObIcq) <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1pjDJmAa9oeSquYtbYh6tksU6eTmObIcq) </sub>
 - [**Attribution Methods**: Metrics](https://colab.research.google.com/drive/1WEpVpFSq-oL1Ejugr8Ojb3tcbqXIOPBg) <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1WEpVpFSq-oL1Ejugr8Ojb3tcbqXIOPBg) </sub>
 
+<p align="center" width="100%">
+    <a href="https://colab.research.google.com/drive/1WEpVpFSq-oL1Ejugr8Ojb3tcbqXIOPBg"> 
+        <img width="95%" src="./docs/assets/metrics.jpeg">
+    </a>
+</p>
+
 - [**Concepts Methods**: Testing with Concept Activation Vectors](https://colab.research.google.com/drive/1iuEz46ZjgG97vTBH8p-vod3y14UETvVE) <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1iuEz46ZjgG97vTBH8p-vod3y14UETvVE) </sub>
 
 <p align="center" width="100%">
     <a href="https://colab.research.google.com/drive/1iuEz46ZjgG97vTBH8p-vod3y14UETvVE">
-        <img width="95%" src="./docs/assets/concepts.png">
+        <img width="95%" src="./docs/assets/concepts.jpeg">
     </a>
 </p>
 
@@ -94,7 +100,7 @@ We propose some Hands-on tutorials to get familiar with the library and its api:
 
 <p align="center" width="100%">
     <a href="https://colab.research.google.com/drive/1st43K9AH-UL4eZM1S4QdyrOi7Epa5K8v"> 
-        <img width="95%" src="./docs/assets/feature_viz.png">
+        <img width="95%" src="./docs/assets/feature_viz.jpeg">
     </a>
 </p>
 
@@ -284,6 +290,8 @@ to enhance the library namely from [Justin PLAKOO](https://github.com/justinplak
 
 If you use Xplique as part of your workflow in a scientific publication, please consider citing the [Xplique official paper](https://arxiv.org/abs/2206.04394):
 
+If you use Xplique as part of your workflow in a scientific publication, please consider citing the 🗞️ [Xplique official paper](https://arxiv.org/abs/2206.04394):
+
 ```
 @article{fel2022xplique,
   title={Xplique: A Deep Learning Explainability Toolbox},
@@ -293,7 +301,6 @@ If you use Xplique as part of your workflow in a scientific publication, please 
   year={2022}
 }
 ```
-
 ## 📝 License
 
 The package is released under <a href="https://choosealicense.com/licenses/mit"> MIT license</a>.
