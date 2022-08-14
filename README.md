@@ -64,6 +64,7 @@ Finally, the _Metrics_ module covers the current metrics used in explainability.
 - [👀 See Also](#-see-also)
 - [🙏 Acknowledgments](#-acknowledgments)
 - [👨‍🎓 Creator](#-creator)
+- [🗞️ Citation](#-citation)
 - [📝 License](#-license)
 
 ## 🔥 Tutorials
@@ -278,6 +279,20 @@ explainability for deep neural networks.
 He then received help from some members of the <a href="https://www.deel.ai/"> DEEL </a> team
 to enhance the library namely from [Justin PLAKOO](https://github.com/justinplakoo) and
 [Lucas HERVIER](https://github.com/lucashervier).
+
+## 🗞️ Citation
+
+If you use Xplique as part of your workflow in a scientific publication, please consider citing the [Xplique official paper](https://arxiv.org/abs/2206.04394):
+
+```
+@article{fel2022xplique,
+  title={Xplique: A Deep Learning Explainability Toolbox},
+  author={Fel, Thomas and Hervier, Lucas and Vigouroux, David and Poche, Antonin and Plakoo, Justin and Cadene, Remi and Chalvidal, Mathieu and Colin, Julien and Boissin, Thibaut and Bethune, Louis and Picard, Agustin and Nicodeme, Claire 
+          and Gardes, Laurent and Flandin, Gregory and Serre, Thomas},
+  journal={Workshop on Explainable Artificial Intelligence for Computer Vision (CVPR)},
+  year={2022}
+}
+```
 
 ## 📝 License
 
