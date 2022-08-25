@@ -10,39 +10,102 @@ from matplotlib import pyplot as plt
 from ..types import Optional, Union
 
 
-def _standardize_image(image: Union[tf.Tensor, np.ndarray],
-                       clip_percentile: Optional[float] = None) -> np.ndarray:
+def _normalize(image: Union[tf.Tensor, np.ndarray]) -> np.ndarray:
     """
-    Prepares an image for matplotlib. Applies a normalization and, if specified, a clipping
-    operation to remove outliers.
+    Normalize an image in [0, 1].
 
     Parameters
     ----------
     image
         Image to prepare.
-    clip_percentile
-        Percentile value to use if clipping is needed, e.g a value of 1 will perform a clipping
-        between percentile 1 and 99. This parameter allows to avoid outliers  in case of too
-        extreme values.
 
     Returns
     -------
     image
-        Image ready to be used with matplotlib.
+        Image ready to be used with matplotlib (in range[0, 1]).
     """
     image = np.array(image, np.float32)
 
-    # if needed, apply clip_percentile
-    if clip_percentile is not None:
-        clip_min = np.percentile(image, clip_percentile)
-        clip_max = np.percentile(image, 100 - clip_percentile)
-        image = np.clip(image, clip_min, clip_max)
-
-    # normalize
     image -= image.min()
     image /= image.max()
 
     return image
+
+def _clip_percentile(heatmap: Union[tf.Tensor, np.ndarray],
+                     percentile: float) -> np.ndarray:
+    """
+    Apply clip according to percentile value (percentile, 100-percentile) of a heatmap
+    only if percentile is not None.
+
+    Parameters
+    ----------
+    heatmap
+        Heatmap to clip.
+
+    Returns
+    -------
+    heatmap_clipped
+        Heatmap clipped accordingly to the percentile value.
+    """
+    assert len(heatmap.shape) == 2 or heatmap.shape[-1] == 1, "Clip percentile is only supposed"\
+                                                              "to be applied on heatmap."
+    assert 0. <= percentile <= 100., "Percentile value should be in [0, 100]"
+
+    if percentile is not None:
+        clip_min = np.percentile(heatmap, percentile)
+        clip_max = np.percentile(heatmap, 100. - percentile)
+        heatmap = np.clip(heatmap, clip_min, clip_max)
+
+    return heatmap
+
+
+def plot_attribution(explanation,
+                      image: Optional[np.ndarray] = None,
+                      cmap: str = "jet",
+                      alpha: float = 0.5,
+                      clip_percentile: Optional[float] = 0.1,
+                      absolute_value: bool = False,
+                      **plot_kwargs):
+    """
+    Displays a single explanation and the associated image (if provided).
+    Applies a series of pre-processing to facilitate the interpretation of heatmaps.
+
+    Parameters
+    ----------
+    explanation
+        Attribution / heatmap to plot.
+    image
+        Image associated to the explanations.
+    cmap
+        Matplotlib color map to apply.
+    alpha
+        Opacity value for the explanation.
+    clip_percentile
+        Percentile value to use if clipping is needed, e.g a value of 1 will perform a clipping
+        between percentile 1 and 99. This parameter allows to avoid outliers  in case of too
+        extreme values.
+    absolute_value
+        Whether an absolute value is applied to the explanations.
+    plot_kwargs
+        Additional parameters passed to `plt.imshow()`.
+    """
+    if image is not None:
+        image = _normalize(image)
+        plt.imshow(image)
+
+    if explanation.shape[-1] == 3:
+        explanation = np.mean(explanation, -1)
+
+    if absolute_value:
+        explanation = np.abs(explanation)
+
+    if clip_percentile:
+        explanation = _clip_percentile(explanation, clip_percentile)
+
+    explanation = _normalize(explanation)
+
+    plt.imshow(explanation, cmap=cmap, alpha=alpha, **plot_kwargs)
+    plt.axis('off')
 
 
 def plot_attributions(
@@ -87,16 +150,8 @@ def plot_attributions(
     if images is not None:
         assert len(images) == len(explanations), "If you provide images, there must be as many" \
                                                  "as explanations."
+
     rows = ceil(len(explanations) / cols)
-
-    # to plot heatmap we need to reduce the channel informations
-    if len(explanations.shape) > 3:
-        explanations = np.mean(explanations, -1)
-    if absolute_value:
-        explanations = np.abs(explanations)
-
-    # prepare nice display
-
     # get width and height of our images
     l_width, l_height = explanations.shape[1:]
 
@@ -125,12 +180,11 @@ def plot_attributions(
         plt.subplot(rows, cols, i+1)
 
         if images is not None:
-            img = _standardize_image(images[i])
+            img = _normalize(images[i])
             if img.shape[-1] == 1:
                 plt.imshow(img[:,:,0], cmap="Greys")
             else:
                 plt.imshow(img)
 
-        plt.imshow(_standardize_image(explanation, clip_percentile), cmap=cmap, alpha=alpha,
-                   **plot_kwargs)
-        plt.axis('off')
+        plot_attribution(explanation, cmap=cmap, alpha=alpha, clip_percentile=clip_percentile,
+                         absolute_value=absolute_value, **plot_kwargs)
