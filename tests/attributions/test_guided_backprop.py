@@ -2,7 +2,7 @@ import numpy as np
 import tensorflow as tf
 
 from xplique.attributions import GuidedBackprop
-from ..utils import generate_data, generate_model
+from ..utils import generate_data, generate_model, almost_equal
 
 
 def test_output_shape():
@@ -36,7 +36,7 @@ def test_guided_mechanism():
     normal_grads = tape.gradient(y, x).numpy()[0]
 
     # dy / dx = {-2x for x > 0, else 0 }
-    assert np.array_equal(normal_grads, np.array([-10.0, 0.0, 0.0, -20.0]))
+    assert almost_equal(normal_grads, np.array([-10.0, 0.0, 0.0, -20.0]), 1e-5)
 
     guided_model = GuidedBackprop(model).model
 
@@ -46,7 +46,7 @@ def test_guided_mechanism():
     guided_grads = tape.gradient(y, x).numpy()[0]
 
     # dy / dx = { 0 }
-    assert np.array_equal(guided_grads, np.array([0.0, 0.0, 0.0, 0.0]))
+    assert almost_equal(guided_grads, np.array([0.0, 0.0, 0.0, 0.0]), 1e-5)
 
     # ensure we didn't change the mechanism of the original model
     with tf.GradientTape() as tape:
@@ -54,4 +54,4 @@ def test_guided_mechanism():
         y = model(x)
     normal_grads_2 = tape.gradient(y, x).numpy()[0]
 
-    assert np.array_equal(normal_grads, normal_grads_2)
+    assert almost_equal(normal_grads, normal_grads_2, 1e-5)

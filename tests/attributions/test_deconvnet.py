@@ -2,7 +2,7 @@ import numpy as np
 import tensorflow as tf
 
 from xplique.attributions import DeconvNet
-from ..utils import generate_data, generate_model
+from ..utils import generate_data, generate_model, almost_equal
 
 
 def test_output_shape():
@@ -36,7 +36,7 @@ def test_deconv_mechanism():
     normal_grads = tape.gradient(y, x).numpy()[0]
 
     # dy / dx = { 10 for x > 0, else 0 }
-    assert np.array_equal(normal_grads, np.array([10.0, 0.0, 0.0, 10.0]))
+    assert almost_equal(normal_grads, np.array([10.0, 0.0, 0.0, 10.0]), 1e-5)
 
     deconvnet_model = DeconvNet(model).model
 
@@ -46,7 +46,7 @@ def test_deconv_mechanism():
     deconv_grads = tape.gradient(y, x).numpy()[0]
 
     # dy / dx = { 10 }
-    assert np.array_equal(deconv_grads, np.array([10.0, 10.0, 10.0, 10.0]))
+    assert almost_equal(deconv_grads, np.array([10.0, 10.0, 10.0, 10.0]), 1e-5)
 
     # ensure we didn't change the mechanism of the original model
     with tf.GradientTape() as tape:
@@ -54,4 +54,4 @@ def test_deconv_mechanism():
         y = model(x)
     normal_grads_2 = tape.gradient(y, x).numpy()[0]
 
-    assert np.array_equal(normal_grads, normal_grads_2)
+    assert almost_equal(normal_grads, normal_grads_2, 1e-5)
