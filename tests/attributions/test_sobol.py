@@ -1,9 +1,10 @@
 import numpy as np
 
 from xplique.attributions import SobolAttributionMethod
-from xplique.attributions.sobol import (LHSampler, ScipySobolSequence, TFSobolSequence, HaltonSequence,
-                                        JansenEstimator, JanonEstimator, GlenEstimator, SaltelliEstimator,
-                                        HommaEstimator, inpainting, blurring, amplitude)
+from xplique.attributions.global_sensitivity_analysis import (LatinHypercubeRS,
+    ScipySobolSequenceRS, TFSobolSequenceRS, HaltonSequenceRS, JansenEstimator,
+    JanonEstimator, GlenEstimator, SaltelliEstimator,HommaEstimator, inpainting,
+    blurring, amplitude)
 from ..utils import generate_data, generate_model, almost_equal
 
 
@@ -26,7 +27,7 @@ def test_output_shape():
 def test_samplers():
     """Ensure every proposed sampler is working"""
 
-    samplers_class = [LHSampler, ScipySobolSequence, TFSobolSequence, HaltonSequence]
+    samplers_class = [LatinHypercubeRS, ScipySobolSequenceRS, TFSobolSequenceRS, HaltonSequenceRS]
     input_shapes = [(20, 20, 1), (20, 20, 3)]
     nb_labels = 10
 
@@ -149,7 +150,7 @@ def test_ishigami():
 
     STis = np.array([ST1, ST2, ST3])
 
-    X = TFSobolSequence()(3, n)
+    X = TFSobolSequenceRS()(3, n)
     X *= 2.0 * np.pi
     X -= np.pi
 
