@@ -18,12 +18,12 @@ def _default_methods(model, output_layer_index):
         IntegratedGradients(model, output_layer_index),
         GradCAM(model, output_layer_index),
         Occlusion(model),
-        Rise(model),
+        Rise(model, nb_samples=2),
         GuidedBackprop(model, output_layer_index),
         DeconvNet(model, output_layer_index),
         GradCAMPP(model, output_layer_index),
-        Lime(model),
-        KernelShap(model),
+        Lime(model, nb_samples=2),
+        KernelShap(model, nb_samples=2),
         SobolAttributionMethod(model, grid_size=2, nb_design=2)
     ]
 
@@ -77,12 +77,12 @@ def test_batch_size():
             IntegratedGradients(model, output_layer_index, bs),
             GradCAM(model, output_layer_index, bs),
             Occlusion(model, bs),
-            Rise(model, bs),
+            Rise(model, bs, nb_samples=2),
             GuidedBackprop(model, output_layer_index, bs),
             DeconvNet(model, output_layer_index, bs),
             GradCAMPP(model, output_layer_index, bs),
-            Lime(model, bs),
-            KernelShap(model, bs),
+            Lime(model, bs, nb_samples=2),
+            KernelShap(model, bs, nb_samples=2),
             SobolAttributionMethod(model, grid_size=2, nb_design=2)
         ]
 
