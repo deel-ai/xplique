@@ -17,5 +17,5 @@ from .grad_cam_pp import GradCAMPP
 from .lime import Lime
 from .kernel_shap import KernelShap
 from .object_detector import BoundingBoxesExplainer
-from .sobol import SobolAttributionMethod
-from . import sobol
+from .global_sensitivity_analysis import SobolAttributionMethod
+from . import global_sensitivity_analysis

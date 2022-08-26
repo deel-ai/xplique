@@ -11,8 +11,8 @@ import tensorflow as tf
 from ...types import Callable, Union, Optional, Tuple
 from ...commons import batch_tensor, repeat_labels
 from ..base import BlackBoxExplainer, sanitize_input_output
-from .estimators import SobolEstimator, JansenEstimator
-from .sampling import Sampler, TFSobolSequence
+from .sobol_estimators import SobolEstimator, JansenEstimator
+from .replicated_designs import ReplicatedSampler, TFSobolSequenceRS
 from .perturbations import amplitude, inpainting, blurring
 
 
@@ -86,7 +86,7 @@ class SobolAttributionMethod(BlackBoxExplainer):
         model,
         grid_size: int = 8,
         nb_design: int = 32,
-        sampler: Optional[Sampler] = None,
+        sampler: Optional[ReplicatedSampler] = None,
         estimator: Optional[SobolEstimator] = None,
         perturbation_function: Optional[Union[Callable, str]] = "inpainting",
         batch_size=256
@@ -105,7 +105,7 @@ class SobolAttributionMethod(BlackBoxExplainer):
         else:
             self.perturbation_function = perturbation_function
 
-        self.sampler = sampler if sampler is not None else TFSobolSequence()
+        self.sampler = sampler if sampler is not None else TFSobolSequenceRS()
         self.estimator = estimator if estimator is not None else JansenEstimator()
 
         self.masks = self.sampler(grid_size**2, nb_design).reshape((-1, grid_size, grid_size, 1))
