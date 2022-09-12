@@ -1,5 +1,7 @@
 # LIME
 
+<sub><img src="https://upload.wikimedia.org/wikipedia/commons/d/d0/Google_Colaboratory_SVG_Logo.svg" width="20"></sub>[ View colab tutorial](https://colab.research.google.com/drive/1frholXRE4XQQ3W5yZuPQ2-xqc-LTczfT?authuser=1) | <sub><img src="https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png" width="20"></sub>[ View source](https://github.com/deel-ai/xplique/blob/master/xplique/attributions/lime.py)
+
 The Lime method use an interpretable model to provide an explanation.
 More specifically, you map inputs ($x \in R^d$) to an interpretable space (e.g super-pixels) of size num_interpetable_features.
 From there you generate perturbed interpretable samples ($z' \in \{0,1\}^{num\_interpretable\_samples}$
@@ -42,8 +44,8 @@ By default, the map function use the quickshift segmentation of scikit-images
 ## Notebooks
 
 - [**Attribution Methods**: Getting started](https://colab.research.google.com/drive
-/1XproaVxXjO9nrBSyyy7BuKJ1vy21iHs2) <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1XproaVxXjO9nrBSyyy7BuKJ1vy21iHs2) </sub>
-- [**LIME**: Going Further](https://colab.research.google.com/drive/1InDzdW39-5k2ENfKqF2bs5qJEv8OJqi2) <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1InDzdW39-5k2ENfKqF2bs5qJEv8OJqi2) </sub>
+/1XproaVxXjO9nrBSyyy7BuKJ1vy21iHs2)
+- [**LIME**: Going Further](https://colab.research.google.com/drive/1frholXRE4XQQ3W5yZuPQ2-xqc-LTczfT?authuser=1)
 
 {{xplique.attributions.lime.Lime}}
 
