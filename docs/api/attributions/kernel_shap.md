@@ -1,5 +1,7 @@
 # Kernel Shap
 
+<sub><img src="https://upload.wikimedia.org/wikipedia/commons/d/d0/Google_Colaboratory_SVG_Logo.svg" width="20"></sub>[ View colab tutorial](https://colab.research.google.com/drive/1frholXRE4XQQ3W5yZuPQ2-xqc-LTczfT?authuser=1) | <sub><img src="https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png" width="20"></sub>[ View source](https://github.com/deel-ai/xplique/blob/master/xplique/attributions/kernel_shap.py)
+
 By setting appropriately the perturbation function, the similarity kernel and the interpretable
 model in the LIME framework we can theoretically obtain the Shapley Values more efficiently.
 Therefore, KernelShap is a method based on LIME with specific attributes.
@@ -30,8 +32,8 @@ By default, the map function use the quickshift segmentation of scikit-images
 ## Notebooks
 
 - [**Attribution Methods**: Getting started](https://colab.research.google.com/drive
-/1XproaVxXjO9nrBSyyy7BuKJ1vy21iHs2) <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1XproaVxXjO9nrBSyyy7BuKJ1vy21iHs2) </sub>
-- [**KernelShap**: Going Further](https://colab.research.google.com/drive/1zTzj1_uTQYQs_7kyhqq_WeBEOy66YeQd) <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1zTzj1_uTQYQs_7kyhqq_WeBEOy66YeQd) </sub>
+/1XproaVxXjO9nrBSyyy7BuKJ1vy21iHs2)
+- [**KernelShap**: Going Further](https://colab.research.google.com/drive/1frholXRE4XQQ3W5yZuPQ2-xqc-LTczfT?authuser=1)
 
 {{xplique.attributions.kernel_shap.KernelShap}}
 

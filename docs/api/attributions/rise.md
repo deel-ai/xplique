@@ -1,5 +1,7 @@
 # RISE
 
+<sub><img src="https://upload.wikimedia.org/wikipedia/commons/d/d0/Google_Colaboratory_SVG_Logo.svg" width="20"></sub>[ View colab tutorial](https://colab.research.google.com/drive/1icu2b1JGfpTRa-ic8tBSXnqqfuCGW2mO?authuser=1) | <sub><img src="https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png" width="20"></sub>[ View source](https://github.com/deel-ai/xplique/blob/master/xplique/attributions/rise.py)
+
 The RISE method consist of probing the model with randomly masked versions of the input image and
 obtaining the corresponding outputs to deduce critical areas.
 
@@ -31,8 +33,8 @@ explanations = method.explain(images, labels)
 ## Notebooks
 
 - [**Attribution Methods**: Getting started](https://colab.research.google.com/drive
-/1XproaVxXjO9nrBSyyy7BuKJ1vy21iHs2) <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1XproaVxXjO9nrBSyyy7BuKJ1vy21iHs2) </sub>
-- [**RISE**: Going Further](https://colab.research.google.com/drive/1LAFedngo2jTiiSlXEw9W91Qz4cV27uqK) <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1LAFedngo2jTiiSlXEw9W91Qz4cV27uqK) </sub>
+/1XproaVxXjO9nrBSyyy7BuKJ1vy21iHs2)
+- [**RISE**: Going Further](https://colab.research.google.com/drive/1icu2b1JGfpTRa-ic8tBSXnqqfuCGW2mO?authuser=1)
 
 {{xplique.attributions.rise.Rise}}
 

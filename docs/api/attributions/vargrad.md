@@ -1,5 +1,7 @@
 # VarGrad
 
+<sub><img src="https://upload.wikimedia.org/wikipedia/commons/d/d0/Google_Colaboratory_SVG_Logo.svg" width="20"></sub>[ View colab tutorial](https://colab.research.google.com/drive/12-tlM_TdZ12oc5lNL2S2g-hcMJV8tZUD?authuser=1) | <sub><img src="https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png" width="20"></sub>[ View source](https://github.com/deel-ai/xplique/blob/master/xplique/attributions/vargrad.py) | 📰 [ See paper](https://arxiv.org/abs/1810.03292)
+
 Similar to SmoothGrad, VarGrad a variance analog of SmoothGrad, and can be defined as follows:
 
 $$
@@ -25,7 +27,7 @@ explanations = method.explain(images, labels)
 ## Notebooks
 
 - [**Attribution Methods**: Getting started](https://colab.research.google.com/drive
-/1XproaVxXjO9nrBSyyy7BuKJ1vy21iHs2) <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1XproaVxXjO9nrBSyyy7BuKJ1vy21iHs2) </sub>
-- [**VarGrad**: Going Further](https://colab.research.google.com/drive/1x_sNUM5xhAvzg1KmO5ZBlkxQpgxZyoux) <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1x_sNUM5xhAvzg1KmO5ZBlkxQpgxZyoux) </sub>
+/1XproaVxXjO9nrBSyyy7BuKJ1vy21iHs2)
+- [**VarGrad**: Going Further](https://colab.research.google.com/drive/12-tlM_TdZ12oc5lNL2S2g-hcMJV8tZUD?authuser=1)
 
 {{xplique.attributions.VarGrad}}

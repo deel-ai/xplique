@@ -1,5 +1,9 @@
 # Deconvnet
 
+<sub><img src="https://upload.wikimedia.org/wikipedia/commons/d/d0/Google_Colaboratory_SVG_Logo.svg" width="20"></sub>[ View colab tutorial](https://colab.research.google.com/drive/19eB3uwAtCKZgkoWtMzrF0LTJ-htF_KE7?authuser=1) | <sub><img src="https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png" width="20"></sub>[ View source](https://github.com/deel-ai/xplique/blob/master/xplique/attributions/deconvnet.py) | 📰 [ See paper](https://arxiv.org/abs/1311.2901)
+
+
+
 ## Example
 
 ```python
@@ -12,10 +16,11 @@ method = DeconvNet(model)
 explanations = method.explain(images, labels)
 ```
 
+
 ## Notebooks
 
 - [**Attribution Methods**: Getting started](https://colab.research.google.com/drive
-/1XproaVxXjO9nrBSyyy7BuKJ1vy21iHs2) <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1XproaVxXjO9nrBSyyy7BuKJ1vy21iHs2) </sub>
-- [**DeconvNet**: Going Further](https://colab.research.google.com/drive/1qBxwsMILPvQs3WLLcX_hRb3kzTSI4rkz) <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/19oLUjmvrBIMTmNKXcJNbB6pJvkfutLEb) </sub>
+/1XproaVxXjO9nrBSyyy7BuKJ1vy21iHs2)
+- [**DeconvNet**: Going Further](https://colab.research.google.com/drive/19eB3uwAtCKZgkoWtMzrF0LTJ-htF_KE7?authuser=1)
 
 {{xplique.attributions.deconvnet.DeconvNet}}
