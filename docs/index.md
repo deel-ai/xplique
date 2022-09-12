@@ -13,8 +13,11 @@
     <a href="https://github.com/deel-ai/xplique/actions/workflows/python-tests.yml">
         <img alt="Tox" src="https://github.com/deel-ai/xplique/actions/workflows/python-tests.yml/badge.svg">
     </a>
-     <a href="https://github.com/deel-ai/xplique/actions/workflows/python-publish.yml">
+    <a href="https://github.com/deel-ai/xplique/actions/workflows/python-publish.yml">
         <img alt="Pypi" src="https://github.com/deel-ai/xplique/actions/workflows/python-publish.yml/badge.svg">
+    </a>
+    <a href="https://pepy.tech/project/xplique">
+        <img alt="Pepy" src="https://pepy.tech/badge/xplique">
     </a>
     <a href="#">
         <img src="https://img.shields.io/badge/License-MIT-efefef">
@@ -30,13 +33,13 @@
   <a href="https://deel-ai.github.io/xplique/"><strong>Explore Xplique docs »</strong></a>
   <br>
   <br>
-  <a href="https://deel-ai.github.io/xplique/api/saliency">Attributions</a>
+  <a href="https://deel-ai.github.io/xplique/api/attributions/api_attributions/">Attributions</a>
   ·
-  <a href="https://deel-ai.github.io/xplique/api/cav">Concept</a>
+  <a href="https://deel-ai.github.io/xplique/api/concepts/cav/">Concept</a>
   ·
-  <a href="https://deel-ai.github.io/xplique/api/feature_viz">Feature Visualization</a>
+  <a href="https://deel-ai.github.io/xplique/api/feature_viz/feature_viz/">Feature Visualization</a>
   ·
-  <a href="https://deel-ai.github.io/xplique/api/deletion">Metrics</a>
+  <a href="https://deel-ai.github.io/xplique/api/metrics/api_metrics/">Metrics</a>
 </p>
 
 The library is composed of several modules, the _Attributions Methods_ module implements various methods (e.g Saliency, Grad-CAM, Integrated-Gradients...), with explanations, examples and links to official papers.
@@ -48,14 +51,13 @@ Finally, the _Metrics_ module covers the current metrics used in explainability.
     <img width="95%" src="./assets/modules.png">
 </p>
 
-
 <br>
 
 ## 📚 Table of contents
 
 - [📚 Table of contents](#-table-of-contents)
-- [🚀 Quick Start](#-quick-start)
 - [🔥 Tutorials](#-tutorials)
+- [🚀 Quick Start](#-quick-start)
 - [📦 What's Included](#-whats-included)
 - [📞 Callable](#-callable)
 - [👍 Contributing](#-contributing)
@@ -98,7 +100,7 @@ We propose some Hands-on tutorials to get familiar with the library and its api:
 
 <p align="center" width="100%">
     <a href="https://colab.research.google.com/drive/1st43K9AH-UL4eZM1S4QdyrOi7Epa5K8v"> 
-        <img width="95%" src="./assets/feature_viz.jpeg">
+        <img width="95%" src="./docs/assets/feature_viz.jpeg">
     </a>
 </p>
 
@@ -130,7 +132,7 @@ explanations = explainer.explain(images, labels)
 # or just `explainer(images, labels)`
 ```
 
-All attributions methods share a common API. You can find out more about it [here](https://deel-ai.github.io/xplique/api/attributions/api_attribution.html).
+All attributions methods share a common API. You can find out more about it [here](https://deel-ai.github.io/xplique/api/attributions/api_attributions/).
 
 ### Attributions Metrics
 
@@ -150,7 +152,7 @@ metric = Deletion(model, inputs, labels)
 score_grad_cam = metric(explanations)
 ```
 
-All attributions metrics share a common API. You can find out more about it [here](https://deel-ai.github.io/xplique/api/metrics/api_metrics.html)
+All attributions metrics share a common API. You can find out more about it [here](https://deel-ai.github.io/xplique/api/metrics/api_metrics/)
 
 ### Concepts Extraction
 
@@ -168,7 +170,7 @@ concept_vector = extractor(positive_samples,
                            negative_samples)
 ```
 
-More information on CAV [here](https://deel-ai.github.io/xplique/api/concepts/cav.html) and on TCAV [here](https://deel-ai.github.io/xplique/api/concepts/tcav.html).
+More information on CAV [here](https://deel-ai.github.io/xplique/api/concepts/cav/) and on TCAV [here](https://deel-ai.github.io/xplique/api/concepts/tcav/).
 
 ### Feature Visualization
 
@@ -187,7 +189,7 @@ obj = neuron_obj + 2.0 * channel_obj
 images, obj_names = optimize(obj)
 ```
 
-Want to know more ? Check the Feature Viz [documentation](https://deel-ai.github.io/xplique/api/feature_viz/feature_viz.html)
+Want to know more ? Check the Feature Viz [documentation](https://deel-ai.github.io/xplique/api/feature_viz/feature_viz/)
 
 ## 📦 What's Included
 
@@ -195,36 +197,33 @@ All the attributions method presented below handle both **Classification** and *
 
 | **Attribution Method** | Type of Model | Source                                    | Tabular Data       | Images             | Time-Series        | Tutorial           |
 | :--------------------- | :------------ | :---------------------------------------- | :----------------: | :----------------: | :----------------: | :----------------: |
-| Deconvolution          | TF            | [Paper](https://arxiv.org/abs/1311.2901)  | ✔                  | ✔                 | WIP                | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1qBxwsMILPvQs3WLLcX_hRb3kzTSI4rkz) |
-| Grad-CAM               | TF            | [Paper](https://arxiv.org/abs/1610.02391) |                    | ✔                 | WIP                | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1wJmPK3HZ1Uw1rBbeo8DtmmaRZUZ1Cs-i) |
-| Grad-CAM++             | TF            | [Paper](https://arxiv.org/abs/1710.11063) |                    | ✔                 | WIP                | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1NRzdZdwxEYhC3_0gf8VpC_bg4YQcVsnO) |
-| Gradient Input         | TF            | [Paper](https://arxiv.org/abs/1711.06104) | ✔                  | ✔                 | WIP                | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1pHuiggijCZ0touf2gEtdM2QsiR4oFJwS) |
-| Guided Backprop        | TF            | [Paper](https://arxiv.org/abs/1412.6806)  | ✔                  | ✔                 | WIP                | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/16cmbKC0b6SVl1HjhOKhLTNak3ytm1Ib1) |
-| Integrated Gradients   | TF            | [Paper](https://arxiv.org/abs/1703.01365) | ✔                  | ✔                 | WIP                | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1Q4m-ZsygDEiU-cjTcmu1cjHqdfiBGf12) |
-| Kernel SHAP            | Callable*     | [Paper](https://arxiv.org/abs/1705.07874) | ✔                  | ✔                 | WIP                | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1zTzj1_uTQYQs_7kyhqq_WeBEOy66YeQd) |
-| Lime                   | Callable*     | [Paper](https://arxiv.org/abs/1602.04938) | ✔                  | ✔                 | WIP                | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1InDzdW39-5k2ENfKqF2bs5qJEv8OJqi2) |
-| Occlusion              | Callable*     | [Paper](https://arxiv.org/abs/1311.2901)  | ✔                  | ✔                 | WIP                | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1fmtXSP7K2D_xAEA8h-eyiv0r0g6d__ZL) |
-| Rise                   | Callable*     | [Paper](https://arxiv.org/abs/1806.07421) | WIP                | ✔                 | WIP                | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1LAFedngo2jTiiSlXEw9W91Qz4cV27uqK) |
-| Saliency               | TF            | [Paper](https://arxiv.org/abs/1312.6034)  | ✔                  | ✔                 | WIP                | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/19oLUjmvrBIMTmNKXcJNbB6pJvkfutLEb) |
-| SmoothGrad             | TF            | [Paper](https://arxiv.org/abs/1706.03825) | ✔                  | ✔                 | WIP                | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1kHPB07XExQ0CvTIk51Hm5qS2Vl66OUH2) |
-| SquareGrad             | TF            | [Paper](https://arxiv.org/abs/1806.10758) | ✔                  | ✔                 | WIP                | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/14c0tb_MMNQzpCFyTtaCgQUfG1OpnFPI0) |
+| Deconvolution          | TF            | [Paper](https://arxiv.org/abs/1311.2901)  | ✔                  | ✔                 | WIP                | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/19eB3uwAtCKZgkoWtMzrF0LTJ-htF_KE7?authuser=1) |
+| Grad-CAM               | TF            | [Paper](https://arxiv.org/abs/1610.02391) |                    | ✔                 |                    | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1nsB7xdQbU0zeYQ1-aB_D-M67-RAnvt4X?authuser=1) |
+| Grad-CAM++             | TF            | [Paper](https://arxiv.org/abs/1710.11063) |                    | ✔                 |                    | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1nsB7xdQbU0zeYQ1-aB_D-M67-RAnvt4X?authuser=1) |
+| Gradient Input         | TF            | [Paper](https://arxiv.org/abs/1704.02685) | ✔                  | ✔                 | WIP                | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/19eB3uwAtCKZgkoWtMzrF0LTJ-htF_KE7?authuser=1) |
+| Guided Backprop        | TF            | [Paper](https://arxiv.org/abs/1412.6806)  | ✔                  | ✔                 | WIP                | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/19eB3uwAtCKZgkoWtMzrF0LTJ-htF_KE7?authuser=1) |
+| Integrated Gradients   | TF            | [Paper](https://arxiv.org/abs/1703.01365) | ✔                  | ✔                 | WIP                | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1UXJYVebDVIrkTOaOl-Zk6pHG3LWkPcLo?authuser=1) |
+| Kernel SHAP            | Callable*     | [Paper](https://arxiv.org/abs/1705.07874) | ✔                  | ✔                 | WIP                | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1frholXRE4XQQ3W5yZuPQ2-xqc-LTczfT?authuser=1) |
+| Lime                   | Callable*     | [Paper](https://arxiv.org/abs/1602.04938) | ✔                  | ✔                 | WIP                | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1frholXRE4XQQ3W5yZuPQ2-xqc-LTczfT?authuser=1) |
+| Occlusion              | Callable*     | [Paper](https://arxiv.org/abs/1311.2901)  | ✔                  | ✔                 | WIP                | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/15xmmlxQkNqNuXgHO51eKogXvLgs-sG4q?authuser=1) |
+| Rise                   | Callable*     | [Paper](https://arxiv.org/abs/1806.07421) | WIP                | ✔                 |                    | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1icu2b1JGfpTRa-ic8tBSXnqqfuCGW2mO?authuser=1) |
+| Saliency               | TF            | [Paper](https://arxiv.org/abs/1312.6034)  | ✔                  | ✔                 | WIP                | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/19eB3uwAtCKZgkoWtMzrF0LTJ-htF_KE7?authuser=1) |
+| SmoothGrad             | TF            | [Paper](https://arxiv.org/abs/1706.03825) | ✔                  | ✔                 | WIP                | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/12-tlM_TdZ12oc5lNL2S2g-hcMJV8tZUD?authuser=1) |
+| SquareGrad             | TF            | [Paper](https://arxiv.org/abs/1806.10758) | ✔                  | ✔                 | WIP                | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/12-tlM_TdZ12oc5lNL2S2g-hcMJV8tZUD?authuser=1) |
+| VarGrad                | TF            | [Paper](https://arxiv.org/abs/1810.03292) | ✔                  | ✔                 | WIP                | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/12-tlM_TdZ12oc5lNL2S2g-hcMJV8tZUD?authuser=1) |
 | Sobol Attribution      | TF            | [Paper](https://arxiv.org/abs/2111.04138) |                    | ✔                 |                    | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1XproaVxXjO9nrBSyyy7BuKJ1vy21iHs2) |
 
 
-\* : See the [Callable documentation](callable.md)
+* : See the [Callable documentation](https://deel-ai.github.io/xplique/callable/)
 
-| **Attribution Metrics** | Type of Model | Property         | Source                                                                                |
-|:------------------------| :------------ | :--------------- |:--------------------------------------------------------------------------------------|
-| MuFidelity              | TF            | Fidelity         | [Paper](https://arxiv.org/abs/2005.00631)                                             |
-| Deletion                | TF            | Fidelity         | [Paper](https://arxiv.org/abs/1806.07421)                                             |
-| Insertion               | TF            | Fidelity         | [Paper](https://arxiv.org/abs/1806.07421)                                             |
-| Deletion TS             | TF            | Fidelity         | [Paper1](https://arxiv.org/abs/1806.07421) [Paper2](https://arxiv.org/abs/1909.07082) |
-| Insertion TS            | TF            | Fidelity         | [Paper1](https://arxiv.org/abs/1806.07421) [Paper2](https://arxiv.org/abs/1909.07082) |
-| Deletion Tab            | TF            | Fidelity         | [Paper1](https://arxiv.org/abs/1806.07421) [Paper2](https://arxiv.org/abs/1909.07082) |
-| Insertion Tab           | TF            | Fidelity         | [Paper1](https://arxiv.org/abs/1806.07421) [Paper2](https://arxiv.org/abs/1909.07082) |
-| Average Stability       | TF            | Stability        | [Paper](https://arxiv.org/abs/2005.00631)                                             |
-| MeGe                    | TF            | Representativity | [Paper](https://arxiv.org/abs/2009.04521)                                             |
-| ReCo                    | TF            | Consistency      | [Paper](https://arxiv.org/abs/2009.04521)                                             |
+| **Attribution Metrics** | Type of Model | Property         | Source                                    |
+| :---------------------- | :------------ | :--------------- | :---------------------------------------- |
+| MuFidelity              | TF            | Fidelity         | [Paper](https://arxiv.org/abs/2005.00631) |
+| Deletion                | TF            | Fidelity         | [Paper](https://arxiv.org/abs/1806.07421) |
+| Insertion               | TF            | Fidelity         | [Paper](https://arxiv.org/abs/1806.07421) |
+| Average Stability       | TF            | Stability        | [Paper](https://arxiv.org/abs/2005.00631) |
+| MeGe                    | TF            | Representativity | [Paper](https://arxiv.org/abs/2009.04521) |
+| ReCo                    | TF            | Consistency      | [Paper](https://arxiv.org/abs/2009.04521) |
 | (WIP) e-robustness      |
 
 | **Concepts method**             | Type of Model | Source                                        |
@@ -249,7 +248,7 @@ All the attributions method presented below handle both **Classification** and *
 
 ## 👍 Contributing
 
-Feel free to propose your ideas or come and contribute with us on the Xplique toolbox! We have a specific document where we describe in a simple way how to make your first pull request: [just here](contributing.md).
+Feel free to propose your ideas or come and contribute with us on the Xplique toolbox! We have a specific document where we describe in a simple way how to make your first pull request: [just here](https://github.com/deel-ai/xplique/blob/master/CONTRIBUTING.md).
 
 ## 👀 See Also
 
@@ -291,6 +290,8 @@ to enhance the library namely from [Justin PLAKOO](https://github.com/justinplak
 
 If you use Xplique as part of your workflow in a scientific publication, please consider citing the [Xplique official paper](https://arxiv.org/abs/2206.04394):
 
+If you use Xplique as part of your workflow in a scientific publication, please consider citing the 🗞️ [Xplique official paper](https://arxiv.org/abs/2206.04394):
+
 ```
 @article{fel2022xplique,
   title={Xplique: A Deep Learning Explainability Toolbox},
@@ -300,8 +301,6 @@ If you use Xplique as part of your workflow in a scientific publication, please 
   year={2022}
 }
 ```
-
-
 ## 📝 License
 
 The package is released under <a href="https://choosealicense.com/licenses/mit"> MIT license</a>.
