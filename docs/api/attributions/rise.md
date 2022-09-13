@@ -16,7 +16,7 @@ obtaining the corresponding outputs to deduce critical areas.
 with $S_c$ the class score **after softmax**, $x$ an input, and $m  \sim \mathcal{M}$ a mask (not
  binary) the RISE importance map $\phi$ is defined as :
 
-$$ \phi_i = \frac{1}{\mathbb{E}(\mathcal{M}) N} \sum_{i=0}^N S_c(x \odot m_i) m_i $$
+$$ \phi_i = \frac{1}{\mathbb{E}(\mathcal{M}) N} \sum_{i=1}^N S_c(x \odot m_i) m_i $$
 
 ## Example
 

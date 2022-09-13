@@ -148,7 +148,7 @@ def plot_attributions(
         Additional parameters passed to `plt.imshow()`.
     """
     if images is not None:
-        assert len(images) == len(explanations), "If you provide images, there must be as many" \
+        assert len(images) == len(explanations), "If you provide images, there must be as many " \
                                                  "as explanations."
 
     rows = ceil(len(explanations) / cols)
