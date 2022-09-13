@@ -200,7 +200,7 @@ All the attributions method presented below handle both **Classification** and *
 | Deconvolution          | TF            | [Paper](https://arxiv.org/abs/1311.2901)  | ✔                  | ✔                 | WIP                | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/19eB3uwAtCKZgkoWtMzrF0LTJ-htF_KE7?authuser=1) |
 | Grad-CAM               | TF            | [Paper](https://arxiv.org/abs/1610.02391) |                    | ✔                 |                    | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1nsB7xdQbU0zeYQ1-aB_D-M67-RAnvt4X?authuser=1) |
 | Grad-CAM++             | TF            | [Paper](https://arxiv.org/abs/1710.11063) |                    | ✔                 |                    | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1nsB7xdQbU0zeYQ1-aB_D-M67-RAnvt4X?authuser=1) |
-| Gradient Input         | TF            | [Paper](https://arxiv.org/abs/1711.06104) | ✔                  | ✔                 | WIP                | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/19eB3uwAtCKZgkoWtMzrF0LTJ-htF_KE7?authuser=1) |
+| Gradient Input         | TF            | [Paper](https://arxiv.org/abs/1704.02685) | ✔                  | ✔                 | WIP                | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/19eB3uwAtCKZgkoWtMzrF0LTJ-htF_KE7?authuser=1) |
 | Guided Backprop        | TF            | [Paper](https://arxiv.org/abs/1412.6806)  | ✔                  | ✔                 | WIP                | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/19eB3uwAtCKZgkoWtMzrF0LTJ-htF_KE7?authuser=1) |
 | Integrated Gradients   | TF            | [Paper](https://arxiv.org/abs/1703.01365) | ✔                  | ✔                 | WIP                | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1UXJYVebDVIrkTOaOl-Zk6pHG3LWkPcLo?authuser=1) |
 | Kernel SHAP            | Callable*     | [Paper](https://arxiv.org/abs/1705.07874) | ✔                  | ✔                 | WIP                | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1frholXRE4XQQ3W5yZuPQ2-xqc-LTczfT?authuser=1) |
@@ -214,7 +214,7 @@ All the attributions method presented below handle both **Classification** and *
 | Sobol Attribution      | TF            | [Paper](https://arxiv.org/abs/2111.04138) |                    | ✔                 |                    | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1XproaVxXjO9nrBSyyy7BuKJ1vy21iHs2) |
 
 
-* : See the [Callable documentation](https://deel-ai.github.io/xplique/callable.html)
+* : See the [Callable documentation](https://deel-ai.github.io/xplique/callable/)
 
 | **Attribution Metrics** | Type of Model | Property         | Source                                    |
 | :---------------------- | :------------ | :--------------- | :---------------------------------------- |
