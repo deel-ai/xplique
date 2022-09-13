@@ -61,7 +61,7 @@ conda install --file requirements_dev.txt
 ```
 - You are ready to install the library:
 ```
-pip install -e
+pip install -e .
 ```
 - Or run the test suite:
 ```
