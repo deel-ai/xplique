@@ -2,7 +2,6 @@
 Plots for metric
 """
 
-import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
 
@@ -70,7 +69,7 @@ def barplot(
             # methods_color is a string linking to a cmap
             cmap = matplotlib.cm.get_cmap(methods_colors)
 
-        methods_colors = {methods[i]: cmap(i / (len(methods) - 1))
+        methods_colors = {methods[i]: cmap((i + 1) / len(methods))
                           for i in range(len(methods))}
 
     _, ax = plt.subplots(figsize=(4 + 2 * len(metrics), 4))
@@ -101,7 +100,7 @@ def barplot(
 
 
 def fidelity_curves(
-        detailed_scores: Dict[str, np.ndarray],
+        detailed_scores: Dict[str, Dict[int, float]],
         title: str = "",
         filepath: Optional[str] = None,
         methods_colors: Optional[Union[Dict[str, Any], str]] = None
@@ -140,7 +139,7 @@ def fidelity_curves(
             # methods_color is a string linking to a cmap
             cmap = matplotlib.cm.get_cmap(methods_colors)
 
-        methods_colors = {methods[i]: cmap(i / (len(methods) - 1))
+        methods_colors = {methods[i]: cmap((i + 1) / len(methods))
                           for i in range(len(methods))}
 
     _, ax = plt.subplots(figsize=(10, 5))
