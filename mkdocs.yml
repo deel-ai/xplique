@@ -8,21 +8,21 @@ nav:
   - Home: index.md
   - Attributions methods:
       - API Description: api/attributions/api_attributions.md
-      - Saliency: api/attributions/saliency.md
-      - Gradient Input: api/attributions/gradient_input.md
-      - Occlusion sensitivity: api/attributions/occlusion.md
-      - Rise: api/attributions/rise.md
-      - Integrated Gradient: api/attributions/integrated_gradients.md
-      - SmoothGrad: api/attributions/smoothgrad.md
+      - DeconvNet: api/attributions/deconvnet.md
       - Grad-CAM: api/attributions/grad_cam.md
       - Grad-CAM++: api/attributions/grad_cam_pp.md
-      - DeconvNet: api/attributions/deconvnet.md
+      - Gradient Input: api/attributions/gradient_input.md
       - Guided Backprop: api/attributions/guided_backpropagation.md
-      - SquareGrad: api/attributions/square_grad.md
-      - VarGrad: api/attributions/vargrad.md
-      - Lime: api/attributions/lime.md
+      - Integrated Gradient: api/attributions/integrated_gradients.md
       - KernelSHAP: api/attributions/kernel_shap.md
+      - Lime: api/attributions/lime.md
+      - Occlusion sensitivity: api/attributions/occlusion.md
+      - Rise: api/attributions/rise.md
+      - Saliency: api/attributions/saliency.md
+      - SmoothGrad: api/attributions/smoothgrad.md
+      - SquareGrad: api/attributions/square_grad.md
       - Sobol Attribution Method: api/attributions/sobol.md
+      - VarGrad: api/attributions/vargrad.md
   - Concept based:
       - Cav: api/concepts/cav.md
       - Tcav: api/concepts/tcav.md
