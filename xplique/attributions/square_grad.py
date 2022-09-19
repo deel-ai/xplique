@@ -50,4 +50,4 @@ class SquareGrad(SmoothGrad):
         reduced_gradients
             Single saliency map for each input.
         """
-        return tf.math.reduce_mean(gradients**2, axis=1)
+        return tf.math.reduce_mean(gradients**2, axis=0)
