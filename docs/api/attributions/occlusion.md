@@ -1,6 +1,6 @@
 # Occlusion sensitivity
 
-<sub><img src="https://upload.wikimedia.org/wikipedia/commons/d/d0/Google_Colaboratory_SVG_Logo.svg" width="20"></sub>[ View colab tutorial](https://colab.research.google.com/drive/15xmmlxQkNqNuXgHO51eKogXvLgs-sG4q?authuser=1) | <sub><img src="https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png" width="20"></sub>[ View source](https://github.com/deel-ai/xplique/blob/master/xplique/attributions/occlusion.py)
+<sub><img src="https://upload.wikimedia.org/wikipedia/commons/d/d0/Google_Colaboratory_SVG_Logo.svg" width="20"></sub>[ View colab tutorial](https://colab.research.google.com/drive/15xmmlxQkNqNuXgHO51eKogXvLgs-sG4q) | <sub><img src="https://upload.wikimedia.org/wikipedia/commons/9/91/Octicons-mark-github.svg" width="20"></sub>[ View source](https://github.com/deel-ai/xplique/blob/master/xplique/attributions/occlusion.py)
 
 The Occlusion sensitivity method sweep a patch that occludes pixels over the
 images, and use the variations of the model prediction to deduce critical areas.[^1]
@@ -34,7 +34,7 @@ explanations = method.explain(images, labels)
 
 - [**Attribution Methods**: Getting started](https://colab.research.google.com/drive
 /1XproaVxXjO9nrBSyyy7BuKJ1vy21iHs2)
-- [**Occlusion**: Going Further](https://colab.research.google.com/drive/15xmmlxQkNqNuXgHO51eKogXvLgs-sG4q?authuser=1)
+- [**Occlusion**: Going Further](https://colab.research.google.com/drive/15xmmlxQkNqNuXgHO51eKogXvLgs-sG4q)
 
 {{xplique.attributions.occlusion.Occlusion}}
 
