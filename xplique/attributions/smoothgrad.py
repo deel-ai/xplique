@@ -6,8 +6,8 @@ import tensorflow as tf
 import numpy as np
 
 from .base import WhiteBoxExplainer, sanitize_input_output
-from ..commons import repeat_labels, gradient
-from ..types import Union, Optional
+from ..commons import repeat_labels, batch_gradient, batch_tensor
+from ..types import Tuple, Union, Optional
 
 
 class SmoothGrad(WhiteBoxExplainer):
@@ -73,45 +73,72 @@ class SmoothGrad(WhiteBoxExplainer):
             Smoothed gradients, same shape as the inputs.
         """
         smoothed_gradients = None
-        batch_size = self.batch_size or self.nb_samples
+        batch_size = self.batch_size or len(inputs)
 
-        # since the number of masks is often very large, we process the entries one by one
-        for single_input, single_target in zip(inputs, targets):
-            accumulated_reduced_gradients = 0
+        noisy_mask = SmoothGrad._get_noisy_mask((self.nb_samples, *inputs.shape[1:]), self.noise)
 
-            remaining_samples = self.nb_samples
-            while remaining_samples > 0:
-                tf.print("remaining_samples", remaining_samples)
-                nb_noises = min(batch_size, remaining_samples)
-                remaining_samples -= nb_noises
-                # generate random noise
-                batch_noises = tf.random.normal(
-                    (nb_noises, *inputs.shape[1:]), 0.0, self.noise, dtype=tf.float32)
+        for x_batch, y_batch in batch_tensor((inputs, targets),
+                                             max(batch_size // self.nb_samples, 1)):
+            noisy_inputs = SmoothGrad._apply_noise(x_batch, noisy_mask)
+            repeated_targets = repeat_labels(y_batch, self.nb_samples)
+            # compute the gradient of each noisy samples generated
+            gradients = batch_gradient(self.model, noisy_inputs, repeated_targets, batch_size)
+            # group by inputs and compute the average gradient
+            gradients = tf.reshape(gradients, (-1, self.nb_samples, *gradients.shape[1:]))
+            reduced_gradients = self._reduce_gradients(gradients)
 
-                # apply noise
-                batch_noisy_inputs = single_input + batch_noises
-                repeated_targets = repeat_labels(single_target[tf.newaxis, :], nb_noises)
-
-                # compute the gradient of each noisy samples generated
-                batch_gradients = gradient(self.model, batch_noisy_inputs, repeated_targets)
-
-                # mean over a batch of gradients for one input
-                reduced_gradients = self._reduce_gradients(batch_gradients)
-
-                # accumulate weighted reduced gradient for weighted mean
-                accumulated_reduced_gradients += nb_noises * reduced_gradients
-
-            # weighted mean of the mean of batch of gradients for one input
-            reduced_reduced_gradients = accumulated_reduced_gradients / self.nb_samples
-
-            if smoothed_gradients is None:
-                smoothed_gradients = reduced_reduced_gradients[tf.newaxis, :]
-            else:
-                smoothed_gradients = tf.concat(
-                    [smoothed_gradients, reduced_reduced_gradients[tf.newaxis, :]], axis=0)
+            smoothed_gradients = reduced_gradients if smoothed_gradients is None else tf.concat(
+                [smoothed_gradients, reduced_gradients], axis=0)
 
         return smoothed_gradients
 
+    @staticmethod
+    def _get_noisy_mask(shape: Tuple[int, int, int, int],
+                        noise: float) -> tf.Tensor:
+        """
+        Create a random noise mask of the specified shape.
+
+        Parameters
+        ----------
+        shape
+            Desired shape, dimension of one sample.
+        noise
+            Scalar, noise used as standard deviation of a normal law centered on zero.
+
+        Returns
+        -------
+        noisy_mask
+            Noise mask of the specified shape.
+        """
+        return tf.random.normal(shape, 0.0, noise, dtype=tf.float32)
+
+    @staticmethod
+    @tf.function
+    def _apply_noise(inputs: tf.Tensor,
+                     noisy_mask: tf.Tensor) -> tf.Tensor:
+        """
+        Duplicate the samples and apply a noisy mask to each of them.
+
+        Parameters
+        ----------
+        inputs
+            Input samples to be explained.
+        noisy_mask
+            Mask of random noise to apply on a set of interpolations points. With S the number of
+            samples, W & H the sample dimensions and C the number of channels.
+
+        Returns
+        -------
+        noisy_inputs
+            Duplicated inputs with noisy mask applied.
+        """
+        nb_samples = len(noisy_mask)
+
+        noisy_inputs = tf.repeat(tf.expand_dims(inputs, axis=1), repeats=nb_samples, axis=1)
+        noisy_inputs = noisy_inputs + noisy_mask
+        noisy_inputs = tf.reshape(noisy_inputs, (-1, *noisy_inputs.shape[2:]))
+
+        return noisy_inputs
 
     @staticmethod
     @tf.function
@@ -129,4 +156,4 @@ class SmoothGrad(WhiteBoxExplainer):
         reduced_gradients
             Single saliency map for each input.
         """
-        return tf.reduce_mean(gradients, axis=0)
+        return tf.reduce_mean(gradients, axis=1)
