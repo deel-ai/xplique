@@ -276,15 +276,16 @@ To learn more about Explainable AI in general, see:
 <img align="right" src="https://www.deel.ai/wp-content/uploads/2021/05/logo-DEEL.png" width="25%">
 This project received funding from the French ”Investing for the Future – PIA3” program within the Artificial and Natural Intelligence Toulouse Institute (ANITI). The authors gratefully acknowledge the support of the <a href="https://www.deel.ai/"> DEEL </a> project.
 
-## 👨‍🎓 Creator
+## 👨‍🎓 Creators
 
-This library was started as a side-project by [Thomas FEL](https://twitter.com/Napoolar) who is
+This library was started as a side-project by [Thomas FEL](http://thomasfel.fr) who is
 currently a graduate student at the Artificial and Natural Intelligence Toulouse Institute under
 the direction of [Thomas SERRE](https://serre-lab.clps.brown.edu). His thesis work focuses on
 explainability for deep neural networks.
+
 He then received help from some members of the <a href="https://www.deel.ai/"> DEEL </a> team
-to enhance the library namely from [Justin PLAKOO](https://github.com/justinplakoo) and
-[Lucas HERVIER](https://github.com/lucashervier).
+to enhance the library namely from [Lucas Hervier](https://github.com/lucashervier) and [Antonin Poché](https://github.com/AntoninPoche).
+
 
 ## 🗞️ Citation
 
