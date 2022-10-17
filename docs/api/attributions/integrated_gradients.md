@@ -1,6 +1,12 @@
 # Integrated Gradients
 
-<sub><img src="https://upload.wikimedia.org/wikipedia/commons/d/d0/Google_Colaboratory_SVG_Logo.svg" width="20"></sub>[ View colab tutorial](https://colab.research.google.com/drive/1UXJYVebDVIrkTOaOl-Zk6pHG3LWkPcLo?authuser=1) | <sub><img src="https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png" width="20"></sub>[ View source](https://github.com/deel-ai/xplique/blob/master/xplique/attributions/integrated_gradients.py)
+<sub>
+    <img src="https://upload.wikimedia.org/wikipedia/commons/d/d0/Google_Colaboratory_SVG_Logo.svg" width="20">
+</sub>[View colab tutorial](https://colab.research.google.com/drive/1UXJYVebDVIrkTOaOl-Zk6pHG3LWkPcLo) |
+<sub>
+    <img src="https://upload.wikimedia.org/wikipedia/commons/9/91/Octicons-mark-github.svg" width="20">
+</sub>[View source](https://github.com/deel-ai/xplique/blob/master/xplique/attributions/integrated_gradients.py) |
+📰 [Paper](https://arxiv.org/abs/1703.01365)
 
 Integrated Gradients is a visualization technique resulting of a theoretical search for an
 explanatory method that satisfies two axioms, Sensitivity and Implementation Invariance
@@ -17,11 +23,10 @@ Rather than calculating only the gradient relative to the image, the method cons
 the gradient values along the path from a baseline state to the current value. The baseline state
 is often set to zero, representing the complete absence of features.
 
-More precisely, with $\bar{x}$ the baseline state, $x$ the image, $c$ the class of interest and
-$S_c$ the unormalized class score (layer before softmax). The Integrated Gradient is defined as
+More precisely, with $x_0$ the baseline state, $x$ the image and $f$ our classifier, 
+the Integrated Gradient attribution is defined as
 
-$$IG(x) = (x - \bar{x}) \cdot \int_0^1{ \frac { \partial{S_c(\tilde{x})} } { \partial{\tilde{x}} }
-            \Big|_{ \tilde{x} = \bar{x} + \alpha(x - \bar{x}) } d\alpha }$$
+$$\phi = (x - x_0) \cdot \int_0^1{ \nabla_x f(x_0 + \alpha (x - x_0) ) d\alpha }$$
 
 
 In order to approximate from a finite number of steps, the implementation here use the
@@ -44,7 +49,7 @@ explanations = method.explain(images, labels)
 
 - [**Attribution Methods**: Getting started](https://colab.research.google.com/drive
 /1XproaVxXjO9nrBSyyy7BuKJ1vy21iHs2)
-- [**Integrated Gradients**: Going Further](https://colab.research.google.com/drive/1UXJYVebDVIrkTOaOl-Zk6pHG3LWkPcLo?authuser=1)
+- [**Integrated Gradients**: Going Further](https://colab.research.google.com/drive/1UXJYVebDVIrkTOaOl-Zk6pHG3LWkPcLo)
 
 {{xplique.attributions.integrated_gradients.IntegratedGradients}}
 
