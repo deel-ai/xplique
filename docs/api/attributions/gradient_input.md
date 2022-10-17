@@ -1,6 +1,13 @@
 # Gradient $\odot$ Input
 
-<sub><img src="https://upload.wikimedia.org/wikipedia/commons/d/d0/Google_Colaboratory_SVG_Logo.svg" width="20"></sub>[ View colab tutorial](https://colab.research.google.com/drive/19eB3uwAtCKZgkoWtMzrF0LTJ-htF_KE7?authuser=1) | <sub><img src="https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png" width="20"></sub>[ View source](https://github.com/deel-ai/xplique/blob/master/xplique/attributions/deconvnet.py)
+<sub>
+    <img src="https://upload.wikimedia.org/wikipedia/commons/d/d0/Google_Colaboratory_SVG_Logo.svg" width="20">
+</sub>[View colab tutorial](https://colab.research.google.com/drive/19eB3uwAtCKZgkoWtMzrF0LTJ-htF_KE7) |
+<sub>
+    <img src="https://upload.wikimedia.org/wikipedia/commons/9/91/Octicons-mark-github.svg" width="20">
+</sub>[View source](https://github.com/deel-ai/xplique/blob/master/xplique/attributions/gradient_input.py) |
+📰 [Paper](https://arxiv.org/abs/1605.01713)
+
 
 Gradient $\odot$ Input is a visualization techniques based on the gradient of a class score relative to
 the input, element-wise with the input. This method was introduced by Shrikumar et al., 2016[^1], in
@@ -17,11 +24,11 @@ A theoretical analysis conducted by Ancona et al, 2018[^3] showed that Gradient 
 equivalent to $\epsilon$-LRP and DeepLift methods under certain conditions: using a baseline of zero, and with
 all biases to zero.
 
-More precisely, the explanation $\phi_x$ for an input $x$, for a given class $c$ is defined as
+More precisely, the explanation $\phi$ for an input $x$ and a classifier $f$ is defined as
 
-$$ \phi_x = x \odot \frac{\partial{S_c(x)}}{\partial{x}} $$
+$$ \phi = x \odot \nabla_x f(x) $$
 
-with $S_c$ the unormalized class score (layer before softmax).
+with $\odot$ the Hadamard product.
 
 ## Example
 
@@ -39,7 +46,7 @@ explanations = method.explain(images, labels)
 
 - [**Attribution Methods**: Getting started](https://colab.research.google.com/drive
 /1XproaVxXjO9nrBSyyy7BuKJ1vy21iHs2) <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1XproaVxXjO9nrBSyyy7BuKJ1vy21iHs2) </sub>
-- [**Gradient $\odot$ Input**: Going Further](https://colab.research.google.com/drive/19eB3uwAtCKZgkoWtMzrF0LTJ-htF_KE7?authuser=1) <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/19eB3uwAtCKZgkoWtMzrF0LTJ-htF_KE7?authuser=1) </sub>
+- [**Gradient $\odot$ Input**: Going Further](https://colab.research.google.com/drive/19eB3uwAtCKZgkoWtMzrF0LTJ-htF_KE7) <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/19eB3uwAtCKZgkoWtMzrF0LTJ-htF_KE7) </sub>
 
 {{xplique.attributions.gradient_input.GradientInput}}
 
