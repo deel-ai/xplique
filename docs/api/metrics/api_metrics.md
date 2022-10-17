@@ -44,9 +44,9 @@ Especially, all Fidelity metrics inherit from this class:
 
 | Metric Name (Fidelity) |Notebook                                                                                                                                                           |
 |:---------------------- |:----------------------------------------------------------------------------------------------------------------------------------------------------------------: |
-| MuFidelity             | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1nuqLezSHavXGMsGtHrdSajEcR1SCzqTA?authuser=1) |
-| Insertion              | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1QtwbegOpTSj7g6DxBprMt0aTtaV5surF?authuser=1) |
-| Deletion               | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1W7tfXOoPnbu4HGGIkbhkoKdk9xRdStgs?authuser=1) |
+| MuFidelity             | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1nuqLezSHavXGMsGtHrdSajEcR1SCzqTA) |
+| Insertion              | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1QtwbegOpTSj7g6DxBprMt0aTtaV5surF) |
+| Deletion               | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1W7tfXOoPnbu4HGGIkbhkoKdk9xRdStgs) |
 
 !!!tip
     Insertion and Deletion were adapted for Time-Series (experimental). You can check InsertionTS and DeletionTS documentation for more information.
