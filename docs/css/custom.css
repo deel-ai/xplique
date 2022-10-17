@@ -167,3 +167,24 @@ li .parameter-type {
 .md-clipboard:hover {
     opacity: 1.0;
 }
+
+.authors-container {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: center;
+}
+
+.author-block {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    margin: 0 1em;
+    text-align: center;
+    width: 100%;
+}
+
+.author-block img {
+    width: 100px;
+}
