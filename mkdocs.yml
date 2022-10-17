@@ -46,7 +46,7 @@ theme:
   favicon: assets/x_logo.png
   palette:
     - scheme: default
-      primary: white
+      primary: dark
       accent: indigo
       toggle:
         icon: material/toggle-switch-off-outline
@@ -66,7 +66,8 @@ markdown_extensions:
   - footnotes
   - extra
   - admonition
-  - pymdownx.arithmatex
+  - pymdownx.arithmatex:
+      generic: true
   - pymdownx.highlight
   - pymdownx.superfences
   - codehilite
@@ -85,7 +86,8 @@ extra_css:
   - css/custom.css
 
 extra_javascript:
-  - https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js
+  - https://polyfill.io/v3/polyfill.min.js?features=es6
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
   - js/custom.js
 
 repo_name: "deel-ai/xplique"
