@@ -1,7 +1,30 @@
 # Deconvnet
 
-<sub><img src="https://upload.wikimedia.org/wikipedia/commons/d/d0/Google_Colaboratory_SVG_Logo.svg" width="20"></sub>[ View colab tutorial](https://colab.research.google.com/drive/19eB3uwAtCKZgkoWtMzrF0LTJ-htF_KE7?authuser=1) | <sub><img src="https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png" width="20"></sub>[ View source](https://github.com/deel-ai/xplique/blob/master/xplique/attributions/deconvnet.py) | 📰 [ See paper](https://arxiv.org/abs/1311.2901)
+<sub>
+    <img src="https://upload.wikimedia.org/wikipedia/commons/d/d0/Google_Colaboratory_SVG_Logo.svg" width="20">
+</sub>[View colab tutorial](https://colab.research.google.com/drive/19eB3uwAtCKZgkoWtMzrF0LTJ-htF_KE7) |
+<sub>
+    <img src="https://upload.wikimedia.org/wikipedia/commons/9/91/Octicons-mark-github.svg" width="20">
+</sub>[View source](https://github.com/deel-ai/xplique/blob/master/xplique/attributions/deconvnet.py) |
+📰 [Paper](https://arxiv.org/abs/1311.2901)
 
+
+Deconvnet is one of the first attribution method and was proposed in 2013.
+Its operation is similar to Saliency: it consists in backpropagating the output score with respect to the input,
+however, at each non-linearity (the ReLUs), only the positive gradient (even of negative activations) are backpropagated.
+
+More precisely, with $f$ our classifier and $f_l(x)$ the activation at layer $l$, we usually have:
+
+$$ \frac{\partial f(x)}{\partial f_{l}(x)} =  \frac{\partial f(x)}{\partial \text{ReLU}(f_{l}(x))} \frac{\partial \text{ReLU}(f_l(x))}{\partial f_{l}(x)}
+= \frac{\partial f(x)}{\partial \text{ReLU}(f_{l}(x))} \odot \mathbb{1}(f_{l}(x))
+$$
+
+with $\mathbb{1}(.)$ the indicator function. With Deconvnet, the backpropagation is modified such that : 
+
+$$
+\frac{\partial f(x)}{\partial f_{l}(x)} =
+\frac{\partial f(x)}{\partial \text{ReLU}(f_{l}(x))} \odot \mathbb{1}(\frac{\partial f(x)}{\partial \text{ReLU}(f_{l}(x))})
+$$
 
 
 ## Example
@@ -21,6 +44,6 @@ explanations = method.explain(images, labels)
 
 - [**Attribution Methods**: Getting started](https://colab.research.google.com/drive
 /1XproaVxXjO9nrBSyyy7BuKJ1vy21iHs2)
-- [**DeconvNet**: Going Further](https://colab.research.google.com/drive/19eB3uwAtCKZgkoWtMzrF0LTJ-htF_KE7?authuser=1)
+- [**DeconvNet**: Going Further](https://colab.research.google.com/drive/19eB3uwAtCKZgkoWtMzrF0LTJ-htF_KE7)
 
 {{xplique.attributions.deconvnet.DeconvNet}}
