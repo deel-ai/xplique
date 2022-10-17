@@ -288,8 +288,6 @@ to enhance the library namely from [Justin PLAKOO](https://github.com/justinplak
 
 ## 🗞️ Citation
 
-If you use Xplique as part of your workflow in a scientific publication, please consider citing the [Xplique official paper](https://arxiv.org/abs/2206.04394):
-
 If you use Xplique as part of your workflow in a scientific publication, please consider citing the 🗞️ [Xplique official paper](https://arxiv.org/abs/2206.04394):
 
 ```
