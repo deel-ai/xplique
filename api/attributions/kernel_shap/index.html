@@ -54,7 +54,7 @@
     
     
     
-    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="white" data-md-color-accent="indigo">
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="dark" data-md-color-accent="indigo">
   
     
     
@@ -109,7 +109,7 @@
         
           
           
-          <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="white" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+          <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="dark" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
           
             <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_2" hidden>
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 6H7c-3.31 0-6 2.69-6 6s2.69 6 6 6h10c3.31 0 6-2.69 6-6s-2.69-6-6-6zm0 10H7c-2.21 0-4-1.79-4-4s1.79-4 4-4h10c2.21 0 4 1.79 4 4s-1.79 4-4 4zM7 9c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
@@ -286,78 +286,8 @@
   
   
     <li class="md-nav__item">
-      <a href="../saliency/" class="md-nav__link">
-        Saliency
-      </a>
-    </li>
-  
-
-            
-          
-            
-              
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../gradient_input/" class="md-nav__link">
-        Gradient Input
-      </a>
-    </li>
-  
-
-            
-          
-            
-              
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../occlusion/" class="md-nav__link">
-        Occlusion sensitivity
-      </a>
-    </li>
-  
-
-            
-          
-            
-              
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../rise/" class="md-nav__link">
-        Rise
-      </a>
-    </li>
-  
-
-            
-          
-            
-              
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../integrated_gradients/" class="md-nav__link">
-        Integrated Gradient
-      </a>
-    </li>
-  
-
-            
-          
-            
-              
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../smoothgrad/" class="md-nav__link">
-        SmoothGrad
+      <a href="../deconvnet/" class="md-nav__link">
+        DeconvNet
       </a>
     </li>
   
@@ -398,8 +328,8 @@
   
   
     <li class="md-nav__item">
-      <a href="../deconvnet/" class="md-nav__link">
-        DeconvNet
+      <a href="../gradient_input/" class="md-nav__link">
+        Gradient Input
       </a>
     </li>
   
@@ -426,36 +356,8 @@
   
   
     <li class="md-nav__item">
-      <a href="../square_grad/" class="md-nav__link">
-        SquareGrad
-      </a>
-    </li>
-  
-
-            
-          
-            
-              
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../vargrad/" class="md-nav__link">
-        VarGrad
-      </a>
-    </li>
-  
-
-            
-          
-            
-              
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../lime/" class="md-nav__link">
-        Lime
+      <a href="../integrated_gradients/" class="md-nav__link">
+        Integrated Gradient
       </a>
     </li>
   
@@ -544,8 +446,106 @@
   
   
     <li class="md-nav__item">
+      <a href="../lime/" class="md-nav__link">
+        Lime
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../occlusion/" class="md-nav__link">
+        Occlusion sensitivity
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../rise/" class="md-nav__link">
+        Rise
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../saliency/" class="md-nav__link">
+        Saliency
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../smoothgrad/" class="md-nav__link">
+        SmoothGrad
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../square_grad/" class="md-nav__link">
+        SquareGrad
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../sobol/" class="md-nav__link">
         Sobol Attribution Method
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../vargrad/" class="md-nav__link">
+        VarGrad
       </a>
     </li>
   
@@ -918,6 +918,7 @@
 
 
 <h1 id="kernel-shap">Kernel Shap<a class="headerlink" href="#kernel-shap" title="Permanent link">&para;</a></h1>
+<p><sub><img src="https://upload.wikimedia.org/wikipedia/commons/d/d0/Google_Colaboratory_SVG_Logo.svg" width="20"></sub><a href="https://colab.research.google.com/drive/1frholXRE4XQQ3W5yZuPQ2-xqc-LTczfT"> View colab tutorial</a> | <sub><img src="https://upload.wikimedia.org/wikipedia/commons/9/91/Octicons-mark-github.svg" width="20"></sub><a href="https://github.com/deel-ai/xplique/blob/master/xplique/attributions/kernel_shap.py"> View source</a></p>
 <p>By setting appropriately the perturbation function, the similarity kernel and the interpretable
 model in the LIME framework we can theoretically obtain the Shapley Values more efficiently.
 Therefore, KernelShap is a method based on LIME with specific attributes.</p>
@@ -943,8 +944,8 @@ By default, the map function use the quickshift segmentation of scikit-images</p
 <h2 id="notebooks">Notebooks<a class="headerlink" href="#notebooks" title="Permanent link">&para;</a></h2>
 <ul>
 <li><a href="https://colab.research.google.com/drive
-/1XproaVxXjO9nrBSyyy7BuKJ1vy21iHs2"><strong>Attribution Methods</strong>: Getting started</a> <sub> <a href="https://colab.research.google.com/drive/1XproaVxXjO9nrBSyyy7BuKJ1vy21iHs2"><img alt="Open In Colab" src="https://colab.research.google.com/assets/colab-badge.svg" /></a> </sub></li>
-<li><a href="https://colab.research.google.com/drive/1zTzj1_uTQYQs_7kyhqq_WeBEOy66YeQd"><strong>KernelShap</strong>: Going Further</a> <sub> <a href="https://colab.research.google.com/drive/1zTzj1_uTQYQs_7kyhqq_WeBEOy66YeQd"><img alt="Open In Colab" src="https://colab.research.google.com/assets/colab-badge.svg" /></a> </sub></li>
+/1XproaVxXjO9nrBSyyy7BuKJ1vy21iHs2"><strong>Attribution Methods</strong>: Getting started</a></li>
+<li><a href="https://colab.research.google.com/drive/1frholXRE4XQQ3W5yZuPQ2-xqc-LTczfT"><strong>KernelShap</strong>: Going Further</a></li>
 </ul>
 <h2 class="numkdoc" id="KernelShap"><code>KernelShap</code><a class="headerlink" href="#KernelShap" title="Permanent link">&para;</a></h2>
 <p>By setting appropriately the perturbation function, the similarity kernel and the interpretable
@@ -1030,11 +1031,11 @@ feature (e.g super-pixel).</p>
 the interpretable space.</p>
 <p>The default mappings are:</p>
 <ul>
-<li>- the quickshift segmentation algorithm for inputs with <span class="arithmatex"><span class="MathJax_Preview">(N, W, H, C)</span><script type="math/tex">(N, W, H, C)</script></span> shape,
-we assume here such shape is used to represent <span class="arithmatex"><span class="MathJax_Preview">(W, H, C)</span><script type="math/tex">(W, H, C)</script></span> images.</li>
-<li>- the felzenszwalb segmentation algorithm for inputs with <span class="arithmatex"><span class="MathJax_Preview">(N, W, H)</span><script type="math/tex">(N, W, H)</script></span> shape,
-we assume here such shape is used to represent <span class="arithmatex"><span class="MathJax_Preview">(W, H)</span><script type="math/tex">(W, H)</script></span> images.</li>
-<li>- an identity mapping if inputs has shape <span class="arithmatex"><span class="MathJax_Preview">(N, W)</span><script type="math/tex">(N, W)</script></span>, we assume here your inputs
+<li>- the quickshift segmentation algorithm for inputs with <span class="arithmatex">\((N, W, H, C)\)</span> shape,
+we assume here such shape is used to represent <span class="arithmatex">\((W, H, C)\)</span> images.</li>
+<li>- the felzenszwalb segmentation algorithm for inputs with <span class="arithmatex">\((N, W, H)\)</span> shape,
+we assume here such shape is used to represent <span class="arithmatex">\((W, H)\)</span> images.</li>
+<li>- an identity mapping if inputs has shape <span class="arithmatex">\((N, W)\)</span>, we assume here your inputs
 are tabular data.</li>
 </ul>
 <p>To use your own custom map function you should use the following scheme:</p>
@@ -1093,7 +1094,7 @@ be very long!</p>
     <nav class="md-footer__inner md-grid" aria-label="Footer" >
       
         
-        <a href="../lime/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Lime" rel="prev">
+        <a href="../integrated_gradients/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Integrated Gradient" rel="prev">
           <div class="md-footer__button md-icon">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
           </div>
@@ -1102,20 +1103,20 @@ be very long!</p>
               <span class="md-footer__direction">
                 Previous
               </span>
-              Lime
+              Integrated Gradient
             </div>
           </div>
         </a>
       
       
         
-        <a href="../sobol/" class="md-footer__link md-footer__link--next" aria-label="Next: Sobol Attribution Method" rel="next">
+        <a href="../lime/" class="md-footer__link md-footer__link--next" aria-label="Next: Lime" rel="next">
           <div class="md-footer__title">
             <div class="md-ellipsis">
               <span class="md-footer__direction">
                 Next
               </span>
-              Sobol Attribution Method
+              Lime
             </div>
           </div>
           <div class="md-footer__button md-icon">
@@ -1151,7 +1152,9 @@ be very long!</p>
     
       <script src="../../../assets/javascripts/bundle.9c69f0bc.min.js"></script>
       
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js"></script>
+        <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+      
+        <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
       
         <script src="../../../js/custom.js"></script>
       

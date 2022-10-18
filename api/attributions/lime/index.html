@@ -54,7 +54,7 @@
     
     
     
-    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="white" data-md-color-accent="indigo">
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="dark" data-md-color-accent="indigo">
   
     
     
@@ -109,7 +109,7 @@
         
           
           
-          <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="white" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+          <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="dark" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
           
             <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_2" hidden>
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 6H7c-3.31 0-6 2.69-6 6s2.69 6 6 6h10c3.31 0 6-2.69 6-6s-2.69-6-6-6zm0 10H7c-2.21 0-4-1.79-4-4s1.79-4 4-4h10c2.21 0 4 1.79 4 4s-1.79 4-4 4zM7 9c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
@@ -286,78 +286,8 @@
   
   
     <li class="md-nav__item">
-      <a href="../saliency/" class="md-nav__link">
-        Saliency
-      </a>
-    </li>
-  
-
-            
-          
-            
-              
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../gradient_input/" class="md-nav__link">
-        Gradient Input
-      </a>
-    </li>
-  
-
-            
-          
-            
-              
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../occlusion/" class="md-nav__link">
-        Occlusion sensitivity
-      </a>
-    </li>
-  
-
-            
-          
-            
-              
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../rise/" class="md-nav__link">
-        Rise
-      </a>
-    </li>
-  
-
-            
-          
-            
-              
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../integrated_gradients/" class="md-nav__link">
-        Integrated Gradient
-      </a>
-    </li>
-  
-
-            
-          
-            
-              
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../smoothgrad/" class="md-nav__link">
-        SmoothGrad
+      <a href="../deconvnet/" class="md-nav__link">
+        DeconvNet
       </a>
     </li>
   
@@ -398,8 +328,8 @@
   
   
     <li class="md-nav__item">
-      <a href="../deconvnet/" class="md-nav__link">
-        DeconvNet
+      <a href="../gradient_input/" class="md-nav__link">
+        Gradient Input
       </a>
     </li>
   
@@ -426,8 +356,8 @@
   
   
     <li class="md-nav__item">
-      <a href="../square_grad/" class="md-nav__link">
-        SquareGrad
+      <a href="../integrated_gradients/" class="md-nav__link">
+        Integrated Gradient
       </a>
     </li>
   
@@ -440,8 +370,8 @@
   
   
     <li class="md-nav__item">
-      <a href="../vargrad/" class="md-nav__link">
-        VarGrad
+      <a href="../kernel_shap/" class="md-nav__link">
+        KernelSHAP
       </a>
     </li>
   
@@ -530,8 +460,64 @@
   
   
     <li class="md-nav__item">
-      <a href="../kernel_shap/" class="md-nav__link">
-        KernelSHAP
+      <a href="../occlusion/" class="md-nav__link">
+        Occlusion sensitivity
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../rise/" class="md-nav__link">
+        Rise
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../saliency/" class="md-nav__link">
+        Saliency
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../smoothgrad/" class="md-nav__link">
+        SmoothGrad
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../square_grad/" class="md-nav__link">
+        SquareGrad
       </a>
     </li>
   
@@ -546,6 +532,20 @@
     <li class="md-nav__item">
       <a href="../sobol/" class="md-nav__link">
         Sobol Attribution Method
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../vargrad/" class="md-nav__link">
+        VarGrad
       </a>
     </li>
   
@@ -918,16 +918,17 @@
 
 
 <h1 id="lime">LIME<a class="headerlink" href="#lime" title="Permanent link">&para;</a></h1>
+<p><sub><img src="https://upload.wikimedia.org/wikipedia/commons/d/d0/Google_Colaboratory_SVG_Logo.svg" width="20"></sub><a href="https://colab.research.google.com/drive/1frholXRE4XQQ3W5yZuPQ2-xqc-LTczfT"> View colab tutorial</a> | <sub><img src="https://upload.wikimedia.org/wikipedia/commons/9/91/Octicons-mark-github.svg" width="20"></sub><a href="https://github.com/deel-ai/xplique/blob/master/xplique/attributions/lime.py"> View source</a></p>
 <p>The Lime method use an interpretable model to provide an explanation.
-More specifically, you map inputs (<span class="arithmatex"><span class="MathJax_Preview">x \in R^d</span><script type="math/tex">x \in R^d</script></span>) to an interpretable space (e.g super-pixels) of size num_interpetable_features.
-From there you generate perturbed interpretable samples (<span class="arithmatex"><span class="MathJax_Preview">z' \in \{0,1\}^{num\_interpretable\_samples}</span><script type="math/tex">z' \in \{0,1\}^{num\_interpretable\_samples}</script></span>
-where <span class="arithmatex"><span class="MathJax_Preview">1</span><script type="math/tex">1</script></span> means we keep this specific interpretable feature).</p>
+More specifically, you map inputs (<span class="arithmatex">\(x \in R^d\)</span>) to an interpretable space (e.g super-pixels) of size num_interpetable_features.
+From there you generate perturbed interpretable samples (<span class="arithmatex">\(z' \in \{0,1\}^{num\_interpretable\_samples}\)</span>
+where <span class="arithmatex">\(1\)</span> means we keep this specific interpretable feature).</p>
 <p>Once you have your interpretable samples you can map them back to their original space
-(the perturbed samples <span class="arithmatex"><span class="MathJax_Preview">z \in R^d</span><script type="math/tex">z \in R^d</script></span>) and obtain the label prediction of your model for each perturbed
+(the perturbed samples <span class="arithmatex">\(z \in R^d\)</span>) and obtain the label prediction of your model for each perturbed
 samples.</p>
 <p>In the Lime method you define a similarity kernel which compute the similarity between an input and
 its perturbed representations (either in the original input space or in the interpretable space):
-<span class="arithmatex"><span class="MathJax_Preview">\pi_x(z',z)</span><script type="math/tex">\pi_x(z',z)</script></span>.</p>
+<span class="arithmatex">\(\pi_x(z',z)\)</span>.</p>
 <p>Finally, you train an interpretable model per input, using interpretable samples along the
 corresponding perturbed labels and it will draw interpretable samples weighted by the similarity kernel.
 Thus, you will have an interpretable explanation (i.e in the interpretable space) which can be
@@ -952,8 +953,8 @@ By default, the map function use the quickshift segmentation of scikit-images</p
 <h2 id="notebooks">Notebooks<a class="headerlink" href="#notebooks" title="Permanent link">&para;</a></h2>
 <ul>
 <li><a href="https://colab.research.google.com/drive
-/1XproaVxXjO9nrBSyyy7BuKJ1vy21iHs2"><strong>Attribution Methods</strong>: Getting started</a> <sub> <a href="https://colab.research.google.com/drive/1XproaVxXjO9nrBSyyy7BuKJ1vy21iHs2"><img alt="Open In Colab" src="https://colab.research.google.com/assets/colab-badge.svg" /></a> </sub></li>
-<li><a href="https://colab.research.google.com/drive/1InDzdW39-5k2ENfKqF2bs5qJEv8OJqi2"><strong>LIME</strong>: Going Further</a> <sub> <a href="https://colab.research.google.com/drive/1InDzdW39-5k2ENfKqF2bs5qJEv8OJqi2"><img alt="Open In Colab" src="https://colab.research.google.com/assets/colab-badge.svg" /></a> </sub></li>
+/1XproaVxXjO9nrBSyyy7BuKJ1vy21iHs2"><strong>Attribution Methods</strong>: Getting started</a></li>
+<li><a href="https://colab.research.google.com/drive/1frholXRE4XQQ3W5yZuPQ2-xqc-LTczfT"><strong>LIME</strong>: Going Further</a></li>
 </ul>
 <h2 class="numkdoc" id="Lime"><code>Lime</code><a class="headerlink" href="#Lime" title="Permanent link">&para;</a></h2>
 <p>Used to compute the LIME method.
@@ -1069,9 +1070,9 @@ results but it is long to compute.</p>
 <h4 id="interpretable_model"><code>interpretable_model</code>:<a class="headerlink" href="#interpretable_model" title="Permanent link">&para;</a></h4>
 <p>A Model object providing a <code>fit</code> method that train the model with the following inputs:</p>
 <ul>
-<li>- <code>interpretable_inputs</code>: 2D <code>ndarray</code> of shape (<span class="arithmatex"><span class="MathJax_Preview">nb\_samples</span><script type="math/tex">nb\_samples</script></span> x <span class="arithmatex"><span class="MathJax_Preview">num\_interp\_features</span><script type="math/tex">num\_interp\_features</script></span>),</li>
-<li>- <code>expected_outputs</code>: 1D <code>ndarray</code> of shape (<span class="arithmatex"><span class="MathJax_Preview">nb\_samples</span><script type="math/tex">nb\_samples</script></span>),</li>
-<li>- <code>weights</code>: 1D <code>ndarray</code> of shape (<span class="arithmatex"><span class="MathJax_Preview">nb\_samples</span><script type="math/tex">nb\_samples</script></span>)</li>
+<li>- <code>interpretable_inputs</code>: 2D <code>ndarray</code> of shape (<span class="arithmatex">\(nb\_samples\)</span> x <span class="arithmatex">\(num\_interp\_features\)</span>),</li>
+<li>- <code>expected_outputs</code>: 1D <code>ndarray</code> of shape (<span class="arithmatex">\(nb\_samples\)</span>),</li>
+<li>- <code>weights</code>: 1D <code>ndarray</code> of shape (<span class="arithmatex">\(nb\_samples\)</span>)</li>
 </ul>
 <p>The model object should also provide a <code>predict</code> and <code>fit</code> method.</p>
 <p>It should also have a <code>coef_</code> attributes (the interpretable explanations) at least
@@ -1101,9 +1102,9 @@ follow the following scheme:</p>
 </code></pre></div>
 <p>where:</p>
 <ul>
-<li>- <code>original_input</code> has shape among <span class="arithmatex"><span class="MathJax_Preview">(W)</span><script type="math/tex">(W)</script></span>, <span class="arithmatex"><span class="MathJax_Preview">(W, H)</span><script type="math/tex">(W, H)</script></span>, <span class="arithmatex"><span class="MathJax_Preview">(W, H, C)</span><script type="math/tex">(W, H, C)</script></span></li>
-<li>- <code>interpret_samples</code> is a <code>tf.tensor</code> of shape <span class="arithmatex"><span class="MathJax_Preview">(nb\_samples, num\_interp\_features)</span><script type="math/tex">(nb\_samples, num\_interp\_features)</script></span></li>
-<li>- <code>perturbed_samples</code> is a <code>tf.tensor</code> of shape <span class="arithmatex"><span class="MathJax_Preview">(nb\_samples, *original\_input.shape)</span><script type="math/tex">(nb\_samples, *original\_input.shape)</script></span></li>
+<li>- <code>original_input</code> has shape among <span class="arithmatex">\((W)\)</span>, <span class="arithmatex">\((W, H)\)</span>, <span class="arithmatex">\((W, H, C)\)</span></li>
+<li>- <code>interpret_samples</code> is a <code>tf.tensor</code> of shape <span class="arithmatex">\((nb\_samples, num\_interp\_features)\)</span></li>
+<li>- <code>perturbed_samples</code> is a <code>tf.tensor</code> of shape <span class="arithmatex">\((nb\_samples, *original\_input.shape)\)</span></li>
 </ul>
 <p>If it is possible you can add the <code>@tf.function</code> decorator.</p>
 <div class="admonition warning">
@@ -1120,7 +1121,7 @@ the perturbed samples in the input space.</p>
 <p>Function which generate perturbed interpretable samples in the interpretation space from
 the number of interpretable features (e.g nb of super pixel) and the number of perturbed
 samples you want per original input.</p>
-<p>The generated <code>interp_samples</code> belong to <span class="arithmatex"><span class="MathJax_Preview">\{0,1\}^{num\_features}</span><script type="math/tex">\{0,1\}^{num\_features}</script></span>. Where <span class="arithmatex"><span class="MathJax_Preview">1</span><script type="math/tex">1</script></span> indicates that we
+<p>The generated <code>interp_samples</code> belong to <span class="arithmatex">\(\{0,1\}^{num\_features}\)</span>. Where <span class="arithmatex">\(1\)</span> indicates that we
 keep the corresponding feature (e.g super pixel) in the mapping.</p>
 <p>To use your own custom pertub function you should use the following scheme:</p>
 <div class="highlight"><pre><span></span><code><span class="nd">@tf</span><span class="o">.</span><span class="n">function</span>
@@ -1142,11 +1143,11 @@ feature (e.g super-pixel).</p>
 the interpretable space.</p>
 <p>The default mappings are:</p>
 <ul>
-<li>- the quickshift segmentation algorithm for inputs with <span class="arithmatex"><span class="MathJax_Preview">(N, W, H, C)</span><script type="math/tex">(N, W, H, C)</script></span> shape,
-we assume here such shape is used to represent <span class="arithmatex"><span class="MathJax_Preview">(W, H, C)</span><script type="math/tex">(W, H, C)</script></span> images.</li>
-<li>- the felzenszwalb segmentation algorithm for inputs with <span class="arithmatex"><span class="MathJax_Preview">(N, W, H)</span><script type="math/tex">(N, W, H)</script></span> shape,
-we assume here such shape is used to represent <span class="arithmatex"><span class="MathJax_Preview">(W, H)</span><script type="math/tex">(W, H)</script></span> images.</li>
-<li>- an identity mapping if inputs has shape <span class="arithmatex"><span class="MathJax_Preview">(N, W)</span><script type="math/tex">(N, W)</script></span>, we assume here your inputs
+<li>- the quickshift segmentation algorithm for inputs with <span class="arithmatex">\((N, W, H, C)\)</span> shape,
+we assume here such shape is used to represent <span class="arithmatex">\((W, H, C)\)</span> images.</li>
+<li>- the felzenszwalb segmentation algorithm for inputs with <span class="arithmatex">\((N, W, H)\)</span> shape,
+we assume here such shape is used to represent <span class="arithmatex">\((W, H)\)</span> images.</li>
+<li>- an identity mapping if inputs has shape <span class="arithmatex">\((N, W)\)</span>, we assume here your inputs
 are tabular data.</li>
 </ul>
 <p>To use your own custom map function you should use the following scheme:</p>
@@ -1205,7 +1206,7 @@ be very long!</p>
     <nav class="md-footer__inner md-grid" aria-label="Footer" >
       
         
-        <a href="../vargrad/" class="md-footer__link md-footer__link--prev" aria-label="Previous: VarGrad" rel="prev">
+        <a href="../kernel_shap/" class="md-footer__link md-footer__link--prev" aria-label="Previous: KernelSHAP" rel="prev">
           <div class="md-footer__button md-icon">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
           </div>
@@ -1214,20 +1215,20 @@ be very long!</p>
               <span class="md-footer__direction">
                 Previous
               </span>
-              VarGrad
+              KernelSHAP
             </div>
           </div>
         </a>
       
       
         
-        <a href="../kernel_shap/" class="md-footer__link md-footer__link--next" aria-label="Next: KernelSHAP" rel="next">
+        <a href="../occlusion/" class="md-footer__link md-footer__link--next" aria-label="Next: Occlusion sensitivity" rel="next">
           <div class="md-footer__title">
             <div class="md-ellipsis">
               <span class="md-footer__direction">
                 Next
               </span>
-              KernelSHAP
+              Occlusion sensitivity
             </div>
           </div>
           <div class="md-footer__button md-icon">
@@ -1263,7 +1264,9 @@ be very long!</p>
     
       <script src="../../../assets/javascripts/bundle.9c69f0bc.min.js"></script>
       
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js"></script>
+        <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+      
+        <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
       
         <script src="../../../js/custom.js"></script>
       
