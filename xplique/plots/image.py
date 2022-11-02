@@ -153,7 +153,7 @@ def plot_attributions(
 
     rows = ceil(len(explanations) / cols)
     # get width and height of our images
-    l_width, l_height = explanations.shape[1:]
+    l_width, l_height = explanations.shape[1:3]
 
     # define the figure margin, width, height in inch
     margin = 0.3
