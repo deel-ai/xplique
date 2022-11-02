@@ -102,7 +102,7 @@ We propose some Hands-on tutorials to get familiar with the library and its api:
 
 <p align="center" width="100%">
     <a href="https://colab.research.google.com/drive/1st43K9AH-UL4eZM1S4QdyrOi7Epa5K8v"> 
-        <img width="95%" src="./docs/assets/feature_viz.jpeg">
+        <img width="95%" src="./assets/feature_viz.jpeg">
     </a>
 </p>
 
