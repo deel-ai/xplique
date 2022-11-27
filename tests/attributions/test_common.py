@@ -3,7 +3,8 @@ import tensorflow as tf
 
 from xplique.attributions import (Saliency, GradientInput, IntegratedGradients, SmoothGrad, VarGrad,
                                   SquareGrad, GradCAM, Occlusion, Rise, GuidedBackprop, DeconvNet,
-                                  GradCAMPP, Lime, KernelShap, SobolAttributionMethod)
+                                  GradCAMPP, Lime, KernelShap, SobolAttributionMethod,
+                                  HsicAttributionMethod)
 from xplique.attributions.base import BlackBoxExplainer
 from ..utils import generate_data, generate_model
 
@@ -24,7 +25,8 @@ def _default_methods(model, output_layer_index):
         GradCAMPP(model, output_layer_index),
         Lime(model, nb_samples=2),
         KernelShap(model, nb_samples=2),
-        SobolAttributionMethod(model, grid_size=2, nb_design=2)
+        SobolAttributionMethod(model, grid_size=2, nb_design=2),
+        HsicAttributionMethod(model, grid_size=2, nb_design=2),
     ]
 
 

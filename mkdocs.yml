@@ -22,6 +22,7 @@ nav:
       - SmoothGrad: api/attributions/smoothgrad.md
       - SquareGrad: api/attributions/square_grad.md
       - Sobol Attribution Method: api/attributions/sobol.md
+      - Hsic Attribution Method: api/attributions/hsic.md
       - VarGrad: api/attributions/vargrad.md
   - Concept based:
       - Cav: api/concepts/cav.md
