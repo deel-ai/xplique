@@ -1,0 +1,188 @@
+"""
+HSIC estimator
+"""
+# pylint: disable=C0103
+
+from abc import ABC, abstractmethod
+from functools import partial
+
+import tensorflow as tf
+import numpy as np
+
+from .kernels import Kernel
+
+
+class HsicEstimator(ABC):
+    """
+    Base class for HSIC estimator.
+    """
+
+    def __init__(self, output_kernel="rbf"):
+        self.output_kernel = output_kernel
+        assert output_kernel in [
+            "rbf"
+        ], "Only 'rbf' output kernel is supported for now."
+
+    @staticmethod
+    def masks_dim(masks):
+        """
+        Deduce the number of dimensions using the sampling masks.
+
+        Parameters
+        ----------
+        masks
+          Low resolution masks (before upsampling) used, one for each output.
+
+        Returns
+        -------
+        nb_dim
+          The number of dimensions under study according to the masks.
+        """
+        nb_dim = np.prod(masks.shape[1:])
+        return nb_dim
+
+    @staticmethod
+    def post_process(score, masks):
+        """
+        Post processing ops on the indices before sending them back. Makes sure the data
+        format and shape is correct.
+
+        Parameters
+        ----------
+        score
+          Total order HSIC scores, one for each dimensions.
+        masks
+            Low resolution masks (before upsampling) used, one for each output.
+
+        Returns
+        -------
+        score
+          HSIC scores after post processing.
+        """
+        score = np.array(score, np.float32)
+        return np.transpose(score.reshape(masks.shape[1:]), axes=(1, 0, 2))
+
+    @abstractmethod
+    def input_kernel_func(self, X, Y):
+        """
+        Kernel function for the input.
+
+        Parameters
+        ----------
+        X
+            Samples of input variable
+        Y
+            Samples of output variable
+
+        Returns
+        -------
+        Kernel matrix
+        """
+        raise NotImplementedError()
+
+    @abstractmethod
+    def output_kernel_func(self, X, Y):
+        """
+        kernel function for the output
+
+        Parameters
+        ----------
+        X
+            Samples of input variable
+        Y
+            Samples of output variable
+
+        Returns
+        -------
+        Kernel matrix
+        """
+        raise NotImplementedError()
+
+    def __call__(self, masks, outputs, nb_design):
+        """
+        Compute the test statistic using a self.output_kernel for the output and a kernel to be
+        defined in child classes for the input.
+
+        Parameters
+        ----------
+        masks
+            binary masks, each dimension corresponding to an image patch
+        L
+            Kernel matrix for the outputs
+        n
+            number of points used to estimate HSIC
+        nb_dim
+            number of patches
+
+        Returns
+        -------
+        HSIC estimates
+            Array with HSIC estimates for each patch
+        """
+        nb_dim = self.masks_dim(masks)
+
+        Y = tf.cast(outputs, tf.float32)
+        Y = tf.reshape(Y, (nb_design, 1))
+        L = self.output_kernel_func(Y, tf.transpose(Y))
+
+        X = tf.transpose(masks)
+
+        X1 = tf.reshape(X, (nb_dim, 1, nb_design, 1))
+        X2 = tf.transpose(X1, [0, 1, 3, 2])
+        K = self.input_kernel_func(X1, X2)
+        K = tf.math.reduce_prod(1 + K, axis=1)
+
+        H = tf.eye(nb_design) - tf.ones((nb_design, nb_design)) / nb_design
+        HK = tf.einsum("jk,ikl->ijl", H, K)
+        HL = tf.einsum("jk,kl->jl", H, L)
+
+        Kc = tf.einsum("ijk,kl->ijl", HK, H)
+        Lc = tf.einsum("jk,kl->jl", HL, H)
+
+        score = tf.math.reduce_sum(Kc * tf.transpose(Lc), axis=[1, 2]) / nb_design
+
+        return self.post_process(score, masks)
+
+
+class BinaryEstimator(HsicEstimator):
+    """
+    Estimator based on the Dirac kernel for the input
+    """
+
+    def input_kernel_func(self, X, Y):
+        return Kernel.from_string("binary")(X, Y)
+
+    def output_kernel_func(self, X, Y):
+        width_y = np.percentile(Y, 50.0).astype(np.float32)
+        kernel_func = partial(Kernel.from_string(self.output_kernel), width=width_y)
+        return kernel_func(X, Y)
+
+
+class RbfEstimator(HsicEstimator):
+    """
+    Estimator based on the RBF kernel for the input
+    """
+
+    def input_kernel_func(self, X, Y):
+        width_x = 0.5
+        kernel_func = partial(Kernel.from_string("rbf"), width=width_x)
+        return kernel_func(X, Y)
+
+    def output_kernel_func(self, X, Y):
+        width_y = np.percentile(Y, 50.0).astype(np.float32)
+        kernel_func = partial(Kernel.from_string(self.output_kernel), width=width_y)
+        return kernel_func(X, Y)
+
+
+class SobolevEstimator(HsicEstimator):
+    """
+    Estimator based on the Sobolev kernel for the input
+    """
+
+    def input_kernel_func(self, X, Y):
+        return Kernel.from_string("sobolev")(X, Y)
+
+    def output_kernel_func(self, X, Y):
+        width_y = np.percentile(Y, 50.0).astype(np.float32)
+        kernel_func = partial(Kernel.from_string(self.output_kernel), width=width_y)
+        return kernel_func(X, Y)
