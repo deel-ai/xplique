@@ -18,12 +18,13 @@ class PerturbationFunction(Enum):
     """
     GSA Perturbation function interface.
     """
+
     INPAINTING = inpainting
-    BLURRING   = blurring
-    AMPLITUDE  = amplitude
+    BLURRING = blurring
+    AMPLITUDE = amplitude
 
     @staticmethod
-    def from_string(perturbation_function: str) -> 'PerturbationFunction':
+    def from_string(perturbation_function: str) -> "PerturbationFunction":
         """
         Restore a perturbation function from a string.
 
@@ -38,12 +39,15 @@ class PerturbationFunction(Enum):
         perturbation_function
             The PerturbationFunction object.
         """
-        assert perturbation_function in ['inpainting', 'blurring', 'amplitude'], \
-            "Only 'inpainting', 'blurring' and 'amplitude' are supported."
+        assert perturbation_function in [
+            "inpainting",
+            "blurring",
+            "amplitude",
+        ], "Only 'inpainting', 'blurring' and 'amplitude' are supported."
 
-        if perturbation_function == 'amplitude':
+        if perturbation_function == "amplitude":
             return PerturbationFunction.AMPLITUDE
-        if perturbation_function == 'blurring':
+        if perturbation_function == "blurring":
             return PerturbationFunction.BLURRING
         return PerturbationFunction.INPAINTING
 
@@ -81,7 +85,7 @@ class GSABaseAttributionMethod(BlackBoxExplainer):
         grid_size: int = 7,
         nb_design: int = 32,
         perturbation_function: Optional[Union[Callable, str]] = "inpainting",
-        batch_size=256
+        batch_size=256,
     ):
 
         super().__init__(model, batch_size)
@@ -90,19 +94,25 @@ class GSABaseAttributionMethod(BlackBoxExplainer):
         self.nb_design = nb_design
 
         if isinstance(perturbation_function, str):
-            self.perturbation_function = PerturbationFunction.from_string(perturbation_function)
+            self.perturbation_function = PerturbationFunction.from_string(
+                perturbation_function
+            )
         else:
             self.perturbation_function = perturbation_function
 
         self.sampler = sampler
         self.estimator = estimator
 
-        self.masks = self.sampler(grid_size**2, nb_design).reshape((-1, grid_size, grid_size, 1))
+        self.masks = self.sampler(grid_size**2, nb_design).reshape(
+            (-1, grid_size, grid_size, 1)
+        )
 
     @sanitize_input_output
-    def explain(self,
-                inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
-                targets: Optional[Union[tf.Tensor, np.ndarray]] = None) -> tf.Tensor:
+    def explain(
+        self,
+        inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
+        targets: Optional[Union[tf.Tensor, np.ndarray]] = None,
+    ) -> tf.Tensor:
         """
         Compute the total Sobol' indices according to the explainer parameter (perturbation
         function, grid size...). Accept Tensor, numpy array or tf.data.Dataset (in that case
@@ -121,9 +131,11 @@ class GSABaseAttributionMethod(BlackBoxExplainer):
 
         Returns
         -------
-        sobol_maps
-            Sobol Attribution Method explanations, same shape as the inputs except for the channels.
+        attributions_maps
+            GSA Attribution Method explanations, same shape as the inputs except for the channels.
         """
+        # pylint: disable=E1101
+
         input_shape = (inputs.shape[1], inputs.shape[2])
         heatmaps = None
 
@@ -134,25 +146,36 @@ class GSABaseAttributionMethod(BlackBoxExplainer):
 
             for batch_masks in batch_tensor(self.masks, self.batch_size):
 
-                batch_x, batch_y = self._batch_perturbations(batch_masks, perturbator,
-                                                             target, input_shape)
+                batch_x, batch_y = self._batch_perturbations(
+                    batch_masks, perturbator, target, input_shape
+                )
                 batch_outputs = self.inference_function(self.model, batch_x, batch_y)
 
-                outputs = batch_outputs if outputs is None else tf.concat([outputs,
-                                                                           batch_outputs], axis=0)
+                outputs = (
+                    batch_outputs
+                    if outputs is None
+                    else tf.concat([outputs, batch_outputs], axis=0)
+                )
 
             heatmap = self.estimator(self.masks, outputs, self.nb_design)
-            heatmap = cv2.resize(heatmap, input_shape, interpolation=cv2.INTER_CUBIC)[None,:,:] # pylint: disable=E1101
+            heatmap = cv2.resize(heatmap, input_shape, interpolation=cv2.INTER_CUBIC)[
+                None, :, :
+            ]
 
-            heatmaps = heatmap if heatmaps is None else tf.concat([heatmaps, heatmap],
-                                                                         axis=0)
+            heatmaps = (
+                heatmap if heatmaps is None else tf.concat([heatmaps, heatmap], axis=0)
+            )
 
         return heatmaps
 
     @staticmethod
     @tf.function
-    def _batch_perturbations(masks: tf.Tensor, perturbator: Callable, target: tf.Tensor,
-                             input_shape: Tuple[int, int]) -> Union[tf.Tensor, tf.Tensor]:
+    def _batch_perturbations(
+        masks: tf.Tensor,
+        perturbator: Callable,
+        target: tf.Tensor,
+        input_shape: Tuple[int, int],
+    ) -> Union[tf.Tensor, tf.Tensor]:
         """
         Prepare perturbated input and replicated targets before a batch inference.
 
