@@ -47,21 +47,29 @@ class SobolAttributionMethod(GSABaseAttributionMethod):
         sampler: Optional[ReplicatedSampler] = None,
         estimator: Optional[SobolEstimator] = None,
         perturbation_function: Optional[Union[Callable, str]] = "inpainting",
-        batch_size=256
+        batch_size=256,
     ):
 
-        assert (nb_design & (nb_design-1) == 0) and nb_design != 0,\
-            "The number of design must be a power of two."
+        assert (
+            nb_design & (nb_design - 1) == 0
+        ) and nb_design != 0, "The number of design must be a power of two."
 
         sampler = sampler if sampler is not None else TFSobolSequenceRS()
         estimator = estimator if estimator is not None else JansenEstimator()
 
-        assert isinstance(sampler, ReplicatedSampler), "The sampler must be a"\
-                                                       " valid Replicated Sampler."
-        assert isinstance(estimator, SobolEstimator), "The estimator must be a"\
-                                                      " valid Sobol estimator."
+        assert isinstance(sampler, ReplicatedSampler), (
+            "The sampler must be a" " valid Replicated Sampler."
+        )
+        assert isinstance(estimator, SobolEstimator), (
+            "The estimator must be a" " valid Sobol estimator."
+        )
 
-        super().__init__(model=model, sampler=sampler, estimator=estimator,
-                         grid_size=grid_size, nb_design=nb_design,
-                         perturbation_function=perturbation_function,
-                         batch_size=batch_size)
+        super().__init__(
+            model=model,
+            sampler=sampler,
+            estimator=estimator,
+            grid_size=grid_size,
+            nb_design=nb_design,
+            perturbation_function=perturbation_function,
+            batch_size=batch_size,
+        )
