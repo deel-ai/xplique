@@ -78,7 +78,7 @@ class GSABaseAttributionMethod(BlackBoxExplainer):
         model: tf.keras.Model,
         sampler: Callable,
         estimator: Callable,
-        grid_size: int = 8,
+        grid_size: int = 7,
         nb_design: int = 32,
         perturbation_function: Optional[Union[Callable, str]] = "inpainting",
         batch_size=256
