@@ -19,7 +19,7 @@ setup(
         "docs": ["mkdocs", "mkdocs-material", "numkdoc"],
     },
     packages=find_packages(),
-    python_requires=">=3.6",
+    python_requires=">=3.7",
     classifiers=[
         "Development Status :: 4 - Beta",
         "License :: OSI Approved :: MIT License",

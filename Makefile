@@ -5,7 +5,7 @@ help:
 	@echo "make prepare-dev"
 	@echo "       create and prepare development environment, use only once"
 	@echo "make test"
-	@echo "       run tests and linting on py36, py37, py38"
+	@echo "       run tests and linting on py37, py38, py39, py310"
 	@echo "make test-disable-gpu"
 	@echo "       run test with gpu disabled"
 	@echo "make pc_check"
