@@ -57,6 +57,9 @@ def test_common():
             # all explanations returned must be either a tf.Tensor or ndarray
             assert isinstance(explanations, (tf.Tensor, np.ndarray))
 
+            # we should have one explanation for each inputs
+            assert len(explanations) == len(inputs_np)
+
 
 def test_batch_size():
     """Ensure the functioning of attributions for special batch size cases"""
@@ -89,12 +92,13 @@ def test_batch_size():
         ]
 
         for method in methods:
-            try:
-                explanations = method.explain(inputs, targets)
-            except:
-                raise AssertionError(
-                    "Explanation failed for method ", method.__class__.__name__,
-                    " batch size ", bs)
+            explanations = method.explain(inputs, targets)
+
+            # all explanations returned must be either a tf.Tensor or ndarray
+            assert isinstance(explanations, (tf.Tensor, np.ndarray))
+
+            # we should have one explanation for each inputs
+            assert len(explanations) == len(inputs)
 
 
 def test_model_caching():
