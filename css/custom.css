@@ -139,6 +139,10 @@ li .parameter-type {
     font-weight: bold;
 }
 
+span.parameter-type {
+    font-size: 85%;
+}
+
 [data-md-color-scheme="slate"] .parameter-type {
     color: var(--synthax-red);
 }
