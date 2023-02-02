@@ -9,10 +9,11 @@ import tensorflow as tf
 import numpy as np
 
 from ..types import Callable, Dict, Tuple, Union, Optional
-from ..commons import find_layer, tensor_sanitize, batch_predictions_one_hot, \
-                      predictions_one_hot, batch_predictions_one_hot_callable, \
-                      predictions_one_hot_callable
-
+from ..commons import (find_layer, tensor_sanitize, predictions_operator,
+                      operator_batching, get_gradient_of_operator,
+                      batch_predictions, gradients_predictions, batch_gradients_predictions,
+                      batch_predictions_one_hot_callable, predictions_one_hot_callable,
+                      no_gradients_available, check_operator)
 
 
 def sanitize_input_output(explanation_method: Callable):
@@ -44,26 +45,51 @@ class BlackBoxExplainer(ABC):
         The model from which we want to obtain explanations
     batch_size
         Number of pertubed samples to explain at once, if None compute all at once.
+    operator
+        Function g to explain, g take 3 parameters (f, x, y) and should return a scalar,
+        with f the model, x the inputs and y the targets. If None, use the standard
+        operator g(f, x, y) = f(x)[y].
     """
 
     # in order to avoid re-tracing at each tf.function call,
     # share the reconfigured models between the methods if possible
     _cache_models: Dict[Tuple[int, int], tf.keras.Model] = {}
 
-    def __init__(self, model: Callable, batch_size: Optional[int] = 64):
+    def __init__(self, model: Callable, batch_size: Optional[int] = 64,
+                operator: Optional[Callable[[tf.keras.Model, tf.Tensor, tf.Tensor], float]] = None):
+
         if isinstance(model, tf.keras.Model):
             model_key = (id(model.input), id(model.output))
             if model_key not in BlackBoxExplainer._cache_models:
                 BlackBoxExplainer._cache_models[model_key] = model
             self.model = BlackBoxExplainer._cache_models[model_key]
-            self.inference_function = predictions_one_hot
-            self.batch_inference_function = batch_predictions_one_hot
-        elif isinstance(model, (tf.Module, tf.keras.layers.Layer)):
-            self.model = model
-            self.inference_function = predictions_one_hot
-            self.batch_inference_function = batch_predictions_one_hot
         else:
             self.model = model
+
+        # black box method don't have access to the model's gradients
+        self.gradient = no_gradients_available
+        self.batch_gradient = no_gradients_available
+
+        # define the inference function according to the model type
+        if operator is not None:
+            # user specified a custom operator, we check if the operator is valid
+            # and we wrap it to generate a batching version of this operator
+            check_operator(operator)
+            self.inference_function = operator
+            self.batch_inference_function = operator_batching(operator)
+
+        elif isinstance(model, tf.keras.Model):
+            # no custom operator, for keras model we can backprop through the model
+            self.inference_function = predictions_operator
+            self.batch_inference_function = batch_predictions
+
+        elif isinstance(model, (tf.Module, tf.keras.layers.Layer)):
+            # maybe a custom model (e.g. tf-lite), we can't backprop through it
+            self.inference_function = predictions_operator
+            self.batch_inference_function = batch_predictions
+
+        else:
+            # completely unknown model (e.g. sklearn), we can't backprop through it
             self.inference_function = predictions_one_hot_callable
             self.batch_inference_function = batch_predictions_one_hot_callable
 
@@ -121,12 +147,17 @@ class WhiteBoxExplainer(BlackBoxExplainer, ABC):
         It is recommended to use the layer before Softmax.
     batch_size
         Number of inputs to explain at once, if None compute all at once.
+    operator
+        Operator to use to compute the explanation, if None use standard predictions.
     """
 
     def __init__(self,
-                 model: tf.keras.Model,
-                 output_layer: Optional[Union[str, int]] = None,
-                 batch_size: Optional[int] = 64):
+                model: tf.keras.Model,
+                output_layer: Optional[Union[str, int]] = None,
+                batch_size: Optional[int] = 64,
+                operator: Optional[Callable[[tf.keras.Model, tf.Tensor, tf.Tensor], float]] = None):
+
+        super().__init__(model, batch_size, operator)
 
         if output_layer is not None:
             # reconfigure the model (e.g skip softmax to target logits)
@@ -141,4 +172,15 @@ class WhiteBoxExplainer(BlackBoxExplainer, ABC):
             except AttributeError:
                 pass
 
-        super().__init__(model, batch_size)
+        # white-box methods have access to the model's gradients
+        if operator is not None:
+            # user specified a custom operator, we wrap it to generate the
+            # gradient function of this operator
+            # operator has already been checked by the super class
+            self.gradient = get_gradient_of_operator(operator)
+            self.batch_gradient = operator_batching(self.gradient)
+
+        else:
+            # no custom operator, for keras model we can backprop through the model
+            self.gradient = gradients_predictions
+            self.batch_gradient = batch_gradients_predictions
