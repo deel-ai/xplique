@@ -8,7 +8,7 @@ import cv2
 
 from .base import WhiteBoxExplainer, sanitize_input_output
 from ..commons import find_layer
-from ..types import Tuple, Union, Optional
+from ..types import Tuple, Union, Optional, Callable
 
 
 class GradCAM(WhiteBoxExplainer):
@@ -34,6 +34,10 @@ class GradCAM(WhiteBoxExplainer):
         It is recommended to use the layer before Softmax.
     batch_size
         Number of inputs to explain at once, if None compute all at once.
+    operator
+        Function g to explain, g take 3 parameters (f, x, y) and should return a scalar,
+        with f the model, x the inputs and y the targets. If None, use the standard
+        operator g(f, x, y) = f(x)[y].
     conv_layer
         Layer to target for Grad-CAM algorithm.
         If an int is provided it will be interpreted as a layer index.
@@ -44,8 +48,9 @@ class GradCAM(WhiteBoxExplainer):
                  model: tf.keras.Model,
                  output_layer: Optional[Union[str, int]] = None,
                  batch_size: Optional[int] = 32,
+                 operator: Optional[Callable[[tf.keras.Model, tf.Tensor, tf.Tensor], float]] = None,
                  conv_layer: Optional[Union[str, int]] = None):
-        super().__init__(model, output_layer, batch_size)
+        super().__init__(model, output_layer, batch_size, operator)
 
         # find the layer to apply grad-cam
         if conv_layer is not None:

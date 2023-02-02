@@ -6,8 +6,8 @@ import tensorflow as tf
 import numpy as np
 
 from .base import WhiteBoxExplainer, sanitize_input_output
-from ..commons import guided_relu_policy, override_relu_gradient, batch_gradient
-from ..types import Union, Optional
+from ..commons import guided_relu_policy, override_relu_gradient
+from ..types import Union, Optional, Callable
 
 
 class GuidedBackprop(WhiteBoxExplainer):
@@ -32,13 +32,18 @@ class GuidedBackprop(WhiteBoxExplainer):
         It is recommended to use the layer before Softmax.
     batch_size
         Number of inputs to explain at once, if None compute all at once.
+    operator
+        Function g to explain, g take 3 parameters (f, x, y) and should return a scalar,
+        with f the model, x the inputs and y the targets. If None, use the standard
+        operator g(f, x, y) = f(x)[y].
     """
 
     def __init__(self,
-                 model: tf.keras.Model,
-                 output_layer: Optional[Union[str, int]] = None,
-                 batch_size: Optional[int] = 32):
-        super().__init__(model, output_layer, batch_size)
+                model: tf.keras.Model,
+                output_layer: Optional[Union[str, int]] = None,
+                batch_size: Optional[int] = 32,
+                operator: Optional[Callable[[tf.keras.Model, tf.Tensor, tf.Tensor], float]] = None):
+        super().__init__(model, output_layer, batch_size, operator)
         self.model = override_relu_gradient(self.model, guided_relu_policy)
 
     @sanitize_input_output
@@ -66,5 +71,5 @@ class GuidedBackprop(WhiteBoxExplainer):
         explanations
             Guided Backpropagation maps.
         """
-        gradients = batch_gradient(self.model, inputs, targets, self.batch_size)
+        gradients = self.batch_gradient(self.model, inputs, targets, self.batch_size)
         return gradients

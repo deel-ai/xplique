@@ -25,6 +25,10 @@ class Rise(BlackBoxExplainer):
     batch_size
         Number of pertubed samples to explain at once.
         Default to 32.
+    operator
+        Function g to explain, g take 3 parameters (f, x, y) and should return a scalar,
+        with f the model, x the inputs and y the targets. If None, use the standard
+        operator g(f, x, y) = f(x)[y].
     nb_samples
         Number of masks generated for Monte Carlo sampling.
     grid_size
@@ -42,10 +46,11 @@ class Rise(BlackBoxExplainer):
     def __init__(self,
                  model: Callable,
                  batch_size: Optional[int] = 32,
+                 operator: Optional[Callable[[tf.keras.Model, tf.Tensor, tf.Tensor], float]] = None,
                  nb_samples: int = 4000,
                  grid_size: Union[int, Tuple[int]] = 7,
                  preservation_probability: float = .5):
-        super().__init__(model, batch_size)
+        super().__init__(model, batch_size, operator)
 
         self.nb_samples = nb_samples
         self.grid_size = grid_size

@@ -9,7 +9,7 @@ import tensorflow as tf
 import numpy as np
 
 from xplique.attributions.base import BlackBoxExplainer
-from xplique.commons.tf_operations import inference_batching
+from xplique.commons import operator_batching
 
 
 class IouCalculator:
@@ -109,7 +109,7 @@ class BoxIouCalculator(IouCalculator):
         a_area = (boxes_a[..., 2] - boxes_a[..., 0]) * (boxes_a[..., 3] - boxes_a[..., 1])
         b_area = (boxes_b[..., 2] - boxes_b[..., 0]) * (boxes_b[..., 3] - boxes_b[..., 1])
 
-        union_area = (a_area + b_area - intersection_area)
+        union_area = a_area + b_area - intersection_area
 
         iou_score = intersection_area / (union_area + BoxIouCalculator.EPSILON)
 
@@ -150,22 +150,7 @@ class ImageObjectDetectorScoreCalculator:
         self.object_formater = object_formater
         self.iou_calculator = iou_calculator
 
-    def batch_score(self, model, inputs, targets, batch_size):
-        """
-        Compute batch score
-
-        Parameters
-        ----------
-        model
-            the model used for the object detection
-        inputs
-            Input samples to be explained.
-        targets
-            model outputs
-        batch_size
-            number of masked samples to explain at once, if None process all at once.
-        """
-        return inference_batching(self.score, model, inputs, targets, batch_size)
+        self.batch_score = operator_batching(self.score)
 
     def score(self, model, inp, object_ref) -> tf.Tensor:
         """
