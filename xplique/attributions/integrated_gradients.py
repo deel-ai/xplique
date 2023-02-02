@@ -6,8 +6,8 @@ import tensorflow as tf
 import numpy as np
 
 from .base import WhiteBoxExplainer, sanitize_input_output
-from ..commons import repeat_labels, batch_gradient, batch_tensor
-from ..types import Tuple, Union, Optional
+from ..commons import repeat_labels, batch_tensor
+from ..types import Tuple, Union, Optional, Callable
 
 
 class IntegratedGradients(WhiteBoxExplainer):
@@ -38,6 +38,10 @@ class IntegratedGradients(WhiteBoxExplainer):
         It is recommended to use the layer before Softmax.
     batch_size
         Number of inputs to explain at once, if None compute all at once.
+    operator
+        Function g to explain, g take 3 parameters (f, x, y) and should return a scalar,
+        with f the model, x the inputs and y the targets. If None, use the standard
+        operator g(f, x, y) = f(x)[y].
     steps
         Number of points to interpolate between the baseline and the desired point.
     baseline_value
@@ -48,9 +52,10 @@ class IntegratedGradients(WhiteBoxExplainer):
                  model: tf.keras.Model,
                  output_layer: Optional[Union[str, int]] = None,
                  batch_size: Optional[int] = 32,
+                 operator: Optional[Callable[[tf.keras.Model, tf.Tensor, tf.Tensor], float]] = None,
                  steps: int = 50,
                  baseline_value: float = .0):
-        super().__init__(model, output_layer, batch_size)
+        super().__init__(model, output_layer, batch_size, operator)
         self.steps = steps
         self.baseline_value = baseline_value
 
@@ -92,8 +97,8 @@ class IntegratedGradients(WhiteBoxExplainer):
             repeated_targets = repeat_labels(y_batch, self.steps)
 
             # compute the gradient for each paths
-            interpolated_gradients = batch_gradient(self.model, interpolated_inputs,
-                                                    repeated_targets, batch_size)
+            interpolated_gradients = self.batch_gradient(self.model, interpolated_inputs,
+                                                         repeated_targets, batch_size)
             interpolated_gradients = tf.reshape(interpolated_gradients,
                                                 (-1, self.steps, *interpolated_gradients.shape[1:]))
 

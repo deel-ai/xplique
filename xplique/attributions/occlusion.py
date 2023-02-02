@@ -27,6 +27,10 @@ class Occlusion(BlackBoxExplainer):
     batch_size
         Number of pertubed samples to explain at once.
         Default to 32.
+    operator
+        Function g to explain, g take 3 parameters (f, x, y) and should return a scalar,
+        with f the model, x the inputs and y the targets. If None, use the standard
+        operator g(f, x, y) = f(x)[y].
     patch_size
         Size of the patches to apply, if integer then assume an hypercube.
     patch_stride
@@ -38,10 +42,11 @@ class Occlusion(BlackBoxExplainer):
     def __init__(self,
                  model: Callable,
                  batch_size: Optional[int] = 32,
+                 operator: Optional[Callable[[tf.keras.Model, tf.Tensor, tf.Tensor], float]] = None,
                  patch_size: Union[int, Tuple[int, int]] = 3,
                  patch_stride: Union[int, Tuple[int, int]] = 3,
                  occlusion_value: float = 0.0):
-        super().__init__(model, batch_size)
+        super().__init__(model, batch_size, operator)
 
         self.patch_size = patch_size
         self.patch_stride = patch_stride

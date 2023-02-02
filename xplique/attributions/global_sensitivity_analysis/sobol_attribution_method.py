@@ -2,6 +2,8 @@
 Sobol Attribution Method explainer
 """
 
+import tensorflow as tf
+
 from ...types import Callable, Union, Optional
 from .gsa_attribution_method import GSABaseAttributionMethod
 from .sobol_estimators import SobolEstimator, JansenEstimator
@@ -37,6 +39,10 @@ class SobolAttributionMethod(GSABaseAttributionMethod):
         'inpainting', 'blur'.
     batch_size
         Batch size to use for the forwards.
+    operator
+        Function g to explain, g take 3 parameters (f, x, y) and should return a scalar,
+        with f the model, x the inputs and y the targets. If None, use the standard
+        operator g(f, x, y) = f(x)[y].
     """
 
     def __init__(
@@ -48,6 +54,7 @@ class SobolAttributionMethod(GSABaseAttributionMethod):
         estimator: Optional[SobolEstimator] = None,
         perturbation_function: Optional[Union[Callable, str]] = "inpainting",
         batch_size=256,
+        operator: Optional[Callable[[tf.keras.Model, tf.Tensor, tf.Tensor], float]] = None,
     ):
 
         assert (
@@ -66,6 +73,7 @@ class SobolAttributionMethod(GSABaseAttributionMethod):
 
         super().__init__(
             model=model,
+            operator=operator,
             sampler=sampler,
             estimator=estimator,
             grid_size=grid_size,

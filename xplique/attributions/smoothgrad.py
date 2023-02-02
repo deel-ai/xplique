@@ -6,8 +6,8 @@ import tensorflow as tf
 import numpy as np
 
 from .base import WhiteBoxExplainer, sanitize_input_output
-from ..commons import repeat_labels, batch_gradient, batch_tensor
-from ..types import Tuple, Union, Optional
+from ..commons import repeat_labels, batch_tensor
+from ..types import Tuple, Union, Optional, Callable
 
 
 class SmoothGrad(WhiteBoxExplainer):
@@ -31,6 +31,10 @@ class SmoothGrad(WhiteBoxExplainer):
         It is recommended to use the layer before Softmax.
     batch_size
         Number of inputs to explain at once, if None compute all at once.
+    operator
+        Function g to explain, g take 3 parameters (f, x, y) and should return a scalar,
+        with f the model, x the inputs and y the targets. If None, use the standard
+        operator g(f, x, y) = f(x)[y].
     nb_samples
         Number of noisy samples generated for the smoothing procedure.
     noise
@@ -41,9 +45,10 @@ class SmoothGrad(WhiteBoxExplainer):
                  model: tf.keras.Model,
                  output_layer: Optional[Union[str, int]] = None,
                  batch_size: Optional[int] = 32,
+                 operator: Optional[Callable[[tf.keras.Model, tf.Tensor, tf.Tensor], float]] = None,
                  nb_samples: int = 50,
                  noise: float = 0.2):
-        super().__init__(model, output_layer, batch_size)
+        super().__init__(model, output_layer, batch_size, operator)
         self.nb_samples = nb_samples
         self.noise = noise
 
@@ -82,7 +87,7 @@ class SmoothGrad(WhiteBoxExplainer):
             noisy_inputs = SmoothGrad._apply_noise(x_batch, noisy_mask)
             repeated_targets = repeat_labels(y_batch, self.nb_samples)
             # compute the gradient of each noisy samples generated
-            gradients = batch_gradient(self.model, noisy_inputs, repeated_targets, batch_size)
+            gradients = self.batch_gradient(self.model, noisy_inputs, repeated_targets, batch_size)
             # group by inputs and compute the average gradient
             gradients = tf.reshape(gradients, (-1, self.nb_samples, *gradients.shape[1:]))
             reduced_gradients = self._reduce_gradients(gradients)

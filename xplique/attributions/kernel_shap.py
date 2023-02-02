@@ -27,6 +27,10 @@ class KernelShap(Lime):
         Number of perturbed samples to process at once, mandatory when nb_samples is huge.
         Notice, it is different compare to WhiteBox explainers which batch the inputs.
         Here inputs are process one by one.
+    operator
+        Function g to explain, g take 3 parameters (f, x, y) and should return a scalar,
+        with f the model, x the inputs and y the targets. If None, use the standard
+        operator g(f, x, y) = f(x)[y].
     map_to_interpret_space
         Function which group features of an input corresponding to the same interpretable
         feature (e.g super-pixel).
@@ -46,6 +50,7 @@ class KernelShap(Lime):
     def __init__(self,
                  model: Callable,
                  batch_size: int = 64,
+                 operator: Optional[Callable[[tf.keras.Model, tf.Tensor, tf.Tensor], float]] = None,
                  map_to_interpret_space: Optional[Callable] = None,
                  nb_samples: int = 800,
                  ref_value: Optional[np.ndarray] = None):
@@ -54,6 +59,7 @@ class KernelShap(Lime):
             self,
             model,
             batch_size,
+            operator,
             interpretable_model = linear_model.LinearRegression(),
             similarity_kernel = KernelShap._kernel_shap_similarity_kernel,
             pertub_func = KernelShap._kernel_shap_pertub_func,

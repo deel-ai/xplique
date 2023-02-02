@@ -28,6 +28,10 @@ class SquareGrad(SmoothGrad):
         It is recommended to use the layer before Softmax.
     batch_size
         Number of inputs to explain at once, if None compute all at once.
+    operator
+        Function g to explain, g take 3 parameters (f, x, y) and should return a scalar,
+        with f the model, x the inputs and y the targets. If None, use the standard
+        operator g(f, x, y) = f(x)[y].
     nb_samples
         Number of noisy samples generated for the smoothing procedure.
     noise

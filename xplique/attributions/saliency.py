@@ -6,7 +6,6 @@ import tensorflow as tf
 import numpy as np
 
 from .base import WhiteBoxExplainer, sanitize_input_output
-from ..commons import batch_gradient
 from ..types import Optional, Union
 
 
@@ -38,6 +37,10 @@ class Saliency(WhiteBoxExplainer):
         It is recommended to use the layer before Softmax.
     batch_size
         Number of inputs to explain at once, if None compute all at once.
+    operator
+        Function g to explain, g take 3 parameters (f, x, y) and should return a scalar,
+        with f the model, x the inputs and y the targets. If None, use the standard
+        operator g(f, x, y) = f(x)[y].
     """
 
     @sanitize_input_output
@@ -65,7 +68,7 @@ class Saliency(WhiteBoxExplainer):
         explanations
             Saliency maps.
         """
-        gradients = batch_gradient(self.model, inputs, targets, self.batch_size)
+        gradients = self.batch_gradient(self.model, inputs, targets, self.batch_size)
         gradients = tf.abs(gradients)
 
         # if the image is a RGB, take the maximum magnitude across the channels (see Ref.)

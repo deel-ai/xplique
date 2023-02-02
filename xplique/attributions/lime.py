@@ -49,6 +49,10 @@ class Lime(BlackBoxExplainer):
         Number of perturbed samples to process at once, mandatory when nb_samples is huge.
         Notice, it is different compare to WhiteBox explainers which batch the inputs.
         Here inputs are process one by one.
+    operator
+        Function g to explain, g take 3 parameters (f, x, y) and should return a scalar,
+        with f the model, x the inputs and y the targets. If None, use the standard
+        operator g(f, x, y) = f(x)[y].
     interpretable_model
         Model object to train interpretable model.
         See the documentation for more information.
@@ -95,6 +99,7 @@ class Lime(BlackBoxExplainer):
         self,
         model: Callable,
         batch_size: Optional[int] = None,
+        operator: Optional[Callable[[tf.keras.Model, tf.Tensor, tf.Tensor], float]] = None,
         interpretable_model: Any = linear_model.Ridge(alpha=2),
         similarity_kernel: Optional[Callable[[tf.Tensor, tf.Tensor, tf.Tensor], tf.Tensor]] = None,
         pertub_func: Optional[Callable[[Union[int, tf.Tensor],int], tf.Tensor]] = None,
@@ -129,7 +134,7 @@ class Lime(BlackBoxExplainer):
                 " batch_size argument."
             )
 
-        super().__init__(model, batch_size)
+        super().__init__(model, batch_size, operator)
 
         self.map_to_interpret_space = map_to_interpret_space
         self.interpretable_model = interpretable_model
