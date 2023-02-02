@@ -10,7 +10,7 @@ from sklearn.svm import SVC
 from sklearn.ensemble import RandomForestClassifier
 
 from xplique.attributions import (Occlusion, Rise, Lime, KernelShap, SobolAttributionMethod)
-from xplique.commons.tf_operations import predictions_one_hot, batch_predictions_one_hot
+from xplique.commons.operators import predictions_operator, batch_predictions
 from xplique.commons.callable_operations import predictions_one_hot_callable, \
     batch_predictions_one_hot_callable
 
@@ -165,8 +165,8 @@ def test_tf_models_tabular():
         explainers = _default_methods_tabular(model)
 
         for explainer in explainers:
-            assert explainer.inference_function is predictions_one_hot
-            assert explainer.batch_inference_function is batch_predictions_one_hot
+            assert explainer.inference_function is predictions_operator
+            assert explainer.batch_inference_function is batch_predictions
 
             explanations = explainer(inputs, targets)
 
@@ -189,8 +189,8 @@ def test_tf_models_images():
             explainers = _default_methods_images(model)
 
             for explainer in explainers:
-                assert explainer.inference_function is predictions_one_hot
-                assert explainer.batch_inference_function is batch_predictions_one_hot
+                assert explainer.inference_function is predictions_operator
+                assert explainer.batch_inference_function is batch_predictions
 
                 explanations = explainer(inputs, targets)
 
