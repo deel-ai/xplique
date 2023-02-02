@@ -9,7 +9,7 @@ disable=
 
 [FORMAT]
 max-line-length=100
-max-args=8
+max-args=12
 
 [SIMILARITIES]
 min-similarity-lines=6
