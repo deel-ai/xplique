@@ -9,5 +9,6 @@ from .tf_operations import repeat_labels, batch_tensor
 from .callable_operations import predictions_one_hot_callable, \
     batch_predictions_one_hot_callable
 from .operators import predictions_operator, get_gradient_of_operator, operator_batching, \
-                       batch_predictions, gradients_predictions, batch_gradients_predictions
+                       batch_predictions, gradients_predictions, batch_gradients_predictions, \
+                       check_operator
 from .exceptions import no_gradients_available, raise_invalid_operator
