@@ -108,8 +108,8 @@ class Objective:
         nb_sub_objectives = len(self.multipliers)
 
         # re-arrange to match the different objectives with the model outputs
-        masks = np.array([np.array(m) for m in itertools.product(*self.masks)])
-        masks = [tf.cast(tf.stack(masks[:, i]), tf.float32) for i in
+        masks = np.array([np.array(m, dtype=object) for m in itertools.product(*self.masks)])
+        masks = [tf.cast(tf.stack(list(masks[:, i])), tf.float32) for i in
                  range(nb_sub_objectives)]
 
         # the name of each combination is the concatenation of each objectives

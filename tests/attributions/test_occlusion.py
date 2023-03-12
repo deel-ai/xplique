@@ -64,7 +64,7 @@ def test_mask_generator():
             [0, 0],
             [0, 1]
         ],
-    ], dtype=np.bool))
+    ], dtype=np.float32))
 
 
 def test_apply():
