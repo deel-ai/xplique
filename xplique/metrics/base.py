@@ -7,7 +7,7 @@ from abc import ABC, abstractmethod
 import tensorflow as tf
 import numpy as np
 
-from ..commons import numpy_sanitize
+from ..commons import numpy_sanitize, get_inference_function
 from ..types import Callable, Optional, Union
 
 
@@ -91,7 +91,25 @@ class ExplanationMetric(BaseAttributionMetric, ABC):
         One-hot encoded labels or regression target (e.g {+1, -1}), one for each sample.
     batch_size
         Number of samples to evaluate at once, if None compute all at once.
+    operator
+        Function g to explain, g take 3 parameters (f, x, y) and should return a scalar,
+        with f the model, x the inputs and y the targets. If None, use the standard
+        operator g(f, x, y) = f(x)[y].
     """
+
+    def __init__(self,
+                 model: tf.keras.Model,
+                 inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
+                 targets: Optional[Union[tf.Tensor, np.ndarray]] = None,
+                 batch_size: Optional[int] = 64,
+                 operator: Optional[Callable] = None,
+                 ):
+        # pylint: disable=R0913
+        super().__init__(model, inputs, targets, batch_size)
+
+        # define the inference function according to the model type
+        self.inference_function, self.batch_inference_function = \
+            get_inference_function(model, operator)
 
     @abstractmethod
     def evaluate(self,
