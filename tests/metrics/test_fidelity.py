@@ -1,8 +1,10 @@
 import tensorflow as tf
 import numpy as np
 
-from ..utils import generate_model, generate_timeseries_model, generate_regression_model, generate_data, almost_equal
-from xplique.metrics import Insertion, Deletion, MuFidelity, InsertionTS, DeletionTS, InsertionTab, DeletionTab
+from ..utils import (generate_model, generate_regression_model, generate_timeseries_model, 
+                     generate_data, almost_equal)
+from xplique.commons.operators import predictions_operator, regression_operator
+from xplique.metrics import Insertion, Deletion, MuFidelity
 
 
 def test_mu_fidelity():
@@ -44,64 +46,38 @@ def test_causal_metrics():
                 assert 0.0 <= score <= 1.0
 
 
-def test_perturbation_metrics():
-    # ensure we can compute insertion/deletion metric with consistent arguments
-    input_shape, nb_labels, nb_samples = ((20, 10), 5, 50)
-    x, y = generate_data(input_shape, nb_labels, nb_samples)
-    model = generate_timeseries_model(input_shape, nb_labels)
-    explanations = np.random.uniform(0, 1, x.shape)
+def test_data_types_with_regression():
+    # ensure that the different metrics are robust to several data types with regression
+    # test several data types
+    data_types = {
+        "tabular": (16,),
+        "time-series": (16, 8),
+        "images": (16, 16, 3)
+    }
 
-    def inverse(x):
-        maximums = x.max(axis=1)
-        maximums = np.expand_dims(maximums, axis=1)
-        maximums = np.repeat(maximums, x.shape[1], axis=1)
-        baselines = maximums - x
-        return baselines
+    for type, input_shape in data_types.items():
+        nb_labels, samples = 10, 20
+        x, y = generate_data(input_shape, nb_labels, samples)
+        model = generate_regression_model(input_shape, nb_labels)
 
-    for step in [-1, 10]:
-        for baseline_mode in [0.0, inverse]:
-            for metric in ["loss", "accuracy"]:
-                score_insertion = InsertionTS(
-                    model, x, y, metric=metric, baseline_mode=baseline_mode,
-                    steps=step, max_percentage_perturbed=0.2,
-                ).evaluate(explanations)
-                score_deletion = DeletionTS(
-                    model, x, y, metric=metric, baseline_mode=baseline_mode,
-                    steps=step, max_percentage_perturbed=0.2,
-                ).evaluate(explanations)
+        explanations = np.random.uniform(0, 1, x.shape[:-1])
 
-                for score in [score_insertion, score_deletion]:
-                    if metric == "loss":
-                        assert 0.0 < score
-                    elif metric == "accuracy":
-                        assert 0.0 <= score <= 1.0
+    score_insertion = Insertion(
+        model, x, y, operator=regression_operator, steps=3,
+    ).evaluate(explanations)
 
+    score_deletion = Deletion(
+        model, x, y, operator=regression_operator, steps=3,
+    ).evaluate(explanations)
 
-def test_regression_metrics():
-    # ensure we can compute insertion/deletion metric with consistent arguments
-    input_shape, nb_labels, nb_samples = ((20, 10), 5, 50)
-    x, y = generate_data(input_shape, nb_labels, nb_samples)
-    model = generate_regression_model(input_shape, nb_labels)
-    explanations = np.random.uniform(0, 1, x.shape)
+    for score in [score_insertion, score_deletion]:
+        assert 0.0 < score
 
-    for step in [5, 10]:
-        for baseline_mode in [0.0, lambda x: x-0.5]:
-            for metric in ["loss", "accuracy"]:
-                score_insertion = InsertionTab(
-                    model, x, y, metric=metric, baseline_mode=baseline_mode,
-                    steps=step, max_percentage_perturbed=0.2,
-                ).evaluate(explanations)
-                score_deletion = DeletionTab(
-                    model, x, y, metric=metric, baseline_mode=baseline_mode,
-                    steps=step, max_percentage_perturbed=0.2,
-                ).evaluate(explanations)
-
-                for score in [score_insertion, score_deletion]:
-                    if metric == "loss":
-                        assert 0.0 < score
-
-                    elif metric == "accuracy":
-                        assert 0.0 <= score <= 1.0
+    score_mufidelity = MuFidelity(
+        model, x, y, operator=regression_operator, nb_samples=3
+    ).evaluate(explanations)
+            
+    assert -1.0 < score_mufidelity < 1.0
 
 
 def test_perfect_correlation():
