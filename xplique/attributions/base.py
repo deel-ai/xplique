@@ -9,11 +9,8 @@ import tensorflow as tf
 import numpy as np
 
 from ..types import Callable, Dict, Tuple, Union, Optional
-from ..commons import (find_layer, tensor_sanitize, predictions_operator,
-                      operator_batching, get_gradient_of_operator,
-                      batch_predictions, gradients_predictions, batch_gradients_predictions,
-                      batch_predictions_one_hot_callable, predictions_one_hot_callable,
-                      no_gradients_available, check_operator)
+from ..commons import (find_layer, tensor_sanitize, get_inference_function,
+                      get_gradient_functions, no_gradients_available)
 
 
 def sanitize_input_output(explanation_method: Callable):
@@ -66,34 +63,16 @@ class BlackBoxExplainer(ABC):
         else:
             self.model = model
 
+        self.batch_size = batch_size
+
+        # define the inference function according to the model type
+        self.inference_function, self.batch_inference_function = \
+            get_inference_function(model, operator)
+
         # black box method don't have access to the model's gradients
         self.gradient = no_gradients_available
         self.batch_gradient = no_gradients_available
 
-        # define the inference function according to the model type
-        if operator is not None:
-            # user specified a custom operator, we check if the operator is valid
-            # and we wrap it to generate a batching version of this operator
-            check_operator(operator)
-            self.inference_function = operator
-            self.batch_inference_function = operator_batching(operator)
-
-        elif isinstance(model, tf.keras.Model):
-            # no custom operator, for keras model we can backprop through the model
-            self.inference_function = predictions_operator
-            self.batch_inference_function = batch_predictions
-
-        elif isinstance(model, (tf.Module, tf.keras.layers.Layer)):
-            # maybe a custom model (e.g. tf-lite), we can't backprop through it
-            self.inference_function = predictions_operator
-            self.batch_inference_function = batch_predictions
-
-        else:
-            # completely unknown model (e.g. sklearn), we can't backprop through it
-            self.inference_function = predictions_one_hot_callable
-            self.batch_inference_function = batch_predictions_one_hot_callable
-
-        self.batch_size = batch_size
 
     @abstractmethod
     def explain(self,
@@ -172,15 +151,5 @@ class WhiteBoxExplainer(BlackBoxExplainer, ABC):
             except AttributeError:
                 pass
 
-        # white-box methods have access to the model's gradients
-        if operator is not None:
-            # user specified a custom operator, we wrap it to generate the
-            # gradient function of this operator
-            # operator has already been checked by the super class
-            self.gradient = get_gradient_of_operator(operator)
-            self.batch_gradient = operator_batching(self.gradient)
-
-        else:
-            # no custom operator, for keras model we can backprop through the model
-            self.gradient = gradients_predictions
-            self.batch_gradient = batch_gradients_predictions
+        # check and get gradient function from model and operator
+        self.gradient, self.batch_gradient = get_gradient_functions(model, operator)
