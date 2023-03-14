@@ -48,6 +48,8 @@ def test_common():
             if isinstance(metric, ExplainerMetric):
                 score = metric(explainer)
             else:
+                assert hasattr(metric, 'inference_function')
+                assert hasattr(metric, 'batch_inference_function')
                 score = metric(explanations)
             print(f"\n\n\n {type(score)} \n\n\n")
             assert type(score) in [np.float32, np.float64, float]
