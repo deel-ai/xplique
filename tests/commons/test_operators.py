@@ -9,7 +9,10 @@ from xplique.attributions import (Saliency, GradientInput, IntegratedGradients, 
                                   SquareGrad, GradCAM, Occlusion, Rise, GuidedBackprop, DeconvNet,
                                   GradCAMPP, Lime, KernelShap, SobolAttributionMethod,
                                   HsicAttributionMethod)
-from ..utils import generate_data
+from xplique.commons.operators import (check_operator, predictions_operator, regression_operator,
+                                       binary_segmentation_operator, segmentation_operator)
+from xplique.commons.exceptions import InvalidOperatorException
+from ..utils import generate_data, generate_regression_model
 
 
 def default_methods(model, operator):
@@ -45,6 +48,48 @@ def get_concept_model():
     model.compile()
     return model
 
+
+def test_check_operator():
+    # ensure that the check operator detects non-operator
+
+    # operator must have at least 3 arguments
+    function_with_2_arguments = lambda x,y: 0
+
+    # operator must be Callable
+    not_a_function = [1, 2, 3]
+
+    for operator in [function_with_2_arguments, not_a_function]:
+        try:
+            check_operator(operator)
+            assert False
+        except InvalidOperatorException:
+            pass
+
+
+def test_proposed_operators():
+    # ensure all proposed operators are operators
+    for operator in [predictions_operator, regression_operator,
+                     binary_segmentation_operator, segmentation_operator]:
+        check_operator(operator)
+
+
+def test_regression_operator():
+    input_shape, nb_labels, samples = ((10, 10, 1), 10, 20)
+    x, y = generate_data(input_shape, nb_labels, samples)
+    regression_model = generate_regression_model(input_shape, nb_labels)
+
+    methods = default_methods(regression_model, regression_operator)
+    for method in methods:
+
+        assert hasattr(method, 'inference_function')
+        assert hasattr(method, 'batch_inference_function')
+        assert hasattr(method, 'gradient')
+        assert hasattr(method, 'batch_gradient')
+
+        phis = method(x, y)
+
+        assert x.shape[:-1] == phis.shape[:3]
+    
 
 def test_segmentation_operator():
     segmentation_model = get_segmentation_model()
