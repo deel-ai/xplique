@@ -36,6 +36,33 @@ def predictions_operator(model: Callable,
 
 
 @tf.function
+def regression_operator(model: Callable,
+                        inputs: tf.Tensor,
+                        targets: tf.Tensor) -> tf.Tensor:
+    """
+    Compute the the mean absolute error between model prediction and the target.
+    Target should the model prediction on non-perturbed input.
+    This operator can be used to compute attributions for all outputs of a regression model.
+
+    Parameters
+    ----------
+    model
+        Model used for computing predictions.
+    inputs
+        Input samples to be explained.
+    targets
+        Model prediction on non-perturbed inputs.
+
+    Returns
+    -------
+    scores
+        MAE between model prediction and targets.
+    """
+    scores = tf.reduce_sum(tf.abs(model(inputs) - targets), axis=-1)
+    return scores
+
+
+@tf.function
 def binary_segmentation_operator(model: Callable,
                                  inputs: tf.Tensor,
                                  targets: tf.Tensor) -> tf.Tensor:
@@ -155,15 +182,22 @@ def check_operator(operator: Callable):
     is_valid
         True if the operator is valid, False otherwise.
     """
+    # handle tf functions
+    # pylint: disable=protected-access
+    if hasattr(operator, '_python_function'):
+        return check_operator(operator._python_function)
+
+    # the operator must be callable
     # pylint: disable=isinstance-second-argument-not-valid-type
-    is_callable = isinstance(operator, Callable)
-    args = inspect.getfullargspec(operator).args
-
-    # we allow operator with optional arguments, but the first 3 must be present
-    is_valid = is_callable and len(args) >= 3
-
-    if not is_valid:
+    if not isinstance(operator, Callable):
         raise_invalid_operator()
+
+    # the operator should take at least three arguments
+    args = inspect.getfullargspec(operator).args
+    if len(args) < 3:
+        raise_invalid_operator()
+
+    return True
 
 
 batch_predictions = operator_batching(predictions_operator)
