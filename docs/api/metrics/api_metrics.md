@@ -38,6 +38,10 @@ Those metrics are agnostic of the explainer used and rely only on the attributio
 !!!tip
     Therefore, you can use them with other explainer than those provided in Xplique!
 
+All metrics inheriting from this class have another argument in their `__init__` method:
+
+-   \- `operator`: Optionnal function wrapping the model. It can be seen as a metric which allow to evaluate model evolution. For more details, see the attribution's [API Description](https://deel-ai.github.io/xplique/api/attributions/api_attributions/)
+
 All metrics inheriting from this class have to define a method `evaluate` which will take as input the `attributions` given by an explainer. Those attributions should correspond to the `model`, `inputs` and `targets` used to build the metric object.
 
 Especially, all Fidelity metrics inherit from this class:
@@ -48,8 +52,6 @@ Especially, all Fidelity metrics inherit from this class:
 | Insertion              | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1QtwbegOpTSj7g6DxBprMt0aTtaV5surF) |
 | Deletion               | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1W7tfXOoPnbu4HGGIkbhkoKdk9xRdStgs) |
 
-!!!tip
-    Insertion and Deletion were adapted for Time-Series (experimental). You can check InsertionTS and DeletionTS documentation for more information.
 
 ### `ExplainerMetric`
 

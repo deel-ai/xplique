@@ -1,7 +1,6 @@
 # Deletion
 
-The Deletion Fidelity metric measures how well a saliency-map–based explanation of an image classification result localizes
-the important pixels.
+The Deletion Fidelity metric measures how well a saliency-map–based explanation localizes the important features.
 
 !!! quote
     The deletion metric measures the drop in the probability of a class as important pixels (given
@@ -13,8 +12,14 @@ the important pixels.
 
 ## Score interpretation
 
-If explanations are accurate, the score will quickly fall from the score on non-perturbed input to the score of a random predictor.
+The interpretation of the score depends on your `operator`, which represents the metrics you use to evaluate your model.
+For metrics where the score increases with the performance of the model (such as accuracy).
+  If explanations are accurate, the score will quickly fall to the score of a random model.
   Thus, in this case, a lower score represent a more accurate explanation.
+ 
+For metrics where the score decreases with the performance of the model (such as losses). 
+  If explanations are accurate, the score will quickly rise to the score of a random model.
+  Thus, in this case, a higher score represent a more accurate explanation.
 
 
 ## Remarks
