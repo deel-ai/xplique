@@ -4,7 +4,6 @@ Custom callable operations
 
 import tensorflow as tf
 
-from .operators import operator_batching
 from ..types import Callable
 
 def predictions_one_hot_callable(
@@ -55,5 +54,3 @@ def predictions_one_hot_callable(
     scores = tf.reduce_sum(pred * targets, axis=-1)
 
     return scores
-
-batch_predictions_one_hot_callable = operator_batching(predictions_one_hot_callable)

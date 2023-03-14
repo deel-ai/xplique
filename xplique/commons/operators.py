@@ -4,8 +4,10 @@ Custom tensorflow operator for Attributions
 
 import inspect
 import tensorflow as tf
-from ..types import Callable
-from .exceptions import raise_invalid_operator
+
+from ..types import Callable, Optional
+from .exceptions import raise_invalid_operator, no_gradients_available
+from .callable_operations import predictions_one_hot_callable
 
 
 @tf.function
@@ -31,6 +33,7 @@ def predictions_operator(model: Callable,
     """
     scores = tf.reduce_sum(model(inputs) * targets, axis=-1)
     return scores
+
 
 @tf.function
 def binary_segmentation_operator(model: Callable,
@@ -152,6 +155,7 @@ def check_operator(operator: Callable):
     is_valid
         True if the operator is valid, False otherwise.
     """
+    # pylint: disable=isinstance-second-argument-not-valid-type
     is_callable = isinstance(operator, Callable)
     args = inspect.getfullargspec(operator).args
 
@@ -165,3 +169,92 @@ def check_operator(operator: Callable):
 batch_predictions = operator_batching(predictions_operator)
 gradients_predictions = get_gradient_of_operator(predictions_operator)
 batch_gradients_predictions = operator_batching(gradients_predictions)
+batch_predictions_one_hot_callable = operator_batching(predictions_one_hot_callable)
+
+
+def get_inference_function(model: Callable, operator: Optional[Callable] = None):
+    """
+    Define the inference function according to the model type
+
+    Parameters
+    ----------
+    model
+        Model used for computing explanations.
+    operator
+        Function g to explain, g take 3 parameters (f, x, y) and should return a scalar,
+        with f the model, x the inputs and y the targets. If None, use the standard
+        operator g(f, x, y) = f(x)[y].
+
+    Returns
+    -------
+    inference_function
+        Same definition as the operator.
+    batch_inference_function
+        An inference function which treat inputs and targets by batch,
+        it has an additionnal parameter `batch_size`.
+    """
+    if operator is not None:
+        # user specified a custom operator, we check if the operator is valid
+        # and we wrap it to generate a batching version of this operator
+        check_operator(operator)
+        inference_function = operator
+        batch_inference_function = operator_batching(operator)
+
+    elif isinstance(model, tf.keras.Model):
+        # no custom operator, for keras model we can backprop through the model
+        inference_function = predictions_operator
+        batch_inference_function = batch_predictions
+
+    elif isinstance(model, (tf.Module, tf.keras.layers.Layer)):
+        # maybe a custom model (e.g. tf-lite), we can't backprop through it
+        inference_function = predictions_operator
+        batch_inference_function = batch_predictions
+
+    else:
+        # completely unknown model (e.g. sklearn), we can't backprop through it
+        inference_function = predictions_one_hot_callable
+        batch_inference_function = batch_predictions_one_hot_callable
+
+    return inference_function, batch_inference_function
+
+
+def get_gradient_functions(model: Callable, operator: Optional[Callable] = None):
+    """
+    Define the gradient function according to the model type
+
+    Parameters
+    ----------
+    model
+        Model used for computing explanations.
+    operator
+        Function g to explain, g take 3 parameters (f, x, y) and should return a scalar,
+        with f the model, x the inputs and y the targets. If None, use the standard
+        operator g(f, x, y) = f(x)[y].
+
+    Returns
+    -------
+    gradient
+        Gradient function of the operator.
+    batch_gradient
+        An gradient function which treat inputs and targets by batch,
+        it has an additionnal parameter `batch_size`.
+    """
+    if operator is not None:
+        # user specified a custom operator, we wrap it to generate the
+        # gradient function of this operator
+        # operator has already been checked by the super class
+        gradient = get_gradient_of_operator(operator)
+        batch_gradient = operator_batching(gradient)
+
+    elif isinstance(model, tf.keras.Model):
+        # no custom operator, for keras model we can backprop through the model
+        gradient = gradients_predictions
+        batch_gradient = batch_gradients_predictions
+
+    else:
+        # custom model or completely unknown model (e.g. sklearn), we can't backprop through it
+        gradient = no_gradients_available
+        batch_gradient = no_gradients_available
+
+    return gradient, batch_gradient
+    
