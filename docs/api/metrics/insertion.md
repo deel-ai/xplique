@@ -13,8 +13,14 @@ The Insertion Fidelity metric measures how well a saliency-map–based explanati
 
 ## Score interpretation
 
-If explanations are accurate, the score will quickly rise to the score on non-perturbed input.
+The interpretation of the score depends on your `operator`, which represents the metrics you use to evaluate your model.
+For metrics where the score increases with the performance of the model (such as accuracy).
+  If explanations are accurate, the score will quickly rise to the score on non-perturbed input.
   Thus, in this case, a higher score represent a more accurate explanation.
+ 
+For metrics where the score decreases with the performance of the model (such as losses). 
+  If explanations are accurate, the score will quickly fall to the score on non-perturbed input.
+  Thus, in this case, a lower score represent a more accurate explanation.
 
 
 ## Remarks
