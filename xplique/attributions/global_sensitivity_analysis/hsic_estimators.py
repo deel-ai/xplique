@@ -98,33 +98,27 @@ class HsicEstimator(ABC):
         """
         raise NotImplementedError()
 
-    def __call__(self, masks, outputs, nb_design):
+    @tf.function
+    def estimator(self, masks, L, nb_dim, nb_design):
         """
-        Compute the test statistic using a self.output_kernel for the output and a kernel to be
-        defined in child classes for the input.
+        tf operations related to the estimator for performances
 
         Parameters
         ----------
         masks
             binary masks, each dimension corresponding to an image patch
         L
-            Kernel matrix for the outputs
-        n
-            number of points used to estimate HSIC
+            output samples kernel Gram matrix
         nb_dim
-            number of patches
+            number of input variables to consider
+        nb_design
+            number of points used to estimate HSIC
 
         Returns
         -------
         HSIC estimates
-            Array with HSIC estimates for each patch
+            Raw HSIC estimates in tensorflow
         """
-        nb_dim = self.masks_dim(masks)
-
-        Y = tf.cast(outputs, tf.float32)
-        Y = tf.reshape(Y, (nb_design, 1))
-        L = self.output_kernel_func(Y, tf.transpose(Y))
-
         X = tf.transpose(masks)
 
         X1 = tf.reshape(X, (nb_dim, 1, nb_design, 1))
@@ -140,6 +134,35 @@ class HsicEstimator(ABC):
         Lc = tf.einsum("jk,kl->jl", HL, H)
 
         score = tf.math.reduce_sum(Kc * tf.transpose(Lc), axis=[1, 2]) / nb_design
+        return score
+
+    def __call__(self, masks, outputs, nb_design):
+        """
+        Compute the test statistic using a self.output_kernel_func kernel for the output
+        and self.input_kernel_func for the input, to be defined in child classes
+        for the input.
+
+        Parameters
+        ----------
+        masks
+            binary masks, each dimension corresponding to an image patch
+        outputs
+            samples of the output variable
+        nb_design
+            number of points used to estimate HSIC
+
+        Returns
+        -------
+        HSIC estimates
+            Array with HSIC estimates for each patch
+        """
+        nb_dim = self.masks_dim(masks)
+
+        Y = tf.cast(outputs, tf.float32)
+        Y = tf.reshape(Y, (nb_design, 1))
+        L = self.output_kernel_func(Y, tf.transpose(Y))
+
+        score = self.estimator(masks, L, nb_dim, nb_design)
 
         return self.post_process(score, masks)
 
