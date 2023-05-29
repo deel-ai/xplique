@@ -1,199 +1,293 @@
 """
 Test Cole
 """
+import os
+import sys
+sys.path.append(os.getcwd())
+
 from math import prod, sqrt
 
 import numpy as np
-from sklearn.metrics import DistanceMetric
+import scipy
 import tensorflow as tf
 
+from xplique.attributions import Occlusion, Saliency
+
 from xplique.example_based import Cole
+from xplique.example_based.projections import Projection
+from xplique.example_based.search_methods import SklearnKNN
 from xplique.types import Union
 
-from ..utils import generate_data, generate_model, almost_equal, generate_agnostic_model
+from tests.utils import generate_data, generate_model, almost_equal, generate_timeseries_model
 
 
-def test_neighbors_distance():
+def get_setup(input_shape, nb_samples=10, nb_labels=10):
     """
-    The function test every output of the explanation method
+    Generate data and model for Cole
     """
-    # Method parameters initialisation
-    input_shape = (3, 3, 1)
-    nb_labels = 10
-    nb_samples = 10
-    nb_samples_test = 8
-    k = 3
-
     # Data generation
-    matrix_train = tf.stack([i * tf.ones(input_shape) for i in range(nb_samples)])
-    matrix_test = matrix_train[1:-1]
-    labels_train = tf.range(nb_samples)
-    labels_test = labels_train[1:-1]
+    x_train = tf.stack([i * tf.ones(input_shape, tf.float32) for i in range(nb_samples)])
+    x_test = x_train[1:-1]
+    y_train = tf.one_hot(tf.range(len(x_train)) % nb_labels, depth=nb_labels)
 
     # Model generation
     model = generate_model(input_shape, nb_labels)
 
-    # Initialisation of weights_extraction_function and distance_function
-    # They will be used in CaseBasedExplainer initialisation
-    distance_function = DistanceMetric.get_metric("euclidean")
+    return model, x_train, x_test, y_train
 
-    # CaseBasedExplainer initialisation
-    method = Cole(
-        model,
-        matrix_train,
-        labels_train,
-        targets=None,
-        distance_function=distance_function,
-        weights_extraction_function=lambda inputs, targets: tf.ones(inputs.shape),
-    )
 
-    # Method explanation
-    (
-        examples,
-        examples_distance,
-        examples_weights,
-        inputs_weights,
-        examples_labels,
-    ) = method.explain(matrix_test, labels_test)
 
-    # test every outputs shape
-    assert examples.shape == (nb_samples_test, k) + input_shape
-    assert examples_distance.shape == (nb_samples_test, k)
-    assert examples_weights.shape == (nb_samples_test, k) + input_shape
-    assert inputs_weights.shape == (nb_samples_test,) + input_shape
-    assert examples_labels.shape == (nb_samples_test, k)
+def test_cole_basic():
+    """
+    Function to test the Cole method with a simple weighting
+    """
+    # Setup
+    input_shape = (4, 4, 1)
+    k = 3
+    model, x_train, x_test, _ = get_setup(input_shape)
 
-    for i in range(len(labels_test)):
+    # Method initialization
+    method = Cole(model=model,
+                  case_dataset=x_train,
+                  projection=lambda inputs, targets=None: inputs,
+                  search_method=SklearnKNN,
+                  k=k,
+                  distance="euclidean")
+
+    # Generate explanation
+    examples = method.explain(x_test)
+
+    # Verifications
+    # Shape should be (n, k, h, w, c)
+    assert examples.shape == (len(x_test), k) + input_shape
+
+    for i in range(len(x_test)):
         # test examples:
-        assert almost_equal(examples[i][0], matrix_train[i + 1])
-        assert almost_equal(examples[i][1], matrix_train[i + 2]) or almost_equal(
-            examples[i][1], matrix_train[i]
-        )
-        assert almost_equal(examples[i][2], matrix_train[i]) or almost_equal(
-            examples[i][2], matrix_train[i + 2]
-        )
+        assert almost_equal(examples[i, 0], x_train[i + 1])
+        assert almost_equal(examples[i, 1], x_train[i + 2])\
+            or almost_equal(examples[i, 1], x_train[i])
+        assert almost_equal(examples[i, 2], x_train[i])\
+            or almost_equal(examples[i, 2], x_train[i + 2])
+
+
+def test_cole_return_multiple_elements():
+    """
+    ...
+    Try to return distances and more, it is useful for plots
+    test modifying k
+    """
+    # Setup
+    input_shape = (5, 5, 1)
+    k = 3
+    model, x_train, x_test, y_train = get_setup(input_shape)
+
+    nb_samples_test = len(x_test)
+    assert nb_samples_test + 2 == len(y_train)
+
+    # Method initialization
+    method = Cole(model=model,
+                  case_dataset=(x_train, y_train),
+                  projection=Projection(None, None),
+                  search_method=SklearnKNN,
+                  k=1,
+                  distance="euclidean")
+
+    method.set_returns("all")
+    
+    method.set_k(k)
+
+    # Generate explanation
+    method_output = method.explain(x_test)
+
+    assert isinstance(method_output, dict)
+
+    examples = method_output["examples"]
+    weights = method_output["weights"]
+    distances = method_output["distances"]
+    indices = method_output["indices"]
+
+    # test every outputs shape (with the include inputs)
+    assert examples.shape == (nb_samples_test, k + 1) + input_shape
+    assert weights.shape == (nb_samples_test, k + 1) + input_shape
+    # the inputs distance ae zero and indices do not exist
+    assert distances.shape == (nb_samples_test, k)
+    assert indices.shape == (nb_samples_test, k)
+
+    for i in range(nb_samples_test):
+        # test examples:
+        assert almost_equal(examples[i, 0], x_test[i])
+        assert almost_equal(examples[i, 1], x_train[i + 1])
+        assert almost_equal(examples[i, 2], x_train[i + 2])\
+            or almost_equal(examples[i, 2], x_train[i])
+        assert almost_equal(examples[i, 3], x_train[i])\
+            or almost_equal(examples[i, 3], x_train[i + 2])
+
+        # test weights
+        assert almost_equal(weights[i], tf.ones(weights[i].shape, dtype=tf.float32))
 
         # test examples_distance
-        assert almost_equal(examples_distance[i][0], 0)
-        assert almost_equal(examples_distance[i][1], sqrt(prod(input_shape)))
-        assert almost_equal(examples_distance[i][2], sqrt(prod(input_shape)))
+        assert almost_equal(distances[i, 0], 0)
+        assert almost_equal(distances[i, 1], sqrt(prod(input_shape)))
+        assert almost_equal(distances[i, 2], sqrt(prod(input_shape)))
 
         # test examples_labels
-        assert almost_equal(examples_labels[i][0], labels_train[i + 1])
-        assert almost_equal(examples_labels[i][1], labels_train[i + 2]) or almost_equal(
-            examples_labels[i][1], labels_train[i]
-        )
-        assert almost_equal(examples_labels[i][2], labels_train[i]) or almost_equal(
-            examples_labels[i][2], labels_train[i + 2]
-        )
+        assert almost_equal(indices[i, 0], i + 1)
+        assert almost_equal(indices[i, 1], i) or almost_equal(indices[i, 1], i + 2)
+        assert almost_equal(indices[i, 2], i) or almost_equal(indices[i, 2], i + 2)
 
 
-def weights_attribution(
-    inputs: Union[tf.Tensor, np.ndarray], targets: Union[tf.Tensor, np.ndarray]
-):
+def test_cole_weighting():
     """
-    Custom weights extraction function
-    Zeros everywhere and target at 0, 0, 0
+    ...
+    test if the weighting is indeed used
     """
-    weights = tf.Variable(tf.zeros(inputs.shape, dtype=tf.float32))
-    weights[:, 0, 0, 0].assign(targets)
-    return weights
-
-
-def test_weights_attribution():
-    """
-    Function to test the weights attribution
-    """
-    # Method parameters initialisation
-    input_shape = (3, 3, 1)
-    nb_labels = 10
+    # Setup
+    input_shape = (4, 4, 1)
     nb_samples = 10
+    k = 3
+    model, x_train, x_test, y_train = get_setup(input_shape, nb_samples)
 
-    # Data generation
-    matrix_train = tf.stack(
-        [i * tf.ones(input_shape, dtype=tf.float32) for i in range(nb_samples)]
-    )
-    matrix_test = matrix_train[1:-1]
-    labels_train = tf.range(nb_samples, dtype=tf.float32)
-    labels_test = labels_train[1:-1]
+    # Define the weighing function
+    weights = np.zeros(x_train[0].shape)
+    weights[1] = np.ones(weights[1].shape)
+
+    # create huge noise on non interesting features
+    noise = np.random.uniform(size=x_train.shape, low=-100, high=100)
+    x_train = weights * np.array(x_train) +  (1 - weights) * noise
+
+    weighting_function = Projection(weights=weights).project
+
+    method = Cole(model=model,
+                  case_dataset=(x_train, y_train),
+                  projection=weighting_function,
+                  search_method=SklearnKNN,
+                  k=k,
+                  distance="euclidean")
+
+    # Generate explanation
+    examples = method.explain(x_test)
+
+    # Verifications
+    # Shape should be (n, k, h, w, c)
+    nb_samples_test = x_test.shape[0]
+    assert examples.shape == (nb_samples_test, k) + input_shape
+
+    for i in range(nb_samples_test):
+        # test examples:
+        assert almost_equal(examples[i, 0], x_train[i + 1])
+        assert almost_equal(examples[i, 1], x_train[i + 2])\
+            or almost_equal(examples[i, 1], x_train[i])
+        assert almost_equal(examples[i, 2], x_train[i])\
+            or almost_equal(examples[i, 2], x_train[i + 2])
+
+
+def test_cole_attribution():
+    """
+    ...
+    test if the weighting is indeed used
+    """
+    # Setup
+    nb_samples = 20
+    input_shape = (5, 5)
+    nb_labels = 10
+    k = 3
+    x_train = tf.random.uniform((nb_samples,) + input_shape, minval=-1, maxval=1, seed=0)
+    x_test = tf.random.uniform((nb_samples,) + input_shape, minval=-1, maxval=1, seed=2)
+    labels = tf.one_hot(indices=tf.repeat(input=tf.range(nb_labels), 
+                                           repeats=[nb_samples // nb_labels]), 
+                         depth=nb_labels)
+    y_train = labels
+    y_test = tf.random.shuffle(labels, seed=1)
+    
+    # Model generation
+    model = generate_timeseries_model(input_shape, nb_labels)
+
+    # Cole with attribution method constructor
+    method_constructor = Cole(case_dataset=(x_train, y_train),
+                              search_method=SklearnKNN,
+                              k=k,
+                              distance="cosine",
+                              model=model,
+                              attribution_method=Saliency)
+
+    # Cole with attribution explain
+    attribution_method = Saliency(model)
+    projection = lambda inputs, targets: inputs * attribution_method(inputs, targets)
+
+    method_call = Cole(case_dataset=x_train,
+                       dataset_targets=y_train,
+                       search_method=SklearnKNN,
+                       k=k,
+                       distance=scipy.spatial.distance.cosine,
+                       projection=projection)
+    
+    method_different_distance = Cole(case_dataset=(x_train, y_train),
+                                     search_method=SklearnKNN,
+                                     k=k,
+                                     model=model,
+                                     attribution_method=Saliency)
+
+    # Generate explanation
+    examples_constructor = method_constructor.explain(x_test, y_test)
+    examples_call = method_call.explain(x_test, y_test)
+    examples_different_distance = method_different_distance(x_test, y_test)
+
+    # Verifications
+    # Shape should be (n, k, h, w, c)
+    assert examples_constructor.shape == (len(x_test), k) + input_shape
+    assert examples_call.shape == (len(x_test), k) + input_shape
+    assert examples_different_distance.shape == (len(x_test), k) + input_shape
+
+    # both methods should be the same
+    assert almost_equal(examples_constructor, examples_call)
+
+    # a different distance should give different results
+    assert not almost_equal(examples_constructor, examples_different_distance)
+
+
+def test_cole_spliting():
+    """
+    ...
+    attribution with model splitting, return weights and channels
+    """
+    # Setup
+    nb_samples = 10
+    input_shape = (6, 6, 3)
+    nb_labels = 5
+    k = 1
+    x_train = tf.random.uniform((nb_samples,) + input_shape, minval=0, maxval=1)
+    x_test = tf.random.uniform((nb_samples,) + input_shape, minval=0, maxval=1)
+    labels = tf.one_hot(indices=tf.repeat(input=tf.range(nb_labels), 
+                                           repeats=[nb_samples // nb_labels]), 
+                         depth=nb_labels)
+    y_train = labels
+    y_test = tf.random.shuffle(labels)
 
     # Model generation
     model = generate_model(input_shape, nb_labels)
 
-    # Initialisation of distance_function
-    # It will be used in CaseBasedExplainer initialisation
-    distance_function = DistanceMetric.get_metric("euclidean")
+    # Cole with attribution method constructor
+    method = Cole(case_dataset=(x_train, y_train),
+                  search_method=SklearnKNN,
+                  k=k,
+                  returns=["examples", "weights", "include_inputs"],
+                  model=model,
+                  latent_layer="last_conv",
+                  attribution_method=Occlusion,
+                  patch_size=2,
+                  patch_stride=1)
 
-    # CaseBasedExplainer initialisation
-    method = Cole(
-        model,
-        matrix_train,
-        labels_train,
-        targets=labels_train,
-        distance_function=distance_function,
-        weights_extraction_function=weights_attribution,
-    )
+    # Generate explanation
+    outputs = method.explain(x_test, y_test)
+    examples, weights = outputs["examples"], outputs["weights"]
 
-    # test case dataset weigth
-    assert almost_equal(method.case_dataset_weight[:, 0, 0, 0], method.labels_train)
-    assert almost_equal(
-        tf.reduce_sum(method.case_dataset_weight, axis=[1, 2, 3]), method.labels_train
-    )
-
-    # Method explanation
-    _, _, examples_weights, inputs_weights, examples_labels =\
-        method.explain(matrix_test, labels_test)
-
-    # test examples weights
-    assert almost_equal(examples_weights[:, :, 0, 0, 0], examples_labels)
-    assert almost_equal(
-        tf.reduce_sum(examples_weights, axis=[2, 3, 4]), examples_labels
-    )
-
-    # test inputs weights
-    assert almost_equal(inputs_weights[:, 0, 0, 0], labels_test)
-    assert almost_equal(tf.reduce_sum(inputs_weights, axis=[1, 2, 3]), labels_test)
+    # Verifications
+    # Shape should be (n, k, h, w, c)
+    nb_samples_test = x_test.shape[0]
+    assert examples.shape == (nb_samples_test, k + 1) + input_shape
+    assert weights.shape[:-1] == (nb_samples_test, k + 1) + input_shape[:-1]
+        
 
 
-def test_tabular_inputs():
-    """
-    Function to test the acceptation of tabular data input in the method
-    """
-    # Method parameters initialisation
-    data_shape = (3,)
-    input_shape = data_shape
-    nb_labels = 3
-    nb_samples = 20
-    nb_inputs = 5
-    k = 3
-
-    # Data generation
-    dataset, targets = generate_data(data_shape, nb_labels, nb_samples)
-    dataset_train = dataset[:-nb_inputs]
-    dataset_test = dataset[-nb_inputs:]
-    targets_train = targets[:-nb_inputs]
-    targets_test = targets[-nb_inputs:]
-
-    # Model generation
-    model = generate_agnostic_model(input_shape, nb_labels)
-
-    # Initialisation of weights_extraction_function and distance_function
-    # They will be used in CaseBasedExplainer initialisation
-    distance_function = DistanceMetric.get_metric("euclidean")
-
-    # CaseBasedExplainer initialisation
-    method = Cole(
-        model,
-        dataset_train,
-        targets_train,
-        targets=targets_train,
-        distance_function=distance_function,
-        weights_extraction_function=lambda inputs, targets: tf.ones(inputs.shape),
-        k=k,
-    )
-
-    # Method explanation
-    examples, _, _, _, _ = method.explain(dataset_test, targets_test)
-
-    # test examples shape
-    assert examples.shape == (nb_inputs, k) + input_shape
+# TODO:
+# test different case_dataset ? tf Datasets, numpy array, tf.Tensor, Tuples...

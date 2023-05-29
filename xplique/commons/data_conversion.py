@@ -35,14 +35,15 @@ def tensor_sanitize(inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
         if hasattr(inputs, '_batch_size'):
             inputs = inputs.unbatch()
         # unpack the dataset, assume we have tuple of (input, target)
-        targets = [target for _, target in inputs]
         inputs  = [inp for inp, _ in inputs]
+        if targets is not None:
+            targets = [target for _, target in inputs]
 
     inputs = tf.cast(inputs, tf.float32)
-    targets = tf.cast(targets, tf.float32)
+    if targets is not None:
+        targets = tf.cast(targets, tf.float32)
 
     return inputs, targets
-
 
 def numpy_sanitize(inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
                    targets: Optional[Union[tf.Tensor, np.ndarray]]) -> Tuple[tf.Tensor, tf.Tensor]:
