@@ -3,7 +3,7 @@ import numpy as np
 
 from ..utils import (generate_model, generate_regression_model, generate_timeseries_model, 
                      generate_data, almost_equal)
-from xplique.commons.operators import predictions_operator, regression_operator
+from xplique.commons.operators import regression_operator
 from xplique.metrics import Insertion, Deletion, MuFidelity
 
 
