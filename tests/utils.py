@@ -31,6 +31,14 @@ def generate_model(input_shape=(32, 32, 3), output_shape=10):
 
     return model
 
+def generate_agnostic_model(input_shape=(3,), nb_labels=3):
+    model = Sequential()
+    model.add(Input(input_shape))
+    model.add(Flatten())
+    model.add(Dense(nb_labels))
+
+    return model
+
 def generate_timeseries_model(input_shape=(20, 10), output_shape=10):
     model = Sequential()
     model.add(Input(shape=input_shape))

@@ -5,11 +5,12 @@ Numpy from/to Tensorflow manipulation
 import tensorflow as tf
 import numpy as np
 
-from ..types import Union, Optional, Tuple
+from ..types import Union, Optional, Tuple, Callable
 
 
 def tensor_sanitize(inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
-                    targets: Optional[Union[tf.Tensor, np.ndarray]]) -> Tuple[tf.Tensor, tf.Tensor]:
+                    targets: Optional[Union[tf.Tensor, np.ndarray]] = None
+                    ) -> Tuple[tf.Tensor, tf.Tensor]:
     """
     Ensure the output as tf.Tensor, accept various inputs format including:
     tf.Tensor, List, numpy array, tf.data.Dataset (when label = None).
@@ -35,17 +36,20 @@ def tensor_sanitize(inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
         if hasattr(inputs, '_batch_size'):
             inputs = inputs.unbatch()
         # unpack the dataset, assume we have tuple of (input, target)
-        targets = [target for _, target in inputs]
         inputs  = [inp for inp, _ in inputs]
+        if targets is not None:
+            targets = [target for _, target in inputs]
 
     inputs = tf.cast(inputs, tf.float32)
-    targets = tf.cast(targets, tf.float32)
+    if targets is not None:
+        targets = tf.cast(targets, tf.float32)
 
     return inputs, targets
 
 
 def numpy_sanitize(inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
-                   targets: Optional[Union[tf.Tensor, np.ndarray]]) -> Tuple[tf.Tensor, tf.Tensor]:
+                   targets: Optional[Union[tf.Tensor, np.ndarray]] = None
+                   ) -> Tuple[tf.Tensor, tf.Tensor]:
     """
     Ensure the output as np.ndarray, accept various inputs format including:
     tf.Tensor, List, numpy array, tf.data.Dataset (when label = None).
@@ -66,3 +70,22 @@ def numpy_sanitize(inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
     """
     inputs, targets = tensor_sanitize(inputs, targets)
     return inputs.numpy(), targets.numpy()
+
+
+def sanitize_inputs_targets(explanation_method: Callable):
+    """
+    Wrap a method explanation function to ensure tf.Tensor as inputs and targets.
+    But targets may be None.
+
+    explanation_method
+        Function to wrap, should return an tf.tensor.
+    """
+    def sanitize(self, inputs: Union[tf.data.Dataset, tf.Tensor, np.array],
+                 targets: Optional[Union[tf.Tensor, np.array]] = None,
+                 *args):
+        # ensure we have tf.tensor
+        inputs, targets = tensor_sanitize(inputs, targets)
+        # then enter the explanation function
+        return explanation_method(self, inputs, targets, *args)
+
+    return sanitize
