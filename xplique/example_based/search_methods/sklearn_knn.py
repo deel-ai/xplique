@@ -18,10 +18,23 @@ from .base import BaseSearchMethod
 
 class SklearnKNN(BaseSearchMethod):
     """
-    KNN method to search examples. Based on sklearn.neighbors.NearestNeighbors.
+    KNN method to search examples. Based on `sklearn.neighbors.NearestNeighbors`.
+    Basically a wrapper of `NearestNeighbors` to match the `BaseSearchMethod` API.
 
-    sklearn NearestNeighbors description:
-    https://scikit-learn.org/stable/modules/generated/sklearn.neighbors.NearestNeighbors.html#sklearn.neighbors.NearestNeighbors
+    Parameters
+    ----------
+    search_set
+        The dataset from which examples should be extracted.
+        For natural example-based methods it is the train dataset.
+    k
+        The number of examples to retrieve.
+    returns
+        String or list of string with the elements to return in `self.find_examples()`.
+        See `self.set_returns()` for detail.
+    distance
+        `metric` parameter of the `sklearn.neighbors.NearestNeighbors` constructor.
+        It can be a string or a Callable,
+        for more detail please refer to `sklearn.neighbors.NearestNeighbors` documentation.
     """  
     def __init__(self,
                  search_set: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
@@ -37,9 +50,17 @@ class SklearnKNN(BaseSearchMethod):
         flattened_search_set = tf.reshape(search_set, [search_set.shape[0], -1])
         self.nn_algo.fit(flattened_search_set)
 
-    def find_samples(self, inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray]):
+    def find_examples(self, inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray]):
         """
-        ...
+        Search the samples to return as examples. Called by the explain methods.
+        It may also return the indices corresponding to the samples,
+        based on `return_indices` value.
+
+        Parameters
+        ----------
+        inputs
+            Dataset, Tensor or Array. Input samples to be explained.
+            Expected shape among (N, W), (N, T, W), (N, W, H, C).
         """
         # flatten inputs for knn
         flattened_inputs = tf.reshape(inputs, [inputs.shape[0], -1])
