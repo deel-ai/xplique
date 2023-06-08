@@ -105,6 +105,7 @@ def test_cole_return_multiple_elements():
     weights = method_output["weights"]
     distances = method_output["distances"]
     indices = method_output["indices"]
+    labels = method_output["labels"]
 
     # test every outputs shape (with the include inputs)
     assert examples.shape == (nb_samples_test, k + 1) + input_shape
@@ -112,6 +113,7 @@ def test_cole_return_multiple_elements():
     # the inputs distance ae zero and indices do not exist
     assert distances.shape == (nb_samples_test, k)
     assert indices.shape == (nb_samples_test, k)
+    assert labels.shape == (nb_samples_test, k)
 
     for i in range(nb_samples_test):
         # test examples:
@@ -125,15 +127,20 @@ def test_cole_return_multiple_elements():
         # test weights
         assert almost_equal(weights[i], tf.ones(weights[i].shape, dtype=tf.float32))
 
-        # test examples_distance
+        # test distances
         assert almost_equal(distances[i, 0], 0)
         assert almost_equal(distances[i, 1], sqrt(prod(input_shape)))
         assert almost_equal(distances[i, 2], sqrt(prod(input_shape)))
 
-        # test examples_labels
+        # test indices
         assert almost_equal(indices[i, 0], i + 1)
         assert almost_equal(indices[i, 1], i) or almost_equal(indices[i, 1], i + 2)
         assert almost_equal(indices[i, 2], i) or almost_equal(indices[i, 2], i + 2)
+
+        # test labels
+        assert almost_equal(labels[i, 0], y_train[i + 1])
+        assert almost_equal(labels[i, 1], y_train[i]) or almost_equal(labels[i, 1], y_train[i + 2])
+        assert almost_equal(labels[i, 2], y_train[i]) or almost_equal(labels[i, 2], y_train[i + 2])
 
 
 def test_cole_weighting():
@@ -243,6 +250,8 @@ def test_cole_attribution():
 
     # a different distance should give different results
     assert not almost_equal(examples_constructor, examples_different_distance)
+    
+    # TODO Check weights are equal to the attribution directly on the input
 
 
 def test_cole_spliting():
@@ -286,8 +295,3 @@ def test_cole_spliting():
     nb_samples_test = x_test.shape[0]
     assert examples.shape == (nb_samples_test, k + 1) + input_shape
     assert weights.shape[:-1] == (nb_samples_test, k + 1) + input_shape[:-1]
-        
-
-
-# TODO:
-# test different case_dataset ? tf Datasets, numpy array, tf.Tensor, Tuples...
