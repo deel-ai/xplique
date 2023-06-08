@@ -13,7 +13,46 @@ from ...types import Callable, Dict, Tuple, Union, Optional
 
 class Projection(Callable):
     """
-    ...
+    Base class used by `NaturalExampleBasedExplainer` to projet samples to a meaningfull space
+    for the model to explain.
+    
+    Projection have two parts a `space_projection` and `weights`, to apply a projection,
+    the samples are first projected to a new space and then weighted.
+    Either the `space_projection` or the `weights` could be `None` but,
+    if both are, the projection is an identity function.
+    
+    At least one of the two part should include the model in the computation
+    for distance between projected elements to make sense for the model.
+    
+    Note that the cost of this projection should be limited
+    as it will be applied to all samples of the train dataset.
+    
+    Parameters
+    ----------
+    weights
+        Either a Tensor or a Callable.
+        - In the case of a Tensor, weights are applied in the projected space (after `space_projection`).
+        Hence weights should have the same shape as a `projected_input`.
+        - In the case of a Callable, the function should return the weights when called,
+        as a way to get the weights (a Tensor)
+        It is pertinent in the case on weights dependent on the inputs, i.e. local weighting.
+        
+        Example of Callable:
+        ```
+        def get_weights_example(projected_inputs: Union(tf.Tensor, np.ndarray), 
+                                targets: Union(tf.Tensor, np.ndarray) = None):
+            '''
+            Example of function to get weights,
+            projected_inputs are the elements for which weights are comlputed.
+            targets are optionnal additionnal parameters for weights computation.
+            '''
+            weights = ...  # do some magic with inputs and targets, it should use the model.
+            return weights
+        ```
+    space_projection
+        Callable that take samples and return a Tensor in the projected sapce.
+        An example of projected space is the latent space of a model.
+        In this case, the model should be splitted and the 
     """
     def __init__(self,
                  weights: Union[Callable, tf.Tensor, np.ndarray] = None,
@@ -55,20 +94,42 @@ class Projection(Callable):
                           inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
                           targets: Optional[Union[tf.Tensor, np.ndarray]] = None):
         """
-        if model is splited, input weights and weights are different 
-        now limited to images
-        ! if projected_inputs.shape==inputs.shape no resizing
-        ...
+        For visualization purpose (and only), we may be interested to project weights
+        from the projected space to the input space.
+        This is applied only if their is a difference in dimention.
+        We assume here that we are treating images and an upsampling is applied.
+        
+        Parameters
+        ----------
+        inputs
+            Dataset, Tensor or Array. Input samples to be explained.
+            If Dataset, targets should not be provided (included in Dataset).
+            Expected shape among (N, W), (N, T, W), (N, W, H, C).
+            More information in the documentation.
+        targets
+            Additional parameter for `self.get_weights` function.
+            
+        Returns
+        -------
+        input_weights
+            Tensor with the same dimension as `inputs` modulo the channels.
+            They are an upsampled version of the actual weights used in the projection.
         """
         projected_inputs = self.space_projection(inputs)
         weights = self.get_weights(projected_inputs, targets)
+        
+        # take mean over channels for images
+        channel_mean_fn = lambda: tf.reduce_mean(weights, axis=-1, keepdims=True)
+        weights = tf.cond(pred=tf.shape(weights).shape[0] < 4,
+                          true_fn=lambda: weights,
+                          false_fn=channel_mean_fn)
 
         # resizing
-        resize_fn = tf.image.resize(weights, inputs.shape[1:-1], method="bicubic")
-        weights = tf.cond(pred=projected_inputs.shape==inputs.shape,
-                          true_fn=lambda: weights,
-                          false_fn=lambda: resize_fn,)
-        return weights
+        resize_fn = lambda: tf.image.resize(weights, inputs.shape[1:-1], method="bicubic")
+        input_weights = tf.cond(pred=projected_inputs.shape==inputs.shape,
+                                true_fn=lambda: weights,
+                                false_fn=resize_fn,)
+        return input_weights
 
     @sanitize_input_output
     def project(self,
@@ -87,7 +148,7 @@ class Projection(Callable):
             Expected shape among (N, W), (N, T, W), (N, W, H, C).
             More information in the documentation.
         targets
-            Additional parameter for some get_weights.
+            Additional parameter for `self.get_weights` function.
 
         Returns
         -------

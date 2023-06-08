@@ -41,9 +41,9 @@ class AttributionProjection(Projection):
 
             self.space_projection = tf.keras.Model(model.input, self.latent_layer.output,
                                                    name="features_extractor")
-            predictor = tf.keras.Model(self.latent_layer.output, model.output,
+            self.predictor = tf.keras.Model(self.latent_layer.output, model.output,
                                        name="predictor")
-            self.get_weights = method(predictor, **attribution_kwargs)
+            self.get_weights = method(self.predictor, **attribution_kwargs)
         
         # attribution methods output do not have channel
         # we wrap get_weights to expend dimensions if needed
