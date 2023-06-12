@@ -56,10 +56,13 @@ class BlackBoxExplainer(ABC):
                 operator: Optional[Callable[[tf.keras.Model, tf.Tensor, tf.Tensor], float]] = None):
 
         if isinstance(model, tf.keras.Model):
-            model_key = (id(model.input), id(model.output))
-            if model_key not in BlackBoxExplainer._cache_models:
-                BlackBoxExplainer._cache_models[model_key] = model
-            self.model = BlackBoxExplainer._cache_models[model_key]
+            try:
+                model_key = (id(model.input), id(model.output))
+                if model_key not in BlackBoxExplainer._cache_models:
+                    BlackBoxExplainer._cache_models[model_key] = model
+                self.model = BlackBoxExplainer._cache_models[model_key]
+            except AttributeError:
+                self.model = model
         else:
             self.model = model
 
