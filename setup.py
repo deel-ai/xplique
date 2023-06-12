@@ -17,6 +17,7 @@ setup(
     extras_require={
         "tests": ["pytest", "pylint"],
         "docs": ["mkdocs", "mkdocs-material", "numkdoc"],
+        "pytorch": ["torch"]
     },
     packages=find_packages(),
     python_requires=">=3.6",
