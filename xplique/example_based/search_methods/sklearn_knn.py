@@ -28,7 +28,7 @@ class SklearnKNN(BaseSearchMethod):
         For natural example-based methods it is the train dataset.
     k
         The number of examples to retrieve.
-    returns
+    search_returns
         String or list of string with the elements to return in `self.find_examples()`.
         See `self.set_returns()` for detail.
     distance
@@ -39,10 +39,10 @@ class SklearnKNN(BaseSearchMethod):
     def __init__(self,
                  search_set: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
                  k: int = 1,
-                 returns: Optional[Union[List[str], str]] = None,
+                 search_returns: Optional[Union[List[str], str]] = None,
                  distance: Union[str, Callable] = "euclidean",
                  **nn_args):
-        super().__init__(search_set, k, returns)
+        super().__init__(search_set, k, search_returns)
 
         self.nn_algo = NearestNeighbors(n_neighbors=k, metric=distance, **nn_args)
 
@@ -81,6 +81,6 @@ class SklearnKNN(BaseSearchMethod):
 
         # Return a dict only different variables are returned
         if len(return_dict) == 1:
-            return return_dict.values()[0]
+            return list(return_dict.values())[0]
         else:
             return return_dict

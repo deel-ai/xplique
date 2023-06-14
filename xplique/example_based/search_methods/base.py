@@ -25,17 +25,17 @@ class BaseSearchMethod(ABC):
         For natural example-based methods it is the train dataset.
     k
         The number of examples to retrieve.
-    returns
+    search_returns
         String or list of string with the elements to return in `self.find_examples()`.
         See `self.set_returns()` for detail.
     """
     def __init__(self,
                  search_set: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
                  k: int = 1,
-                 returns: Optional[Union[List[str], str]] = None):
+                 search_returns: Optional[Union[List[str], str]] = None):
         self.search_set = search_set
         self.set_k(k)
-        self.set_returns(returns)
+        self.set_returns(search_returns)
 
     def set_k(self, k: int):
         """
