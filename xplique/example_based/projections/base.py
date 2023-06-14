@@ -7,11 +7,11 @@ from abc import ABC, abstractmethod
 import tensorflow as tf
 import numpy as np
 
-from ...attributions.base import sanitize_input_output
+from ...commons import sanitize_inputs_targets
 from ...types import Callable, Dict, Tuple, Union, Optional
 
 
-class Projection(Callable):
+class Projection(ABC, Callable):
     """
     Base class used by `NaturalExampleBasedExplainer` to projet samples to a meaningfull space
     for the model to explain.
@@ -29,15 +29,11 @@ class Projection(Callable):
     
     Parameters
     ----------
-    weights
-        Either a Tensor or a Callable.
-        - In the case of a Tensor, weights are applied in the projected space (after `space_projection`).
-        Hence weights should have the same shape as a `projected_input`.
-        - In the case of a Callable, the function should return the weights when called,
-        as a way to get the weights (a Tensor)
-        It is pertinent in the case on weights dependent on the inputs, i.e. local weighting.
+    get_weights
+        Callable, a function that return the weights (Tensor) for a given input (Tensor).
+        Weights should have the same shape as the input (possible difference on channels).
         
-        Example of Callable:
+        Example of `get_weights()` function:
         ```
         def get_weights_example(projected_inputs: Union(tf.Tensor, np.ndarray), 
                                 targets: Union(tf.Tensor, np.ndarray) = None):
@@ -51,53 +47,39 @@ class Projection(Callable):
         ```
     space_projection
         Callable that take samples and return a Tensor in the projected sapce.
-        An example of projected space is the latent space of a model.
-        In this case, the model should be splitted and the 
+        An example of projected space is the latent space of a model. See `LatentSpaceProjection`
     """
     def __init__(self,
-                 weights: Union[Callable, tf.Tensor, np.ndarray] = None,
+                 get_weights: Callable = None,
                  space_projection: Callable = None):
-        # assert weights is not None and space_projection is not None
+        
+        assert get_weights is not None or space_projection is not None,\
+               "At least one of `get_weights` and `space_projection`" +\
+               "should not be `None`."
 
-        # Set weights or 
-        if isinstance(weights, Callable):
-            # weights is a function
-            self.get_weights = weights
-        else:
-            if weights is None:
-                # no weights
-                self.get_weights = lambda inputs, targets=None: tf.ones(tf.shape(inputs))
-            elif isinstance(weights, tf.Tensor) or isinstance(weights, np.ndarray):
-                # weights is a tensor
-                if isinstance(weights, np.ndarray):
-                    weights = tf.convert_to_tensor(weights, dtype=tf.float32)
-                # define a function that returns the weights
-                def get_weights(inputs, targets=None):
-                    nweights = tf.expand_dims(weights, axis=0)
-                    return tf.repeat(nweights, tf.shape(inputs)[0], axis=0)
-                self.get_weights = get_weights
-            else:
-                raise TypeError("`weights` should be a tensor or a `Callable`,"+\
-                                f"not a {type(weights)}")
+        # set get weights
+        if get_weights is None:
+            # no weights
+            get_weights = lambda inputs, targets=None: tf.ones(tf.shape(inputs))
+        if not isinstance(get_weights, Callable):
+            raise TypeError(f"`get_weights` should be  `Callable`, not a {type(get_weights)}")
+        self.get_weights = get_weights
         
-        # Set space_projection
+        # set space_projection
         if space_projection is None:
-            self.space_projection = lambda inputs: inputs
-        elif isinstance(space_projection, Callable):
-            self.space_projection = space_projection
-        else:
-            raise TypeError("`space_projection` should be a `Callable`,"+\
+            space_projection = lambda inputs: inputs
+        if not isinstance(space_projection, Callable):
+            raise TypeError(f"`space_projection` should be a `Callable`,"+\
                             f"not a {type(space_projection)}")
-        
-        
+        self.space_projection = space_projection
+
     def get_input_weights(self,
                           inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
                           targets: Optional[Union[tf.Tensor, np.ndarray]] = None):
         """
-        For visualization purpose (and only), we may be interested to project weights
-        from the projected space to the input space.
-        This is applied only if their is a difference in dimention.
-        We assume here that we are treating images and an upsampling is applied.
+        Depending on the projection, we may not be able to visualize weights
+        as they are after the space projection. In this case, this method should be overwritten,
+        as in `AttributionProjection` that applies an upsampling.
         
         Parameters
         ----------
@@ -116,22 +98,17 @@ class Projection(Callable):
             They are an upsampled version of the actual weights used in the projection.
         """
         projected_inputs = self.space_projection(inputs)
+        assert tf.reduce_all(tf.equal(projected_inputs, inputs)),\
+            "Weights cannot be interpreted in the input space"+\
+            "if `space_projection()` is not an identity."+\
+            "Either remove 'weights' from the returns or"+\
+            "make your own projection and overwrite `get_input_weights`."
+
         weights = self.get_weights(projected_inputs, targets)
-        
-        # take mean over channels for images
-        channel_mean_fn = lambda: tf.reduce_mean(weights, axis=-1, keepdims=True)
-        weights = tf.cond(pred=tf.shape(weights).shape[0] < 4,
-                          true_fn=lambda: weights,
-                          false_fn=channel_mean_fn)
 
-        # resizing
-        resize_fn = lambda: tf.image.resize(weights, inputs.shape[1:-1], method="bicubic")
-        input_weights = tf.cond(pred=projected_inputs.shape==inputs.shape,
-                                true_fn=lambda: weights,
-                                false_fn=resize_fn,)
-        return input_weights
+        return weights
 
-    @sanitize_input_output
+    @sanitize_inputs_targets
     def project(self,
                 inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
                 targets: Optional[Union[tf.Tensor, np.ndarray]] = None):
