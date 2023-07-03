@@ -8,7 +8,8 @@ import warnings
 import tensorflow as tf
 import numpy as np
 
-from ..types import Callable, Dict, Tuple, Union, Optional
+from ..types import Callable, Dict, Tuple, Union, Optional, OperatorSignature
+from ..commons import Tasks, get_operator
 from ..commons import (find_layer, tensor_sanitize, get_inference_function,
                       get_gradient_functions, no_gradients_available)
 
@@ -53,7 +54,7 @@ class BlackBoxExplainer(ABC):
     _cache_models: Dict[Tuple[int, int], tf.keras.Model] = {}
 
     def __init__(self, model: Callable, batch_size: Optional[int] = 64,
-                operator: Optional[Callable[[tf.keras.Model, tf.Tensor, tf.Tensor], float]] = None):
+                operator: Optional[Union[Tasks, str, OperatorSignature]] = None):
 
         if isinstance(model, tf.keras.Model):
             try:
@@ -67,6 +68,9 @@ class BlackBoxExplainer(ABC):
             self.model = model
 
         self.batch_size = batch_size
+
+        # get the operator
+        operator = get_operator(operator)
 
         # define the inference function according to the model type
         self.inference_function, self.batch_inference_function = \
@@ -155,4 +159,4 @@ class WhiteBoxExplainer(BlackBoxExplainer, ABC):
                 pass
 
         # check and get gradient function from model and operator
-        self.gradient, self.batch_gradient = get_gradient_functions(model, operator)
+        self.gradient, self.batch_gradient = get_gradient_functions(model, get_operator(operator))
