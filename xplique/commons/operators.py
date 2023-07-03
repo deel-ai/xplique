@@ -3,12 +3,13 @@ Custom tensorflow operator for Attributions
 """
 
 import inspect
+from enum import Enum, auto
+
 import tensorflow as tf
 
-from ..types import Callable, Optional
+from ..types import Callable, Optional, Union, OperatorSignature
 from .exceptions import raise_invalid_operator, no_gradients_available
 from .callable_operations import predictions_one_hot_callable
-
 
 @tf.function
 def predictions_operator(model: Callable,
@@ -34,6 +35,31 @@ def predictions_operator(model: Callable,
     scores = tf.reduce_sum(model(inputs) * targets, axis=-1)
     return scores
 
+@tf.function
+def classif_metrics_operator(model: Callable,
+                             inputs: tf.Tensor,
+                             targets: tf.Tensor) -> tf.Tensor:
+    """
+    Compute predictions scores, only for the label class, for a batch of samples. However, this time
+    softmax or sigmoid are needed to correctly compute metrics this time while it was remove to
+    compute attributions values so we add it here.
+
+    Parameters
+    ----------
+    model
+        Model used for computing predictions.
+    inputs
+        Input samples to be explained.
+    targets
+        One-hot encoded labels or regression target (e.g {+1, -1}), one for each sample.
+
+    Returns
+    -------
+    scores
+        Probability scores computed, only for the label class.
+    """
+    scores = tf.reduce_sum(tf.nn.softmax(model(inputs)) * targets, axis=-1)
+    return scores
 
 @tf.function
 def regression_operator(model: Callable,
@@ -111,6 +137,109 @@ def segmentation_operator(model: Callable,
     scores = tf.reduce_sum(model(inputs) * targets, axis=(1, 2, 3))
     return scores
 
+class Tasks(Enum):
+    """
+    Enumeration of different tasks for which we have defined operators
+    """
+    CLASSIFICATION = auto()
+    REGRESSION = auto()
+    BINARY_SEGMENTATION = auto()
+    SEGMENTATION = auto()
+
+enum_to_method = {
+    Tasks.CLASSIFICATION: predictions_operator,
+    Tasks.REGRESSION: regression_operator,
+    Tasks.BINARY_SEGMENTATION: binary_segmentation_operator,
+    Tasks.SEGMENTATION: segmentation_operator
+}
+
+def check_operator(operator: Callable):
+    """
+    Check if the operator is valid g(f, x, y) -> tf.Tensor
+    and raise an exception and return true if so.
+
+    Parameters
+    ----------
+    operator
+        Operator to check
+
+    Returns
+    -------
+    is_valid
+        True if the operator is valid, False otherwise.
+    """
+    # handle tf functions
+    # pylint: disable=protected-access
+    if hasattr(operator, '_python_function'):
+        return check_operator(operator._python_function)
+
+    # the operator must be callable
+    # pylint: disable=isinstance-second-argument-not-valid-type
+    if not isinstance(operator, Callable):
+        raise_invalid_operator()
+
+    # the operator should take at least three arguments
+    args = inspect.getfullargspec(operator).args
+    if len(args) < 3:
+        raise_invalid_operator()
+
+    return True
+
+def get_operator(
+        operator: Optional[Union[Tasks, str, OperatorSignature]],
+        is_for_metric: bool = False):
+    """
+    This function allows to retrieve an operator from: a Tasks, a task name. If the operator
+    is a custom one, we simply check if its signature is correct
+
+    Parameters
+    ----------
+    operator
+        An operator from the Tasks enum or the task name or a custom operator. If None, use a
+        classification operator.
+    is_for_metric
+        A boolean value that specify if we want the operator for computation of a metric.
+        Especially, this is relevant for classification as we need the softmax for the metric while
+        we don't want it for computing explanations.
+
+    Returns
+    -------
+    operator
+        The operator requested
+    """
+    # case when no operator is provided
+    if operator is None:
+        if is_for_metric:
+            return classif_metrics_operator
+        return predictions_operator
+
+    # case when the query is a string
+    if isinstance(operator, str):
+
+        # transform the string to one of the Tasks enum if it exists
+        if operator.upper() in 'CLASSIFICATION':
+            operator = Tasks.CLASSIFICATION
+        elif operator.upper() in 'REGRESSION':
+            operator = Tasks.REGRESSION
+        elif operator.upper() in 'SEGMENTATION':
+            operator = Tasks.SEGMENTATION
+        elif operator.upper() in 'BINARY_SEGMENTATION':
+            operator = Tasks.BINARY_SEGMENTATION
+        else:
+            valid_op_name = ', '.join([operator.name for operator in Tasks])
+            raise ValueError(
+                f"Invalid operators name: {operator}. "
+                f"Availables operators are: {valid_op_name}."
+            )
+
+    # case when the query belong to the Tasks enum
+    if operator in Tasks.__members__.values():
+        if operator is Tasks.CLASSIFICATION and is_for_metric:
+            return classif_metrics_operator
+        return enum_to_method[operator]
+
+    assert check_operator(operator)
+    return operator
 
 def get_gradient_of_operator(operator):
     """
@@ -165,39 +294,6 @@ def operator_batching(operator: Callable) -> tf.Tensor:
         return results
 
     return batched_operator
-
-
-def check_operator(operator: Callable):
-    """
-    Check if the operator is valid g(f, x, y) -> tf.Tensor
-    and raise an exception and return true if so.
-
-    Parameters
-    ----------
-    operator
-        Operator to check
-
-    Returns
-    -------
-    is_valid
-        True if the operator is valid, False otherwise.
-    """
-    # handle tf functions
-    # pylint: disable=protected-access
-    if hasattr(operator, '_python_function'):
-        return check_operator(operator._python_function)
-
-    # the operator must be callable
-    # pylint: disable=isinstance-second-argument-not-valid-type
-    if not isinstance(operator, Callable):
-        raise_invalid_operator()
-
-    # the operator should take at least three arguments
-    args = inspect.getfullargspec(operator).args
-    if len(args) < 3:
-        raise_invalid_operator()
-
-    return True
 
 
 batch_predictions = operator_batching(predictions_operator)

@@ -7,8 +7,8 @@ from abc import ABC, abstractmethod
 import tensorflow as tf
 import numpy as np
 
-from ..commons import numpy_sanitize, get_inference_function
-from ..types import Callable, Optional, Union
+from ..commons import Tasks, numpy_sanitize, get_operator, get_inference_function
+from ..types import Callable, Optional, Union, OperatorSignature
 
 
 class BaseAttributionMetric(ABC):
@@ -96,16 +96,19 @@ class ExplanationMetric(BaseAttributionMetric, ABC):
         with f the model, x the inputs and y the targets. If None, use the standard
         operator g(f, x, y) = f(x)[y].
     """
-
+    # mettre union, operator par défaut c'est de la classif (ENUM)
     def __init__(self,
                  model: tf.keras.Model,
                  inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
                  targets: Optional[Union[tf.Tensor, np.ndarray]] = None,
                  batch_size: Optional[int] = 64,
-                 operator: Optional[Callable] = None,
+                 operator: Optional[Union[Tasks, str, OperatorSignature]] = None,
                  ):
         # pylint: disable=R0913
         super().__init__(model, inputs, targets, batch_size)
+
+        # get the operator
+        operator = get_operator(operator, is_for_metric=True)
 
         # define the inference function according to the model type
         self.inference_function, self.batch_inference_function = \

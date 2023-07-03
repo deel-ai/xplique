@@ -1,6 +1,10 @@
 """
 Module for having a wrapper for PyTorch's model
 """
+
+import tensorflow as tf
+import numpy as np
+
 try:
     # use PyTorch functionality
     import torch
@@ -10,9 +14,6 @@ except ImportError as exc:
     raise ImportError(
        "PyTorch is required to use this feature. Please install PyTorch using 'pip install torch'."
     ) from exc
-
-import tensorflow as tf
-import numpy as np
 
 from ..types import Union, Optional, Tuple, Callable
 

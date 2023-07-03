@@ -46,15 +46,15 @@ def _default_methods_cnn(model):
 
 def _default_methods_regression(model):
     return [
-        Saliency(model),
-        GradientInput(model),
-        IntegratedGradients(model),
-        SmoothGrad(model),
-        SquareGrad(model),
-        VarGrad(model),
-        Occlusion(model, patch_size=1, patch_stride=1),
-        Lime(model, nb_samples = 20),
-        KernelShap(model, nb_samples = 20),
+        Saliency(model, operator="reg"),
+        GradientInput(model, operator="regression"),
+        IntegratedGradients(model, operator="regression"),
+        SmoothGrad(model, operator="regression"),
+        SquareGrad(model, operator="regression"),
+        VarGrad(model, operator="regression"),
+        Occlusion(model, operator="regression", patch_size=1, patch_stride=1),
+        Lime(model, operator="regression", nb_samples = 20),
+        KernelShap(model, operator="regression", nb_samples = 20),
     ]
 
 def generate_torch_model(input_shape=(32, 32, 3), output_shape=10):
@@ -185,7 +185,3 @@ def test_metric_dense():
                 score = metric(explanations)
             print(f"\n\n\n {type(score)} \n\n\n")
             assert type(score) in [np.float32, np.float64, float]
-
-def test_operator():
-    """TODO"""
-    pass
