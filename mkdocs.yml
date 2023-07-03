@@ -24,24 +24,26 @@ nav:
       - Sobol Attribution Method: api/attributions/sobol.md
       - Hsic Attribution Method: api/attributions/hsic.md
       - VarGrad: api/attributions/vargrad.md
+<<<<<<< HEAD
       - ForGRad: api/attributions/forgrad.md
+=======
+  - Attributions metrics:
+      - API Description: api/metrics/api_metrics.md
+      - Deletion: api/metrics/deletion.md
+      - Insertion: api/metrics/insertion.md
+      - MuFidelity: api/metrics/mu_fidelity.md
+      - AverageStability: api/metrics/avg_stability.md
+>>>>>>> ba70d9f (docs: add documentation for pytorch wrapper and update some parameters)
   - Concept based:
       - Cav: api/concepts/cav.md
       - Tcav: api/concepts/tcav.md
   - Feature visualization:
       - Modern Feature Visualization (MaCo): api/feature_viz/maco.md
       - Feature visualization: api/feature_viz/feature_viz.md
-  - Attributions metrics:
-      - API Description: api/metrics/api_metrics.md
-      - Deletion: api/metrics/deletion.md
-      - Insertion: api/metrics/insertion.md
-      - Deletion TS: api/metrics/deletion_ts.md
-      - Insertion TS: api/metrics/insertion_ts.md
-      - MuFidelity: api/metrics/mu_fidelity.md
-      - AverageStability: api/metrics/avg_stability.md
   - Tutorials: tutorials.md
-  - Contributing: contributing.md
+  - PyTorch: pytorch.md
   - Callable: callable.md
+  - Contributing: contributing.md
 
 theme:
   name: "material"

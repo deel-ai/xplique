@@ -12,10 +12,11 @@ In 2013, [Simonyan et al.](http://arxiv.org/abs/1312.6034) proposed a first attr
 
 ## Common API
 
-All attribution methods inherit from the Base class `BlackBoxExplainer`. This base class can be initialized with two parameters:
+All attribution methods inherit from the Base class `BlackBoxExplainer`. This base class can be initialized with three parameters:
 
 - `model`: the model from which we want to obtain attributions (e.g: InceptionV3, ResNet, ...)
 - `batch_size`: an integer which allows to either process inputs per batch (gradient-based methods) or process perturbed samples of an input per batch (inputs are therefore process one by one)
+- `operator`: function g to explain
 
 In addition, all class inheriting from `BlackBoxExplainer` should implement an `explain` method:
 
