@@ -31,32 +31,31 @@ def _normalize(image: Union[tf.Tensor, np.ndarray]) -> np.ndarray:
 
     return image
 
-def _clip_percentile(heatmap: Union[tf.Tensor, np.ndarray],
+def _clip_percentile(tensor: Union[tf.Tensor, np.ndarray],
                      percentile: float) -> np.ndarray:
     """
-    Apply clip according to percentile value (percentile, 100-percentile) of a heatmap
+    Apply clip according to percentile value (percentile, 100-percentile) of a tensor
     only if percentile is not None.
 
     Parameters
     ----------
-    heatmap
-        Heatmap to clip.
+    tensor
+        tensor to clip.
 
     Returns
     -------
-    heatmap_clipped
-        Heatmap clipped accordingly to the percentile value.
+    tensor_clipped
+        Tensor clipped accordingly to the percentile value.
     """
-    assert len(heatmap.shape) == 2 or heatmap.shape[-1] == 1, "Clip percentile is only supposed"\
-                                                              "to be applied on heatmap."
+
     assert 0. <= percentile <= 100., "Percentile value should be in [0, 100]"
 
     if percentile is not None:
-        clip_min = np.percentile(heatmap, percentile)
-        clip_max = np.percentile(heatmap, 100. - percentile)
-        heatmap = np.clip(heatmap, clip_min, clip_max)
+        clip_min = np.percentile(tensor, percentile)
+        clip_max = np.percentile(tensor, 100. - percentile)
+        tensor = np.clip(tensor, clip_min, clip_max)
 
-    return heatmap
+    return tensor
 
 
 def plot_attribution(explanation,
