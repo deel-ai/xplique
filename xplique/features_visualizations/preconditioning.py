@@ -13,6 +13,9 @@ import tensorflow as tf
 from ..types import Tuple, Union, Callable
 
 
+IMAGENET_SPECTRUM_URL = "https://storage.googleapis.com/serrelab/loupe/"\
+                        "spectrums/imagenet_decorrelated.npy"
+
 imagenet_color_correlation = tf.cast(
       [[0.56282854, 0.58447580, 0.58447580],
        [0.19482528, 0.00000000,-0.19482528],
@@ -189,3 +192,73 @@ def fft_image(shape: Tuple, std: float = 0.01) -> tf.Tensor:
                               stddev=std)
 
     return buffer
+
+
+def init_maco_buffer(image_shape, std=1.0):
+    """
+    Initialize the buffer for the MACO algorithm.
+
+    Parameters
+    ----------
+    image_shape
+        Shape of the images with N number of samples, W & H the sample
+        dimensions, and C the number of channels.
+    std
+        Standard deviation of the normal for the buffer initialization
+
+    Returns
+    -------
+    magnitude
+        Magnitude of the spectrum
+    phase
+        Phase of the spectrum
+    """
+    spectrum_shape = (image_shape[0], image_shape[1]//2+1)
+
+    # init randomly the phase and load the constrained spectrum (average spectrum)
+    phase = np.random.normal(size=(3, *spectrum_shape), scale=std).astype(np.float32)
+
+    magnitude_path = tf.keras.utils.get_file("spectrum_decorrelated.npy",
+                                             IMAGENET_SPECTRUM_URL,
+                                             cache_subdir="spectrums")
+    magnitude = np.load(magnitude_path)
+    magnitude = tf.image.resize(np.moveaxis(magnitude, 0, -1), spectrum_shape).numpy()
+    magnitude = np.moveaxis(magnitude, -1, 0)
+
+    return tf.cast(magnitude, tf.float32), tf.cast(phase, tf.float32)
+
+@tf.function
+def maco_image_parametrization(magnitude, phase, values_range):
+    """
+    Generate the image from the magnitude and phase using MaCo method.
+
+    Parameters
+    ----------
+    magnitude
+        Magnitude of the spectrum
+    phase
+        Phase of the spectrum
+    values_range
+        Range of the values of the image
+
+    Returns
+    -------
+    img
+        Image in the 'pixels' basis.
+    """
+    phase = phase - tf.reduce_mean(phase)
+    phase = phase / (tf.math.reduce_std(phase) + 1e-5)
+
+    buffer = tf.complex(tf.cos(phase) * magnitude, tf.sin(phase) * magnitude)
+    img = tf.signal.irfft2d(buffer)
+    img = tf.transpose(img, [1,2,0])
+
+    img = img - tf.reduce_mean(img)
+    img = img / (tf.math.reduce_std(img) + 1e-5)
+
+    img = recorrelate_colors(img)
+    img = tf.nn.sigmoid(img)
+
+    img = img * (values_range[1] - values_range[0]) + values_range[0]
+
+    return img
