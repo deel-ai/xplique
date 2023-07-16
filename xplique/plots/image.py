@@ -187,3 +187,33 @@ def plot_attributions(
 
         plot_attribution(explanation, cmap=cmap, alpha=alpha, clip_percentile=clip_percentile,
                          absolute_value=absolute_value, **plot_kwargs)
+
+def plot_maco(image, alpha, percentile_image=1.0, percentile_alpha=80):
+    """
+    Plot maco feature visualization image (take care of merging the alpha).
+
+    Parameters
+    ----------
+    image
+        Image to plot.
+    alpha
+        Alpha channel to plot.
+    percentile_image
+        Percentile value to use to ceil the image and avoid extreme values.
+    percentile_alpha
+        Percentile value to use to ceil the alpha channel. A higher value will result in a more
+        transparent image with only the most important features.
+    """
+
+    image = np.array(image).copy()
+    image = _clip_percentile(image, percentile_image)
+
+    alpha = np.mean(np.array(alpha).copy(), -1, keepdims=True)
+    alpha = np.clip(alpha, 0, np.percentile(alpha, percentile_alpha))
+    alpha = alpha / alpha.max()
+
+    image = image * alpha
+    image = _normalize(image)
+
+    plt.imshow(np.concatenate([image, alpha], -1))
+    plt.axis('off')
