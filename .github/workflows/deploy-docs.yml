@@ -1,0 +1,39 @@
+name: "Build and Publish Latest Release Docs"
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+
+  build-and-deploy:
+    runs-on: ubuntu-20.04
+
+    steps:
+      - name: "Checkout"
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: "Set up Python"
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
+
+      - name: "Install Python dependencies"
+        run: |
+          python -m pip install --upgrade pip
+          pip install mkdocs mkdocs-material numkdoc mike
+
+      - name: "Setup Docs Deploy"
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+
+      - name: "Deploy Github Pages"
+        run: |
+          mike deploy --push --update-aliases ${{ github.event.release.tag_name }} latest
+          mike set-default --push latest

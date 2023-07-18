@@ -70,6 +70,7 @@ nav:
 
 theme:
   name: "material"
+  custom_dir: docs/overrides
   logo: assets/x_logo.png
   favicon: assets/x_logo.png
   palette:
@@ -110,6 +111,10 @@ markdown_extensions:
   - pymdownx.emoji:
       emoji_index: !!python/name:materialx.emoji.twemoji
       emoji_generator: !!python/name:materialx.emoji.to_svg
+
+extra:
+  version:
+    provider: mike
 
 extra_css:
   - css/custom.css
