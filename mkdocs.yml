@@ -8,6 +8,7 @@ nav:
   - Home: index.md
   - Attributions methods:
       - API Description: api/attributions/api_attributions.md
+<<<<<<< HEAD
       - DeconvNet: api/attributions/deconvnet.md
       - Grad-CAM: api/attributions/grad_cam.md
       - Grad-CAM++: api/attributions/grad_cam_pp.md
@@ -27,6 +28,28 @@ nav:
 <<<<<<< HEAD
       - ForGRad: api/attributions/forgrad.md
 =======
+=======
+      - Model to explain: api/attributions/model.md
+      - Operator parameter: api/attributions/operator.md
+      - Methods:
+        - DeconvNet: api/attributions/deconvnet.md
+        - Grad-CAM: api/attributions/grad_cam.md
+        - Grad-CAM++: api/attributions/grad_cam_pp.md
+        - Gradient Input: api/attributions/gradient_input.md
+        - Guided Backprop: api/attributions/guided_backpropagation.md
+        - Integrated Gradient: api/attributions/integrated_gradients.md
+        - KernelSHAP: api/attributions/kernel_shap.md
+        - Lime: api/attributions/lime.md
+        - Occlusion sensitivity: api/attributions/occlusion.md
+        - Rise: api/attributions/rise.md
+        - Saliency: api/attributions/saliency.md
+        - SmoothGrad: api/attributions/smoothgrad.md
+        - SquareGrad: api/attributions/square_grad.md
+        - Sobol Attribution Method: api/attributions/sobol.md
+        - Hsic Attribution Method: api/attributions/hsic.md
+        - VarGrad: api/attributions/vargrad.md
+      - Object detection : api/attributions/object_detector.md
+>>>>>>> cff629d (docs: update , change link to relative, add black and white assets, add doc on operator and model's expectations)
   - Attributions metrics:
       - API Description: api/metrics/api_metrics.md
       - Deletion: api/metrics/deletion.md
@@ -75,6 +98,7 @@ markdown_extensions:
       generic: true
   - pymdownx.highlight
   - pymdownx.superfences
+  - pymdownx.details
   - codehilite
   - toc:
       permalink: true

@@ -70,7 +70,7 @@ class Rise(BlackBoxExplainer):
         inputs
             Dataset, Tensor or Array. Input samples to be explained.
             If Dataset, targets should not be provided (included in Dataset).
-            Expected shape among (N, W), (N, T, W), (N, W, H, C).
+            Expected shape among (N, W), (N, T, W), (N, H, W, C).
             More information in the documentation.
         targets
             Tensor or Array. One-hot encoding of the model's output from which an explanation
