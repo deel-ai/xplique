@@ -1,0 +1,86 @@
+name: Bug Report
+description: Create a report to help us improve
+title: "[Bug]: - Your issue"
+labels: ["bug", "triage"]
+
+body:
+- type: markdown
+  attributes:
+    value: |
+      Thanks for taking the time to fill out this bug report!
+- type: dropdown
+  id: module
+  attributes:
+    label: Module
+    description: Select the modules to which the bug refers.
+    options:
+      - Attributions Methods
+      - Feature Visualization
+      - Concepts
+      - Metrics 
+      - Documentation
+  validations:
+    required: false
+- type: input
+  id: contact
+  attributes:
+    label: Contact Details
+    description: How can we get in touch with you if we need more info?
+    placeholder: ex. email@example.com
+  validations:
+    required: false
+- type: textarea
+  attributes:
+    label: Current Behavior
+    description: A clear and concise description of what the bug is.
+    placeholder: Tell us what you see!
+    value: "A bug happened!"
+  validations:
+    required: true
+- type: textarea
+  attributes:
+    label: Expected Behavior
+    description: A concise description of what you expected to happen.
+  validations:
+    required: true
+- type: dropdown
+  id: version
+  attributes:
+    label: Version
+    description: What version of Xplique are you running?
+    options:
+       - v1.1.0
+       - v1.0.0
+       - v0.4.3
+       - v0.2-alpha
+       - v0.1-alpha
+  validations:
+    required: true
+- type: textarea
+  attributes:
+    label: Environment
+    description: |
+      examples:
+        - **OS**: linux
+        - **Python version**: 3.7
+        - **Packages used version**: Tensorflow, Numpy, scikit-learn, etc..
+    value: |
+        - OS:
+        - Python version:
+        - Tensorflow version:
+        - Packages used version:
+    render: markdown
+  validations:
+    required: false
+- type: textarea
+  id: logs
+  attributes:
+    label: Relevant log output
+    description: Please copy and paste any relevant log output. This will be automatically formatted into code, so no need for backticks.
+    render: shell
+- type: textarea
+  attributes:
+    label: To Reproduce
+    description: Steps to reproduce the behavior. Even better if you can provide a **minimal** working example to reproduce the behavior or exemple of code to reproduce the bug.
+  validations:
+    required: true
