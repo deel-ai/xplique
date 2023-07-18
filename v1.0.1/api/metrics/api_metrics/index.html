@@ -980,7 +980,7 @@
 <p>- <code>inputs</code>: Input samples to be explained</p>
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
-<p>Inputs should be the same as defined in the attribution's <a href="https://deel-ai.github.io/xplique/api/attributions/api_attributions/">API Description</a></p>
+<p>Inputs should be the same as defined in the attribution's <a href="https://deel-ai.github.io/xplique/v1.0.1/api/attributions/api_attributions/">API Description</a></p>
 </div>
 </li>
 <li>
@@ -1007,7 +1007,7 @@
 </div>
 <p>All metrics inheriting from this class have another argument in their <code>__init__</code> method:</p>
 <ul>
-<li>- <code>operator</code>: Optionnal function wrapping the model. It can be seen as a metric which allow to evaluate model evolution. For more details, see the attribution's <a href="https://deel-ai.github.io/xplique/api/attributions/api_attributions/">API Description</a></li>
+<li>- <code>operator</code>: Optionnal function wrapping the model. It can be seen as a metric which allow to evaluate model evolution. For more details, see the attribution's <a href="https://deel-ai.github.io/xplique/v1.0.1/api/attributions/api_attributions/">API Description</a></li>
 </ul>
 <p>All metrics inheriting from this class have to define a method <code>evaluate</code> which will take as input the <code>attributions</code> given by an explainer. Those attributions should correspond to the <code>model</code>, <code>inputs</code> and <code>targets</code> used to build the metric object.</p>
 <p>Especially, all Fidelity metrics inherit from this class:</p>
@@ -1038,7 +1038,7 @@
 <p>All metrics inheriting from this class have to define a method <code>evaluate</code> which will take as input the <code>explainer</code> evaluated.</p>
 <div class="admonition info">
 <p class="admonition-title">Info</p>
-<p>It is even more important that <code>inputs</code> and <code>targets</code> are the same as defined in the attribution's <a href="https://deel-ai.github.io/xplique/api/attributions/api_attributions/">API Description</a></p>
+<p>It is even more important that <code>inputs</code> and <code>targets</code> are the same as defined in the attribution's <a href="https://deel-ai.github.io/xplique/v1.0.1/api/attributions/api_attributions/">API Description</a></p>
 </div>
 <p>Currently, there is only one Stability metric inheriting from this class:</p>
 <table>
