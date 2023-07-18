@@ -1,11 +1,15 @@
 <div align="center">
-    <img src="docs/assets/banner.png" width="75%" alt="Xplique" align="center" />
+        <picture>
+                <source media="(prefers-color-scheme: dark)" srcset="./docs/assets/banner_white.png">
+                <source media="(prefers-color-scheme: light)" srcset="./docs/assets/banner.png">
+                <img alt="Library Banner" src="./docs/assets/banner.png">
+        </picture>
 </div>
 <br>
 
 <div align="center">
     <a href="#">
-        <img src="https://img.shields.io/badge/Python-3.6, 3.7, 3.8-efefef">
+        <img src="https://img.shields.io/badge/Python-3.7, 3.8, 3.9, 3.10-efefef">
     </a>
     <a href="https://github.com/deel-ai/xplique/actions/workflows/python-lints.yml">
         <img alt="PyLint" src="https://github.com/deel-ai/xplique/actions/workflows/python-lints.yml/badge.svg">
@@ -26,20 +30,19 @@
 <br>
 
 <p align="center">
-    🦊 <b>Xplique</b> (pronounced <i>\ɛks.plik\</i>) is a Python toolkit dedicated to explainability, currently based on Tensorflow.
-    The goal of this library is to gather the state of the art of Explainable AI to help you understand your complex neural network models.
+    🦊 <b>Xplique</b> (pronounced <i>\ɛks.plik\</i>) is a Python toolkit dedicated to explainability. The goal of this library is to gather the state of the art of Explainable AI to help you understand your complex neural network models. Originally built for Tensorflow's model it also works for Pytorch's model partially.
 
   <br>
   <a href="https://deel-ai.github.io/xplique/"><strong>Explore Xplique docs »</strong></a>
   <br>
   <br>
-  <a href="https://deel-ai.github.io/xplique/api/attributions/api_attributions/">Attributions</a>
+  <a href="https://deel-ai.github.io/xplique/latest/api/attributions/api_attributions/">Attributions</a>
   ·
-  <a href="https://deel-ai.github.io/xplique/api/concepts/cav/">Concept</a>
+  <a href="https://deel-ai.github.io/xplique/latest/api/concepts/cav/">Concept</a>
   ·
-  <a href="https://deel-ai.github.io/xplique/api/feature_viz/feature_viz/">Feature Visualization</a>
+  <a href="https://deel-ai.github.io/xplique/latest/api/feature_viz/feature_viz/">Feature Visualization</a>
   ·
-  <a href="https://deel-ai.github.io/xplique/api/metrics/api_metrics/">Metrics</a>
+  <a href="https://deel-ai.github.io/xplique/latest/api/metrics/api_metrics/">Metrics</a>
 </p>
 
 The library is composed of several modules, the _Attributions Methods_ module implements various methods (e.g Saliency, Grad-CAM, Integrated-Gradients...), with explanations, examples and links to official papers.
@@ -53,23 +56,26 @@ Finally, the _Metrics_ module covers the current metrics used in explainability.
 
 <br>
 
-## 📚 Table of contents
 
-- [📚 Table of contents](#-table-of-contents)
+## 📚 Table of contents
+<details>
+<summary>📚 Table of contents</summary>
+
 - [🔥 Tutorials](#-tutorials)
 - [🚀 Quick Start](#-quick-start)
 - [📦 What's Included](#-whats-included)
-- [📞 Callable](#-callable)
 - [👍 Contributing](#-contributing)
 - [👀 See Also](#-see-also)
 - [🙏 Acknowledgments](#-acknowledgments)
 - [👨‍🎓 Creator](#-creator)
 - [🗞️ Citation](#-citation)
 - [📝 License](#-license)
+</details>
 
 ## 🔥 Tutorials
 
-We propose some Hands-on tutorials to get familiar with the library and its api:
+<details>
+<summary>We propose some Hands-on tutorials to get familiar with the library and its api:</summary>
 
 - [**Attribution Methods**: Getting started](https://colab.research.google.com/drive/1XproaVxXjO9nrBSyyy7BuKJ1vy21iHs2) <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1XproaVxXjO9nrBSyyy7BuKJ1vy21iHs2) </sub>
 
@@ -110,6 +116,8 @@ We propose some Hands-on tutorials to get familiar with the library and its api:
 You can find a certain number of [other practical tutorials just here](https://github.com/deel-ai/xplique/blob/master/TUTORIALS.md). This section is actively developed and more contents will be
 included. We will try to cover all the possible usage of the library, feel free to contact us if you have any suggestions or recommandations towards tutorials you would like to see.
 
+</details>
+
 ## 🚀 Quick Start
 
 Xplique requires a version of python higher than 3.6 and several libraries including Tensorflow and Numpy. Installation can be done using Pypi:
@@ -120,9 +128,9 @@ pip install xplique
 
 Now that Xplique is installed, here are 4 basic examples of what you can do with the available modules.
 
-### Attributions Methods
-
-let's start with a simple example, by computing Grad-CAM for several images (or a complete dataset) on a trained model.
+<details>
+<summary><b>Attributions Methods</b></summary>
+Let's start with a simple example, by computing Grad-CAM for several images (or a complete dataset) on a trained model.
 
 ```python
 from xplique.attributions import GradCAM
@@ -135,9 +143,14 @@ explanations = explainer.explain(images, labels)
 # or just `explainer(images, labels)`
 ```
 
-All attributions methods share a common API. You can find out more about it [here](https://deel-ai.github.io/xplique/api/attributions/api_attributions/).
+All attributions methods share a common API. You can find out more about it [here](https://deel-ai.github.io/xplique/latest/api/attributions/api_attributions/).
 
-### Attributions Metrics
+In addition, you should also look at the [model's specificities](https://deel-ai.github.io/xplique/latest/api/attributions/model/) and the [operator parameter documentation](https://deel-ai.github.io/xplique/latest/api/attributions/operator/)
+
+</details>
+
+<details>
+<summary><b>Attributions Metrics</b></summary>
 
 In order to measure if the explanations provided by our method are faithful (it reflects well the functioning of the model) we can use a fidelity metric such as Deletion
 
@@ -155,9 +168,12 @@ metric = Deletion(model, inputs, labels)
 score_grad_cam = metric(explanations)
 ```
 
-All attributions metrics share a common API. You can find out more about it [here](https://deel-ai.github.io/xplique/api/metrics/api_metrics/)
+All attributions metrics share a common API. You can find out more about it [here](https://deel-ai.github.io/xplique/latest/api/metrics/api_metrics/).
 
-### Concepts Extraction
+</details>
+
+<details>
+<summary><b>Concepts Extraction</b></summary>
 
 Concerning the concept-based methods, we can for example extract a concept vector from a layer of a model. In order to do this, we use two datasets, one containing inputs containing the concept: `positive_samples`, the other containing other entries which do not contain the concept: `negative_samples`.
 
@@ -173,9 +189,11 @@ concept_vector = extractor(positive_samples,
                            negative_samples)
 ```
 
-More information on CAV [here](https://deel-ai.github.io/xplique/api/concepts/cav/) and on TCAV [here](https://deel-ai.github.io/xplique/api/concepts/tcav/).
+More information on CAV [here](https://deel-ai.github.io/xplique/latest/api/concepts/cav/) and on TCAV [here](https://deel-ai.github.io/xplique/latest/api/concepts/tcav/).
+</details>
 
-### Feature Visualization
+<details>
+<summary><b>Feature Visualization</b></summary>
 
 Finally, in order to find an image that maximizes a neuron and at the same time a layer, we build two objectives that we combine together. We then call the optimizer which returns our images
 
@@ -192,9 +210,13 @@ obj = neuron_obj + 2.0 * channel_obj
 images, obj_names = optimize(obj)
 ```
 
-Want to know more ? Check the Feature Viz [documentation](https://deel-ai.github.io/xplique/api/feature_viz/feature_viz/)
+Want to know more ? Check the Feature Viz [documentation](https://deel-ai.github.io/xplique/latest/api/feature_viz/feature_viz/)
+</details>
 
 ## 📦 What's Included
+
+<details>
+<summary><b>Table of attributions available</b></summary>
 
 All the attributions method presented below handle both **Classification** and **Regression** tasks.
 
@@ -203,33 +225,50 @@ All the attributions method presented below handle both **Classification** and *
 | Deconvolution          | TF            | [Paper](https://arxiv.org/abs/1311.2901)  | ✔                  | ✔                 | WIP                | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/19eB3uwAtCKZgkoWtMzrF0LTJ-htF_KE7) |
 | Grad-CAM               | TF            | [Paper](https://arxiv.org/abs/1610.02391) |                    | ✔                 |                    | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1nsB7xdQbU0zeYQ1-aB_D-M67-RAnvt4X) |
 | Grad-CAM++             | TF            | [Paper](https://arxiv.org/abs/1710.11063) |                    | ✔                 |                    | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1nsB7xdQbU0zeYQ1-aB_D-M67-RAnvt4X) |
-| Gradient Input         | TF            | [Paper](https://arxiv.org/abs/1704.02685) | ✔                  | ✔                 | WIP                | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/19eB3uwAtCKZgkoWtMzrF0LTJ-htF_KE7) |
+| Gradient Input         | TF, Pytorch**            | [Paper](https://arxiv.org/abs/1704.02685) | ✔                  | ✔                 | WIP                | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/19eB3uwAtCKZgkoWtMzrF0LTJ-htF_KE7) |
 | Guided Backprop        | TF            | [Paper](https://arxiv.org/abs/1412.6806)  | ✔                  | ✔                 | WIP                | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/19eB3uwAtCKZgkoWtMzrF0LTJ-htF_KE7) |
-| Integrated Gradients   | TF            | [Paper](https://arxiv.org/abs/1703.01365) | ✔                  | ✔                 | WIP                | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1UXJYVebDVIrkTOaOl-Zk6pHG3LWkPcLo) |
+| Integrated Gradients   | TF, Pytorch**       | [Paper](https://arxiv.org/abs/1703.01365) | ✔                  | ✔                 | WIP                | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1UXJYVebDVIrkTOaOl-Zk6pHG3LWkPcLo) |
 | Kernel SHAP            | Callable*     | [Paper](https://arxiv.org/abs/1705.07874) | ✔                  | ✔                 | WIP                | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1frholXRE4XQQ3W5yZuPQ2-xqc-LTczfT) |
 | Lime                   | Callable*     | [Paper](https://arxiv.org/abs/1602.04938) | ✔                  | ✔                 | WIP                | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1frholXRE4XQQ3W5yZuPQ2-xqc-LTczfT) |
 | Occlusion              | Callable*     | [Paper](https://arxiv.org/abs/1311.2901)  | ✔                  | ✔                 | WIP                | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/15xmmlxQkNqNuXgHO51eKogXvLgs-sG4q) |
 | Rise                   | Callable*     | [Paper](https://arxiv.org/abs/1806.07421) | WIP                | ✔                 |                    | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1icu2b1JGfpTRa-ic8tBSXnqqfuCGW2mO) |
-| Saliency               | TF            | [Paper](https://arxiv.org/abs/1312.6034)  | ✔                  | ✔                 | WIP                | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/19eB3uwAtCKZgkoWtMzrF0LTJ-htF_KE7) |
-| SmoothGrad             | TF            | [Paper](https://arxiv.org/abs/1706.03825) | ✔                  | ✔                 | WIP                | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/12-tlM_TdZ12oc5lNL2S2g-hcMJV8tZUD) |
-| SquareGrad             | TF            | [Paper](https://arxiv.org/abs/1806.10758) | ✔                  | ✔                 | WIP                | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/12-tlM_TdZ12oc5lNL2S2g-hcMJV8tZUD) |
-| VarGrad                | TF            | [Paper](https://arxiv.org/abs/1810.03292) | ✔                  | ✔                 | WIP                | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/12-tlM_TdZ12oc5lNL2S2g-hcMJV8tZUD) |
-| Sobol Attribution      | TF            | [Paper](https://arxiv.org/abs/2111.04138) |                    | ✔                 |                    | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1XproaVxXjO9nrBSyyy7BuKJ1vy21iHs2) |
-| Hsic Attribution      | TF            | [Paper](https://arxiv.org/abs/2206.06219) |                    | ✔                 |                    | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1XproaVxXjO9nrBSyyy7BuKJ1vy21iHs2) |
-| FORGrad enhancement      | TF            | [Paper](https://arxiv.org/abs/2307.09591) |                    | ✔                 |                    | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1ibLzn7r9QQIEmZxApObowzx8n9ukinYB) |
+| Saliency               | TF, Pytorch**            | [Paper](https://arxiv.org/abs/1312.6034)  | ✔                  | ✔                 | WIP                | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/19eB3uwAtCKZgkoWtMzrF0LTJ-htF_KE7) |
+| SmoothGrad             | TF, Pytorch**            | [Paper](https://arxiv.org/abs/1706.03825) | ✔                  | ✔                 | WIP                | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/12-tlM_TdZ12oc5lNL2S2g-hcMJV8tZUD) |
+| SquareGrad             | TF, Pytorch**            | [Paper](https://arxiv.org/abs/1806.10758) | ✔                  | ✔                 | WIP                | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/12-tlM_TdZ12oc5lNL2S2g-hcMJV8tZUD) |
+| VarGrad                | TF, Pytorch**            | [Paper](https://arxiv.org/abs/1810.03292) | ✔                  | ✔                 | WIP                | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/12-tlM_TdZ12oc5lNL2S2g-hcMJV8tZUD) |
+| Sobol Attribution      | TF, Pytorch**            | [Paper](https://arxiv.org/abs/2111.04138) |                    | ✔                 |                    | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1XproaVxXjO9nrBSyyy7BuKJ1vy21iHs2) |
+| Hsic Attribution      | TF, Pytorch**            | [Paper](https://arxiv.org/abs/2206.06219) |                    | ✔                 |                    | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1XproaVxXjO9nrBSyyy7BuKJ1vy21iHs2) |
+| FORGrad enhancement      | TF, Pytorch**            | [Paper](https://arxiv.org/abs/2307.09591) |                    | ✔                 |                    | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1ibLzn7r9QQIEmZxApObowzx8n9ukinYB) |
 
+TF : Tensorflow compatible
 
-* : See the [Callable documentation](https://deel-ai.github.io/xplique/callable/)
+\* : See the [Callable documentation](https://deel-ai.github.io/xplique/latest/callable/)
+
+** : See the [Xplique for Pytorch documentation](https://deel-ai.github.io/xplique/latest/pytorch/), and the [**PyTorch's model**: Getting started](https://colab.research.google.com/drive/1bMlO29_0K3YnTQBbbyKQyRfo8YjvDbhe)<sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1bMlO29_0K3YnTQBbbyKQyRfo8YjvDbhe) </sub> notebook
+
+</details>
+
+<details>
+<summary><b>Table of attribution's metric available</b></summary>
 
 | **Attribution Metrics** | Type of Model | Property         | Source                                    |
 | :---------------------- | :------------ | :--------------- | :---------------------------------------- |
-| MuFidelity              | TF            | Fidelity         | [Paper](https://arxiv.org/abs/2005.00631) |
-| Deletion                | TF            | Fidelity         | [Paper](https://arxiv.org/abs/1806.07421) |
-| Insertion               | TF            | Fidelity         | [Paper](https://arxiv.org/abs/1806.07421) |
-| Average Stability       | TF            | Stability        | [Paper](https://arxiv.org/abs/2005.00631) |
-| MeGe                    | TF            | Representativity | [Paper](https://arxiv.org/abs/2009.04521) |
-| ReCo                    | TF            | Consistency      | [Paper](https://arxiv.org/abs/2009.04521) |
+| MuFidelity              | TF, Pytorch** | Fidelity         | [Paper](https://arxiv.org/abs/2005.00631) |
+| Deletion                | TF, Pytorch** | Fidelity         | [Paper](https://arxiv.org/abs/1806.07421) |
+| Insertion               | TF, Pytorch** | Fidelity         | [Paper](https://arxiv.org/abs/1806.07421) |
+| Average Stability       | TF, Pytorch** | Stability        | [Paper](https://arxiv.org/abs/2005.00631) |
+| MeGe                    | TF, Pytorch** | Representativity | [Paper](https://arxiv.org/abs/2009.04521) |
+| ReCo                    | TF, Pytorch** | Consistency      | [Paper](https://arxiv.org/abs/2009.04521) |
 | (WIP) e-robustness      |
+
+TF : Tensorflow compatible
+
+** : See the [Xplique for Pytorch documentation](https://deel-ai.github.io/xplique/latest/pytorch/), and the [**PyTorch's model**: Getting started](https://colab.research.google.com/drive/1bMlO29_0K3YnTQBbbyKQyRfo8YjvDbhe)<sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1bMlO29_0K3YnTQBbbyKQyRfo8YjvDbhe) </sub> notebook
+
+</details>
+
+<details>
+<summary><b>Table of concept methods available</b></summary>
 
 | **Concepts method**             | Type of Model | Source                                        |
 | :------------------------------ | :------------ | :-------------------------------------------- |
@@ -237,6 +276,13 @@ All the attributions method presented below handle both **Classification** and *
 | Testing CAV (TCAV)              | TF            | [Paper](https://arxiv.org/pdf/1711.11279.pdf) |
 | (WIP) Robust TCAV               |               |
 | (WIP) Automatic Concept Extraction (ACE)        |
+
+TF : Tensorflow compatible
+
+</details>
+
+<details>
+<summary><b>Table of Feature Visualization methods available</b></summary>
 
 | **Feature Visualization** [(Paper)](https://distill.pub/2017/feature-visualization/) | Type of Model | Details                                                                                                            |
 | :----------------------------------------------------------------------------------- | :------------ | :----------------------------------------------------------------------------------------------------------------- |
@@ -249,9 +295,9 @@ All the attributions method presented below handle both **Classification** and *
 | MaCo                                                                                 | TF            | Fixed Magnitude optimisation, see [Paper](https://arxiv.org/pdf/2306.06805.pdf)                                                                                       |
 
 
-<div align="right">
-  <i>methods with TF need a Tensorflow model. </i>
-</div>
+TF : Tensorflow compatible
+
+</details>
 
 ## 👍 Contributing
 
@@ -262,7 +308,8 @@ Feel free to propose your ideas or come and contribute with us on the Xplique to
 This library is one approach of many to explain your model. We don't expect it to be the perfect
  solution; we create it to explore one point in the space of possibilities.
 
-Other tools to explain your model include:
+<details>
+<summary> Other interesting tools to explain your model: </summary>
 
 - [Lucid](https://github.com/tensorflow/lucid) the wonderful library specialized in feature visualization from OpenAI.
 - [Captum](https://captum.ai/) the Pytorch library for Interpretability research
@@ -270,7 +317,10 @@ Other tools to explain your model include:
 - [Alibi Explain](https://github.com/SeldonIO/alibi) for model inspection and interpretation
 - [SHAP](https://github.com/slundberg/shap) a very popular library to compute local explanations using the classic Shapley values from game theory and their related extensions
 
-To learn more about Explainable AI in general, see:
+</details>
+
+<details>
+<summary>To learn more about Explainable AI in general: </summary>
 
 - [Interpretable Machine Learning](https://christophm.github.io/interpretable-ml-book/) by Christophe Molnar.
 - [Interpretability Beyond Feature Attribution](https://www.youtube.com/watch?v=Ff-Dx79QEEY) by Been Kim.
@@ -278,9 +328,30 @@ To learn more about Explainable AI in general, see:
 - [A Roadmap for the Rigorous Science of Interpretability](https://www.youtube.com/watch?v=MMxZlr_L6YE) by Finale Doshi-Velez.
 - [DEEL White paper](https://arxiv.org/abs/2103.10529) a summary of the DEEL team on the challenges of certifiable AI and the role of explainability for this purpose
 
+</details>
+
+<details>
+<summary> More from the DEEL project: </summary>
+
+- [deel-lip](https://github.com/deel-ai/deel-lip) a Python library for training k-Lipschitz neural networks on TF.
+- [deel-torchlip](https://github.com/deel-ai/deel-torchlip) a Python library for training k-Lipschitz neural networks on PyTorch.
+- [Influenciae](https://github.com/deel-ai/influenciae) Python toolkit dedicated to computing influence values for the discovery of potentially problematic samples in a dataset.
+- [LARD](https://github.com/deel-ai/LARD) Landing Approach Runway Detection (LARD) is a dataset of aerial front view images of runways designed for aircraft landing phase
+- [PUNCC](https://github.com/deel-ai/puncc) Puncc (Predictive uncertainty calibration and conformalization) is an open-source Python library that integrates a collection of state-of-the-art conformal prediction algorithms and related techniques for regression and classification problems
+- [OODEEL](https://github.com/deel-ai/oodeel) OODeel is a library that performs post-hoc deep OOD detection on already trained neural network image classifiers. The philosophy of the library is to favor quality over quantity and to foster easy adoption
+- [DEEL White paper](https://arxiv.org/abs/2103.10529) a summary of the DEEL team on the challenges of certifiable AI and the role of data quality, representativity and explainability for this purpose.
+
+</details>
+
 ## 🙏 Acknowledgments
 
-<img align="right" src="https://www.deel.ai/wp-content/uploads/2021/05/logo-DEEL.png" width="25%">
+<div align="right">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://share.deel.ai/apps/theming/image/logo?useSvg=1&v=10"  width="25%" align="right">
+    <source media="(prefers-color-scheme: light)" srcset="https://www.deel.ai/wp-content/uploads/2021/05/logo-DEEL.png"  width="25%" align="right">
+    <img alt="DEEL Logo" src="https://www.deel.ai/wp-content/uploads/2021/05/logo-DEEL.png" width="25%" align="right">
+  </picture>
+</div>
 This project received funding from the French ”Investing for the Future – PIA3” program within the Artificial and Natural Intelligence Toulouse Institute (ANITI). The authors gratefully acknowledge the support of the <a href="https://www.deel.ai/"> DEEL </a> project.
 
 ## 👨‍🎓 Creators
@@ -307,6 +378,7 @@ If you use Xplique as part of your workflow in a scientific publication, please 
   year={2022}
 }
 ```
+
 ## 📝 License
 
 The package is released under <a href="https://choosealicense.com/licenses/mit"> MIT license</a>.

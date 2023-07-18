@@ -68,6 +68,10 @@ p {
     text-align: justify
 }
 
+.central {
+    text-align: center
+}
+
 [data-md-color-scheme="slate"] h4 code {
     background-color: rgba(240, 240, 240, 0.05) !important;
 }

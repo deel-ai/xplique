@@ -1,53 +1,64 @@
-## 📞 Callable or Models handle by BlackBox Attribution methods
+# 📞 Callable or Models handle by BlackBox Attribution methods
 
 The model can be something else than a `tf.keras.Model` if it respects one of the following condition:
-- `model(inputs: np.ndarray)` return either a `np.ndarray` or a `tf.Tensor` of shape $(N, L)$ where $N$ is the number of samples and $L$ the number of targets
+
+- `model(inputs: np.ndarray)` return either a `np.ndarray` or a `tf.Tensor`
 - The model has a `scikit-learn` API and has a `predict_proba` function
 - The model is a `xgboost.XGBModel` from the [XGBoost python library](https://xgboost.readthedocs.io/en/latest/python/python_intro.html)
 - The model is a [TF Lite model](https://www.tensorflow.org/api_docs/python/tf/lite). Note this feature is experimental.
+- The model is a PyTorch model (see the [dedicated documentation](../pytorch/))
 
-On the other hand, a PyTorch model can be used with method having Callable as type of model. In order to makes it work you should write a
-wrapper as follow:
-
-```python
-class TemplateTorchWrapper(nn.Module):
-  def __init__(self, torch_model):
-    super(TemplateTorchWrapper, self).__init__()
-    self.model = torch_model
-
-  def __call__(self, inputs):
-    # transform your numpy inputs to torch
-    torch_inputs = self._transform_np_inputs(inputs)
-    # mak predictions
-    with torch.no_grad():
-        outputs = self.model(torch_inputs)
-    # convert to numpy
-    outputs = outputs.detach().numpy()
-    # convert to tf.Tensor
-    outputs = tf.cast(outputs, tf.float32)
-    return outputs
-
-  def _transform_np_inputs(self, np_inputs):
-    # include in this function all transformation
-    # needed for your torch model to work, here
-    # for example we swap from channels last to
-    # channels first
-    np_inputs = np.swapaxes(np_inputs, -1, 1)
-    torch_inputs = torch.Tensor(np_inputs)
-    return torch_inputs
-
-wrapped_model = TemplateTorchWrapper(torch_model)
-explainer = Lime(wrapped_model)
-explanations = explainer.explain(images, labels)
-```
-
-As a matter of fact, if the instance of your model doesn't belong to [`tf.keras.Model`, `tf.lite.Interpreter`, `sklearn.base.BaseEstimator`, `xgboost.XGBModel`] when the explainer will need
-to make inference the following will happen:
+In fact, what happens when a custom `operator` is not provided (see [operator's documentation](../api/attributions/operator)) and `model` (see [model's documentation](../api/attributions/model)) is not a `tf.keras.Model`, a `tf.Module` or a `tf.keras.layers.Layer` is that the `predictions_one_hot_callable` operator is used:
 
 ```python
-# inputs are automatically transform to tf.Tensor when using an explainer
-pred = model(inputs.numpy())
-pred = tf.cast(pred, dtype=tf.float32)
-scores = tf.reduce_sum(pred * targets, axis=-1)
+def predictions_one_hot_callable(
+    model: Callable,
+    inputs: tf.Tensor,
+    targets: tf.Tensor) -> tf.Tensor:
+    """
+    Compute predictions scores, only for the label class, for a batch of samples.
+
+    Parameters
+    ----------
+    model
+        Model used for computing predictions.
+    inputs
+        Input samples to be explained.
+    targets
+        One-hot encoded labels or regression target (e.g {+1, -1}), one for each sample.
+
+    Returns
+    -------
+    scores
+        Predictions scores computed, only for the label class.
+    """
+    if isinstance(model, tf.lite.Interpreter):
+
+        model.resize_tensor_input(0, [*inputs.shape], strict=False)
+        model.allocate_tensors()
+        model.set_tensor(model.get_input_details()[0]["index"], inputs)
+        model.invoke()
+        pred = model.get_tensor(model.get_output_details()[0]["index"])
+
+    # can be a sklearn model or xgboost model
+    elif hasattr(model, 'predict_proba'):
+        pred = model.predict_proba(inputs.numpy())
+
+    # can be another model thus it needs to implement a call function
+    else:
+        pred = model(inputs.numpy())
+
+    # make sure that the prediction shape is coherent
+    if inputs.shape[0] != 1:
+        # a batch of prediction is required
+        if len(pred.shape) == 1:
+            # The prediction dimension disappeared
+            pred = tf.expand_dims(pred, axis=1)
+
+    pred = tf.cast(pred, dtype=tf.float32)
+    scores = tf.reduce_sum(pred * targets, axis=-1)
+
+    return scores
 ```
-Knowing that, you are free to wrap your model to make it work with our API!
+
+Knowing that, you are free to wrap your model to make it work with our API and/or write a more customizable `operator`(see [operator's documentation](../api/attributions/operator))!
