@@ -10,3 +10,4 @@ from .callable_operations import predictions_one_hot_callable
 from .operators import check_operator, operator_batching,\
                        get_inference_function, get_gradient_functions
 from .exceptions import no_gradients_available, raise_invalid_operator
+from .forgrad import forgrad
