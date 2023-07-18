@@ -39,7 +39,6 @@ pc_update:
 
 doc:
 	. xplique_dev_env/bin/activate && mkdocs build
-	. xplique_dev_env/bin/activate && mkdocs gh-deploy
 
 serve-doc:
 	. xplique_dev_env/bin/activate && CUDA_VISIBLE_DEVICES=-1 mkdocs serve

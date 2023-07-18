@@ -1,9 +1,6 @@
 name: tests for torch
 
 on:
-  push:
-    branches:
-      - lucas/torch
   pull_request:
   workflow_dispatch:
 
