@@ -208,17 +208,18 @@ def get_operator(
         The operator requested
     """
     # case when no operator is provided
-    if operator is None:
-        if is_for_metric:
-            return classif_metrics_operator
-        return predictions_operator
+    if operator is None and is_for_metric:
+        return classif_metrics_operator
 
     # case when the query is a string
     if isinstance(operator, str):
 
         # transform the string to one of the Tasks enum if it exists
         if operator.upper() in 'CLASSIFICATION':
-            operator = Tasks.CLASSIFICATION
+            if is_for_metric:
+                operator = classif_metrics_operator
+            else:
+                operator = Tasks.CLASSIFICATION
         elif operator.upper() in 'REGRESSION':
             operator = Tasks.REGRESSION
         elif operator.upper() in 'SEGMENTATION':
@@ -266,7 +267,7 @@ def get_gradient_of_operator(operator):
     return gradient
 
 
-def operator_batching(operator: Callable) -> tf.Tensor:
+def operator_batching(operator: OperatorSignature) -> tf.Tensor:
     """
     Take care of batching an operator: (model, inputs, labels).
 
@@ -299,10 +300,16 @@ def operator_batching(operator: Callable) -> tf.Tensor:
 batch_predictions = operator_batching(predictions_operator)
 gradients_predictions = get_gradient_of_operator(predictions_operator)
 batch_gradients_predictions = operator_batching(gradients_predictions)
+batch_predictions_metrics = operator_batching(classif_metrics_operator)
+gradients_predictions_metrics = get_gradient_of_operator(classif_metrics_operator)
+batch_gradients_predictions_metrics = operator_batching(gradients_predictions_metrics)
 batch_predictions_one_hot_callable = operator_batching(predictions_one_hot_callable)
 
 
-def get_inference_function(model: Callable, operator: Optional[Callable] = None):
+def get_inference_function(
+        model: Callable,
+        operator: Optional[OperatorSignature] = None,
+        is_for_metric: bool = False):
     """
     Define the inference function according to the model type
 
@@ -324,21 +331,20 @@ def get_inference_function(model: Callable, operator: Optional[Callable] = None)
         it has an additionnal parameter `batch_size`.
     """
     if operator is not None:
-        # user specified a custom operator, we check if the operator is valid
+        # user specified a string, an operator from the ones available or a
+        # custom operator, we check if the operator is valid
         # and we wrap it to generate a batching version of this operator
-        check_operator(operator)
+        operator = get_operator(operator, is_for_metric)
         inference_function = operator
         batch_inference_function = operator_batching(operator)
 
-    elif isinstance(model, tf.keras.Model):
-        # no custom operator, for keras model we can backprop through the model
-        inference_function = predictions_operator
-        batch_inference_function = batch_predictions
-
-    elif isinstance(model, (tf.Module, tf.keras.layers.Layer)):
-        # maybe a custom model (e.g. tf-lite), we can't backprop through it
-        inference_function = predictions_operator
-        batch_inference_function = batch_predictions
+    elif isinstance(model, (tf.keras.Model, tf.Module, tf.keras.layers.Layer)):
+        if is_for_metric:
+            inference_function = classif_metrics_operator
+            batch_inference_function = batch_predictions_metrics
+        else:
+            inference_function = predictions_operator
+            batch_inference_function = batch_predictions
 
     else:
         # completely unknown model (e.g. sklearn), we can't backprop through it
@@ -348,7 +354,10 @@ def get_inference_function(model: Callable, operator: Optional[Callable] = None)
     return inference_function, batch_inference_function
 
 
-def get_gradient_functions(model: Callable, operator: Optional[Callable] = None):
+def get_gradient_functions(
+        model: Callable,
+        operator: Optional[OperatorSignature] = None,
+        is_for_metric: bool =False):
     """
     Define the gradient function according to the model type
 
@@ -370,16 +379,21 @@ def get_gradient_functions(model: Callable, operator: Optional[Callable] = None)
         it has an additionnal parameter `batch_size`.
     """
     if operator is not None:
-        # user specified a custom operator, we wrap it to generate the
-        # gradient function of this operator
-        # operator has already been checked by the super class
+        # user specified a string, an operator from the ones available or a
+        # custom operator, we check if the operator is valid
+        # and we wrap it to generate a batching version of this operator
+        operator = get_operator(operator, is_for_metric)
         gradient = get_gradient_of_operator(operator)
         batch_gradient = operator_batching(gradient)
 
     elif isinstance(model, tf.keras.Model):
         # no custom operator, for keras model we can backprop through the model
-        gradient = gradients_predictions
-        batch_gradient = batch_gradients_predictions
+        if is_for_metric:
+            gradient = gradients_predictions_metrics
+            batch_gradient = batch_gradients_predictions_metrics
+        else:
+            gradient = gradients_predictions
+            batch_gradient = batch_gradients_predictions
 
     else:
         # custom model or completely unknown model (e.g. sklearn), we can't backprop through it

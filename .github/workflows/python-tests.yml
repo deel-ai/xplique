@@ -12,7 +12,7 @@ jobs:
       matrix:
         include:
             - python-version: 3.7
-              tf-version: 2.1
+              tf-version: 2.2
             - python-version: 3.8
               tf-version: 2.5
             - python-version: 3.9

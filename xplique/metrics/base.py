@@ -7,7 +7,7 @@ from abc import ABC, abstractmethod
 import tensorflow as tf
 import numpy as np
 
-from ..commons import Tasks, numpy_sanitize, get_operator, get_inference_function
+from ..commons import Tasks, numpy_sanitize, get_inference_function
 from ..types import Callable, Optional, Union, OperatorSignature
 
 
@@ -107,12 +107,9 @@ class ExplanationMetric(BaseAttributionMetric, ABC):
         # pylint: disable=R0913
         super().__init__(model, inputs, targets, batch_size)
 
-        # get the operator
-        operator = get_operator(operator, is_for_metric=True)
-
         # define the inference function according to the model type
         self.inference_function, self.batch_inference_function = \
-            get_inference_function(model, operator)
+            get_inference_function(model, operator, is_for_metric=True)
 
     @abstractmethod
     def evaluate(self,
