@@ -76,7 +76,7 @@ def test_image_object_detector():
     class BBoxFormater(IObjectFormater):
 
         def format_objects(self, predictions):
-            if np.all(predictions.numpy() == obj_ref.numpy()):
+            if np.array_equal(predictions.numpy(), obj_ref.numpy()):
                 return obj_ref[:4], obj_ref[4:5], obj_ref[5:]
 
 
