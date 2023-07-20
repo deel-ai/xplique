@@ -24,6 +24,7 @@ nav:
       - Sobol Attribution Method: api/attributions/sobol.md
       - Hsic Attribution Method: api/attributions/hsic.md
       - VarGrad: api/attributions/vargrad.md
+      - ForGRad: api/attributions/forgrad.md
   - Concept based:
       - Cav: api/concepts/cav.md
       - Tcav: api/concepts/tcav.md
