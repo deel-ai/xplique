@@ -41,6 +41,7 @@ nav:
   - Concept based:
       - Cav: api/concepts/cav.md
       - Tcav: api/concepts/tcav.md
+      - Craft: api/concepts/craft.md
   - Feature visualization:
       - Modern Feature Visualization (MaCo): api/feature_viz/maco.md
       - Feature visualization: api/feature_viz/feature_viz.md
