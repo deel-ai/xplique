@@ -89,6 +89,17 @@ Finally, the _Metrics_ module covers the current metrics used in explainability.
         </a>
     </p>
 
+    - [**Concepts Methods**: CRAFT: Getting started on Tensorflow](https://colab.research.google.com/drive/1jmyhb89Bdz7H4G2KfK8uEVbSC-C_aht_)
+    <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1jmyhb89Bdz7H4G2KfK8uEVbSC-C_aht_) </sub>
+    - [**Concepts Methods**: CRAFT: Getting started on Pytorch](https://colab.research.google.com/drive/16Jn2pQy4gi2qQYZFnuW6ZNtVAYiNyJHO)
+    <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/16Jn2pQy4gi2qQYZFnuW6ZNtVAYiNyJHO) </sub>
+
+    <p align="center" width="100%">
+        <a href="https://colab.research.google.com/drive/1jmyhb89Bdz7H4G2KfK8uEVbSC-C_aht_">
+            <img width="95%" src="./assets/craft.jpeg">
+        </a>
+    </p>
+
     - [**Feature Visualization**: Getting started](https://colab.research.google.com/drive/1st43K9AH-UL4eZM1S4QdyrOi7Epa5K8v) <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1st43K9AH-UL4eZM1S4QdyrOi7Epa5K8v) </sub>
 
     - [**Feature Visualization**: Getting started](https://colab.research.google.com/drive/1st43K9AH-UL4eZM1S4QdyrOi7Epa5K8v) <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1st43K9AH-UL4eZM1S4QdyrOi7Epa5K8v) </sub>
@@ -151,6 +162,8 @@ Now that Xplique is installed, here are some basic examples of what you can do w
 
 ??? example "Concepts Extraction"
 
+    ### CAV
+
     Concerning the concept-based methods, we can for example extract a concept vector from a layer of a model. In order to do this, we use two datasets, one containing inputs containing the concept: `positive_samples`, the other containing other entries which do not contain the concept: `negative_samples`.
 
     ```python
@@ -166,6 +179,32 @@ Now that Xplique is installed, here are some basic examples of what you can do w
     ```
 
     More information on CAV [here](api/concepts/cav/) and on TCAV [here](api/concepts/tcav/).
+
+    ### CRAFT
+
+    Use Craft to investigate a single class.
+
+    ```python
+    from xplique.concepts import CraftTf as Craft
+
+    # Cut the model in two parts: g and h
+    # Create a Craft concept extractor from these 2 models
+    craft = Craft(input_to_latent_model = g,
+                latent_to_logit_model = h)
+
+    # Use Craft to compute the concepts for a specific class
+    craft.fit(images_preprocessed, class_id=rabbit_class_id)
+
+    # Compute Sobol indices to understand which concept matters
+    importances = craft.estimate_importance()
+
+    # Display those concepts by showing the 10 best crops for each concept
+    craft.plot_concepts_crops(nb_crops=10)
+
+    ```
+
+    More information in the [CRAFT documentation](api/concepts/craft/).
+
 
 ??? example "Feature Visualization"
 
@@ -268,14 +307,17 @@ There are 4 modules in Xplique, [Attribution methods](api/attributions/api_attri
 
 ??? abstract "Table of concept methods available"
 
-    | **Concepts method**             | Type of Model | Source                                        |
-    | :------------------------------ | :------------ | :-------------------------------------------- |
-    | Concept Activation Vector (CAV) | TF            | [Paper](https://arxiv.org/pdf/1711.11279.pdf) |
-    | Testing CAV (TCAV)              | TF            | [Paper](https://arxiv.org/pdf/1711.11279.pdf) |
-    | (WIP) Robust TCAV               |               |
-    | (WIP) Automatic Concept Extraction (ACE)        |
-
+    | **Concepts method**             | Type of Model | Source                                        | Tutorial       |
+    | :------------------------------ | :------------ | :-------------------------------------------- | :------------  |
+    | Concept Activation Vector (CAV) | TF            | [Paper](https://arxiv.org/pdf/1711.11279.pdf) | |
+    | Testing CAV (TCAV)              | TF            | [Paper](https://arxiv.org/pdf/1711.11279.pdf) | |
+    | CRAFT Tensorflow | TF | [Paper](https://arxiv.org/pdf/2211.10154.pdf) | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1jmyhb89Bdz7H4G2KfK8uEVbSC-C_aht_) |
+    | CRAFT PyTorch  | PyTorch** | [Paper](https://arxiv.org/pdf/2211.10154.pdf) | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/16Jn2pQy4gi2qQYZFnuW6ZNtVAYiNyJHO) |
+    | (WIP) Robust TCAV               |               | | |
+    | (WIP) Automatic Concept Extraction (ACE)        | | |
     TF : Tensorflow compatible
+
+    ** : See the [Xplique for Pytorch documentation](pytorch/), and the [**PyTorch's model**: Getting started](https://colab.research.google.com/drive/1bMlO29_0K3YnTQBbbyKQyRfo8YjvDbhe)<sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1bMlO29_0K3YnTQBbbyKQyRfo8YjvDbhe) </sub> notebook
 
 ??? abstract "Table of Feature Visualization methods available"
 

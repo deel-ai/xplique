@@ -64,7 +64,12 @@ Here is the lists of the availables tutorial for now:
 
 ## Concepts extraction
 
-**WIP**
+| Category      | **Tutorial Name**      | Notebook                                                                                                                                                           |
+|:------------- | :--------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------: |
+| Labelled concept methods | CAV + TCAV           | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1iuEz46ZjgG97vTBH8p-vod3y14UETvVE) |
+|  |  |  |
+| Automatic concept extraction      | CRAFT Tensorflow          | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1jmyhb89Bdz7H4G2KfK8uEVbSC-C_aht_) |
+| Automatic concept extraction      | CRAFT Pytorch             | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/16Jn2pQy4gi2qQYZFnuW6ZNtVAYiNyJHO) |
 
 ## Feature Visualization
 
