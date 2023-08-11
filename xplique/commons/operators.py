@@ -152,7 +152,7 @@ def check_operator(operator: Callable):
     is_valid
         True if the operator is valid, False otherwise.
     """
-    is_callable = isinstance(operator, Callable)
+    is_callable = hasattr(operator, "__call__")
     args = inspect.getfullargspec(operator).args
 
     # we allow operator with optional arguments, but the first 3 must be present

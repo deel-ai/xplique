@@ -12,3 +12,5 @@ from .operators import predictions_operator, get_gradient_of_operator, operator_
                        batch_predictions, gradients_predictions, batch_gradients_predictions, \
                        check_operator
 from .exceptions import no_gradients_available, raise_invalid_operator
+from .tf_dataset_operations import are_dataset_first_elems_equal, dataset_gather, sanitize_dataset,\
+                                   is_not_shuffled, batch_size_matches
