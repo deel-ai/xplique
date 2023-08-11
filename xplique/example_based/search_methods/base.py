@@ -1,5 +1,5 @@
 """
-Base model for example-based 
+Base search method for example-based module
 """
 
 from abc import ABC, abstractmethod
@@ -7,9 +7,55 @@ from abc import ABC, abstractmethod
 import tensorflow as tf
 import numpy as np
 
-from ...types import Callable, Dict, Tuple, Union, Optional, List
+from ...types import Callable, Union, Optional, List
 
-from ...attributions.base import sanitize_input_output
+from ...commons import sanitize_dataset
+
+from ..projections.base import Projection
+
+
+def _sanitize_returns(returns: Optional[Union[List[str], str]] = None,
+                      possibilities: List[str] = None,
+                      default: Union[List[str], str] = None):
+    """
+    Factorization of `set_returns` for `BaseSearchMethod` and `SimilarExamples`.
+    It cleans the `returns` parameter.
+    Results is either a sublist of possibilities or a value among possibilities.
+
+    Parameters
+    ----------
+    returns
+        The value to verify and put to the `instance.returns` attribute.
+    possibilities
+        List of possible unit values for `instance.returns`.
+    default
+        Value in case `returns` is None.
+
+    Returns
+    -------
+    returns
+        The cleaned `returns` value.
+    """
+    if possibilities is None:
+        possibilities = ["examples"]
+    if default is None:
+        default = ["examples"]
+
+    if returns is None:
+        returns = default
+    elif isinstance(returns, str):
+        if returns == "all":
+            returns = possibilities
+        elif returns in possibilities:
+            returns = [returns]
+        else:
+            raise ValueError(f"{returns} should belong to {possibilities}")
+    elif isinstance(returns, list):
+        pass  # already in the right format.
+    else:
+        raise ValueError(f"{returns} should either be `str` or `List[str]`")
+
+    return returns
 
 
 class BaseSearchMethod(ABC):
@@ -20,28 +66,68 @@ class BaseSearchMethod(ABC):
 
     Parameters
     ----------
-    search_set
-        The dataset from which examples should be extracted.
+    cases_dataset
+        The dataset used to train the model, examples are extracted from the dataset.
         For natural example-based methods it is the train dataset.
+    targets_dataset
+        Targets associated to the cases_dataset for dataset projection. See `projection` for detail.
     k
         The number of examples to retrieve.
+    projection
+        Projection or Callable that project samples from the input space to the search space.
+        The search space sould be a space where distance make sense for the model.
+        It should not be `None`, otherwise,
+        all examples could be computed only with the `search_method`.
+
+        Example of Callable:
+        ```
+        def custom_projection(inputs: tf.Tensor, np.ndarray, targets: tf.Tensor, np.ndarray = None):
+            '''
+            Example of projection,
+            inputs are the elements to project.
+            targets are optionnal parameters to orientated the projection.
+            '''
+            projected_inputs = # do some magic on inputs, it should use the model.
+            return projected_inputs
+        ```
     search_returns
         String or list of string with the elements to return in `self.find_examples()`.
         See `self.set_returns()` for detail.
+    batch_size
+        Number of sample treated simultaneously.
+        It should match the batch size of the `search_set` in the case of a `tf.data.Dataset`.
     """
-    def __init__(self,
-                 search_set: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
-                 k: int = 1,
-                 search_returns: Optional[Union[List[str], str]] = None):
-        self.search_set = search_set
+
+    def __init__(
+        self,
+        cases_dataset: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
+        targets_dataset: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
+        k: int = 1,
+        projection: Union[Projection, Callable] = None,
+        search_returns: Optional[Union[List[str], str]] = None,
+        batch_size: Optional[int] = 32,
+    ): # pylint: disable=R0801
+        # set batch size
+        if hasattr(cases_dataset, "_batch_size"):
+            self.batch_size = cases_dataset._batch_size
+        else:
+            self.batch_size = batch_size
+
+        self.cases_dataset = sanitize_dataset(cases_dataset, self.batch_size)
+        self.targets_dataset = sanitize_dataset(targets_dataset, self.batch_size)
+        if self.targets_dataset is None:
+            # The `find_examples()` method need to be able to iterate on `self.targets_dataset`
+            self.targets_dataset = [None] * self.cases_dataset.cardinality().numpy()
+
         self.set_k(k)
         self.set_returns(search_returns)
+        self.projection = projection
 
     def set_k(self, k: int):
         """
         Change value of k with constructing a new `BaseSearchMethod`.
         It is useful because the constructor can be computionnaly expensive.
-        
+
         Parameters
         ----------
         k
@@ -53,7 +139,7 @@ class BaseSearchMethod(ABC):
     def set_returns(self, returns: Optional[Union[List[str], str]] = None):
         """
         Set `self.returns` used to define returned elements in `self.find_examples()`.
-        
+
         Parameters
         ----------
         returns
@@ -68,24 +154,13 @@ class BaseSearchMethod(ABC):
                 - 'include_inputs' specify if inputs should be included in the returned elements.
                 Note that it changes the number of returned elements from k to k+1.
         """
-        if returns is None:
-            self.returns = ["examples"]
-        elif isinstance(returns, str):
-            possibilities = ["examples", "indices", "distances", "include_inputs"]
-            if returns == "all":
-                self.returns = possibilities
-            elif returns in possibilities:
-                self.returns = [returns]
-            else:
-                raise ValueError(f"{returns} should belong to {possibilities}")
-        elif isinstance(returns, list):
-            self.returns = returns
-        else:
-            raise ValueError(f"{returns} should either be `str` or `List[str]`")
+        possibilities = ["examples", "indices", "distances", "include_inputs"]
+        default = "examples"
+        self.returns = _sanitize_returns(returns, possibilities, default)
 
 
     @abstractmethod
-    def find_examples(self, inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray]):
+    def find_examples(self, inputs: Union[tf.Tensor, np.ndarray]):
         """
         Search the samples to return as examples. Called by the explain methods.
         It may also return the indices corresponding to the samples,
@@ -94,11 +169,12 @@ class BaseSearchMethod(ABC):
         Parameters
         ----------
         inputs
-            Dataset, Tensor or Array. Input samples to be explained.
+            Tensor or Array. Input samples to be explained.
+            Assumed to have been already projected.
             Expected shape among (N, W), (N, T, W), (N, W, H, C).
         """
         raise NotImplementedError()
 
-    def __call__(self, inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray]):
+    def __call__(self, inputs: Union[tf.Tensor, np.ndarray]):
         """find_samples alias"""
         return self.find_examples(inputs)
