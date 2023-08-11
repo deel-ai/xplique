@@ -222,14 +222,19 @@ def plot_examples(
     """
     # pylint: disable=too-many-arguments
     if weights is not None:
-        assert examples.shape[:2] == weights.shape[:2], "Number of weights must correspond to the number of examples."
+        assert examples.shape[:2] == weights.shape[:2],\
+            "Number of weights must correspond to the number of examples."
     if distances is not None:
-        assert examples.shape[0] == distances.shape[0], "Number of samples treated should match between examples and distances."
-        assert examples.shape[1] == distances.shape[1] + 1, "Number of distances for each input must correspond to the number of examples -1."
+        assert examples.shape[0] == distances.shape[0],\
+            "Number of samples treated should match between examples and distances."
+        assert examples.shape[1] == distances.shape[1] + 1,\
+            "Number of distances for each input must correspond to the number of examples -1."
     if labels is not None:
-        assert examples.shape[0] == labels.shape[0], "Number of samples treated should match between examples and labels."
-        assert examples.shape[1] == labels.shape[1] + 1, "Number of labels for each input must correspond to the number of examples -1."
-    
+        assert examples.shape[0] == labels.shape[0],\
+            "Number of samples treated should match between examples and labels."
+        assert examples.shape[1] == labels.shape[1] + 1,\
+            "Number of labels for each input must correspond to the number of examples -1."
+
     # number of rows depends if weights are provided
     rows = (1 + (weights is not None)) * examples.shape[0]
     cols = examples.shape[1]
@@ -244,7 +249,7 @@ def plot_examples(
 
     left = margin/figwidth
     bottom = margin/figheight
-    
+
     space_with_line = spacing / (3 * img_size)
 
     fig = plt.figure()
@@ -258,7 +263,7 @@ def plot_examples(
         wspace = spacing/img_size,
         hspace= spacing/img_size * l_width/l_height
     )
-    
+
     # configure the grid to show all results
     plt.rcParams["figure.autolayout"] = True
     plt.rcParams["figure.figsize"] = [3 * examples.shape[1], 4 * (1 + (weights is not None))]
@@ -267,19 +272,21 @@ def plot_examples(
     for i in range(examples.shape[0]):
         for k in range(examples.shape[1]):
             plt.subplot(rows, cols, 2 * i * cols + k + 1)
-            
+
             # set title
             if k == 0:
                 title = "Original image"
                 title += f"\nGround Truth: {test_labels[i]}" if test_labels is not None else ""
-                title += f"\nPrediction: {predicted_labels[i, k]}" if predicted_labels is not None else ""
+                title += f"\nPrediction: {predicted_labels[i, k]}"\
+                    if predicted_labels is not None else ""
             else:
                 title = f"Example {k}"
                 title += f"\nGround Truth: {labels[i, k-1]}" if labels is not None else ""
-                title += f"\nPrediction: {predicted_labels[i, k]}" if predicted_labels is not None else ""
+                title += f"\nPrediction: {predicted_labels[i, k]}"\
+                    if predicted_labels is not None else ""
                 title += f"\nDistance: {distances[i, k-1]:.4f}" if distances is not None else ""
             plt.title(title)
-            
+
             # plot image
             img = _normalize(examples[i, k])
             if img.shape[-1] == 1:
@@ -287,11 +294,12 @@ def plot_examples(
             else:
                 plt.imshow(img)
             plt.axis("off")
-            
+
             # plot weights
             if weights is not None:
                 plt.subplot(rows, cols, (2 * i + 1) * cols + k + 1)
                 plot_attribution(weights[i, k], examples[i, k], **attribution_kwargs)
                 plt.axis("off")
-                plt.plot([-1, 1.5], [-space_with_line, -space_with_line], color='black', lw=1, transform=plt.gca().transAxes, clip_on=False)
+                plt.plot([-1, 1.5], [-space_with_line, -space_with_line],
+                         color='black', lw=1, transform=plt.gca().transAxes, clip_on=False)
     fig.tight_layout()
