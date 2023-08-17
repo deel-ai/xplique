@@ -127,7 +127,7 @@ class KNN(BaseSearchMethod):
         # (n, k)
         best_distances = tf.Variable(tf.fill((nb_inputs, self.k), np.inf))
         # (n, bs)
-        batch_indices = tf.expand_dims(tf.range(self.batch_size), axis=0)
+        batch_indices = tf.expand_dims(tf.range(self.batch_size, dtype=tf.int32), axis=0)
         batch_indices = tf.tile(batch_indices, multiples=(nb_inputs, 1))
 
         # iterate on batches
@@ -144,7 +144,7 @@ class KNN(BaseSearchMethod):
             # (n, current_bs, 2)
             indices = batch_indices[:, : tf.shape(projected_cases)[0]]
             new_indices = tf.stack(
-                [tf.fill(indices.shape, batch_index), indices], axis=-1
+                [tf.fill(indices.shape, tf.cast(batch_index, tf.int32)), indices], axis=-1
             )
 
             # compute distances
