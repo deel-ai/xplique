@@ -236,7 +236,8 @@ def plot_examples(
             "Number of labels for each input must correspond to the number of examples -1."
 
     # number of rows depends if weights are provided
-    rows = (1 + (weights is not None)) * examples.shape[0]
+    rows_by_input = 1 + (weights is not None)
+    rows = rows_by_input * examples.shape[0]
     cols = examples.shape[1]
     # get width and height of our images
     l_width, l_height = examples.shape[2:4]
@@ -271,7 +272,7 @@ def plot_examples(
     # loop to organize and show all results
     for i in range(examples.shape[0]):
         for k in range(examples.shape[1]):
-            plt.subplot(rows, cols, 2 * i * cols + k + 1)
+            plt.subplot(rows, cols, rows_by_input * i * cols + k + 1)
 
             # set title
             if k == 0:
@@ -297,7 +298,7 @@ def plot_examples(
 
             # plot weights
             if weights is not None:
-                plt.subplot(rows, cols, (2 * i + 1) * cols + k + 1)
+                plt.subplot(rows, cols, (rows_by_input * i + 1) * cols + k + 1)
                 plot_attribution(weights[i, k], examples[i, k], **attribution_kwargs)
                 plt.axis("off")
                 plt.plot([-1, 1.5], [-space_with_line, -space_with_line],
