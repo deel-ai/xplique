@@ -5,13 +5,14 @@ Ensure we can use the operator functionnality on various models
 import numpy as np
 import tensorflow as tf
 
+import pytest
+
 from xplique.attributions import (Saliency, GradientInput, IntegratedGradients, SmoothGrad, VarGrad,
                                   SquareGrad, GradCAM, Occlusion, Rise, GuidedBackprop, DeconvNet,
                                   GradCAMPP, Lime, KernelShap, SobolAttributionMethod,
                                   HsicAttributionMethod)
 from xplique.commons.operators import (check_operator, predictions_operator, regression_operator,
-                                       binary_segmentation_operator, segmentation_operator,
-                                       classif_metrics_operator)
+                                       binary_segmentation_operator, segmentation_operator)
 from xplique.commons.operators import Tasks, get_operator
 from xplique.commons.exceptions import InvalidOperatorException
 from ..utils import generate_data, generate_regression_model
@@ -71,34 +72,24 @@ def test_check_operator():
 def test_proposed_operators():
     # ensure all proposed operators are operators
     for operator in [predictions_operator, regression_operator,
-                     binary_segmentation_operator, segmentation_operator,
-                     classif_metrics_operator]:
+                     binary_segmentation_operator, segmentation_operator]:
         check_operator(operator)
 
 
 def test_get_operator():
     tasks_name = [task.name for task in Tasks]
-    assert tasks_name.sort() == ['CLASSIFICATION', 'REGRESSION', 'REGRESSION', \
-                                 'BINARY_SEGMENTATION', 'SEGMENTATION'].sort()
+    assert tasks_name.sort() == ['classification', 'regression'].sort()
     # get by enum
     assert get_operator(Tasks.CLASSIFICATION) is predictions_operator
-    assert get_operator(Tasks.CLASSIFICATION, is_for_metric=True) is classif_metrics_operator
     assert get_operator(Tasks.REGRESSION) is regression_operator
-    assert get_operator(Tasks.BINARY_SEGMENTATION) is binary_segmentation_operator
-    assert get_operator(Tasks.SEGMENTATION) is segmentation_operator
 
     # get by string
-    assert get_operator("classif") is predictions_operator
-    assert get_operator("Classif", is_for_metric=True) is classif_metrics_operator
-    assert get_operator("reg") is regression_operator
-    assert get_operator("bInary_Seg") is binary_segmentation_operator
-    assert get_operator("segmentation") is segmentation_operator
+    assert get_operator("classification") is predictions_operator
+    assert get_operator("regression") is regression_operator
 
     # assert a not valid string does not work
-    try:
+    with pytest.raises(AssertionError):
         get_operator("random")
-    except ValueError:
-        pass
 
     # operator must have at least 3 arguments
     function_with_2_arguments = lambda x,y: 0
