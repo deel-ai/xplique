@@ -53,6 +53,11 @@ class MuFidelity(ExplanationMetric):
         Function g to explain, g take 3 parameters (f, x, y) and should return a scalar,
         with f the model, x the inputs and y the targets. If None, use the standard
         operator g(f, x, y) = f(x)[y].
+    activation
+        A string that belongs to [None, 'sigmoid', 'softmax']. Specify if we should add
+        an activation layer once the model has been called. It is useful, for instance
+        if you want to measure a 'drop of probability' by adding a sigmoid or softmax
+        after getting your logits. If None does not add a layer to your model.
     """
 
     def __init__(self,
@@ -64,9 +69,10 @@ class MuFidelity(ExplanationMetric):
                  subset_percent: float = 0.2,
                  baseline_mode: Union[Callable, float] = 0.0,
                  nb_samples: int = 200,
-                 operator: Optional[Callable] = None,):
+                 operator: Optional[Callable] = None,
+                 activation: Optional[str] = None):
         # pylint: disable=R0913
-        super().__init__(model, inputs, targets, batch_size, operator)
+        super().__init__(model, inputs, targets, batch_size, operator, activation)
         self.grid_size = grid_size
         self.subset_percent = subset_percent
         self.baseline_mode = baseline_mode
@@ -166,6 +172,11 @@ class CausalFidelity(ExplanationMetric):
         Function g to explain, g take 3 parameters (f, x, y) and should return a scalar,
         with f the model, x the inputs and y the targets. If None, use the standard
         operator g(f, x, y) = f(x)[y].
+    activation
+        A string that belongs to [None, 'sigmoid', 'softmax']. Specify if we should add
+        an activation layer once the model has been called. It is useful, for instance
+        if you want to measure a 'drop of probability' by adding a sigmoid or softmax
+        after getting your logits. If None does not add a layer to your model.
     """
 
     def __init__(self,
@@ -178,9 +189,10 @@ class CausalFidelity(ExplanationMetric):
                  steps: int = 10,
                  max_percentage_perturbed: float = 1.0,
                  operator: Optional[Callable] = None,
+                 activation: Optional[str] = None
                  ):
         # pylint: disable=R0913
-        super().__init__(model, inputs, targets, batch_size, operator)
+        super().__init__(model, inputs, targets, batch_size, operator, activation)
         self.causal_mode = causal_mode
         self.baseline_mode = baseline_mode
 
@@ -330,6 +342,11 @@ class Deletion(CausalFidelity):
         Function g to explain, g take 3 parameters (f, x, y) and should return a scalar,
         with f the model, x the inputs and y the targets. If None, use the standard
         operator g(f, x, y) = f(x)[y].
+    activation
+        A string that belongs to [None, 'sigmoid', 'softmax']. Specify if we should add
+        an activation layer once the model has been called. It is useful, for instance
+        if you want to measure a 'drop of probability' by adding a sigmoid or softmax
+        after getting your logits. If None does not add a layer to your model.
     """
 
     def __init__(self,
@@ -341,10 +358,11 @@ class Deletion(CausalFidelity):
                  steps: int = 10,
                  max_percentage_perturbed: float = 1.0,
                  operator: Optional[Callable] = None,
+                 activation: Optional[str] = None
                  ):
         super().__init__(model, inputs, targets, batch_size, "deletion",
                          baseline_mode, steps, max_percentage_perturbed,
-                         operator)
+                         operator, activation)
 
 
 class Insertion(CausalFidelity):
@@ -377,6 +395,11 @@ class Insertion(CausalFidelity):
         Function g to explain, g take 3 parameters (f, x, y) and should return a scalar,
         with f the model, x the inputs and y the targets. If None, use the standard
         operator g(f, x, y) = f(x)[y].
+    activation
+        A string that belongs to [None, 'sigmoid', 'softmax']. Specify if we should add
+        an activation layer once the model has been called. It is useful, for instance
+        if you want to measure a 'drop of probability' by adding a sigmoid or softmax
+        after getting your logits. If None does not add a layer to your model.
     """
 
     def __init__(self,
@@ -388,7 +411,8 @@ class Insertion(CausalFidelity):
                  steps: int = 10,
                  max_percentage_perturbed: float = 1.0,
                  operator: Optional[Callable] = None,
+                 activation: Optional[str] = None
                  ):
         super().__init__(model, inputs, targets, batch_size, "insertion",
                          baseline_mode, steps, max_percentage_perturbed,
-                         operator)
+                         operator, activation)
