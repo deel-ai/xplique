@@ -1,19 +1,10 @@
 """
 Module for having a wrapper for PyTorch's model
 """
+import warnings
 
 import tensorflow as tf
 import numpy as np
-
-try:
-    # use PyTorch functionality
-    import torch
-    from torch import nn
-    from torch import from_numpy
-except ImportError as exc:
-    raise ImportError(
-       "PyTorch is required to use this feature. Please install PyTorch using 'pip install torch'."
-    ) from exc
 
 from ..types import Union, Optional, Tuple, Callable
 
@@ -32,18 +23,38 @@ class TorchWrapper(tf.keras.Model):
         A boolean that is true if the torch's model expect a channel dim and if this one come first
     """
 
-    def __init__(self, torch_model: nn.Module, device: Union['torch.device', str],
-                 is_channel_first: Optional[bool] = None):
+    def __init__(self, torch_model: "nn.Module", device: Union['torch.device', str],
+                 is_channel_first: Optional[bool] = None
+                 ): # pylint: disable=C0415,C0103
+
         super().__init__()
+
+        try:
+            # use PyTorch functionality
+            import torch
+            from torch import nn
+            from torch import from_numpy
+            self.torch = torch
+            self.nn = nn
+            self.from_numpy = from_numpy
+        except ImportError as exc:
+            raise ImportError(
+            "PyTorch is required to use this feature. \
+             Please install PyTorch using 'pip install torch'."
+            ) from exc
+
+        assert not(torch_model.training), "Please provide a torch module in eval mode"
         self.model = torch_model.to(device)
         self.device = device
         # with torch, the convention for CNN is (N, C, H, W)
         if is_channel_first is None:
-            self.channel_first = self._check_conv_layers()
+            self.channel_first = self._has_conv_layers()
         else:
             self.channel_first = is_channel_first
         # deactivate all tf.function
         tf.config.run_functions_eagerly(True)
+        warnings.warn("TF is set to run eagerly to avoid conflict with Pytorch. Thus,\
+                       TF functions might be slower")
 
     # pylint: disable=arguments-differ
     @tf.custom_gradient
@@ -58,7 +69,7 @@ class TorchWrapper(tf.keras.Model):
         ----------
         inputs
             Processed inputs as numpy arrays
-        
+
         Returns
         -------
         outputs
@@ -68,7 +79,7 @@ class TorchWrapper(tf.keras.Model):
             broadcast it for Tensorflow
         """
         # transform your numpy inputs to torch
-        torch_inputs = self.transform_np_inputs(inputs).to(self.device)
+        torch_inputs = self.np_img_to_torch(inputs).to(self.device)
         torch_inputs.requires_grad_(True)
 
         # make predictions
@@ -77,12 +88,11 @@ class TorchWrapper(tf.keras.Model):
         output_tensor = tf.constant(outputs.cpu().detach().numpy())
 
         def grad(upstream):
-            upstream_tensor = tf.constant(upstream.numpy())
-            torch.autograd.backward(
-                outputs.cpu(),
-                grad_tensors=from_numpy(upstream_tensor.numpy()),
-                retain_graph=True
-                )
+            self.torch.autograd.backward(
+                outputs,
+                grad_tensors=self.from_numpy(upstream.numpy()).to(self.device),
+                retain_graph=False
+            )
             dx_torch = torch_inputs.grad
 
             dx_np = dx_torch.cpu().detach().numpy()
@@ -95,7 +105,7 @@ class TorchWrapper(tf.keras.Model):
 
         return output_tensor, grad
 
-    def transform_np_inputs(self, np_inputs: np.ndarray):
+    def np_img_to_torch(self, np_inputs: np.ndarray):
         """
         Methods that transform inputs as expected by the explainer to inputs expected
         by your PyTorch model.
@@ -123,13 +133,13 @@ class TorchWrapper(tf.keras.Model):
             np_inputs = np.asarray(np_inputs)
 
         # convert numpy array to torch tensor
-        torch_inputs = torch.Tensor(np_inputs)
+        torch_inputs = self.torch.Tensor(np_inputs)
 
         return torch_inputs
 
-    def _check_conv_layers(self):
+    def _has_conv_layers(self):
         """
-        A method that checks if the PyTorch's model has 2D convolutional layer. 
+        A method that checks if the PyTorch's model has 2D convolutional layer.
         Indeed, convolution with PyTorch expects inputs in the shape (N, C, H, W)
         where TF expect (N, H, W, C).
 
@@ -141,7 +151,7 @@ class TorchWrapper(tf.keras.Model):
         has_conv_layers = False
 
         for module in self.model.modules():
-            if isinstance(module, nn.Conv2d):
+            if isinstance(module, self.nn.Conv2d):
                 has_conv_layers = True
                 break
 
