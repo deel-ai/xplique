@@ -8,8 +8,8 @@ import numpy as np
 import tensorflow as tf
 
 from .base import BlackBoxExplainer, sanitize_input_output
-from ..commons import repeat_labels, batch_tensor
-from ..types import Callable, Tuple, Union, Optional
+from ..commons import repeat_labels, batch_tensor, Tasks
+from ..types import Callable, Tuple, Union, Optional, OperatorSignature
 
 
 class Occlusion(BlackBoxExplainer):
@@ -42,7 +42,7 @@ class Occlusion(BlackBoxExplainer):
     def __init__(self,
                  model: Callable,
                  batch_size: Optional[int] = 32,
-                 operator: Optional[Callable[[tf.keras.Model, tf.Tensor, tf.Tensor], float]] = None,
+                 operator: Optional[Union[Tasks, str, OperatorSignature]] = None,
                  patch_size: Union[int, Tuple[int, int]] = 3,
                  patch_stride: Union[int, Tuple[int, int]] = 3,
                  occlusion_value: float = 0.0):

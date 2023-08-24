@@ -8,8 +8,8 @@ import cv2
 import numpy as np
 import tensorflow as tf
 
-from ...types import Callable, Union, Optional, Tuple
-from ...commons import batch_tensor, repeat_labels
+from ...types import Callable, Union, Optional, Tuple, OperatorSignature
+from ...commons import batch_tensor, repeat_labels, Tasks
 from ..base import BlackBoxExplainer, sanitize_input_output
 from .perturbations import amplitude, inpainting, blurring
 
@@ -90,7 +90,7 @@ class GSABaseAttributionMethod(BlackBoxExplainer):
         nb_design: int = 32,
         perturbation_function: Optional[Union[Callable, str]] = "inpainting",
         batch_size=256,
-        operator: Optional[Callable[[tf.keras.Model, tf.Tensor, tf.Tensor], float]] = None,
+        operator: Optional[Union[Tasks, str, OperatorSignature]] = None,
     ):
 
         super().__init__(model, batch_size, operator)

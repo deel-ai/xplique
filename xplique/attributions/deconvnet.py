@@ -6,8 +6,8 @@ import tensorflow as tf
 import numpy as np
 
 from .base import WhiteBoxExplainer, sanitize_input_output
-from ..commons import override_relu_gradient, deconv_relu_policy
-from ..types import Union, Optional, Callable
+from ..commons import override_relu_gradient, deconv_relu_policy, Tasks
+from ..types import Union, Optional, OperatorSignature
 
 
 class DeconvNet(WhiteBoxExplainer):
@@ -41,7 +41,7 @@ class DeconvNet(WhiteBoxExplainer):
                 model: tf.keras.Model,
                 output_layer: Optional[Union[str, int]] = None,
                 batch_size: Optional[int] = 32,
-                operator: Optional[Callable[[tf.keras.Model, tf.Tensor, tf.Tensor], float]] = None):
+                operator: Optional[Union[Tasks, str, OperatorSignature]] = None):
         super().__init__(model, output_layer, batch_size, operator)
         self.model = override_relu_gradient(self.model, deconv_relu_policy)
 

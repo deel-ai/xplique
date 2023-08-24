@@ -2,9 +2,8 @@
 Hsic Attribution Method explainer
 """
 
-import tensorflow as tf
-
-from ...types import Callable, Union, Optional
+from ...types import Callable, Union, Optional, OperatorSignature
+from ...commons import Tasks
 from .gsa_attribution_method import GSABaseAttributionMethod
 from .samplers import Sampler, TFSobolSequence
 from .hsic_estimators import (
@@ -57,7 +56,7 @@ class HsicAttributionMethod(GSABaseAttributionMethod):
         estimator: Optional[HsicEstimator] = None,
         perturbation_function: Optional[Union[Callable, str]] = "inpainting",
         batch_size=256,
-        operator: Optional[Callable[[tf.keras.Model, tf.Tensor, tf.Tensor], float]] = None,
+        operator: Optional[Union[Tasks, str, OperatorSignature]] = None,
     ):
 
         sampler = sampler if sampler is not None else TFSobolSequence(binary=True)

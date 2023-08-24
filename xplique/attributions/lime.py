@@ -11,7 +11,8 @@ from sklearn import linear_model
 from skimage.segmentation import quickshift, felzenszwalb
 
 from .base import BlackBoxExplainer, sanitize_input_output
-from ..types import Callable, Union, Optional, Any
+from ..commons import Tasks
+from ..types import Callable, Union, Optional, Any, OperatorSignature
 
 class Lime(BlackBoxExplainer):
     """
@@ -99,7 +100,7 @@ class Lime(BlackBoxExplainer):
         self,
         model: Callable,
         batch_size: Optional[int] = None,
-        operator: Optional[Callable[[tf.keras.Model, tf.Tensor, tf.Tensor], float]] = None,
+        operator: Optional[Union[Tasks, str, OperatorSignature]] = None,
         interpretable_model: Any = linear_model.Ridge(alpha=2),
         similarity_kernel: Optional[Callable[[tf.Tensor, tf.Tensor, tf.Tensor], tf.Tensor]] = None,
         pertub_func: Optional[Callable[[Union[int, tf.Tensor],int], tf.Tensor]] = None,
