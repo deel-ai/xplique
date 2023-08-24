@@ -45,7 +45,7 @@ explanations_filtered = forgrad(explanations, sigma=15)
 /1XproaVxXjO9nrBSyyy7BuKJ1vy21iHs2)
 
 
-{{xplique.attributions.forgrad.forgrad}}
+{{xplique.commons.forgrad.forgrad}}
 
 
 [^1]: [Gradient strikes back: How filtering out high frequencies improves explanations (2023)](https://arxiv.org/pdf/2307.09591.pdf)
