@@ -6,8 +6,8 @@ import tensorflow as tf
 import numpy as np
 
 from .base import WhiteBoxExplainer, sanitize_input_output
-from ..commons import guided_relu_policy, override_relu_gradient
-from ..types import Union, Optional, Callable
+from ..commons import guided_relu_policy, override_relu_gradient, Tasks
+from ..types import Union, Optional, OperatorSignature
 
 
 class GuidedBackprop(WhiteBoxExplainer):
@@ -42,7 +42,7 @@ class GuidedBackprop(WhiteBoxExplainer):
                 model: tf.keras.Model,
                 output_layer: Optional[Union[str, int]] = None,
                 batch_size: Optional[int] = 32,
-                operator: Optional[Callable[[tf.keras.Model, tf.Tensor, tf.Tensor], float]] = None):
+                operator: Optional[Union[Tasks, str, OperatorSignature]] = None):
         super().__init__(model, output_layer, batch_size, operator)
         self.model = override_relu_gradient(self.model, guided_relu_policy)
 

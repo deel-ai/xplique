@@ -7,8 +7,8 @@ import numpy as np
 import cv2
 
 from .base import WhiteBoxExplainer, sanitize_input_output
-from ..commons import find_layer
-from ..types import Tuple, Union, Optional, Callable
+from ..commons import find_layer, Tasks
+from ..types import Tuple, Union, Optional, OperatorSignature
 
 
 class GradCAM(WhiteBoxExplainer):
@@ -48,7 +48,7 @@ class GradCAM(WhiteBoxExplainer):
                  model: tf.keras.Model,
                  output_layer: Optional[Union[str, int]] = None,
                  batch_size: Optional[int] = 32,
-                 operator: Optional[Callable[[tf.keras.Model, tf.Tensor, tf.Tensor], float]] = None,
+                 operator: Optional[Union[Tasks, str, OperatorSignature]] = None,
                  conv_layer: Optional[Union[str, int]] = None):
         super().__init__(model, output_layer, batch_size, operator)
 

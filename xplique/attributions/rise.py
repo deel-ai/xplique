@@ -6,8 +6,8 @@ import tensorflow as tf
 import numpy as np
 
 from .base import BlackBoxExplainer, sanitize_input_output
-from ..commons import repeat_labels, batch_tensor
-from ..types import Callable, Optional, Union, Tuple
+from ..commons import repeat_labels, batch_tensor, Tasks
+from ..types import Callable, Optional, Union, Tuple, OperatorSignature
 
 
 class Rise(BlackBoxExplainer):
@@ -46,7 +46,7 @@ class Rise(BlackBoxExplainer):
     def __init__(self,
                  model: Callable,
                  batch_size: Optional[int] = 32,
-                 operator: Optional[Callable[[tf.keras.Model, tf.Tensor, tf.Tensor], float]] = None,
+                 operator: Optional[Union[Tasks, str, OperatorSignature]] = None,
                  nb_samples: int = 4000,
                  grid_size: Union[int, Tuple[int]] = 7,
                  preservation_probability: float = .5):

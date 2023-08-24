@@ -2,9 +2,8 @@
 Sobol Attribution Method explainer
 """
 
-import tensorflow as tf
-
-from ...types import Callable, Union, Optional
+from ...types import Callable, Union, Optional, OperatorSignature
+from ...commons import Tasks
 from .gsa_attribution_method import GSABaseAttributionMethod
 from .sobol_estimators import SobolEstimator, JansenEstimator
 from .replicated_designs import ReplicatedSampler, TFSobolSequenceRS
@@ -54,7 +53,7 @@ class SobolAttributionMethod(GSABaseAttributionMethod):
         estimator: Optional[SobolEstimator] = None,
         perturbation_function: Optional[Union[Callable, str]] = "inpainting",
         batch_size=256,
-        operator: Optional[Callable[[tf.keras.Model, tf.Tensor, tf.Tensor], float]] = None,
+        operator: Optional[Union[Tasks, str, OperatorSignature]] = None,
     ):
 
         assert (

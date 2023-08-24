@@ -7,7 +7,8 @@ import numpy as np
 from sklearn import linear_model
 
 from .lime import Lime
-from ..types import Callable, Union, Optional
+from ..commons import Tasks
+from ..types import Callable, Union, Optional, OperatorSignature
 
 class KernelShap(Lime):
     """
@@ -50,7 +51,7 @@ class KernelShap(Lime):
     def __init__(self,
                  model: Callable,
                  batch_size: int = 64,
-                 operator: Optional[Callable[[tf.keras.Model, tf.Tensor, tf.Tensor], float]] = None,
+                 operator: Optional[Union[Tasks, str, OperatorSignature]] = None,
                  map_to_interpret_space: Optional[Callable] = None,
                  nb_samples: int = 800,
                  ref_value: Optional[np.ndarray] = None):

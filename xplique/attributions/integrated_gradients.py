@@ -6,8 +6,8 @@ import tensorflow as tf
 import numpy as np
 
 from .base import WhiteBoxExplainer, sanitize_input_output
-from ..commons import repeat_labels, batch_tensor
-from ..types import Tuple, Union, Optional, Callable
+from ..commons import repeat_labels, batch_tensor, Tasks
+from ..types import Tuple, Union, Optional, OperatorSignature
 
 
 class IntegratedGradients(WhiteBoxExplainer):
@@ -52,7 +52,7 @@ class IntegratedGradients(WhiteBoxExplainer):
                  model: tf.keras.Model,
                  output_layer: Optional[Union[str, int]] = None,
                  batch_size: Optional[int] = 32,
-                 operator: Optional[Callable[[tf.keras.Model, tf.Tensor, tf.Tensor], float]] = None,
+                 operator: Optional[Union[Tasks, str, OperatorSignature]] = None,
                  steps: int = 50,
                  baseline_value: float = .0):
         super().__init__(model, output_layer, batch_size, operator)
