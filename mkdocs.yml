@@ -8,30 +8,9 @@ nav:
   - Home: index.md
   - Attributions methods:
       - API Description: api/attributions/api_attributions.md
-<<<<<<< HEAD
-      - DeconvNet: api/attributions/deconvnet.md
-      - Grad-CAM: api/attributions/grad_cam.md
-      - Grad-CAM++: api/attributions/grad_cam_pp.md
-      - Gradient Input: api/attributions/gradient_input.md
-      - Guided Backprop: api/attributions/guided_backpropagation.md
-      - Integrated Gradient: api/attributions/integrated_gradients.md
-      - KernelSHAP: api/attributions/kernel_shap.md
-      - Lime: api/attributions/lime.md
-      - Occlusion sensitivity: api/attributions/occlusion.md
-      - Rise: api/attributions/rise.md
-      - Saliency: api/attributions/saliency.md
-      - SmoothGrad: api/attributions/smoothgrad.md
-      - SquareGrad: api/attributions/square_grad.md
-      - Sobol Attribution Method: api/attributions/sobol.md
-      - Hsic Attribution Method: api/attributions/hsic.md
-      - VarGrad: api/attributions/vargrad.md
-<<<<<<< HEAD
-      - ForGRad: api/attributions/forgrad.md
-=======
-=======
-      - Model to explain: api/attributions/model.md
-      - Operator parameter: api/attributions/operator.md
-      - Methods:
+      - Model's expectations: api/attributions/model.md
+      - Operator: api/attributions/operator.md
+      - Methods: 
         - DeconvNet: api/attributions/deconvnet.md
         - Grad-CAM: api/attributions/grad_cam.md
         - Grad-CAM++: api/attributions/grad_cam_pp.md
@@ -48,15 +27,15 @@ nav:
         - Sobol Attribution Method: api/attributions/sobol.md
         - Hsic Attribution Method: api/attributions/hsic.md
         - VarGrad: api/attributions/vargrad.md
-      - Object detection : api/attributions/object_detector.md
->>>>>>> cff629d (docs: update , change link to relative, add black and white assets, add doc on operator and model's expectations)
-  - Attributions metrics:
-      - API Description: api/metrics/api_metrics.md
-      - Deletion: api/metrics/deletion.md
-      - Insertion: api/metrics/insertion.md
-      - MuFidelity: api/metrics/mu_fidelity.md
-      - AverageStability: api/metrics/avg_stability.md
->>>>>>> ba70d9f (docs: add documentation for pytorch wrapper and update some parameters)
+        - ForGRad: api/attributions/forgrad.md
+      - Attributions metrics:
+        - API Description: api/metrics/api_metrics.md
+        - Deletion: api/metrics/deletion.md
+        - Insertion: api/metrics/insertion.md
+        - MuFidelity: api/metrics/mu_fidelity.md
+        - AverageStability: api/metrics/avg_stability.md
+      - PyTorch: pytorch.md
+      - Callable: callable.md
   - Concept based:
       - Cav: api/concepts/cav.md
       - Tcav: api/concepts/tcav.md
@@ -64,8 +43,6 @@ nav:
       - Modern Feature Visualization (MaCo): api/feature_viz/maco.md
       - Feature visualization: api/feature_viz/feature_viz.md
   - Tutorials: tutorials.md
-  - PyTorch: pytorch.md
-  - Callable: callable.md
   - Contributing: contributing.md
 
 theme:
