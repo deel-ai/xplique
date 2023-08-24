@@ -3,6 +3,8 @@ import numpy as np
 import torch.nn as nn
 import tensorflow as tf
 
+import pytest
+
 from xplique.wrappers import TorchWrapper
 from xplique.attributions import (Saliency, GradientInput, IntegratedGradients, SmoothGrad, VarGrad,
                                   SquareGrad, Occlusion, Rise, SobolAttributionMethod, Lime, KernelShap,
@@ -46,7 +48,7 @@ def _default_methods_cnn(model):
 
 def _default_methods_regression(model):
     return [
-        Saliency(model, operator="reg"),
+        Saliency(model, operator="regression"),
         GradientInput(model, operator="regression"),
         IntegratedGradients(model, operator="regression"),
         SmoothGrad(model, operator="regression"),
@@ -94,6 +96,17 @@ def generate_regression_torch(features_shape, output_shape=1):
 
     return model
 
+def test_assert_eval_mode():
+    input_shapes = [(28, 28, 1), (32, 32, 3)]
+    nb_labels = 10
+
+    for input_shape in input_shapes:
+        model = generate_torch_model(input_shape, nb_labels)
+        with pytest.raises(AssertionError):
+            wrapped_model = TorchWrapper(model, device='cpu')
+        model.eval()
+        wrapped_model = TorchWrapper(model, device='cpu')
+
 def test_cnn_wrapper():
     input_shapes = [(28, 28, 1), (32, 32, 3)]
     nb_labels = 10
@@ -101,6 +114,7 @@ def test_cnn_wrapper():
     for input_shape in input_shapes:
         x, y = generate_data(input_shape, nb_labels, 16)
         model = generate_torch_model(input_shape, nb_labels)
+        model.eval()
         wrapped_model = TorchWrapper(model, device='cpu')
 
         explainers = _default_methods_cnn(wrapped_model)
@@ -113,6 +127,7 @@ def test_dense_wrapper():
 
     features_shape, output_shape, samples = ((10,), 1, 16)
     model = generate_regression_torch(features_shape, output_shape)
+    model.eval()
     x, y = generate_data(features_shape, output_shape, samples)
     wrapped_model = TorchWrapper(model, device='cpu', is_channel_first=False)
 
@@ -132,6 +147,7 @@ def test_metric_cnn():
     input_shape, nb_labels, samples = ((16, 16, 3), 5, 8)
     x, y = generate_data(input_shape, nb_labels, samples)
     model = generate_torch_model(input_shape, nb_labels)
+    model.eval()
     wrapped_model = TorchWrapper(model, device='cpu')
 
     explainers = _default_methods_cnn(wrapped_model)
@@ -153,7 +169,6 @@ def test_metric_cnn():
                 assert hasattr(metric, 'inference_function')
                 assert hasattr(metric, 'batch_inference_function')
                 score = metric(explanations)
-            print(f"\n\n\n {type(score)} \n\n\n")
             assert type(score) in [np.float32, np.float64, float]
 
 def test_metric_dense():
@@ -162,13 +177,14 @@ def test_metric_dense():
     input_shape, nb_labels, samples = ((16, 16, 3), 5, 8)
     x, y = generate_data(input_shape, nb_labels, samples)
     model = generate_regression_torch(input_shape, nb_labels)
+    model.eval()
     wrapped_model = TorchWrapper(model, device='cpu')
 
     explainers = _default_methods_regression(wrapped_model)
 
     metrics = [
-        Deletion(wrapped_model, x, y, steps=3),
-        Insertion(wrapped_model, x, y, steps=3),
+        Deletion(wrapped_model, x, y, steps=3, activation="sigmoid"),
+        Insertion(wrapped_model, x, y, steps=3, activation="softmax"),
         MuFidelity(wrapped_model, x, y, nb_samples=3),
         AverageStability(wrapped_model, x, y, nb_samples=3)
     ]
@@ -183,5 +199,4 @@ def test_metric_dense():
                 assert hasattr(metric, 'inference_function')
                 assert hasattr(metric, 'batch_inference_function')
                 score = metric(explanations)
-            print(f"\n\n\n {type(score)} \n\n\n")
             assert type(score) in [np.float32, np.float64, float]

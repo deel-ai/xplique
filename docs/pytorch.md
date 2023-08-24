@@ -2,6 +2,11 @@
 
 - [**PyTorch's model**: Getting started](https://colab.research.google.com/drive/1bMlO29_0K3YnTQBbbyKQyRfo8YjvDbhe)<sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1bMlO29_0K3YnTQBbbyKQyRfo8YjvDbhe) </sub>
 
+- [**Metrics**: With Pytorch's model](https://colab.research.google.com/drive/16bEmYXzLEkUWLRInPU17QsodAIbjdhGP) <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/16bEmYXzLEkUWLRInPU17QsodAIbjdhGP) </sub>
+
+!!!note
+    We should point out that what we did with Pytorch should be possible for other frameworks. Do not hesitate to give it a try and to make a PR if you have been successful!
+
 ## Is it possible to use Xplique with PyTorch's model ?
 
 **Yes**, it is! Even though the library was mainly designed to be a Tensorflow toolbox we have been working on a very practical wrapper to facilitate the integration of your PyTorch's model into Xplique's framework!
@@ -14,16 +19,16 @@ from xplique.wrappers import TorchWrapper
 from xplique.attributions import Saliency
 from xplique.metrics import Deletion
 
-# load images, labels and model
+# load images, targets and model
 # ...
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 wrapped_model = TorchWrapper(torch_model, device)
 
 explainer = Saliency(wrapped_model)
-explanations = explainer(inputs, labels)
+explanations = explainer(inputs, targets)
 
-metric = Deletion(wrapped_model, inputs, labels)
+metric = Deletion(wrapped_model, inputs, targets)
 score_saliency = metric(explanations)
 ```
 
@@ -77,8 +82,7 @@ If you are using PyTorch's preprocessing functions what you should do is:
     The third step is necessary only if your data has a `channel` dimension which is not in the place expected with Tensorflow
 
 !!!tip
-    If you want to be sure how this work you can look at the [**PyTorch's model**: Getting started](https://colab.research.google.com/drive/1bMlO29_0K3YnTQBbbyKQyRfo8YjvDbhe)<sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1bMlO29_0K3YnTQBbbyKQyRfo8YjvDbhe) </sub>
- notebook and compare it to the [**Attribution methods**:Getting Started](https://colab.research.google.com/drive/1XproaVxXjO9nrBSyyy7BuKJ1vy21iHs2) <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1XproaVxXjO9nrBSyyy7BuKJ1vy21iHs2) </sub>
+    If you want to be sure how this work you can look at the [**PyTorch's model**: Getting started](https://colab.research.google.com/drive/1bMlO29_0K3YnTQBbbyKQyRfo8YjvDbhe)<sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1bMlO29_0K3YnTQBbbyKQyRfo8YjvDbhe) </sub> notebook and compare it to the [**Attribution methods**:Getting Started](https://colab.research.google.com/drive/1XproaVxXjO9nrBSyyy7BuKJ1vy21iHs2) <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1XproaVxXjO9nrBSyyy7BuKJ1vy21iHs2) </sub>
 
 ### 2. Create your wrapper
 
