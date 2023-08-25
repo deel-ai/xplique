@@ -50,6 +50,14 @@ Here is the lists of the availables tutorial for now:
 | Fidelity      | Deletion               | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1W7tfXOoPnbu4HGGIkbhkoKdk9xRdStgs) |
 | Stability     | AverageStability       | **(WIP)**                                                                                                                                                          |
 
+## PyTorch Wrapper
+
+| **Tutorial Name**           | Notebook                                                                                                                                                           |
+| :-------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------: |
+| PyTorch's model: Getting started | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1bMlO29_0K3YnTQBbbyKQyRfo8YjvDbhe) |
+| Metrics: With Pytorch's model| [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/16bEmYXzLEkUWLRInPU17QsodAIbjdhGP) |
+
+
 ## Concepts extraction
 
 **WIP**
