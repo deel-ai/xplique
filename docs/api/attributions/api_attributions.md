@@ -55,7 +55,7 @@ def __call__(self,
     - $W$ is the feature dimension of a single input
 
         !!!warning
-            By default `Lime` & `KernelShap` will treat such inputs as grey images. You will need to define a custom `map_to_interpret_space` function when instantiating those methods in order to create a meaningful mapping of Time-Series data into an interpretable space when building such explainers.
+            By default `Lime` & `KernelShap` will treat such inputs as grey images. You will need to define a custom `map_to_interpret_space` function when instantiating those methods in order to create a meaningful mapping of Time-Series data into an interpretable space when building such explainers. Such an example is provided at the end of the [Lime's documentation](../lime/).
 
     !!!note
         If your model is not following the same conventions, please refer to the [Model documentation](../model/).
@@ -72,14 +72,16 @@ Therefore, to use perturbation-based approaches you do not need a TF model. To k
 
 Xplique includes the following black-box attributions:
 
-| Method Name      | **Tutorial**             |
-|:---------------- | :----------------------: |
-| KernelShap              | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1frholXRE4XQQ3W5yZuPQ2-xqc-LTczfT) |
-| Lime                    | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1frholXRE4XQQ3W5yZuPQ2-xqc-LTczfT) |
-| Occlusion               | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/15xmmlxQkNqNuXgHO51eKogXvLgs-sG4q) |
-| Rise                    | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1icu2b1JGfpTRa-ic8tBSXnqqfuCGW2mO) |
-| Sobol Attribution       | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1XproaVxXjO9nrBSyyy7BuKJ1vy21iHs2) |
-| Hsic Attribution        | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1XproaVxXjO9nrBSyyy7BuKJ1vy21iHs2) |
+| Method Name      | **Tutorial**             | Available with TF | Available with PyTorch* |
+|:---------------- | :----------------------: | :---------------: | :---------------------: |
+| KernelShap              | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1frholXRE4XQQ3W5yZuPQ2-xqc-LTczfT) | ✔ | ✔ |
+| Lime                    | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1frholXRE4XQQ3W5yZuPQ2-xqc-LTczfT) | ✔ | ✔ |
+| Occlusion               | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/15xmmlxQkNqNuXgHO51eKogXvLgs-sG4q) | ✔ | ✔ |
+| Rise                    | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1icu2b1JGfpTRa-ic8tBSXnqqfuCGW2mO) | ✔ | ✔ |
+| Sobol Attribution       | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1XproaVxXjO9nrBSyyy7BuKJ1vy21iHs2) | ✔ | ✔ |
+| Hsic Attribution        | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1XproaVxXjO9nrBSyyy7BuKJ1vy21iHs2) | ✔ | ✔ |
+
+*: Before using a PyTorch's model it is highly recommended to read the [dedicated documentation](../../../pytorch)
 
 ## Gradient-based approaches
 
