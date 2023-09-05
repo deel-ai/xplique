@@ -64,7 +64,7 @@ If inputs are Time Series, the expected shape of `inputs` is $(N, T, W)$
 - $W$ is the feature dimension of a single input
 
 !!!warning
-    By default `Lime` & `KernelShap` will treat such inputs as grey images. You will need to define a custom `map_to_interpret_space` function when instantiating those methods in order to create a meaningful mapping of Time-Series data into an interpretable space when building such explainers.
+    By default `Lime` & `KernelShap` will treat such inputs as grey images. You will need to define a custom `map_to_interpret_space` function when instantiating those methods in order to create a meaningful mapping of Time-Series data into an interpretable space when building such explainers. Such an example is provided at the end of the [Lime's documentation](../lime/).
 
 ## Tasks
 

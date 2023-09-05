@@ -215,7 +215,7 @@ At present the `Tasks` enum has two members: `CLASSIFICATION` and `REGRESSION`
 If you provide a custom operator you should be aware that:
 
 - An assertion will be made to ensure it respects the signature describe in the previous section
-- Your operator will go through the `get_gradient_of_operator` method if you use any white-box explainer
+- If you use any white-box explainer your operator will go through the `get_gradient_of_operator` function
 
 ```python
 def get_gradient_of_operator(operator):
@@ -244,12 +244,7 @@ def get_gradient_of_operator(operator):
 ```
 
 !!!tip
-    Writing your operator with only tensorflow functions should increase your chance that this method does not yield any errors.
+    Writing your operator with only tensorflow functions should increase your chance that this method does not yield any errors. In addition, providing a `@tf.function` decorator is also welcomed!
 
 !!!warning
-    Note that depending on your operator, the targets you provide should make sense
-
-## Examples of applications
-
-**WIP**
-
+    The `targets` parameter is the key to specifying what to explain and differs greatly depending on the operator.

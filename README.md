@@ -1,9 +1,5 @@
 <div align="center">
-        <picture>
-                <source media="(prefers-color-scheme: dark)" srcset="./docs/assets/banner_white.png">
-                <source media="(prefers-color-scheme: light)" srcset="./docs/assets/banner.png">
-                <img alt="Library Banner" src="./docs/assets/banner.png">
-        </picture>
+    <img src="docs/assets/banner.png" width="75%" alt="Xplique" align="center" />
 </div>
 <br>
 
@@ -199,6 +195,35 @@ images, obj_names = optimize(obj)
 Want to know more ? Check the Feature Viz [documentation](https://deel-ai.github.io/xplique/latest/api/feature_viz/feature_viz/)
 </details>
 
+<details>
+<summary><b>PyTorch with Xplique</b></summary>
+
+Even though the library was mainly designed to be a Tensorflow toolbox we have been working on a very practical wrapper to facilitate the integration of your PyTorch's model into Xplique's framework!
+
+```python
+import torch
+
+from xplique.wrappers import TorchWrapper
+from xplique.attributions import Saliency
+from xplique.metrics import Deletion
+
+# load images, targets and model
+# ...
+
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
+wrapped_model = TorchWrapper(torch_model, device)
+
+explainer = Saliency(wrapped_model)
+explanations = explainer(inputs, targets)
+
+metric = Deletion(wrapped_model, inputs, targets)
+score_saliency = metric(explanations)
+```
+
+Want to know more ? Check the [PyTorch documentation](https://deel-ai.github.io/xplique/latest/pytorch/)
+
+</details>
+
 ## 📦 What's Included
 
 <details>
@@ -333,9 +358,9 @@ This library is one approach of many to explain your model. We don't expect it t
 
 <div align="right">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://share.deel.ai/apps/theming/image/logo?useSvg=1&v=10"  width="25%" align="right">
-    <source media="(prefers-color-scheme: light)" srcset="https://www.deel.ai/wp-content/uploads/2021/05/logo-DEEL.png"  width="25%" align="right">
-    <img alt="DEEL Logo" src="https://www.deel.ai/wp-content/uploads/2021/05/logo-DEEL.png" width="25%" align="right">
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/deel_dark.png"  width="25%" align="right">
+    <source media="(prefers-color-scheme: light)" srcset="docs/assets/deel_light.png"  width="25%" align="right">
+    <img alt="DEEL Logo" src="docs/assets/deel_dark.png" width="25%" align="right">
   </picture>
 </div>
 This project received funding from the French ”Investing for the Future – PIA3” program within the Artificial and Natural Intelligence Toulouse Institute (ANITI). The authors gratefully acknowledge the support of the <a href="https://www.deel.ai/"> DEEL </a> project.

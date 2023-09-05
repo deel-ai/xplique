@@ -8,7 +8,7 @@ nav:
   - Home: index.md
   - Attributions methods:
       - API Description: api/attributions/api_attributions.md
-      - Model's expectations: api/attributions/model.md
+      - Model Specifications: api/attributions/model.md
       - Operator: api/attributions/operator.md
       - Methods: 
         - DeconvNet: api/attributions/deconvnet.md
@@ -16,6 +16,7 @@ nav:
         - Grad-CAM++: api/attributions/grad_cam_pp.md
         - Gradient Input: api/attributions/gradient_input.md
         - Guided Backprop: api/attributions/guided_backpropagation.md
+        - Hsic Attribution Method: api/attributions/hsic.md
         - Integrated Gradient: api/attributions/integrated_gradients.md
         - KernelSHAP: api/attributions/kernel_shap.md
         - Lime: api/attributions/lime.md
@@ -23,12 +24,11 @@ nav:
         - Rise: api/attributions/rise.md
         - Saliency: api/attributions/saliency.md
         - SmoothGrad: api/attributions/smoothgrad.md
-        - SquareGrad: api/attributions/square_grad.md
         - Sobol Attribution Method: api/attributions/sobol.md
-        - Hsic Attribution Method: api/attributions/hsic.md
+        - SquareGrad: api/attributions/square_grad.md
         - VarGrad: api/attributions/vargrad.md
         - ForGRad: api/attributions/forgrad.md
-      - Attributions metrics:
+      - Metrics:
         - API Description: api/metrics/api_metrics.md
         - Deletion: api/metrics/deletion.md
         - Insertion: api/metrics/insertion.md

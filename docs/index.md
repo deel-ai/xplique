@@ -1,6 +1,5 @@
 <div align="center">
-    <img src="./assets/banner_white.png#only-dark" width="75%" alt="Xplique banner" align="center" />
-    <img src="./assets/banner.png#only-light" width="75%" alt="Xplique banner" align="center" />
+    <img src="./assets/banner.png" width="75%" alt="Xplique banner" align="center" />
 </div>
 <br>
 
@@ -185,6 +184,31 @@ Now that Xplique is installed, here are 4 basic examples of what you can do with
 
     Want to know more ? Check the Feature Viz [documentation](api/feature_viz/feature_viz/)
 
+??? example "PyTorch with Xplique"
+
+    Even though the library was mainly designed to be a Tensorflow toolbox we have been working on a very practical wrapper to facilitate the integration of your PyTorch's model into Xplique's framework!
+
+    ```python
+    import torch
+
+    from xplique.wrappers import TorchWrapper
+    from xplique.attributions import Saliency
+    from xplique.metrics import Deletion
+
+    # load images, targets and model
+    # ...
+
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    wrapped_model = TorchWrapper(torch_model, device)
+
+    explainer = Saliency(wrapped_model)
+    explanations = explainer(inputs, targets)
+
+    metric = Deletion(wrapped_model, inputs, targets)
+    score_saliency = metric(explanations)
+    ```
+
+    Want to know more ? Check the [PyTorch documentation](pytorch/)
 
 ## 📦 What's Included
 
@@ -299,8 +323,8 @@ This library is one approach of many to explain your model. We don't expect it t
 
 ## 🙏 Acknowledgments
 
-<img align="right" src="https://share.deel.ai/apps/theming/image/logo?useSvg=1&v=10#only-dark" width="25%" alt="DEEL Logo" />
-<img align="right" src="https://www.deel.ai/wp-content/uploads/2021/05/logo-DEEL.png#only-light" width="25%" alt="DEEL Logo" />
+<img align="right" src="./assets/deel_light.png#only-light" width="25%" alt="DEEL Logo" />
+<img align="right" src="./assets/deel_dark.png#only-dark" width="25%" alt="DEEL Logo" />
 This project received funding from the French ”Investing for the Future – PIA3” program within the Artificial and Natural Intelligence Toulouse Institute (ANITI). The authors gratefully acknowledge the support of the <a href="https://www.deel.ai/"> DEEL </a> project.
 
 ## 👨‍🎓 Creators

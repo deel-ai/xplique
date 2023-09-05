@@ -38,7 +38,7 @@ It has been tested on both the `attributions` and the `metrics` modules.
 
 ## Does it work for all attribution methods ?
 
-Not yet, but it works for most of them:
+Not yet, but it works for most of them (even for gradient-based ones!):
 
 | **Attribution Method** | PyTorch compatible |
 | :--------------------- | :----------------: |
@@ -47,6 +47,7 @@ Not yet, but it works for most of them:
 | Grad-CAM++             | ❌                |
 | Gradient Input         | ✅                |
 | Guided Backprop        | ❌                |
+| Hsic Attribution       | ✅                |
 | Integrated Gradients   | ✅                |
 | Kernel SHAP            | ✅                |
 | Lime                   | ✅                |
@@ -54,10 +55,9 @@ Not yet, but it works for most of them:
 | Rise                   | ✅                |
 | Saliency               | ✅                |
 | SmoothGrad             | ✅                |
+| Sobol Attribution      | ✅                |
 | SquareGrad             | ✅                |
 | VarGrad                | ✅                |
-| Sobol Attribution      | ✅                |
-| Hsic Attribution       | ✅                |
 
 ## How does it work ?
 

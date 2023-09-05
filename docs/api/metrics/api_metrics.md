@@ -1,5 +1,7 @@
 # API: Metrics
 
+- [**Attribution Methods**: Metrics](https://colab.research.google.com/drive/1WEpVpFSq-oL1Ejugr8Ojb3tcbqXIOPBg) <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1WEpVpFSq-oL1Ejugr8Ojb3tcbqXIOPBg) </sub>
+
 ## Context
 
 As the XAI field continues on being trendy, the quantity of materials at disposal to explain DL models keeps on growing. Especially, there is an increasing need to benchmark and evaluate those different approaches. Mainly, there is an urge to evaluate the quality of explanations provided by attribution methods.
@@ -30,8 +32,8 @@ All metrics inherits from the base class `BaseAttributionMetric` which has the f
 
 Then we can distinguish two category of metrics:
 
-- Those which only need the attribution ouputs of an explainer: `ExplanationMetric`
-- Those which need the explainer: `ExplainerMetric`
+- Those which only need the attribution ouputs of an explainer: `ExplanationMetric`, namely those which evaluate Fidelity ([MuFidelity](../mu_fidelity), [Deletion](../deletion), [Insertion](../insertion))
+- Those which need the explainer: `ExplainerMetric` ([AverageStability](../avg_stability))
 
 ### `ExplanationMetric`
 
@@ -42,17 +44,12 @@ Those metrics are agnostic of the explainer used and rely only on the attributio
 
 All metrics inheriting from this class have another argument in their `__init__` method:
 
-- `operator`: Optionnal function wrapping the model. It can be seen as a metric which allow to evaluate model evolution. For more details, see the attribution's [API Description](../../attributions/api_attributions/) and the [operator documentation](../../attributions/operator/)
+- `operator`: Optionnal function wrapping the model. It can be seen as a metric which allow to evaluate model evolution. For more details, see the attribution's [API Description](../../attributions/api_attributions/) and the [operator documentation](../../attributions/operator/).
+
+!!!info
+    The `operator` used here should match the one used to compute the explanations!
 
 All metrics inheriting from this class have to define a method `evaluate` which will take as input the `attributions` given by an explainer. Those attributions should correspond to the `model`, `inputs` and `targets` used to build the metric object.
-
-Especially, all Fidelity metrics inherit from this class:
-
-| Metric Name (Fidelity) |Notebook                                                                                                                                                           |
-|:---------------------- |:----------------------------------------------------------------------------------------------------------------------------------------------------------------: |
-| MuFidelity             | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1nuqLezSHavXGMsGtHrdSajEcR1SCzqTA) |
-| Insertion              | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1QtwbegOpTSj7g6DxBprMt0aTtaV5surF) |
-| Deletion               | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1W7tfXOoPnbu4HGGIkbhkoKdk9xRdStgs) |
 
 
 ### `ExplainerMetric`
@@ -65,10 +62,6 @@ All metrics inheriting from this class have to define a method `evaluate` which 
     It is even more important that `inputs` and `targets` are the same as defined in the attribution's [API Description](../../attributions/api_attributions/)
 
 Currently, there is only one Stability metric inheriting from this class:
-
-| Metric Name (Stability) |Notebook                                                                                                                                                           |
-|:----------------------- |:----------------------------------------------------------------------------------------------------------------------------------------------------------------: |
-| AverageStability        | **(WIP)**                                                                                                                                                                 |
 
 ## Activation
 
@@ -83,7 +76,7 @@ Consequently, we add this `activation` parameter so one can provide a model that
 The default behavior is to compute the metric without adding any activation layer to the model.
 
 !!!note
-    In our opinion, there is no consensus at present concerning the "best practices". Should the model used to generate the explanations be exactly the same for generating the metrics or it should depend on the metric ? As we do not claim to have an answer (yet!), we choose to let the user as much flexibility as possible!
+    There does not appear to be a consensus on the activation function to be used for metrics. Some papers use logits values (e.g., with mu-fidelity), while others use sigmoid or softmax (with deletion and insertion). We can only observe that changing the activation function has an effect on the ranking of the best methods.
  
 ## Other Metrics
 
