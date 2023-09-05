@@ -164,8 +164,7 @@ def check_operator(operator: Callable):
         return check_operator(operator._python_function)
 
     # the operator must be callable
-    # pylint: disable=isinstance-second-argument-not-valid-type
-    if not isinstance(operator, Callable):
+    if not hasattr(operator, '__call__'):
         raise_invalid_operator()
 
     # the operator should take at least three arguments
@@ -201,7 +200,7 @@ def get_operator(
         return Tasks.from_string(operator)
 
     # case when the query belong to the Tasks enum
-    if operator in Tasks.__members__.values():
+    if operator in [t.value for t in Tasks]:
         return operator
 
     # case when the operator is a custom one
