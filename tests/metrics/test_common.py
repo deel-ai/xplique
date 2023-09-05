@@ -79,4 +79,7 @@ def test_add_activation():
                     assert hasattr(metric, 'inference_function')
                     assert hasattr(metric, 'batch_inference_function')
                     score = metric(explanations)
+                    if not isinstance(metric, MuFidelity):
+                        assert np.all(score <= 1)
+                        assert np.all(score >= 0)
                 assert type(score) in [np.float32, np.float64, float]
