@@ -46,7 +46,7 @@ class BaseAttributionMetric(ABC):
             if activation == 'sigmoid':
                 self.model = lambda x: tf.nn.sigmoid(model(x))
             else:
-                self.model = lambda x: tf.nn.softmax(model(x))
+                self.model = lambda x: tf.nn.softmax(model(x), axis=-1)
         self.inputs, self.targets = numpy_sanitize(inputs, targets)
         self.batch_size = batch_size
 
