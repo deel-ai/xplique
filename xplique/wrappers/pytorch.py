@@ -11,7 +11,7 @@ from ..types import Union, Optional, Tuple, Callable
 class TorchWrapper(tf.keras.Model):
     """
     A wrapper for PyTorch's model so that they can be used in Xplique framework
-    for most attributions method
+    for most attribution methods
 
     Parameters
     ----------
@@ -23,7 +23,7 @@ class TorchWrapper(tf.keras.Model):
         A boolean that is true if the torch's model expect a channel dim and if this one come first
     """
 
-    def __init__(self, torch_model: "nn.Module", device: Union['torch.device', str],
+    def __init__(self, torch_model: "nn.Module", device: Union["torch.device", str],
                  is_channel_first: Optional[bool] = None
                  ): # pylint: disable=C0415,C0103
 
