@@ -33,14 +33,6 @@ body:
       - Others
   validations:
     required: true
-- type: input
-  id: contact
-  attributes:
-    label: Contact Details
-    description: How can we get in touch with you if we need more info?
-    placeholder: ex. email@example.com
-  validations:
-    required: false
 - type: textarea
   attributes:
     label: Feature Request
@@ -54,17 +46,11 @@ body:
     label: A minimal example
     description: A minimal example. This will be automatically formatted into code, so no need for backticks.
     render: shell
-- type: dropdown
+- type: textarea
   id: version
   attributes:
     label: Version
     description: What version of Xplique are you running?
-    options:
-       - v1.1.0
-       - v1.0.0
-       - v0.4.3
-       - v0.2-alpha
-       - v0.1-alpha
   validations:
     required: true
 - type: textarea
