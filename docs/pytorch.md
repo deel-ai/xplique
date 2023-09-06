@@ -59,9 +59,9 @@ Not yet, but it works for most of them (even for gradient-based ones!):
 | SquareGrad             | ✅                |
 | VarGrad                | ✅                |
 
-## How does it work ?
+##  Steps to make Xplique work on pytorch
 
-### 1. Pre-process the inputs
+###  1. Make sure the inputs follow the Xplique API (and not what the model expects).
 
 One thing to keep in mind is that **attribution methods expect a specific inputs format** as described in the [API Description](api/attributions/api_attributions.md). Especially, for images `inputs` should be $(N, H, W, C)$ following the TF's conventions where:
 
@@ -82,9 +82,9 @@ If you are using PyTorch's preprocessing functions what you should do is:
     The third step is necessary only if your data has a `channel` dimension which is not in the place expected with Tensorflow
 
 !!!tip
-    If you want to be sure how this work you can look at the [**PyTorch's model**: Getting started](https://colab.research.google.com/drive/1bMlO29_0K3YnTQBbbyKQyRfo8YjvDbhe)<sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1bMlO29_0K3YnTQBbbyKQyRfo8YjvDbhe) </sub> notebook and compare it to the [**Attribution methods**:Getting Started](https://colab.research.google.com/drive/1XproaVxXjO9nrBSyyy7BuKJ1vy21iHs2) <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1XproaVxXjO9nrBSyyy7BuKJ1vy21iHs2) </sub>
+    If you want to be sure how this work you can look at the [**PyTorch's model**: Getting started](https://colab.research.google.com/drive/1bMlO29_0K3YnTQBbbyKQyRfo8YjvDbhe) notebook and compare it to the [**Attribution methods**:Getting Started](https://colab.research.google.com/drive/1XproaVxXjO9nrBSyyy7BuKJ1vy21iHs2)
 
-### 2. Create your wrapper
+### 2. Wrap your model
 
 A `TorchWrapper` object can be initialized with 3 parameters:
 
