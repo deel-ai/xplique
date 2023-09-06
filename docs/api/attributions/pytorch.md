@@ -63,7 +63,7 @@ Not yet, but it works for most of them (even for gradient-based ones!):
 
 ###  1. Make sure the inputs follow the Xplique API (and not what the model expects).
 
-One thing to keep in mind is that **attribution methods expect a specific inputs format** as described in the [API Description](api/attributions/api_attributions.md). Especially, for images `inputs` should be $(N, H, W, C)$ following the TF's conventions where:
+One thing to keep in mind is that **attribution methods expect a specific inputs format** as described in the [API Description](./api_attributions.md). Especially, for images `inputs` should be $(N, H, W, C)$ following the TF's conventions where:
 
 - $N$ is the number of inputs
 - $H$ is the height of the images
