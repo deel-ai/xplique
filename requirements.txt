@@ -5,3 +5,4 @@ scikit-image
 matplotlib
 scipy
 opencv-python
+deprecated
