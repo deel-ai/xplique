@@ -1,22 +1,24 @@
 # Tutorials: Notebooks 📔
 
-We propose here several tutorials to discover the different functionnalities that the library has to offer.
+We propose here several tutorials to discover the different functionalities that the library has to offer.
 
 We decided to host those tutorials on [Google Colab](https://colab.research.google.com/notebooks/intro.ipynb?utm_source=scs-index)
 mainly because you will be able to play the notebooks with a GPU which should greatly improve your User eXperience.
 
-Here is the lists of the availables tutorial for now:
+Here is the lists of the available tutorial for now:
 
 ## Getting Started
 
-| **Tutorial Name**           | Notebook                                                                                                                                                           |
-| :-------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------: |
-| Getting Started             | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1XproaVxXjO9nrBSyyy7BuKJ1vy21iHs2)            |
+| **Tutorial Name**               | Notebook                                                                                                                                                           |
+| :------------------------------ | :----------------------------------------------------------------------------------------------------------------------------------------------------------------: |
+| Getting Started                 | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1XproaVxXjO9nrBSyyy7BuKJ1vy21iHs2)            |
 | Sanity checks for Saliency Maps | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1uJOmAg6RjlOIJj6SWN9sYRamBdHAuyaS)            |
-| Tabular data and Regression | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1XproaVxXjO9nrBSyyy7BuKJ1vy21iHs2)            |
-| Metrics                     | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1WEpVpFSq-oL1Ejugr8Ojb3tcbqXIOPBg)            |
-| Concept Activation Vectors  | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1iuEz46ZjgG97vTBH8p-vod3y14UETvVE)            |
-| Feature Visualization       | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1st43K9AH-UL4eZM1S4QdyrOi7Epa5K8v)            |
+| Tabular data and Regression     | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1pjDJmAa9oeSquYtbYh6tksU6eTmObIcq)            |
+| Object detection                | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1X3Yq7BduMKqTA0XEheoVIpOo3IvOrzWL)            |
+| Semantic Segmentation           | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1AHg7KO1fCOX5nZLGZfxkZ2-DLPPdSfbX)            |
+| Metrics                         | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1WEpVpFSq-oL1Ejugr8Ojb3tcbqXIOPBg)            |
+| Concept Activation Vectors      | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1iuEz46ZjgG97vTBH8p-vod3y14UETvVE)            |
+| Feature Visualization           | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1st43K9AH-UL4eZM1S4QdyrOi7Epa5K8v)            |
 
 
 ## Attributions
@@ -52,10 +54,12 @@ Here is the lists of the availables tutorial for now:
 
 ## PyTorch Wrapper
 
-| **Tutorial Name**           | Notebook                                                                                                                                                           |
-| :-------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------: |
-| PyTorch's model: Getting started | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1bMlO29_0K3YnTQBbbyKQyRfo8YjvDbhe) |
-| Metrics: With Pytorch's model| [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/16bEmYXzLEkUWLRInPU17QsodAIbjdhGP) |
+| **Tutorial Name**                      | Notebook                                                                                                                                                |
+| :------------------------------------- | :-----------------------------------------------------------------------------------------------------------------------------------------------------: |
+| PyTorch models: Getting started       | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1bMlO29_0K3YnTQBbbyKQyRfo8YjvDbhe) |
+| Metrics: With PyTorch models          | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/16bEmYXzLEkUWLRInPU17QsodAIbjdhGP) |
+| Object detection on PyTorch model      | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1X3Yq7BduMKqTA0XEheoVIpOo3IvOrzWL) |
+| Semantic Segmentation on PyTorch model | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1AHg7KO1fCOX5nZLGZfxkZ2-DLPPdSfbX) |
 
 
 ## Concepts extraction

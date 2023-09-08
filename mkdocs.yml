@@ -8,8 +8,6 @@ nav:
   - Home: index.md
   - Attributions methods:
       - API Description: api/attributions/api_attributions.md
-      - Model Specifications: api/attributions/model.md
-      - Operator: api/attributions/operator.md
       - Methods: 
         - DeconvNet: api/attributions/methods/deconvnet.md
         - ForGRad: api/attributions/methods/forgrad.md
@@ -36,6 +34,10 @@ nav:
         - AverageStability: api/attributions/metrics/avg_stability.md
       - PyTorch: api/attributions/pytorch.md
       - Callable: api/attributions/callable.md
+      - Classification: api/attributions/classification.md
+      - Object Detection: api/attributions/object_detection.md
+      - Regression: api/attributions/regression.md
+      - Semantic Segmentation: api/attributions/semantic_segmentation.md
   - Concept based:
       - Cav: api/concepts/cav.md
       - Tcav: api/concepts/tcav.md
