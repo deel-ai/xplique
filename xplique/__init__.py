@@ -13,3 +13,5 @@ from . import concepts
 from . import features_visualizations
 from . import commons
 from . import plots
+
+from .commons import Tasks
