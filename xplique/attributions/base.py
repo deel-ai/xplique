@@ -12,7 +12,7 @@ from ..types import Callable, Dict, Tuple, Union, Optional, OperatorSignature
 from ..commons import Tasks
 from ..commons import (find_layer, tensor_sanitize, get_inference_function,
                       get_gradient_functions, no_gradients_available)
-from ..wrappers import TorchWrapper
+from ..wrappers import TorchWrapper, FlaxWrapper
 
 
 def sanitize_input_output(explanation_method: Callable):
@@ -58,6 +58,8 @@ class BlackBoxExplainer(ABC):
                 operator: Optional[Union[Tasks, str, OperatorSignature]] = None):
 
         if isinstance(model, TorchWrapper):
+            self.model = model
+        elif isinstance(model, FlaxWrapper):
             self.model = model
         elif isinstance(model, tf.keras.Model):
             model_key = (id(model.input), id(model.output))

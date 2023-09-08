@@ -7,6 +7,7 @@ The model can be something else than a `tf.keras.Model` if it respects one of th
 - The model is a `xgboost.XGBModel` from the [XGBoost python library](https://xgboost.readthedocs.io/en/latest/python/python_intro.html)
 - The model is a [TF Lite model](https://www.tensorflow.org/api_docs/python/tf/lite). Note this feature is experimental.
 - The model is a PyTorch model (see the [dedicated documentation](../pytorch/))
+- The model is a Flax's model (see the [dedicated documentation](../flax/))
 
 In fact, what happens when a custom `operator` is not provided (see [operator's documentation](../api/attributions/operator)) and `model` (see [model's documentation](../api/attributions/model)) is not a `tf.keras.Model`, a `tf.Module` or a `tf.keras.layers.Layer` is that the `predictions_one_hot_callable` operator is used:
 
