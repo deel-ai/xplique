@@ -2,14 +2,13 @@
 Custom tensorflow operator for Attributions
 """
 
-import inspect
-from enum import Enum
+from deprecated import deprecated
 
 import tensorflow as tf
 
-from ..types import Callable, Optional, Union, OperatorSignature
-from .exceptions import raise_invalid_operator, no_gradients_available
-from .callable_operations import predictions_one_hot_callable
+from ..types import Callable, Optional
+from ..utils_functions.object_detection import _box_iou, _format_objects, _EPSILON
+
 
 @tf.function
 def predictions_operator(model: Callable,
@@ -36,6 +35,7 @@ def predictions_operator(model: Callable,
     return scores
 
 @tf.function
+@deprecated(version="1.0.0", reason="Gradient-based explanations are zeros with this operator.")
 def regression_operator(model: Callable,
                         inputs: tf.Tensor,
                         targets: tf.Tensor) -> tf.Tensor:
@@ -63,294 +63,162 @@ def regression_operator(model: Callable,
 
 
 @tf.function
-def binary_segmentation_operator(model: Callable,
-                                 inputs: tf.Tensor,
-                                 targets: tf.Tensor) -> tf.Tensor:
+def semantic_segmentation_operator(model, inputs, targets):
     """
-    Compute the segmentation score for a batch of samples.
+    Explain the class of a zone of interest.
 
     Parameters
     ----------
     model
         Model used for computing predictions.
+        The model outputs should be between 0 and 1, otherwise, applying a softmax is recommended.
     inputs
         Input samples to be explained.
+        Expected shape of (n, h, w, c_in), with c_in the number of channels of the input.
     targets
-        One-hot encoded labels or regression target (e.g {+1, -1}), one for each sample.
+        Tensor, a mask indicating the zone and class to explain.
+        It contains the model predictions limited to a certain zone and channel.
+        The zone indicates the zone of interest and the channel the class of interest.
+        For more detail and examples please refer to the documentation.
+        https://deel-ai.github.io/xplique/latest/api/attributions/semantic_segmentation/
+        Expected shape of (n, h, w, c_out), with c_out the number of classes.
+        `targets` can also be designed to explain the border of a zone of interest.
 
     Returns
     -------
     scores
         Segmentation scores computed.
     """
-    scores = tf.reduce_sum(model(inputs) * targets, axis=(1, 2))
-    return scores
+    # compute absolute difference between prediction and target on targets zone
+    scores = model(inputs) * targets
+
+    # take mean over the zone and channel of interest
+    return tf.reduce_sum(scores, axis=(1, 2, 3)) /\
+        tf.reduce_sum(tf.cast(tf.not_equal(targets, 0), tf.float32), axis=(1, 2, 3))
 
 
 @tf.function
-def segmentation_operator(model: Callable,
-                          inputs: tf.Tensor,
-                          targets: tf.Tensor) -> tf.Tensor:
+def object_detection_operator(model: Callable,
+                              inputs: tf.Tensor,
+                              targets: tf.Tensor,
+                              intersection_score_fn: Optional[Callable]  = _box_iou,
+                              include_detection_probability: Optional[bool] = True,
+                              include_classification_score: Optional[bool] = True,) -> tf.Tensor:
     """
-    Compute the segmentation score for a batch of samples.
+    Compute the object detection scores for a batch of samples.
+
+    For a given image, there are two possibilities:
+        - One box per image is provided: Then, in the case of perturbation-based methods,
+        the model makes prediction on the perturbed image and choose the most similar predicted box.
+        This similarity is computed following the DRise method.
+        In the case of gradient-based methods, the gradient is computed from the same score.
+        - Several boxes are provided for one image: In this case, the attributions for each box are
+        computed and the mean is taken.
+
+    Therefore, to explain each box separately, the easiest way is to call the attribution method
+    with a batch of the same image tiled to match the number of predicted box.
+    In this case, inputs and targets shapes should be: (nb_boxes, H, W, C) and (nb_boxes, (5 + nc)).
+
+    This work is a generalization of the following article at any kind of attribution method.
+    Ref. Petsiuk & al., Black-box Explanation of Object Detectors via Saliency Maps (2021).
+    https://arxiv.org/pdf/2006.03204.pdf
 
     Parameters
     ----------
     model
-        Model used for computing predictions.
+        Model used for computing object detection prediction.
+        The model should have input and output shapes of (N, H, W, C) and (N, nb_boxes, (4+1+nc)).
+        The model should not include the NMS computation,
+        it is not differentiable and drastically reduce the number of boxes for the matching.
     inputs
-        Input samples to be explained.
+        Batched input samples to be explained. Expected shape (N, H, W, C).
+        More information in the documentation.
     targets
-        One-hot encoded labels or regression target (e.g {+1, -1}), one for each sample.
+        Specify the box are boxes to explain for each input. Preferably, after the NMS.
+        It should be of shape (N, (4 + 1 + nc)) or (N, nb_boxes, (4 + 1 + nc)),
+        with nc the number of classes,
+        N the number of samples in the batch (it should match `inputs`),
+        and nb_boxes the number of boxes to explain simultaneously.
+
+        (4 + 1 + nc) means: [boxes_coordinates, proba_detection, one_hots_classifications].
+
+        In the case the nb_boxes dimension is not 1,
+        several boxes will be explained at the same time.
+        To be more precise, explanations will be computed for each box and the mean is returned.
+    intersection_score_fn
+        Function that computes the intersection score between two bounding boxes coordinates.
+        This function is batched. The default value is `_box_iou` computing IOU scores.
+    include_detection_probability
+        Boolean encoding if the box objectness (or detection probability)
+        should be included in DRise score.
+    include_classification_score
+        Boolean encoding if the class associated to the box should be included in DRise score.
 
     Returns
     -------
     scores
-        Segmentation scores computed.
+        Object detection scores computed following DRise definition:
+        intersection_score * proba_detection * classification_similarity
     """
-    scores = tf.reduce_sum(model(inputs) * targets, axis=(1, 2, 3))
-    return scores
+    def batch_loop(args):
+        # function to loop on for `tf.map_fn`
+        obj, obj_ref = args
 
-class Tasks(Enum):
-    """
-    Enumeration of different tasks for which we have defined operators
-    """
-    CLASSIFICATION = predictions_operator
-    REGRESSION = regression_operator
+        if obj is None or obj.shape[0] == 0:
+            return tf.constant(0.0, dtype=inputs.dtype)
 
-    @staticmethod
-    def from_string(operator_name: str) -> "Tasks":
-        """
-        Restore an operator from a string
+        # compute predicted boxes for a given image
+        # (nb_box_pred, 4), (nb_box_pred, 1), (nb_box_pred, nb_classes)
+        current_boxes, proba_detection, classification = _format_objects(obj)
+        size = tf.shape(current_boxes)[0]
 
-        Parameters
-        ----------
-        operator_name
-            String indicating the operator to restore: must be one
-            of 'classification' or 'regression'
+        if len(tf.shape(obj_ref)) == 1:
+            obj_ref = tf.expand_dims(obj_ref, axis=0)
 
-        Returns
-        -------
-        operator
-            The Tasks object
-        """
-        assert operator_name in [
-            "classification",
-            "regression",
-        ], "Only 'classification' and 'regression' are supported."
+        # DRise consider the reference objectness to be 1
+        # (nb_box_ref, 4), _, (nb_box_ref, nb_classes)
+        boxes_refs, _, class_refs = _format_objects(obj_ref)
 
-        if operator_name == "regression":
-            return Tasks.REGRESSION
-        return Tasks.CLASSIFICATION
+        # (nb_box_ref, nb_box_pred, 4)
+        boxes_refs = tf.repeat(tf.expand_dims(boxes_refs, axis=1), repeats=size, axis=1)
 
-def check_operator(operator: Callable):
-    """
-    Check if the operator is valid g(f, x, y) -> tf.Tensor
-    and raise an exception and return true if so.
+        # (nb_box_ref, nb_box_pred)
+        intersection_score = intersection_score_fn(boxes_refs, current_boxes)
 
-    Parameters
-    ----------
-    operator
-        Operator to check
+        # (nb_box_pred,)
+        detection_probability = tf.squeeze(proba_detection, axis=1)
 
-    Returns
-    -------
-    is_valid
-        True if the operator is valid, False otherwise.
-    """
-    # handle tf functions
-    # pylint: disable=protected-access
-    if hasattr(operator, '_python_function'):
-        return check_operator(operator._python_function)
+        # set detection probability to 1 if it should be included
+        detection_probability = tf.cond(tf.cast(include_detection_probability, tf.bool),
+                                        true_fn=lambda: detection_probability,
+                                        false_fn=lambda: tf.ones_like(detection_probability))
 
-    # the operator must be callable
-    if not hasattr(operator, '__call__'):
-        raise_invalid_operator()
+        # (nb_box_ref, nb_box_pred, nb_classes)
+        class_refs = tf.repeat(tf.expand_dims(class_refs, axis=1), repeats=size, axis=1)
 
-    # the operator should take at least three arguments
-    args = inspect.getfullargspec(operator).args
-    if len(args) < 3:
-        raise_invalid_operator()
+        # (nb_box_ref, nb_box_pred)
+        classification_score = tf.reduce_sum(class_refs * classification, axis=-1) \
+                / (tf.norm(classification, axis=-1) * tf.norm(class_refs, axis=-1)+ _EPSILON)
 
-    return True
+        # set classification score to 1 if it should be included
+        classification_score = tf.cond(tf.cast(include_classification_score, tf.bool),
+                                        true_fn=lambda: classification_score,
+                                        false_fn=lambda: tf.ones_like(classification_score))
 
-def get_operator(
-        operator: Optional[Union[Tasks, str, OperatorSignature]]):
-    """
-    This function allows to retrieve an operator from: a Tasks, a task name. If the operator
-    is a custom one, we simply check if its signature is correct
+        # Compute score as defined in DRise for all possible pair of boxes
+        # (nb_box_ref, nb_box_pred)
+        boxes_pairwise_scores = intersection_score \
+                                * detection_probability \
+                                * classification_score
 
-    Parameters
-    ----------
-    operator
-        An operator from the Tasks enum or the task name or a custom operator. If None, use a
-        classification operator.
+        # select for a reference box the most similar predicted box score
+        # (nb_box_ref,)
+        ref_boxes_scores = tf.reduce_max(boxes_pairwise_scores, axis=1)
 
-    Returns
-    -------
-    operator
-        The operator requested
-    """
-    # case when no operator is provided
-    if operator is None:
-        return predictions_operator
+        # get an attribution for several boxes in the same time
+        # ()
+        image_score = tf.reduce_mean(ref_boxes_scores)
+        return image_score
 
-    # case when the query is a string
-    if isinstance(operator, str):
-        return Tasks.from_string(operator)
-
-    # case when the query belong to the Tasks enum
-    if operator in [t.value for t in Tasks]:
-        return operator
-
-    # case when the operator is a custom one
-    assert check_operator(operator)
-    return operator
-
-def get_gradient_of_operator(operator):
-    """
-    Get the gradient of an operator.
-
-    Parameters
-    ----------
-    operator
-        Operator to compute the gradient of.
-
-    Returns
-    -------
-    gradient
-        Gradient of the operator.
-    """
-    @tf.function
-    def gradient(model, inputs, targets):
-        with tf.GradientTape() as tape:
-            tape.watch(inputs)
-            scores = operator(model, inputs, targets)
-
-        return tape.gradient(scores, inputs)
-
-    return gradient
-
-
-def operator_batching(operator: OperatorSignature) -> tf.Tensor:
-    """
-    Take care of batching an operator: (model, inputs, labels).
-
-    Parameters
-    ----------
-    operator
-        Any callable that take model, inputs and labels as parameters.
-
-    Returns
-    -------
-    batched_operator
-        Function that apply operator by batch.
-    """
-
-    def batched_operator(model, inputs, targets, batch_size=None):
-        if batch_size is not None:
-            dataset = tf.data.Dataset.from_tensor_slices((inputs, targets))
-            results = tf.concat([
-                operator(model, x, y)
-                for x, y in dataset.batch(batch_size)
-            ], axis=0)
-        else:
-            results = operator(model, inputs, targets)
-
-        return results
-
-    return batched_operator
-
-
-batch_predictions = operator_batching(predictions_operator)
-gradients_predictions = get_gradient_of_operator(predictions_operator)
-batch_gradients_predictions = operator_batching(gradients_predictions)
-batch_predictions_one_hot_callable = operator_batching(predictions_one_hot_callable)
-
-
-def get_inference_function(
-        model: Callable,
-        operator: Optional[OperatorSignature] = None):
-    """
-    Define the inference function according to the model type
-
-    Parameters
-    ----------
-    model
-        Model used for computing explanations.
-    operator
-        Function g to explain, g take 3 parameters (f, x, y) and should return a scalar,
-        with f the model, x the inputs and y the targets. If None, use the standard
-        operator g(f, x, y) = f(x)[y].
-
-    Returns
-    -------
-    inference_function
-        Same definition as the operator.
-    batch_inference_function
-        An inference function which treat inputs and targets by batch,
-        it has an additionnal parameter `batch_size`.
-    """
-    if operator is not None:
-        # user specified a string, an operator from the ones available or a
-        # custom operator, we check if the operator is valid
-        # and we wrap it to generate a batching version of this operator
-        operator = get_operator(operator)
-        inference_function = operator
-        batch_inference_function = operator_batching(operator)
-
-    elif isinstance(model, (tf.keras.Model, tf.Module, tf.keras.layers.Layer)):
-        inference_function = predictions_operator
-        batch_inference_function = batch_predictions
-
-    else:
-        # completely unknown model (e.g. sklearn), we can't backprop through it
-        inference_function = predictions_one_hot_callable
-        batch_inference_function = batch_predictions_one_hot_callable
-
-    return inference_function, batch_inference_function
-
-
-def get_gradient_functions(
-        model: Callable,
-        operator: Optional[OperatorSignature] = None):
-    """
-    Define the gradient function according to the model type
-
-    Parameters
-    ----------
-    model
-        Model used for computing explanations.
-    operator
-        Function g to explain, g take 3 parameters (f, x, y) and should return a scalar,
-        with f the model, x the inputs and y the targets. If None, use the standard
-        operator g(f, x, y) = f(x)[y].
-
-    Returns
-    -------
-    gradient
-        Gradient function of the operator.
-    batch_gradient
-        An gradient function which treat inputs and targets by batch,
-        it has an additionnal parameter `batch_size`.
-    """
-    if operator is not None:
-        # user specified a string, an operator from the ones available or a
-        # custom operator, we check if the operator is valid
-        # and we wrap it to generate a batching version of this operator
-        operator = get_operator(operator)
-        gradient = get_gradient_of_operator(operator)
-        batch_gradient = operator_batching(gradient)
-
-    elif isinstance(model, tf.keras.Model):
-        # no custom operator, for keras model we can backprop through the model
-        gradient = gradients_predictions
-        batch_gradient = batch_gradients_predictions
-
-    else:
-        # custom model or completely unknown model (e.g. sklearn), we can't backprop through it
-        gradient = no_gradients_available
-        batch_gradient = no_gradients_available
-
-    return gradient, batch_gradient
-    
+    objects = model(inputs)
+    return tf.map_fn(batch_loop, (objects, targets), fn_output_signature=tf.float32)
