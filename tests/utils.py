@@ -2,7 +2,8 @@ import numpy as np
 from sklearn.linear_model import LinearRegression
 import tensorflow as tf
 from tensorflow.keras.models import Sequential, Model
-from tensorflow.keras.layers import Dense, Conv1D, Conv2D, Activation, GlobalAveragePooling1D, Dropout, Flatten, MaxPooling2D, Input
+from tensorflow.keras.layers import (Dense, Conv1D, Conv2D, Activation, GlobalAveragePooling1D,
+                                     Dropout, Flatten, MaxPooling2D, Input, Reshape)
 from tensorflow.keras.utils import to_categorical
 
 def generate_data(x_shape=(32, 32, 3), num_labels=10, samples=100):
@@ -114,3 +115,43 @@ def generate_linear_model(
 
         return tf_model
 
+def generate_object_detection_model(input_shape=(32, 32, 3), max_nb_boxes=10, nb_labels=5, with_nmf=False):
+    # create a model that generates max_nb_boxes and select some randomly
+    output_shape = (max_nb_boxes, 5 + nb_labels)
+    model = Sequential()
+    model.add(Input(shape=input_shape))
+    model.add(Conv2D(4, kernel_size=(2, 2),
+                     activation='relu'))
+    model.add(MaxPooling2D(pool_size=(2, 2)))
+    model.add(Flatten())
+    model.add(Dense(np.prod(output_shape)))
+    model.add(Reshape(output_shape))
+    model.add(Activation('sigmoid'))
+    model.compile(loss='mae', optimizer='sgd')
+
+    # ensure iou computation will work
+    def make_plausible_boxes(model_output):
+        coordinates = tf.sort(model_output[:, :, :4], axis=-1) * 200
+        probabilities = model_output[:, :, 4][:, :, tf.newaxis]
+        classifications = tf.nn.softmax(model_output[:, :, 5:], axis=-1)
+        new_output = tf.concat([coordinates, probabilities, classifications], axis=-1)
+        return new_output
+    
+    valid_model = lambda inputs: make_plausible_boxes(model(inputs))
+
+    # equivalent of nmf
+    def randomly_select_boxes(boxes):
+        boxes_ids = tf.range(tf.shape(boxes)[0])
+        nb_boxes = tf.experimental.numpy.random.randint(1, max_nb_boxes)
+        boxes_ids = tf.random.shuffle(boxes_ids)[:nb_boxes]
+        return tf.gather(boxes, boxes_ids)
+
+    # model with nmf
+    def model_with_random_nb_boxes(input):
+        all_boxes = valid_model(input)
+        some_boxes = [randomly_select_boxes(boxes) for boxes in all_boxes]
+        return some_boxes
+    
+    if with_nmf:
+        return model_with_random_nb_boxes
+    return valid_model
