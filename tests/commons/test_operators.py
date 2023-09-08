@@ -11,11 +11,8 @@ from xplique.attributions import (Saliency, GradientInput, IntegratedGradients, 
                                   SquareGrad, GradCAM, Occlusion, Rise, GuidedBackprop, DeconvNet,
                                   GradCAMPP, Lime, KernelShap, SobolAttributionMethod,
                                   HsicAttributionMethod)
-from xplique.commons.operators import (check_operator, predictions_operator, regression_operator,
-                                       binary_segmentation_operator, segmentation_operator)
-from xplique.commons.operators import Tasks, get_operator
-from xplique.commons.exceptions import InvalidOperatorException
-from ..utils import generate_data, generate_regression_model
+from xplique.commons.operators import (predictions_operator, regression_operator)
+from ..utils import generate_data, generate_model, generate_regression_model, almost_equal
 
 
 def default_methods(model, operator):
@@ -35,14 +32,6 @@ def default_methods(model, operator):
     ]
 
 
-def get_segmentation_model():
-    model = tf.keras.Sequential([
-        tf.keras.layers.Input((20, 20, 1)),
-    ])
-    model.compile()
-    return model
-
-
 def get_concept_model():
     model = tf.keras.Sequential([
         tf.keras.layers.Input((6)),
@@ -52,64 +41,12 @@ def get_concept_model():
     return model
 
 
-def test_check_operator():
-    # ensure that the check operator detects non-operator
-
-    # operator must have at least 3 arguments
-    function_with_2_arguments = lambda x,y: 0
-
-    # operator must be Callable
-    not_a_function = [1, 2, 3]
-
-    for operator in [function_with_2_arguments, not_a_function]:
-        try:
-            check_operator(operator)
-            assert False
-        except InvalidOperatorException:
-            pass
-
-
-def test_proposed_operators():
-    # ensure all proposed operators are operators
-    for operator in [predictions_operator, regression_operator,
-                     binary_segmentation_operator, segmentation_operator]:
-        check_operator(operator)
-
-
-def test_get_operator():
-    tasks_name = [task.name for task in Tasks]
-    assert tasks_name.sort() == ['classification', 'regression'].sort()
-    # get by enum
-    assert get_operator(Tasks.CLASSIFICATION) is predictions_operator
-    assert get_operator(Tasks.REGRESSION) is regression_operator
-
-    # get by string
-    assert get_operator("classification") is predictions_operator
-    assert get_operator("regression") is regression_operator
-
-    # assert a not valid string does not work
-    with pytest.raises(AssertionError):
-        get_operator("random")
-
-    # operator must have at least 3 arguments
-    function_with_2_arguments = lambda x,y: 0
-
-    # operator must be Callable
-    not_a_function = [1, 2, 3]
-
-    for operator in [function_with_2_arguments, not_a_function]:
-        try:
-            get_operator(operator)
-        except InvalidOperatorException:
-            pass
-
-
-def test_regression_operator():
-    input_shape, nb_labels, samples = ((10, 10, 1), 10, 20)
+def test_predictions_operator():
+    input_shape, nb_labels, samples = ((10, 10, 3), 10, 20)
     x, y = generate_data(input_shape, nb_labels, samples)
-    regression_model = generate_regression_model(input_shape, nb_labels)
+    classification_model = generate_model(input_shape, nb_labels)
 
-    methods = default_methods(regression_model, regression_operator)
+    methods = default_methods(classification_model, regression_operator)
     for method in methods:
 
         assert hasattr(method, 'inference_function')
@@ -120,18 +57,15 @@ def test_regression_operator():
         phis = method(x, y)
 
         assert x.shape[:-1] == phis.shape[:3]
-    
 
-def test_segmentation_operator():
-    segmentation_model = get_segmentation_model()
 
-    x, y = generate_data((20, 20, 3), 10, 10)
 
-    def segmentation_operator(model, x, y):
-        # explaining channel 0
-        return tf.reduce_sum(model(x)[:,:,0], (1, 2))
+def test_regression_operator():
+    input_shape, nb_labels, samples = ((10, 10, 1), 10, 20)
+    x, y = generate_data(input_shape, nb_labels, samples)
+    regression_model = generate_regression_model(input_shape, nb_labels)
 
-    methods = default_methods(segmentation_model, segmentation_operator)
+    methods = default_methods(regression_model, regression_operator)
     for method in methods:
 
         assert hasattr(method, 'inference_function')
@@ -153,7 +87,6 @@ def test_concept_operator():
 
     def concept_operator(model, x, y):
         x = tf.reshape(x, (-1, 20*20))
-        print(x.shape, random_projection.shape)
         ui = x @ random_projection
         return tf.reduce_sum(model(ui) * y, axis=-1)
 
