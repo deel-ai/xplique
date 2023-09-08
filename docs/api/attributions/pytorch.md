@@ -1,15 +1,21 @@
-# PyTorch's model with Xplique
+# PyTorch models with Xplique
 
-- [**PyTorch's model**: Getting started](https://colab.research.google.com/drive/1bMlO29_0K3YnTQBbbyKQyRfo8YjvDbhe)<sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1bMlO29_0K3YnTQBbbyKQyRfo8YjvDbhe) </sub>
+- [**PyTorch models**: Getting started](https://colab.research.google.com/drive/1bMlO29_0K3YnTQBbbyKQyRfo8YjvDbhe)<sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1bMlO29_0K3YnTQBbbyKQyRfo8YjvDbhe) </sub>
 
-- [**Metrics**: With Pytorch's model](https://colab.research.google.com/drive/16bEmYXzLEkUWLRInPU17QsodAIbjdhGP) <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/16bEmYXzLEkUWLRInPU17QsodAIbjdhGP) </sub>
+- [**Metrics**: With PyTorch models](https://colab.research.google.com/drive/16bEmYXzLEkUWLRInPU17QsodAIbjdhGP) <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/16bEmYXzLEkUWLRInPU17QsodAIbjdhGP) </sub>
+
+- Other tutorials applying Xplique to PyTorch models: [Attributions: Object Detection](https://colab.research.google.com/drive/1X3Yq7BduMKqTA0XEheoVIpOo3IvOrzWL), [Attributions: Semantic Segmentation](https://colab.research.google.com/drive/1AHg7KO1fCOX5nZLGZfxkZ2-DLPPdSfbX)
 
 !!!note
-    We should point out that what we did with Pytorch should be possible for other frameworks. Do not hesitate to give it a try and to make a PR if you have been successful!
+    We should point out that what we did with PyTorch should be possible for other frameworks. Do not hesitate to give it a try and to make a PR if you have been successful!
 
-## Is it possible to use Xplique with PyTorch's model ?
 
-**Yes**, it is! Even though the library was mainly designed to be a Tensorflow toolbox we have been working on a very practical wrapper to facilitate the integration of your PyTorch's model into Xplique's framework!
+
+
+
+## Is it possible to use Xplique with PyTorch models?
+
+**Yes**, it is! Even though the library was mainly designed to be a Tensorflow toolbox we have been working on a very practical wrapper to facilitate the integration of your PyTorch models into Xplique's framework!
 
 ### Quickstart
 ```python
@@ -25,18 +31,26 @@ from xplique.metrics import Deletion
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 wrapped_model = TorchWrapper(torch_model, device)
 
-explainer = Saliency(wrapped_model)
+explainer = Saliency(wrapped_model, operator="classification")
 explanations = explainer(inputs, targets)
 
-metric = Deletion(wrapped_model, inputs, targets)
+metric = Deletion(wrapped_model, inputs, targets, operator="classification")
 score_saliency = metric(explanations)
 ```
 
-## Does it work for every modules ?
+
+
+
+
+## Does it work for every module?
 
 It has been tested on both the `attributions` and the `metrics` modules.
 
-## Does it work for all attribution methods ?
+
+
+
+
+## Does it work for all attribution methods?
 
 Not yet, but it works for most of them (even for gradient-based ones!):
 
@@ -59,18 +73,29 @@ Not yet, but it works for most of them (even for gradient-based ones!):
 | SquareGrad             | ✅                |
 | VarGrad                | ✅                |
 
-##  Steps to make Xplique work on pytorch
+
+
+
+
+## Does it work for all tasks?
+
+It works for all tasks covered by Xplique, see [the tasks covered and how to specify them](../api_attributions/#the-tasks-covered).
+
+
+
+
+##  Steps to make Xplique work on PyTorch
 
 ###  1. Make sure the inputs follow the Xplique API (and not what the model expects).
 
-One thing to keep in mind is that **attribution methods expect a specific inputs format** as described in the [API Description](./api_attributions.md). Especially, for images `inputs` should be $(N, H, W, C)$ following the TF's conventions where:
+One thing to keep in mind is that **attribution methods expect a specific inputs format** as described in the [API Description](../api_attributions/#inputs). Especially, for images `inputs` should be $(N, H, W, C)$ following the TF's conventions where:
 
 - $N$ is the number of inputs
 - $H$ is the height of the images
 - $W$ is the width of the images
 - $C$ is the number of channels
 
-However, if you are using a PyTorch's model it is most likely expecting images' shape to be $(N, C, H, W)$. So what should you do ?
+However, if you are using a PyTorch models it is most likely expecting images' shape to be $(N, C, H, W)$. So what should you do?
 
 If you are using PyTorch's preprocessing functions what you should do is:
 
@@ -82,7 +107,9 @@ If you are using PyTorch's preprocessing functions what you should do is:
     The third step is necessary only if your data has a `channel` dimension which is not in the place expected with Tensorflow
 
 !!!tip
-    If you want to be sure how this work you can look at the [**PyTorch's model**: Getting started](https://colab.research.google.com/drive/1bMlO29_0K3YnTQBbbyKQyRfo8YjvDbhe) notebook and compare it to the [**Attribution methods**:Getting Started](https://colab.research.google.com/drive/1XproaVxXjO9nrBSyyy7BuKJ1vy21iHs2)
+    If you want to be sure how this work you can look at the [**PyTorch models**: Getting started](https://colab.research.google.com/drive/1bMlO29_0K3YnTQBbbyKQyRfo8YjvDbhe) notebook and compare it to the [**Attribution methods**:Getting Started](https://colab.research.google.com/drive/1XproaVxXjO9nrBSyyy7BuKJ1vy21iHs2)
+
+
 
 ### 2. Wrap your model
 
@@ -97,15 +124,21 @@ The last parameter is the one that needs special care. Indeed, if it is set to `
 !!!info
     It is possible that you used special treatments for your models or that it does not follow typical convention. In that case, we encourage you to have a look at the <img src="https://upload.wikimedia.org/wikipedia/commons/9/91/Octicons-mark-github.svg" width="20"></sub>[Source Code](https://github.com/deel-ai/xplique/blob/master/xplique/wrappers/pytorch.py) to adapt it to your needs.
 
+
+
 ### 3. Use this wrapped model as a TF's one
 
-## What are the limitations ?
+
+
+
+
+## What are the limitations?
 
 As it was previously mentionned this does not work with: Deconvolution, Grad-CAM, Grad-CAM++ and Guided Backpropagation.
 
 Furthermore, when one use any white-box explainers one have the possibility to provide an `output_layer` parameter. This functionnality will not work with PyTorch models. The user will have to manipulate itself its model!
 
 !!!warning
-    The `output_layer` parameter does not work for PyTorch's model!
+    The `output_layer` parameter does not work for PyTorch models!
 
 It is possible that all failure cases were not covered in the tests, in that case please open an issue so the team will work on it!

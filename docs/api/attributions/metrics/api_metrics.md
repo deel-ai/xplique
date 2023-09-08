@@ -2,6 +2,10 @@
 
 - [**Attribution Methods**: Metrics](https://colab.research.google.com/drive/1WEpVpFSq-oL1Ejugr8Ojb3tcbqXIOPBg) <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1WEpVpFSq-oL1Ejugr8Ojb3tcbqXIOPBg) </sub>
 
+
+
+
+
 ## Context
 
 As the XAI field continues on being trendy, the quantity of materials at disposal to explain DL models keeps on growing. Especially, there is an increasing need to benchmark and evaluate those different approaches. Mainly, there is an urge to evaluate the quality of explanations provided by attribution methods.
@@ -9,31 +13,32 @@ As the XAI field continues on being trendy, the quantity of materials at disposa
 !!!info
     Note that, even though some work exists for other tasks, this challenge has been mainly tackled in the context of Computer Vision tasks.
 
-As pointed out by [Petsiuk et al.](http://arxiv.org/abs/1806.07421) most explanations approaches are used to be evaluated in a human-centred way.  For instance, an attribution method was considered as good if it pointed out the same relevant pixels as the ones highlighted by human users. While this kind of evaluation allows giving some user trust it can easily be biased. Therefore, the authors introduced two automatic evaluation metrics that rely solely on the drop or rise in the probability of a class as important pixels (defined by the saliency map) are removed or added. Those are not the only available metrics and we propose here to present the API we used as common ground and then to dive into more specifity.
+As pointed out by [Petsiuk et al.](http://arxiv.org/abs/1806.07421), most explainability approaches used to be evaluated in a human-centered way. For instance, an attribution method was considered good if it pointed at the same relevant pixels as the ones highlighted by human users. While this kind of evaluation allows giving some users trust, it can easily be biased. Therefore, the authors introduced two automatic evaluation metrics that rely solely on the drop or rise in the probability of a class as important pixels (defined by the saliency map) are removed or added. Those are not the only available metrics and we propose here to present the API we used as common ground.
+
+
+
+
 
 ## Common API
 
-All metrics inherits from the base class `BaseAttributionMetric` which has the following `__init__` arguments:
+!!!info
+    Metrics described on this page are metrics for attribution methods and explanations. Therefore, the user should first get familiar with the [attributions methods API](../../api_attributions/) as many parameters are common between both API. For instance, `model`, `inputs`, `targets`, and `operator` should match for methods and their metrics.
+
+All metrics inherit from the base class `BaseAttributionMetric` which has the following `__init__` arguments:
 
 - `model`: The model from which we want to obtain explanations
 - `inputs`: Input samples to be explained
-
-    !!!info
-        Inputs should be the same as defined in the [model's documentation](../../attributions/model)
-
 - `targets`: Specify the kind of explanations we want depending on the task at end (e.g. a one-hot encoding of a class of interest, a difference to a ground-truth value..)
-
-    !!!info
-        Targets should be the same as defined in the [model's documentation](../../attributions/model)
-
--  `batch_size`
-
--  `activation`: A string that belongs to [None, 'sigmoid', 'softmax']. See the [dedicated section](#activation) for details
+- `batch_size`: an integer which allows to either process inputs per batch or process perturbed samples of an input per batch (inputs are therefore processed one by one). It is most of the time overwritten by the explanation method `batch_size`.
+- `activation`: A string that belongs to [None, 'sigmoid', 'softmax']. See the [dedicated section](#activation) for details
 
 Then we can distinguish two category of metrics:
 
-- Those which only need the attribution ouputs of an explainer: `ExplanationMetric`, namely those which evaluate Fidelity ([MuFidelity](../mu_fidelity), [Deletion](../deletion), [Insertion](../insertion))
+- Those which only need the attribution outputs of an explainer: `ExplanationMetric`, namely those which evaluate Fidelity ([MuFidelity](../mu_fidelity), [Deletion](../deletion), [Insertion](../insertion))
 - Those which need the explainer: `ExplainerMetric` ([AverageStability](../avg_stability))
+
+
+
 
 ### `ExplanationMetric`
 
@@ -44,7 +49,7 @@ Those metrics are agnostic of the explainer used and rely only on the attributio
 
 All metrics inheriting from this class have another argument in their `__init__` method:
 
-- `operator`: Optionnal function wrapping the model. It can be seen as a metric which allow to evaluate model evolution. For more details, see the attribution's [API Description](../../attributions/api_attributions/) and the [operator documentation](../../attributions/operator/).
+- `operator`: Optional function wrapping the model. It can be seen as a metric which allows to evaluate model evolution. For more details, see the attribution's [API Description section on `operator`](../../api_attributions/#tasks-and-operator).
 
 !!!info
     The `operator` used here should match the one used to compute the explanations!
@@ -52,20 +57,26 @@ All metrics inheriting from this class have another argument in their `__init__`
 All metrics inheriting from this class have to define a method `evaluate` which will take as input the `attributions` given by an explainer. Those attributions should correspond to the `model`, `inputs` and `targets` used to build the metric object.
 
 
+
 ### `ExplainerMetric`
 
-Those metrics will not assess the quality of the explanations provided but (also) the explainer itself.
+These metrics will not assess the quality of the explanations provided but (also) the explainer itself.
 
 All metrics inheriting from this class have to define a method `evaluate` which will take as input the `explainer` evaluated.
 
 !!!info
-    It is even more important that `inputs` and `targets` are the same as defined in the attribution's [API Description](../../attributions/api_attributions/)
+    It is even more important that `inputs` and `targets` be the same as defined in the attribution's [API Description](../../api_attributions/#inputs).
 
 Currently, there is only one Stability metric inheriting from this class:
 
+
+
+
+
+
 ## Activation
 
-This parameter specify if an additional activation layer should be added once a model has been called on the inputs when you have to compute the metric. 
+This parameter specifies if an additional activation layer should be added once a model has been called on the inputs when you have to compute the metric. 
 
 Indeed, most of the times it is recommended when you instantiate an **explainer** (*i.e.* an attribution methods) to provide a model which gives logits as explaining the logits is to explain the class, while explaining the softmax is to explain why this class rather than another.
 
@@ -78,12 +89,20 @@ The default behavior is to compute the metric without adding any activation laye
 !!!note
     There does not appear to be a consensus on the activation function to be used for metrics. Some papers use logits values (e.g., with mu-fidelity), while others use sigmoid or softmax (with deletion and insertion). We can only observe that changing the activation function has an effect on the ranking of the best methods.
  
+
+
+
+
 ## Other Metrics
 
 A Representatibity metric: [MeGe](https://arxiv.org/abs/2009.04521) is also available. Documentation about it should be added soon.
+
+
+
+
 
 ## Notebooks
 
 - [**Metrics**: Getting started](https://colab.research.google.com/drive/1WEpVpFSq-oL1Ejugr8Ojb3tcbqXIOPBg) <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1WEpVpFSq-oL1Ejugr8Ojb3tcbqXIOPBg) </sub>
 
-- [**Metrics**: With Pytorch's model](https://colab.research.google.com/drive/16bEmYXzLEkUWLRInPU17QsodAIbjdhGP) <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/16bEmYXzLEkUWLRInPU17QsodAIbjdhGP) </sub>
+- [**Metrics**: With PyTorch models](https://colab.research.google.com/drive/16bEmYXzLEkUWLRInPU17QsodAIbjdhGP) <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/16bEmYXzLEkUWLRInPU17QsodAIbjdhGP) </sub>
