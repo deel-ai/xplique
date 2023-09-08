@@ -10,7 +10,7 @@ from sklearn.svm import SVC
 from sklearn.ensemble import RandomForestClassifier
 
 from xplique.attributions import (Occlusion, Rise, Lime, KernelShap, SobolAttributionMethod)
-from xplique.commons.operators import predictions_operator, batch_predictions,\
+from xplique.commons.operators_operations import predictions_operator, batch_predictions,\
     batch_predictions_one_hot_callable
 from xplique.commons.callable_operations import predictions_one_hot_callable
 
