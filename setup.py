@@ -13,7 +13,7 @@ setup(
     author_email="thomas_fel@brown.edu",
     license="MIT",
     install_requires=['tensorflow>=2.1.0', 'numpy', 'scikit-learn', 'scikit-image',
-                      'matplotlib', 'scipy', 'opencv-python'],
+                      'matplotlib', 'scipy', 'opencv-python', 'deprecated'],
     extras_require={
         "tests": ["pytest", "pylint"],
         "docs": ["mkdocs", "mkdocs-material", "numkdoc"],
