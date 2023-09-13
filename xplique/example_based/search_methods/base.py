@@ -101,7 +101,8 @@ class BaseSearchMethod(ABC):
     def __init__(
         self,
         cases_dataset: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
-        targets_dataset: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
+        labels_dataset: Optional[Union[tf.data.Dataset, tf.Tensor, np.ndarray]] = None,
+        targets_dataset: Union[tf.data.Dataset, tf.Tensor, np.ndarray] = None,
         k: int = 1,
         projection: Union[Projection, Callable] = None,
         search_returns: Optional[Union[List[str], str]] = None,
@@ -113,11 +114,15 @@ class BaseSearchMethod(ABC):
         else:
             self.batch_size = batch_size
 
-        self.cases_dataset = sanitize_dataset(cases_dataset, self.batch_size)
-        self.targets_dataset = sanitize_dataset(targets_dataset, self.batch_size)
-        if self.targets_dataset is None:
-            # The `find_examples()` method need to be able to iterate on `self.targets_dataset`
-            self.targets_dataset = [None] * self.cases_dataset.cardinality().numpy()
+        self.cases_dataset = cases_dataset
+        self.labels_dataset = labels_dataset
+        self.targets_dataset = targets_dataset
+        # self.cases_dataset = sanitize_dataset(cases_dataset, self.batch_size)
+        # self.labels_dataset = sanitize_dataset(labels_dataset, self.batch_size)
+        # self.targets_dataset = sanitize_dataset(targets_dataset, self.batch_size)
+        # if self.targets_dataset is None:
+        #     # The `find_examples()` method need to be able to iterate on `self.targets_dataset`
+        #     self.targets_dataset = [None] * self.cases_dataset.cardinality().numpy()
 
         self.set_k(k)
         self.set_returns(search_returns)
