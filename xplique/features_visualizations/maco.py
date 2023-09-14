@@ -71,7 +71,7 @@ def maco(objective: Objective,
         # default to box_size that go from 50% to 5%
         box_size_values = tf.cast(np.linspace(0.5, 0.05, nb_steps), tf.float32)
         get_box_size = lambda step_i: box_size_values[step_i]
-    elif isinstance(box_size, Callable):
+    elif hasattr(box_size, "__call__"):
         get_box_size = box_size
     elif isinstance(box_size, float):
         get_box_size = lambda _ : box_size
@@ -82,7 +82,7 @@ def maco(objective: Objective,
         # default to large noise to low noise
         noise_values = tf.cast(np.logspace(0, -4, nb_steps), tf.float32)
         get_noise_intensity = lambda step_i: noise_values[step_i]
-    elif isinstance(noise_intensity, Callable):
+    elif hasattr(noise_intensity, "__call__"):
         get_noise_intensity = noise_intensity
     elif isinstance(noise_intensity, float):
         get_noise_intensity = lambda _ : noise_intensity
