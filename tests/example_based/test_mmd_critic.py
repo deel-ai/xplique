@@ -8,15 +8,11 @@ sys.path.append(os.getcwd())
 from math import prod, sqrt, ceil
 
 import numpy as np
-import scipy
 from sklearn.datasets import load_svmlight_file
 from sklearn.metrics.pairwise import rbf_kernel
 from pathlib import Path
 import tensorflow as tf
-import matplotlib.pyplot as plt
-from xplique.attributions import Occlusion, Saliency
 
-from xplique.example_based import Prototypes
 from xplique.example_based.projections import CustomProjection
 from xplique.example_based.search_methods import MMDCritic
 from xplique.types import Union
@@ -43,7 +39,18 @@ def get_setup(nb_features, nb_samples_train=100, nb_samples_test=100, nb_labels=
 
     return x_train, y_train, x_test, y_test
 
-def test_prototypes_basic():
+def load_data(fname):
+    data_dir = Path('/home/mohamed-chafik.bakey/MMD-critic/data')
+    X, y = load_svmlight_file(str(data_dir / fname))  
+    X = tf.constant(X.todense(), dtype=tf.float32)
+    y = tf.constant(np.array(y), dtype=tf.int64)
+    sort_indices = y.numpy().argsort()
+    X = tf.gather(X, sort_indices, axis=0)
+    y = tf.gather(y, sort_indices)
+    y -= 1
+    return X, y
+
+def test_mmd_critic_basic():
     """
     Test the Prototypes with an identity projection.
     """
@@ -54,6 +61,10 @@ def test_prototypes_basic():
     kernel_type = "local"
 
     x_train, y_train, _, _ = get_setup(nb_features)
+    # x_train, y_train = load_data('usps')
+    # x_test, y_test = load_data('usps.t')
+    # x_test = tf.random.shuffle(x_test)
+    # x_test = x_test[0:8]
 
     identity_projection = CustomProjection(space_projection=lambda inputs, targets=None: inputs)
 
@@ -66,18 +77,18 @@ def test_prototypes_basic():
     # kernel = rbf_kernel(x_train)
 
     # Method initialization
-    method = Prototypes(cases_dataset=x_train,
-                             labels_dataset=y_train,                                                        
-                             projection=identity_projection,
-                             search_method=MMDCritic,
-                             k=k,
-                             case_returns=["indices","distances"],
-                             kernel=kernel,
-                             kernel_type=kernel_type)
+    method = MMDCritic(
+            cases_dataset=x_train,
+            labels_dataset=y_train,
+            k=k,
+            projection=identity_projection,
+            search_returns=["indices"],
+            kernel=kernel,
+            kernel_type="local"
+        )
     
     # Generate global explanation
-    method_output = method.explain()
-    prototype_indices = method_output["indices"]
+    prototype_indices = method.find_examples(None)
 
     prototypes = tf.gather(x_train, prototype_indices)
     prototype_labels = tf.gather(y_train, prototype_indices)
@@ -85,17 +96,15 @@ def test_prototypes_basic():
     prototypes_sorted = tf.gather(prototypes, sorted_by_y_indices)
     prototype_labels = tf.gather(prototype_labels, sorted_by_y_indices)
 
-    kernel_matrix = MMDCritic.compute_kernel_matrix(x_train, y_train, kernel, kernel_type)
-
-    best_distance = MMDCritic.compute_MMD2(kernel_matrix, prototype_indices)
+    best_distance = method.compute_MMD_distance(prototype_indices)
 
     for i in range(10):
-        # select a random set of prototypes
-        prototype_indices_random = tf.random.uniform(shape=(k,), minval=0, maxval=x_train.shape[0], dtype=tf.int32)
-        # compute mmd2 distance for this random set
-        distance = MMDCritic.compute_MMD2(kernel_matrix, prototype_indices_random)
+        # select a random set
+        random_indices = tf.random.uniform(shape=(k,), minval=0, maxval=x_train.shape[0], dtype=tf.int32)
+        # compute mmd distance for this random set
+        distance = method.compute_MMD_distance(random_indices)
 
         assert best_distance <= distance
 
 
-# test_prototypes_basic()
+# test_mmd_critic_basic()
