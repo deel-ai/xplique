@@ -3,6 +3,7 @@ KNN online search method in example-based module
 """
 
 import numpy as np
+from scipy.optimize import minimize
 import sklearn
 import tensorflow as tf
 
@@ -119,8 +120,8 @@ class Protogreedy(BaseSearchMethod):
         self.n = self.sample_indices.shape[0]
         self.colsum = tf.reduce_sum(self.kernel_matrix, axis=0)
         self.colmean = self.colsum / self.n 
-        self.colmean_times_2 = 2 * self.colmean 
-    
+
+
     @staticmethod
     def compute_kernel_matrix(X, y, kernel, kernel_type):
     
@@ -162,67 +163,136 @@ class Protogreedy(BaseSearchMethod):
     
     def compute_objective(self, S, Sw, c, cw):
         """
-        Find argmax_{c} F(S ∪ c, w) - F(S, w)
+        Find argmax_{c} F(S ∪ c) - F(S), where F(S) ≡ max_{w:supp(w)∈ S, w ≥ 0} l(w), where l(w) = w^T * μ_S - 1/2 * w^T * K * w
         ≡
-        Find argmax_{c} F(S ∪ c, w)
+        Find argmax_{c} F(S ∪ c)
         ≡
-        Find argmax_{c} (sum1 - sum2) where sum1 = (2 / n) * cw * ∑[i=1 to n] κ(x_i, c) and 
-                                     sum2 = 2 * cw * ∑[j=1 to |S|] Sw_j * κ(x_j, c) 
-                                             + (cw^2) * κ(c, c)
+        Find argmax_{c} (sum1 - sum2) where: sum1 = (2 / n) * cw * ∑[i=1 to n] κ(x_i, c) 
+                                             sum2 = 2 * cw * ∑[j=1 to |S|] Sw_j * κ(x_j, c) + (cw^2) * κ(c, c)
         """
 
-        sum1 = tf.gather(self.colmean_times_2, c) * cw
+        sum1 = 2 * tf.gather(self.colmean, c) * cw
 
         if S.shape[0] == 0:
             sum2 = tf.abs(tf.gather(tf.linalg.diag_part(self.kernel_matrix),c)) * (cw**2)
         else:
             temp = tf.gather(tf.gather(self.kernel_matrix, S), c, axis=1)
-            temp = temp * tf.expand_dims(Sw, axis=1)
+            temp = temp * Sw
             temp = temp * tf.expand_dims(cw, axis=0)
             sum2 = tf.reduce_sum(temp, axis=0) * 2 + tf.gather(tf.linalg.diag_part(self.kernel_matrix),c) * (cw**2)
-        
+
         objective = sum1 - sum2
 
         return objective
     
 
-    def compute_weights(self, indices):
+    def compute_weights(self, selected_indices, selected_weights, candidate_indices):
 
-        u = tf.expand_dims(tf.gather(self.colmean, indices), axis=0)
+        nb_candidates = candidate_indices.shape[0]
+        nb_selected = selected_indices.shape[0]
 
-        K = tf.gather(tf.gather(self.kernel_matrix, indices), indices, axis=1)
+        if ( nb_selected == 0 ):
 
-        # Perform matrix division (u / K)
-        w = tf.matmul(u, tf.linalg.inv(K))
+            candidate_selected_weights = tf.constant([], dtype=tf.float32)
+            candidate_weights = tf.ones_like(candidate_indices, dtype=tf.float32)
 
-        w = tf.squeeze(w, axis=0)
+        else:
 
-        return w
-        
+            # candidate_selected_weights =  tf.ones(shape=(selected_indices.shape[0], candidate_indices.shape[0]), dtype=tf.float32) / tf.cast(selected_indices.shape[0]+1, dtype=tf.float32)
+            # candidate_weights = tf.ones(shape=candidate_indices.shape, dtype=tf.float32) / tf.cast(selected_indices.shape[0]+1, dtype=tf.float32)
+
+            repeated_selected_indices = tf.tile(tf.expand_dims(selected_indices, 1), [1, nb_candidates])
+            all_indices = tf.concat([repeated_selected_indices, tf.expand_dims(candidate_indices, 0)], axis=0)
+
+            # Define the function to maximize
+            def objective(w, u, K):
+                return - (w @ u - 0.5 * w @ K @ w)  # Negative of l(w) to maximize
+
+            # Define the bounds for w (non-negative constraint)
+            maxWeight = 10000
+            bounds = [(0, maxWeight)] * all_indices.shape[0]  # w >= 0 and w <= maxWeight
+            initial_w = tf.concat([selected_weights, [0]], axis=0)
+            
+            all_weights_list = []
+            for c in range(all_indices.shape[1]):
+            
+                indices = tf.gather(all_indices, c, axis=1)
+
+                u = tf.expand_dims(tf.gather(self.colmean, indices), axis=1)
+
+                K = tf.gather(tf.gather(self.kernel_matrix, indices), indices, axis=1)
+
+                # Perform matrix division (u / K)
+                # initial_w = tf.linalg.solve(K, u)
+                # initial_w = tf.maximum(initial_w, 0)
+
+                u = u.numpy()
+                K = K.numpy()
+
+                # Perform the optimization    
+                # maximize the objective function l(w) = w^T * μ_S - 1/2 * w^T * K * w
+                # w.r.t w subject to w>=0
+
+                result = minimize(objective, initial_w, args=(u, K), method='SLSQP', bounds=bounds)
+
+                # Extract the optimized value of w
+                optimal_w = result.x
+                optimal_w = tf.convert_to_tensor(optimal_w, dtype=tf.float32)
+                optimal_w = tf.expand_dims(optimal_w, axis=1)
+
+                # # Print the result
+                # print("Optimal w:", optimal_w)
+                # print("Optimal l(w):", -result.fun)  # Convert back to maximize l(w)
+                # print("Number of iterations (function evaluations):", result.nfev)
+
+                assert tf.reduce_all(optimal_w >= 0)
+
+                all_weights_list.append(optimal_w)
+            
+            all_weights = tf.concat(all_weights_list, axis=1)
+
+            candidate_selected_weights = all_weights[:-1]
+            candidate_weights = all_weights[-1]
+
+        return candidate_selected_weights, candidate_weights
+
 
     def find_prototypes(self, num_prototypes):
-
+        # Initialize a binary mask to keep track of selected samples.
         is_selected = tf.zeros_like(self.sample_indices)
-        selected_indices = tf.boolean_mask(self.sample_indices, is_selected > 0)
-        selected_weights = self.compute_weights(selected_indices)
-        
+        # Initialize empty lists to store selected indices and their corresponding weights.
+        selected_indices = tf.constant([], dtype=tf.int32)
+        selected_weights = tf.constant([], dtype=tf.float32)
+
         k = 0
-        while selected_indices.shape[0] < num_prototypes:
+        while k < num_prototypes:
+            # Find candidate indices that have not been selected.
             candidate_indices = tf.boolean_mask(self.sample_indices, is_selected == 0)
-            candidate_weights = self.compute_weights(candidate_indices)
 
-            objective = self.compute_objective(selected_indices, selected_weights, candidate_indices, candidate_weights)
-
+            # Compute weights for candidate samples and get the best candidate based on an objective function.
+            candidate_selected_weights, candidate_weights = self.compute_weights(selected_indices, selected_weights, candidate_indices)
+            objective = self.compute_objective(selected_indices, candidate_selected_weights, candidate_indices, candidate_weights)
             best_sample_index = tf.gather(candidate_indices, tf.argmax(objective))
+     
+            # Update the binary mask to mark the best sample as selected.
             is_selected = tf.tensor_scatter_nd_update(is_selected, [[best_sample_index]], [k + 1])
-            selected_indices = tf.boolean_mask(self.sample_indices, is_selected > 0)
-            selected_weights = self.compute_weights(selected_indices)
+
+            if k==0:
+                best_selected_weights = tf.constant([], dtype=tf.float32)
+            else:  
+                best_selected_weights = tf.gather(candidate_selected_weights, best_sample_index, axis=1)
+            best_candidate_weight = tf.gather(candidate_weights, best_sample_index) 
+
+            # S = S ∪ {best_sample_index}
+            # update selected_indices 
+            selected_indices = tf.concat([selected_indices, [best_sample_index]], axis=0)
+            # update selected_weights
+            selected_weights = tf.concat([best_selected_weights, [best_candidate_weight]], axis=0)
+
             k += 1
 
-            # f_selected = 2 * tf.reduce_sum(tf.gather(colmean, selected_indices)) / selected_indices.shape[0] - tf.gather(tf.gather(self.kernel_matrix, selected_indices), selected_indices, axis=1) / selected_indices.shape[0] **2
-        order = tf.boolean_mask(is_selected, is_selected > 0).numpy().argsort()
-        self.prototype_indices = tf.gather(selected_indices, order)
-        self.prototype_weights = tf.gather(selected_weights, order)
+        self.prototype_indices = selected_indices
+        self.prototype_weights = selected_weights
 
 
     def find_examples(self, inputs: Union[tf.Tensor, np.ndarray]):
