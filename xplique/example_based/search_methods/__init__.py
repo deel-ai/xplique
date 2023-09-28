@@ -8,3 +8,4 @@ from .base import BaseSearchMethod
 from .knn import KNN
 from .protogreedy import Protogreedy
 from .mmd_critic import MMDCritic
+from .protodash import Protodash
