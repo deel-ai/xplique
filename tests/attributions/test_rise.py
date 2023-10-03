@@ -54,12 +54,12 @@ def test_polymorphic_parameters():
 
         reset_random_seed(0)
         mask_int = tf.cast(
-            rise_int._get_masks(nb_samples, grid_size, preservation_probability), 
+            rise_int._get_masks(features.shape, nb_samples, grid_size, preservation_probability), 
             tf.int32)
             
         reset_random_seed(0)
         mask_tuple = tf.cast(
-            rise_tuple._get_masks(nb_samples, grid_size, preservation_probability), 
+            rise_tuple._get_masks(features.shape, nb_samples, grid_size, preservation_probability), 
             tf.int32)
 
         rise_int(features, targets)
