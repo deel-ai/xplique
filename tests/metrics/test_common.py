@@ -1,4 +1,5 @@
 import numpy as np
+import tensorflow as tf
 
 from xplique.attributions import (Saliency, GradientInput, IntegratedGradients, SmoothGrad, VarGrad,
                                   SquareGrad, GradCAM, Occlusion, Rise, GuidedBackprop, DeconvNet,
@@ -29,29 +30,40 @@ def test_common():
     """Test that all the attributions method works as explainer"""
 
     input_shape, nb_labels, samples = ((16, 16, 3), 10, 20)
-    x, y = generate_data(input_shape, nb_labels, samples)
     model = generate_model(input_shape, nb_labels)
+    output_layer_index = -2
 
-    explainers = _default_methods(model)
+    inputs_np, targets_np = generate_data(input_shape, nb_labels, samples)
+    inputs_tf, targets_tf = tf.cast(inputs_np, tf.float32), tf.cast(targets_np, tf.float32)
+    dataset = tf.data.Dataset.from_tensor_slices((inputs_np, targets_np))
+    batched_dataset = tf.data.Dataset.from_tensor_slices((inputs_np, targets_np)).batch(3)
 
-    metrics = [
-        Deletion(model, x, y, steps=3),
-        Insertion(model, x, y, steps=3),
-        MuFidelity(model, x, y, nb_samples=3),
-        AverageStability(model, x, y, nb_samples=3)
-    ]
+    explainers = _default_methods(model, output_layer_index)
 
-    for explainer in explainers:
-        explanations = explainer(x, y)
-        for metric in metrics:
-            assert hasattr(metric, 'evaluate')
-            if isinstance(metric, ExplainerMetric):
-                score = metric(explainer)
-            else:
-                assert hasattr(metric, 'inference_function')
-                assert hasattr(metric, 'batch_inference_function')
-                score = metric(explanations)
-            assert type(score) in [np.float32, np.float64, float]
+    for inputs, targets in [(inputs_np, targets_np),
+                            (inputs_tf, targets_tf),
+                            (dataset, None),
+                            (batched_dataset, None)]:
+
+        metrics = [
+            Deletion(model, inputs, targets, steps=3),
+            Insertion(model, inputs, targets, steps=3),
+            MuFidelity(model, inputs, targets, nb_samples=3),
+            AverageStability(model, inputs, targets, nb_samples=3)
+        ]
+
+        for explainer in explainers:
+            explanations = explainer(inputs, targets)
+            for metric in metrics:
+                assert hasattr(metric, 'evaluate')
+                if isinstance(metric, ExplainerMetric):
+                    score = metric(explainer)
+                else:
+                    assert hasattr(metric, 'inference_function')
+                    assert hasattr(metric, 'batch_inference_function')
+                    score = metric(explanations)
+                assert type(score) in [np.float32, np.float64, float]
+
 
 def test_add_activation():
     """Test that adding a softmax or sigmoid layer still works"""
