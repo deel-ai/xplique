@@ -34,9 +34,12 @@ class Rise(BlackBoxExplainer):
     grid_size
         Size of the grid used to generate the scaled-down masks. Masks are then rescale to
         and cropped to input_size. Can be a tuple for different cutting depending on the dimension.
+        Ignored for tabular data.
     preservation_probability
         Probability of preservation for each pixel (or the percentage of non-masked pixels in
         each masks), also the expectation value of the mask.
+    mask_value
+        Value used as when applying masks.
     """
 
     # Avoid zero division during procedure. (the value is not important, as if the denominator is
@@ -49,14 +52,14 @@ class Rise(BlackBoxExplainer):
                  operator: Optional[Union[Tasks, str, OperatorSignature]] = None,
                  nb_samples: int = 4000,
                  grid_size: Union[int, Tuple[int]] = 7,
-                 preservation_probability: float = .5):
+                 preservation_probability: float = .5,
+                 mask_value: float = 0.0):
         super().__init__(model, batch_size, operator)
 
         self.nb_samples = nb_samples
         self.grid_size = grid_size
         self.preservation_probability = preservation_probability
-        self.binary_masks = Rise._get_masks(self.nb_samples, self.grid_size,
-                                            self.preservation_probability)
+        self.mask_value = mask_value
 
     @sanitize_input_output
     def explain(self,
@@ -83,6 +86,9 @@ class Rise(BlackBoxExplainer):
         explanations
             RISE maps, same shape as the inputs, except for the channels.
         """
+        binary_masks = Rise._get_masks(tuple(inputs.shape), self.nb_samples, self.grid_size,
+                                       self.preservation_probability)
+
         rise_maps = None
         batch_size = self.batch_size or self.nb_samples
 
@@ -93,19 +99,22 @@ class Rise(BlackBoxExplainer):
             rise_denominator = tf.zeros((*single_input.shape[:-1], 1))
 
             # we iterate on the binary masks since they are cheap in memory
-            for batch_masks in batch_tensor(self.binary_masks, batch_size):
+            for batch_masks in batch_tensor(binary_masks, batch_size):
                 # the upsampling/cropping phase is performed on the batched masks
-                masked_inputs, masks_upsampled = Rise._apply_masks(single_input, batch_masks)
+                masked_inputs, masks_upsampled = Rise._apply_masks(
+                    single_input, batch_masks, self.mask_value)
                 repeated_targets = repeat_labels(single_target[tf.newaxis, :], len(batch_masks))
 
                 predictions = self.inference_function(self.model, masked_inputs, repeated_targets)
 
-                rise_nominator += tf.reduce_sum(tf.reshape(predictions, (-1, 1, 1, 1))
-                                                * masks_upsampled, 0)
+                while len(predictions.shape) < len(masks_upsampled.shape):
+                    predictions = tf.expand_dims(predictions, axis=-1)
+
+                rise_nominator += tf.reduce_sum(predictions * masks_upsampled, 0)
                 rise_denominator += tf.reduce_sum(masks_upsampled, 0)
 
             rise_map = rise_nominator / (rise_denominator + Rise.EPSILON)
-            rise_map = rise_map[tf.newaxis, :, :, 0]
+            rise_map = rise_map[tf.newaxis]
 
             rise_maps = rise_map if rise_maps is None else tf.concat([rise_maps, rise_map], axis=0)
 
@@ -114,7 +123,8 @@ class Rise(BlackBoxExplainer):
 
     @staticmethod
     @tf.function
-    def _get_masks(nb_samples: int,
+    def _get_masks(input_shape: Tuple[int],
+                   nb_samples: int,
                    grid_size: Union[int, Tuple[int]],
                    preservation_probability: float) -> tf.Tensor:
         """
@@ -126,11 +136,13 @@ class Rise(BlackBoxExplainer):
         ----------
         input_shape
             Shape of an input sample.
+            Expected shape among (N, W), (N, T, W), (N, H, W, C).
         nb_samples
             Number of masks generated for Monte Carlo sampling.
         grid_size
             Size of the grid used to generate the scaled-down masks.
             Can be a tuple for non-square grid.
+            Ignored for tabular data.
         preservation_probability
             Probability of preservation for each pixel (or the percentage of non-masked pixels in
             each masks), also the expectation value of the mask.
@@ -140,11 +152,27 @@ class Rise(BlackBoxExplainer):
         binary_masks
             The downsampled binary masks.
         """
-        if not isinstance(grid_size, tuple):
-            downsampled_shape = (grid_size, grid_size)
-        else:
-            downsampled_shape = grid_size
-        downsampled_masks = tf.random.uniform((nb_samples, *downsampled_shape, 1), 0, 1)
+        if len(input_shape) == 2:  # tabular data, grid size is ignored
+            mask_shape = (nb_samples, input_shape[1])
+
+        elif len(input_shape) == 3:  # time series data
+            if not isinstance(grid_size, tuple):
+                downsampled_shape = (grid_size, input_shape[2])
+            else:
+                assert grid_size[1] == input_shape[2],\
+                    f"To apply Rise to time series data, the second dimension of grid size " +\
+                    f"{grid_size} should match the third dimension of input shape {input_shape}."
+                downsampled_shape = grid_size
+            mask_shape = (nb_samples, *downsampled_shape)
+        
+        elif len(input_shape) == 4:  # image data
+            if not isinstance(grid_size, tuple):
+                downsampled_shape = (grid_size, grid_size)
+            else:
+                downsampled_shape = grid_size
+            mask_shape = (nb_samples, *downsampled_shape, 1)
+
+        downsampled_masks = tf.random.uniform(mask_shape, 0, 1)
 
         binary_masks = downsampled_masks < preservation_probability
 
@@ -154,7 +182,8 @@ class Rise(BlackBoxExplainer):
     @tf.function
     def _apply_masks(
         single_input: tf.Tensor,
-        binary_masks: tf.Tensor) -> Tuple[tf.Tensor, tf.Tensor]:
+        binary_masks: tf.Tensor,
+        mask_value: float = 0.0) -> Tuple[tf.Tensor, tf.Tensor]:
         """
         Given input samples and masks, apply it for every sample and repeat the labels.
 
@@ -164,6 +193,8 @@ class Rise(BlackBoxExplainer):
             Input samples to be explained.
         binary_masks
             Binary downsampled masks randomly generated.
+        mask_value
+            Value used as when applying masks.
 
         Returns
         -------
@@ -172,16 +203,37 @@ class Rise(BlackBoxExplainer):
         masks
             Masks after the upsampling / cropping operation
         """
-        # the upsampled size is defined as (h+1)(H/h) = H(1 + 1 / h)
-        upsampled_size = (int(single_input.shape[0] * (1.0 + 1.0 / binary_masks.shape[1])),
-                          int(single_input.shape[1] * (1.0 + 1.0 / binary_masks.shape[2])),)
-        upsampled_size = tf.cast(upsampled_size, tf.int32)
+        binary_masks = tf.cast(binary_masks, tf.float32)
 
-        upsampled_masks = tf.image.resize(tf.cast(binary_masks, tf.float32), upsampled_size)
+        if len(single_input.shape) == 1:  # tabular data, grid size is ignored
+            masks = binary_masks
 
-        masks = tf.image.random_crop(upsampled_masks, (binary_masks.shape[0],
-                                                       *single_input.shape[:-1], 1))
-
-        masked_input = tf.expand_dims(single_input, 0) * masks
+        elif len(single_input.shape) == 2:  # time series
+            # the upsampled size is defined as (t+1)(T/t) = T(1 + 1 / t)
+            upsampled_size = tf.cast(
+                (int(single_input.shape[0] * (1.0 + 1.0 / binary_masks.shape[1])),
+                 int(single_input.shape[1])),
+                tf.int32
+            )
+            
+            upsampled_masks = tf.image.resize(tf.expand_dims(binary_masks, axis=-1),
+                                                upsampled_size)[:, :, :, 0]
+            masks = tf.image.random_crop(upsampled_masks,
+                                            (binary_masks.shape[0], *single_input.shape))
+                
+        elif len(single_input.shape) == 3:  # image data
+            # the upsampled size is defined as (h+1)(H/h) = H(1 + 1 / h)
+            upsampled_size = (int(single_input.shape[0] * (1.0 + 1.0 / binary_masks.shape[1])),
+                            int(single_input.shape[1] * (1.0 + 1.0 / binary_masks.shape[2])),)
+            
+            upsampled_size = tf.cast(upsampled_size, tf.int32)
+            upsampled_masks = tf.image.resize(binary_masks, upsampled_size)
+            
+            masks = tf.image.random_crop(upsampled_masks,
+                                            (binary_masks.shape[0], *single_input.shape[:-1], 1))
+        
+        masked_input = tf.where(tf.cast(masks, tf.bool),
+                                tf.expand_dims(single_input, 0),
+                                mask_value)
 
         return masked_input, masks
