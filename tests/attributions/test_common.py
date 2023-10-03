@@ -6,25 +6,25 @@ from xplique.attributions import (Saliency, GradientInput, IntegratedGradients, 
                                   GradCAMPP, Lime, KernelShap, SobolAttributionMethod,
                                   HsicAttributionMethod)
 from xplique.attributions.base import BlackBoxExplainer
-from ..utils import generate_data, generate_model
+from ..utils import generate_data, generate_model, generate_regression_model, almost_equal
 
-
-def _default_methods(model, output_layer_index):
+'''
+def _default_methods(model, output_layer_index=None, bs=32):
     return [
-        Saliency(model, output_layer_index),
-        GradientInput(model, output_layer_index),
-        SmoothGrad(model, output_layer_index),
-        VarGrad(model, output_layer_index),
-        SquareGrad(model, output_layer_index),
-        IntegratedGradients(model, output_layer_index),
-        GradCAM(model, output_layer_index),
-        Occlusion(model),
-        Rise(model, nb_samples=2),
-        GuidedBackprop(model, output_layer_index),
-        DeconvNet(model, output_layer_index),
-        GradCAMPP(model, output_layer_index),
-        Lime(model, nb_samples=2),
-        KernelShap(model, nb_samples=2),
+        Saliency(model, output_layer_index, bs),
+        GradientInput(model, output_layer_index, bs),
+        SmoothGrad(model, output_layer_index, bs),
+        VarGrad(model, output_layer_index, bs),
+        SquareGrad(model, output_layer_index, bs),
+        IntegratedGradients(model, output_layer_index, bs),
+        GradCAM(model, output_layer_index, bs),
+        Occlusion(model, bs),
+        Rise(model, bs, nb_samples=2),
+        GuidedBackprop(model, output_layer_index, bs),
+        DeconvNet(model, output_layer_index, bs),
+        GradCAMPP(model, output_layer_index, bs),
+        Lime(model, bs, nb_samples=2),
+        KernelShap(model, bs, nb_samples=2),
         SobolAttributionMethod(model, grid_size=2, nb_design=2),
         HsicAttributionMethod(model, grid_size=2, nb_design=2),
     ]
@@ -73,23 +73,7 @@ def test_batch_size():
 
     for bs in batch_sizes:
 
-        methods = [
-            Saliency(model, output_layer_index, bs),
-            GradientInput(model, output_layer_index, bs),
-            SmoothGrad(model, output_layer_index, bs),
-            VarGrad(model, output_layer_index, bs),
-            SquareGrad(model, output_layer_index, bs),
-            IntegratedGradients(model, output_layer_index, bs),
-            GradCAM(model, output_layer_index, bs),
-            Occlusion(model, bs),
-            Rise(model, bs, nb_samples=2),
-            GuidedBackprop(model, output_layer_index, bs),
-            DeconvNet(model, output_layer_index, bs),
-            GradCAMPP(model, output_layer_index, bs),
-            Lime(model, bs, nb_samples=2),
-            KernelShap(model, bs, nb_samples=2),
-            SobolAttributionMethod(model, grid_size=2, nb_design=2)
-        ]
+        methods = _default_methods(model, output_layer_index, bs)
 
         for method in methods:
             explanations = method.explain(inputs, targets)
@@ -123,3 +107,64 @@ def test_model_caching():
     # ensure that there no more than one key has been added
     assert (len(
         BlackBoxExplainer._cache_models) == cache_len_before + 1)  # pylint: disable=protected-access
+# '''
+
+def test_data_types_shapes():
+    """Test that methods support different inputs shapes"""
+
+    data_types_input_shapes = {
+        "tabular": (20,),
+        "time-series": (20, 10),
+        "images rgb": (20, 16, 3),
+        "images black and white": (28, 28, 1),
+    }
+
+    not_compatible_methods = {
+        "tabular": ["GradCAM", "GradCAMPP", "SobolAttributionMethod", "HsicAttributionMethod"],
+        "time-series": ["GradCAM", "GradCAMPP", "SobolAttributionMethod", "HsicAttributionMethod"],
+        "images rgb": [],
+        "images black and white": [],
+    }
+
+    methods = {
+        Saliency: {},
+        GradientInput: {},
+        SmoothGrad: {},
+        VarGrad: {},
+        SquareGrad: {},
+        IntegratedGradients: {},
+        GuidedBackprop: {},
+        DeconvNet: {},
+        GradCAM: {},
+        GradCAMPP: {},
+        Occlusion: {},
+        Rise: {"nb_samples": 2},
+        Lime: {"nb_samples": 2},
+        KernelShap: {"nb_samples": 2},
+        SobolAttributionMethod: {"grid_size": 2, "nb_design": 2},
+        HsicAttributionMethod: {"grid_size": 2, "nb_design": 2},
+    }
+
+    for data_type, input_shape in data_types_input_shapes.items():
+        input_shape, nb_labels, samples = (input_shape, 5, 15)
+        inputs, targets = generate_data(input_shape, nb_labels, samples)
+
+        if len(input_shape) == 3:  # image => conv2D
+            model = generate_model(input_shape, nb_labels)
+            model.layers[-1].activation = tf.keras.activations.linear
+        else:  # others => dense
+            model = generate_regression_model(input_shape, nb_labels)
+
+        for method, params in methods.items():
+            if method.__name__ in not_compatible_methods[data_type]:
+                continue
+
+            explainer = method(model, **params)
+
+            explanation = explainer(inputs, targets)
+
+            if len(input_shape) == 3:  # image => no channel in the explanation
+                assert almost_equal(np.array([explanation.shape[1], explanation.shape[2]]),
+                                    np.array(inputs.shape[1:-1]))
+            else:
+                assert almost_equal(np.array(explanation.shape), np.array(inputs.shape))
