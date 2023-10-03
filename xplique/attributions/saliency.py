@@ -6,7 +6,8 @@ import tensorflow as tf
 import numpy as np
 
 from .base import WhiteBoxExplainer, sanitize_input_output
-from ..types import Optional, Union
+from ..types import Optional, Union, OperatorSignature
+from ..commons import Tasks
 
 
 class Saliency(WhiteBoxExplainer):
@@ -41,9 +42,20 @@ class Saliency(WhiteBoxExplainer):
         Function g to explain, g take 3 parameters (f, x, y) and should return a scalar,
         with f the model, x the inputs and y the targets. If None, use the standard
         operator g(f, x, y) = f(x)[y].
+    reducer
+        String, name of the reducer to use. Either "min", "mean", "max" or "sum".
+        Maximum is taking by default to match the initial paper.
     """
+    def __init__(self,
+                 model: tf.keras.Model,
+                 output_layer: Optional[Union[str, int]] = None,
+                 batch_size: Optional[int] = 32,
+                 operator: Optional[Union[Tasks, str, OperatorSignature]] = None,
+                 reducer: Optional[str] = "max",):
+        super().__init__(model, output_layer, batch_size, operator, reducer)
 
     @sanitize_input_output
+    @WhiteBoxExplainer._harmonize_channel_dimension
     def explain(self,
                 inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
                 targets: Optional[Union[tf.Tensor, np.ndarray]] = None) -> tf.Tensor:
@@ -70,9 +82,5 @@ class Saliency(WhiteBoxExplainer):
         """
         gradients = self.batch_gradient(self.model, inputs, targets, self.batch_size)
         gradients = tf.abs(gradients)
-
-        # if the image is a RGB, take the maximum magnitude across the channels (see Ref.)
-        if len(gradients.shape) == 4:
-            gradients = tf.reduce_max(gradients, axis=-1)
 
         return gradients

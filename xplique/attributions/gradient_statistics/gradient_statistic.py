@@ -43,6 +43,8 @@ class GradientStatistic(WhiteBoxExplainer, ABC):
         Function g to explain, g take 3 parameters (f, x, y) and should return a scalar,
         with f the model, x the inputs and y the targets. If None, use the standard
         operator g(f, x, y) = f(x)[y].
+    reducer
+        String, name of the reducer to use. Either "min", "mean", "max" or "sum".
     nb_samples
         Number of noisy samples generated for the smoothing procedure.
     noise
@@ -54,10 +56,11 @@ class GradientStatistic(WhiteBoxExplainer, ABC):
                  output_layer: Optional[Union[str, int]] = None,
                  batch_size: Optional[int] = 32,
                  operator: Optional[Union[Tasks, str, OperatorSignature]] = None,
+                 reducer: Optional[str] = "mean",
                  nb_samples: int = 50,
                  noise: float = 0.2):
         super().__init__(model, output_layer, batch_size, operator, reducer)
-        self.online_statistic_class = self.get_online_statistic_class()
+        self.online_statistic_class = self._get_online_statistic_class()
         self.nb_samples = nb_samples
         self.noise = noise
 
@@ -75,7 +78,7 @@ class GradientStatistic(WhiteBoxExplainer, ABC):
         raise NotImplementedError
 
     @sanitize_input_output
-    @WhiteBoxExplainer.harmonize_channel_dimension
+    @WhiteBoxExplainer._harmonize_channel_dimension
     def explain(self,
                 inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
                 targets: Optional[Union[tf.Tensor, np.ndarray]] = None) -> tf.Tensor:
@@ -102,7 +105,7 @@ class GradientStatistic(WhiteBoxExplainer, ABC):
         """
         batch_size = self.batch_size or (len(inputs) * self.nb_samples)
         perturbation_batch_size = min(batch_size, self.nb_samples)
-        inputs_batch_size = max(1, self.batch_size // perturbation_batch_size)
+        inputs_batch_size = max(1, batch_size // perturbation_batch_size)
 
         smoothed_gradients = []
         # loop over inputs (by batch if batch_size > nb_samples, one by one otherwise)
@@ -128,8 +131,8 @@ class GradientStatistic(WhiteBoxExplainer, ABC):
                     self.model, perturbed_x_batch, repeated_targets, batch_size)
 
                 # group by inputs and compute the average gradient
-                gradients = tf.reshape(  #TODO have adaptative shapes, batch may not be full
-                    gradients, (inputs_batch_size, perturbation_batch_size, *gradients.shape[1:]))
+                gradients = tf.reshape(
+                    gradients, (x_batch.shape[0], nb_perturbations, *gradients.shape[1:]))
 
                 # update online estimation
                 online_statistic.update(gradients)
@@ -138,7 +141,7 @@ class GradientStatistic(WhiteBoxExplainer, ABC):
             reduced_gradients = online_statistic.get_statistic()
             smoothed_gradients.append(reduced_gradients)
 
-        tf.concat(smoothed_gradients, axis=0)
+        smoothed_gradients = tf.concat(smoothed_gradients, axis=0)
         return smoothed_gradients
 
     @staticmethod

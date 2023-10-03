@@ -87,4 +87,7 @@ def forgrad(explanations : tf.Tensor, sigma: int = 15) -> tf.Tensor:
         filtered_explanations = tf.image.resize(filtered_explanations[:, :, :, None],
                                                 (image_size, image_size), method="bicubic")
 
+    if len(explanations.shape) == 4 and len(filtered_explanations.shape) == 3:
+        filtered_explanations = tf.expand_dims(filtered_explanations, -1)
+
     return filtered_explanations

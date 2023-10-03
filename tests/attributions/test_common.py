@@ -8,17 +8,17 @@ from xplique.attributions import (Saliency, GradientInput, IntegratedGradients, 
 from xplique.attributions.base import BlackBoxExplainer
 from ..utils import generate_data, generate_model, generate_regression_model, almost_equal
 
-'''
+
 def _default_methods(model, output_layer_index=None, bs=32):
     return [
         Saliency(model, output_layer_index, bs),
         GradientInput(model, output_layer_index, bs),
-        SmoothGrad(model, output_layer_index, bs),
-        VarGrad(model, output_layer_index, bs),
-        SquareGrad(model, output_layer_index, bs),
-        IntegratedGradients(model, output_layer_index, bs),
+        SmoothGrad(model, output_layer_index, bs, nb_samples=2),
+        VarGrad(model, output_layer_index, bs, nb_samples=2),
+        SquareGrad(model, output_layer_index, bs, nb_samples=2),
+        IntegratedGradients(model, output_layer_index, bs, steps=2),
         GradCAM(model, output_layer_index, bs),
-        Occlusion(model, bs),
+        Occlusion(model, bs, patch_size=10, patch_stride=10),
         Rise(model, bs, nb_samples=2),
         GuidedBackprop(model, output_layer_index, bs),
         DeconvNet(model, output_layer_index, bs),
@@ -107,7 +107,7 @@ def test_model_caching():
     # ensure that there no more than one key has been added
     assert (len(
         BlackBoxExplainer._cache_models) == cache_len_before + 1)  # pylint: disable=protected-access
-# '''
+
 
 def test_data_types_shapes():
     """Test that methods support different inputs shapes"""
@@ -129,10 +129,10 @@ def test_data_types_shapes():
     methods = {
         Saliency: {},
         GradientInput: {},
-        SmoothGrad: {},
-        VarGrad: {},
-        SquareGrad: {},
-        IntegratedGradients: {},
+        SmoothGrad: {"nb_samples": 2},
+        VarGrad: {"nb_samples": 2},
+        SquareGrad: {"nb_samples": 2},
+        IntegratedGradients: {"steps": 2},
         GuidedBackprop: {},
         DeconvNet: {},
         GradCAM: {},
@@ -163,8 +163,10 @@ def test_data_types_shapes():
 
             explanation = explainer(inputs, targets)
 
-            if len(input_shape) == 3:  # image => no channel in the explanation
-                assert almost_equal(np.array([explanation.shape[1], explanation.shape[2]]),
-                                    np.array(inputs.shape[1:-1]))
+            print(data_type, (samples,) + input_shape, method.__name__, explanation.shape)  # TODO: remove
+            if len(input_shape) == 3:  # image => explanation (n, h, w, 1)
+                assert almost_equal(
+                    np.array(explanation.shape),
+                    np.array(inputs.shape[:-1] + (1,)))
             else:
                 assert almost_equal(np.array(explanation.shape), np.array(inputs.shape))

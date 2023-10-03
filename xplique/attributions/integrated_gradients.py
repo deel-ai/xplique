@@ -42,6 +42,8 @@ class IntegratedGradients(WhiteBoxExplainer):
         Function g to explain, g take 3 parameters (f, x, y) and should return a scalar,
         with f the model, x the inputs and y the targets. If None, use the standard
         operator g(f, x, y) = f(x)[y].
+    reducer
+        String, name of the reducer to use. Either "min", "mean", "max" or "sum".
     steps
         Number of points to interpolate between the baseline and the desired point.
     baseline_value
@@ -53,13 +55,15 @@ class IntegratedGradients(WhiteBoxExplainer):
                  output_layer: Optional[Union[str, int]] = None,
                  batch_size: Optional[int] = 32,
                  operator: Optional[Union[Tasks, str, OperatorSignature]] = None,
+                 reducer: Optional[str] = "mean",
                  steps: int = 50,
                  baseline_value: float = .0):
-        super().__init__(model, output_layer, batch_size, operator)
+        super().__init__(model, output_layer, batch_size, operator, reducer)
         self.steps = steps
         self.baseline_value = baseline_value
 
     @sanitize_input_output
+    @WhiteBoxExplainer._harmonize_channel_dimension
     def explain(self,
                 inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
                 targets: Optional[Union[tf.Tensor, np.ndarray]] = None) -> tf.Tensor:

@@ -160,11 +160,11 @@ class Rise(BlackBoxExplainer):
                 downsampled_shape = (grid_size, input_shape[2])
             else:
                 assert grid_size[1] == input_shape[2],\
-                    f"To apply Rise to time series data, the second dimension of grid size " +\
+                    "To apply Rise to time series data, the second dimension of grid size " +\
                     f"{grid_size} should match the third dimension of input shape {input_shape}."
                 downsampled_shape = grid_size
             mask_shape = (nb_samples, *downsampled_shape)
-        
+
         elif len(input_shape) == 4:  # image data
             if not isinstance(grid_size, tuple):
                 downsampled_shape = (grid_size, grid_size)
@@ -194,7 +194,7 @@ class Rise(BlackBoxExplainer):
         binary_masks
             Binary downsampled masks randomly generated.
         mask_value
-            Value used as when applying masks.
+            Value used when applying masks.
 
         Returns
         -------
@@ -215,25 +215,23 @@ class Rise(BlackBoxExplainer):
                  int(single_input.shape[1])),
                 tf.int32
             )
-            
+
             upsampled_masks = tf.image.resize(tf.expand_dims(binary_masks, axis=-1),
                                                 upsampled_size)[:, :, :, 0]
             masks = tf.image.random_crop(upsampled_masks,
                                             (binary_masks.shape[0], *single_input.shape))
-                
+
         elif len(single_input.shape) == 3:  # image data
             # the upsampled size is defined as (h+1)(H/h) = H(1 + 1 / h)
             upsampled_size = (int(single_input.shape[0] * (1.0 + 1.0 / binary_masks.shape[1])),
-                            int(single_input.shape[1] * (1.0 + 1.0 / binary_masks.shape[2])),)
-            
+                              int(single_input.shape[1] * (1.0 + 1.0 / binary_masks.shape[2])),)
+
             upsampled_size = tf.cast(upsampled_size, tf.int32)
             upsampled_masks = tf.image.resize(binary_masks, upsampled_size)
-            
+
             masks = tf.image.random_crop(upsampled_masks,
-                                            (binary_masks.shape[0], *single_input.shape[:-1], 1))
-        
-        masked_input = tf.where(tf.cast(masks, tf.bool),
-                                tf.expand_dims(single_input, 0),
-                                mask_value)
+                                         (binary_masks.shape[0], *single_input.shape[:-1], 1))
+
+        masked_input = masks * tf.expand_dims(single_input, 0) + (1 - masks) * mask_value
 
         return masked_input, masks
