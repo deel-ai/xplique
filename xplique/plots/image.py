@@ -92,7 +92,7 @@ def plot_attribution(explanation,
         image = _normalize(image)
         plt.imshow(image)
 
-    if explanation.shape[-1] == 3:
+    if len(explanation.shape) == 4: # images channel are reduced
         explanation = np.mean(explanation, -1)
 
     if absolute_value:
@@ -141,7 +141,7 @@ def plot_attributions(
         Whether an absolute value is applied to the explanations.
     cols
         Number of columns.
-    img_size:
+    img_size
         Size of each subplots (in inch), considering we keep aspect ratio
     plot_kwargs
         Additional parameters passed to `plt.imshow()`.
