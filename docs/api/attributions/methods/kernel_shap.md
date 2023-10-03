@@ -60,8 +60,8 @@ The default mappings are:
 we assume here such shape is used to represent $(W, H, C)$ images.
 - \- the felzenszwalb segmentation algorithm for inputs with $(N, W, H)$ shape,
 we assume here such shape is used to represent $(W, H)$ images.
-- \- an identity mapping if inputs has shape $(N, W)$, we assume here your inputs
-are tabular data.
+- \- an identity mapping if inputs has shape $(N, W)$ or $(N, T, W)$, we assume here your inputs
+are tabular data or time-series data.
 
 To use your own custom map function you should use the following scheme:
 
@@ -84,15 +84,3 @@ library to defines super pixels on your images.
     Depending on the mapping you might have a huge number of `interpretable_features` 
     (e.g you map pixels 2 by 2 on a 299x299 image). Thus, the compuation time might
     be very long!
-
-!!!danger
-    As you may have noticed, by default **Time Series** are not handled. Consequently, a custom mapping should be implented. Either to assign each feature to a different group or to group consecutive features together, by group of 4 timesteps for example. In the second example, we try to cover patterns. An example is provided below.
-
-```python
-def map_time_series(single_input: tf.tensor) -> tf.Tensor:
-    time_dim = single_input.shape[0]
-    feat_dim = single_input.shape[1]
-    mapping = tf.range(time_dim*feat_dim)
-    mapping = tf.reshape(mapping, (time_dim, feat_dim))
-    return mapping
-```

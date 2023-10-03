@@ -176,9 +176,10 @@ class Lime(BlackBoxExplainer):
             together (e.g belonging to the same super-pixel).
         """
 
-        # check if inputs are tabular or has shape (N, H, W, C)
+        # check if inputs are tabular, time-series or has shape (N, H, W, C)
         is_tabular = len(inputs.shape) == 2
-        has_channels = len(inputs.shape )== 4
+        is_time_series = len(inputs.shape) == 3
+        has_channels = len(inputs.shape) == 4 and inputs.shape[-1] == 3
 
         if has_channels:
             # default quickshift segmentation for image
@@ -200,6 +201,8 @@ class Lime(BlackBoxExplainer):
             if self.map_to_interpret_space is None:
                 if is_tabular:
                     self.map_to_interpret_space = Lime._default_tab_map_to_interpret_space
+                elif is_time_series:
+                    self.map_to_interpret_space = Lime._default_time_series_map_to_interpret_space
                 else:
                     self.map_to_interpret_space = Lime._default_2dimage_map_to_interpret_space
 
@@ -621,7 +624,6 @@ class Lime(BlackBoxExplainer):
 
         return mapping
 
-
     @staticmethod
     def _default_tab_map_to_interpret_space(inp: tf.Tensor) -> tf.Tensor:
         """
@@ -639,4 +641,23 @@ class Lime(BlackBoxExplainer):
         """
         mapping = tf.range(len(inp))
 
+        return mapping
+
+    @staticmethod
+    def _default_time_series_map_to_interpret_space(inp: tf.Tensor) -> tf.Tensor:
+        """
+        This method compute a similarity mapping i.e each features is independent.
+
+        Parameters
+        ----------
+        inp
+            A single Input sample
+
+        Returns
+        -------
+        mappings
+            Mappings which map each pixel to the corresponding segment
+        """
+        mapping = tf.range(inp.shape[0] * inp.shape[1])
+        mapping = tf.reshape(mapping, (inp.shape[0], inp.shape[1]))
         return mapping
