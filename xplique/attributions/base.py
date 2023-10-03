@@ -150,7 +150,7 @@ class WhiteBoxExplainer(BlackBoxExplainer, ABC):
             # sanity check, output layer before softmax
             try:
                 if target_layer.activation.__name__ == tf.keras.activations.softmax.__name__:
-                    warnings.warn("Output is after softmax, it is recommended to "
+                    warnings.warn("Output is after softmax, it is recommended to " +\
                                   "use the layer before.")
             except AttributeError:
                 pass
