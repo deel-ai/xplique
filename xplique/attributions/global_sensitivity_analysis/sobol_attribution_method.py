@@ -34,8 +34,8 @@ class SobolAttributionMethod(GSABaseAttributionMethod):
         Estimator used to compute the total order sobol' indices, Jansen recommended. For more
         option, see the estimator module.
     perturbation_function
-        Function to call to apply the perturbation on the input. Can also be string in
-        'inpainting', 'blur'.
+        Function to call to apply the perturbation on the input. Can also be string:
+        'inpainting', 'blurring', or 'amplitude'.
     batch_size
         Batch size to use for the forwards.
     operator
