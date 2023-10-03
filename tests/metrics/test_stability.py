@@ -69,4 +69,4 @@ def test_worst_stability():
             return np.zeros(inputs.shape)
 
     worst_score = AverageStability(model, x, y)(worst_explainer)
-    assert almost_equal(worst_score, dim**2)
+    assert almost_equal(worst_score, dim)

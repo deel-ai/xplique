@@ -79,7 +79,7 @@ class MuFidelity(ExplanationMetric):
         self.nb_samples = nb_samples
 
         # if unspecified use the original equation (pixel-wise modification)
-        self.grid_size = grid_size or inputs.shape[1]
+        self.grid_size = grid_size or self.inputs.shape[1]
         # cardinal of subset (|S| in the equation)
         self.subset_size = int(self.grid_size ** 2 * self.subset_percent)
 
@@ -91,10 +91,10 @@ class MuFidelity(ExplanationMetric):
         # and interpolate them if needed
         subset_masks = subset_masks.astype(np.float32).reshape(
             (self.nb_samples, self.grid_size, self.grid_size, 1))
-        self.subset_masks = tf.image.resize(subset_masks, inputs.shape[1:-1], method="nearest")
+        self.subset_masks = tf.image.resize(subset_masks, self.inputs.shape[1:-1], method="nearest")
 
-        self.base_predictions = self.batch_inference_function(self.model, inputs,
-                                                              targets, self.batch_size)
+        self.base_predictions = self.batch_inference_function(self.model, self.inputs,
+                                                              self.targets, self.batch_size)
 
     def evaluate(self,
                  explanations: Union[tf.Tensor, np.ndarray]) -> float:
@@ -197,14 +197,15 @@ class CausalFidelity(ExplanationMetric):
         self.baseline_mode = baseline_mode
 
         # If the input has channels (colored image), they are all occluded at the same time
-        self.has_channels = len(inputs.shape) > 3
+        self.has_channels = len(self.inputs.shape) > 3
 
         if self.has_channels:
-            self.nb_features = np.prod(inputs.shape[1:-1])
-            self.inputs_flatten = inputs.reshape((len(inputs), self.nb_features, inputs.shape[-1]))
+            self.nb_features = np.prod(self.inputs.shape[1:-1])
+            self.inputs_flatten = self.inputs.reshape(
+                (len(self.inputs), self.nb_features, self.inputs.shape[-1]))
         else:
-            self.nb_features = np.prod(inputs.shape[1:])
-            self.inputs_flatten = inputs.reshape((len(inputs), self.nb_features, 1))
+            self.nb_features = np.prod(self.inputs.shape[1:])
+            self.inputs_flatten = self.inputs.reshape((len(self.inputs), self.nb_features, 1))
 
         assert 0.0 < max_percentage_perturbed <= 1.0, \
             "`max_percentage_perturbed` must be in ]0, 1]."
