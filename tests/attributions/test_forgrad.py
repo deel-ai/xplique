@@ -8,7 +8,7 @@ from .test_common import _default_methods
 
 def test_base_forgrad():
     """ Ensure forgrad is working with the expected shape """
-    shapes = [ (5, 32, 32, 3), (5, 32, 32, 1), (5, 32, 32), (5, 31, 31), (5, 60, 60) ]
+    shapes = [ (5, 32, 28, 3), (5, 32, 32, 1), (5, 32, 32), (5, 31, 31), (5, 60, 60) ]
     sigmas = [5, 10, 30]
 
     for shape in shapes:
