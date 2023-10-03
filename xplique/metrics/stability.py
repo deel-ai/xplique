@@ -54,14 +54,14 @@ class AverageStability(ExplainerMetric):
         if distance == 'l1':
             self.distance = lambda x, y: tf.reduce_sum(tf.abs(x - y))
         elif distance == 'l2':
-            self.distance = lambda x, y: tf.reduce_sum((x-y)**2.0)
+            self.distance = lambda x, y: tf.sqrt(tf.reduce_sum((x - y)**2.0))
         elif hasattr(distance, '__call__'):
             self.distance = distance
         else:
             raise ValueError(f"{distance} is not a valid distance.")
 
         # prepare the noisy masks that will be used to generate the neighbors
-        self.noisy_masks = tf.random.uniform((nb_samples, *inputs.shape[1:]), 0,
+        self.noisy_masks = tf.random.uniform((nb_samples, *self.inputs.shape[1:]), 0,
                                              self.radius)
 
     def evaluate(self,
