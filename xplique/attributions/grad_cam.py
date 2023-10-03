@@ -4,7 +4,6 @@ Module related to Grad-CAM method
 
 import tensorflow as tf
 import numpy as np
-import cv2
 
 from .base import WhiteBoxExplainer, sanitize_input_output
 from ..commons import find_layer, Tasks
@@ -101,13 +100,14 @@ class GradCAM(WhiteBoxExplainer):
             grad_cams = batch_grad_cams if grad_cams is None else tf.concat(
                 [grad_cams, batch_grad_cams], axis=0)
 
-        # as Grad-CAM is based on the last convolutionnal layer, the explanation output has the
+        # as Grad-CAM is based on the last convolutional layer, the explanation output has the
         # same dimensions as this layer, we need to resize the size of the explanations to match
         # the size of the inputs
-        input_shape = inputs.shape[1:3]
-        grad_cams = np.array([
-            cv2.resize(grad_cam, (*input_shape,), interpolation=cv2.INTER_CUBIC)
-            for grad_cam in grad_cams.numpy()])
+        new_size = inputs.shape[1:-1]
+        grad_cams = tf.map_fn(
+            fn=lambda g_cam: tf.image.resize(g_cam, new_size, method=tf.image.ResizeMethod.BICUBIC),
+            elems=tf.expand_dims(grad_cams, axis=-1)
+        )
 
         return grad_cams
 

@@ -32,7 +32,7 @@ class PerturbationFunction(Enum):
         ----------
         perturbation_function
             String indicating the perturbation function to restore: must be one
-            of 'inpainting', 'blurring' or 'amplitude'.
+            of 'inpainting', 'blurring', or 'amplitude'.
 
         Returns
         -------
@@ -71,8 +71,8 @@ class GSABaseAttributionMethod(BlackBoxExplainer):
     estimator
         Estimator used to compute the attribution score, e.g Sobol or HSIC estimator.
     perturbation_function
-        Function to call to apply the perturbation on the input. Can also be string in
-        'inpainting', 'blur'.
+        Function to call to apply the perturbation on the input. Can also be string:
+        'inpainting', 'blurring', or 'amplitude'.
     batch_size
         Batch size to use for the forwards.
     operator
@@ -163,9 +163,8 @@ class GSABaseAttributionMethod(BlackBoxExplainer):
                 )
 
             heatmap = self.estimator(self.masks, outputs, self.nb_design)
-            heatmap = cv2.resize(heatmap, input_shape, interpolation=cv2.INTER_CUBIC)[
-                None, :, :
-            ]
+            heatmap = tf.image.resize(heatmap, input_shape, method=tf.image.ResizeMethod.BICUBIC)
+            heatmap = heatmap[tf.newaxis]
 
             heatmaps = (
                 heatmap if heatmaps is None else tf.concat([heatmaps, heatmap], axis=0)
