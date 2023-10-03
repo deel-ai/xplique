@@ -31,9 +31,12 @@ class GradientInput(WhiteBoxExplainer):
         Function g to explain, g take 3 parameters (f, x, y) and should return a scalar,
         with f the model, x the inputs and y the targets. If None, use the standard
         operator g(f, x, y) = f(x)[y].
+    reducer
+        String, name of the reducer to use. Either "min", "mean", "max" or "sum".
     """
 
     @sanitize_input_output
+    @WhiteBoxExplainer._harmonize_channel_dimension
     def explain(self,
                 inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
                 targets: Optional[Union[tf.Tensor, np.ndarray]] = None) -> tf.Tensor:

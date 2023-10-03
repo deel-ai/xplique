@@ -117,6 +117,9 @@ class Occlusion(BlackBoxExplainer):
             occlusion_maps = occlusion_map if occlusion_maps is None else \
                 tf.concat([occlusion_maps, occlusion_map], axis=0)
 
+        if len(occlusion_maps.shape) == 3 and len(inputs.shape) == 4:
+            occlusion_maps = tf.expand_dims(occlusion_maps, axis=-1)
+
         return occlusion_maps
 
     @staticmethod

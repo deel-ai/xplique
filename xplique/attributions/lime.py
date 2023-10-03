@@ -350,6 +350,9 @@ class Lime(BlackBoxExplainer):
 
         explanations = tf.stack(explanations, axis=0)
 
+        if len(explanations.shape) == 3 and len(inputs.shape) == 4:
+            explanations = tf.expand_dims(explanations, axis=-1)
+
         return explanations
 
     @staticmethod
