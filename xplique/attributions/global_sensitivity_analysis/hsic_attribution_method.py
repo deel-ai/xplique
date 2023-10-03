@@ -37,8 +37,8 @@ class HsicAttributionMethod(GSABaseAttributionMethod):
     estimator
         Estimator used to compute the HSIC score.
     perturbation_function
-        Function to call to apply the perturbation on the input. Can also be string in
-        'inpainting', 'blur'.
+        Function to call to apply the perturbation on the input. Can also be string:
+        'inpainting', 'blurring', or 'amplitude'.
     batch_size
         Batch size to use for the forwards.
     operator
