@@ -10,7 +10,7 @@
 
 The Sobol attribution method from Fel, Cadène & al.[^1] is an attribution method grounded in Sensitivity Analysis.
 Beyond modeling the individual contributions of image regions, Sobol indices provide
-efficient way to capture higher-order interactions between image regions and their
+an efficient way to capture higher-order interactions between image regions and their
 contributions to a neural network’s prediction through the lens of variance.
 
 !!! quote
@@ -43,8 +43,9 @@ Carlo (`ScipySobolSequence`, recommended) using Scipy's sobol sequence, Latin hy
 
 
 !!!tip
-    For a quick a faithful explanations, we recommend to use `grid_size` in $[7, 12)$,
+    For quick a faithful explanations, we recommend to use `grid_size` in $[7, 12)$,
     `nb_design` in $\{16, 32, 64\}$ (more is useless), and a QMC sampler.
+    (see `SobolAttributionMethod` documentation below for detail on those parameters).
 
 ## Example
 

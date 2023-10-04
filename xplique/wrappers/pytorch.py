@@ -1,5 +1,5 @@
 """
-Module for having a wrapper for PyTorch's model
+Module for having a wrapper for PyTorch models
 """
 import warnings
 
@@ -10,7 +10,7 @@ from ..types import Union, Optional, Tuple, Callable
 
 class TorchWrapper(tf.keras.Model):
     """
-    A wrapper for PyTorch's model so that they can be used in Xplique framework
+    A wrapper for PyTorch models so that they can be used in Xplique framework
     for most attribution methods
 
     Parameters
@@ -53,7 +53,7 @@ class TorchWrapper(tf.keras.Model):
             self.channel_first = is_channel_first
         # deactivate all tf.function
         tf.config.run_functions_eagerly(True)
-        warnings.warn("TF is set to run eagerly to avoid conflict with Pytorch. Thus,\
+        warnings.warn("TF is set to run eagerly to avoid conflict with PyTorch. Thus,\
                        TF functions might be slower")
 
     # pylint: disable=arguments-differ
@@ -139,7 +139,7 @@ class TorchWrapper(tf.keras.Model):
 
     def _has_conv_layers(self):
         """
-        A method that checks if the PyTorch's model has 2D convolutional layer.
+        A method that checks if the PyTorch models has 2D convolutional layer.
         Indeed, convolution with PyTorch expects inputs in the shape (N, C, H, W)
         where TF expect (N, H, W, C).
 
