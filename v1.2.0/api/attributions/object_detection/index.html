@@ -1,0 +1,1644 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+      
+        <link rel="prev" href="../classification/">
+      
+      
+        <link rel="next" href="../regression/">
+      
+      
+      <link rel="icon" href="../../../assets/x_logo.png">
+      <meta name="generator" content="mkdocs-1.5.3, mkdocs-material-9.4.3">
+    
+    
+      
+        <title>Object Detection - Xplique</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.79e020e9.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.a5377069.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../../css/custom.css">
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="dark" data-md-color-accent="indigo">
+  
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&"object"==typeof palette.color)for(var key of Object.keys(palette.color))document.body.setAttribute("data-md-color-"+key,palette.color[key])</script>
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#object-detection-with-xplique" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+          <aside class="md-banner md-banner--warning">
+            <div class="md-banner__inner md-grid md-typeset">
+              
+  You're not viewing the latest version.
+  <a href="../../../..">
+    <strong>Click here to go to latest.</strong>
+  </a>
+
+            </div>
+            <script>var el=document.querySelector("[data-md-component=outdated]"),outdated=__md_get("__outdated",sessionStorage);!0===outdated&&el&&(el.hidden=!1)</script>
+          </aside>
+        
+      </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../.." title="Xplique" class="md-header__button md-logo" aria-label="Xplique" data-md-component="logo">
+      
+  <img src="../../../assets/x_logo.png" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2Z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Xplique
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Object Detection
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="dark" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_2" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 6H7c-3.31 0-6 2.69-6 6s2.69 6 6 6h10c3.31 0 6-2.69 6-6s-2.69-6-6-6zm0 10H7c-2.21 0-4-1.79-4-4s1.79-4 4-4h10c2.21 0 4 1.79 4 4s-1.79 4-4 4zM7 9c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_2">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 7H7a5 5 0 0 0-5 5 5 5 0 0 0 5 5h10a5 5 0 0 0 5-5 5 5 0 0 0-5-5m0 8a3 3 0 0 1-3-3 3 3 0 0 1 3-3 3 3 0 0 1 3 3 3 3 0 0 1-3 3Z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+      </label>
+      <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/deel-ai/xplique" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.4.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    deel-ai/xplique
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="Xplique" class="md-nav__button md-logo" aria-label="Xplique" data-md-component="logo">
+      
+  <img src="../../../assets/x_logo.png" alt="logo">
+
+    </a>
+    Xplique
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/deel-ai/xplique" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.4.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    deel-ai/xplique
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Home
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Attributions methods
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            Attributions methods
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api_attributions/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    API Description
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_2" id="__nav_2_2_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Methods
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_2">
+            <span class="md-nav__icon md-icon"></span>
+            Methods
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../methods/deconvnet/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    DeconvNet
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../methods/forgrad/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ForGRad
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../methods/grad_cam/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Grad-CAM
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../methods/grad_cam_pp/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Grad-CAM++
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../methods/gradient_input/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Gradient Input
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../methods/guided_backpropagation/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Guided Backprop
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../methods/hsic/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Hsic Attribution Method
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../methods/integrated_gradients/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Integrated Gradient
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../methods/kernel_shap/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    KernelSHAP
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../methods/lime/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Lime
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../methods/occlusion/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Occlusion sensitivity
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../methods/rise/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Rise
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../methods/saliency/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Saliency
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../methods/smoothgrad/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    SmoothGrad
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../methods/sobol/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Sobol Attribution Method
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../methods/square_grad/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    SquareGrad
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../methods/vargrad/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    VarGrad
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_3" id="__nav_2_3_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Metrics
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_3">
+            <span class="md-nav__icon md-icon"></span>
+            Metrics
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../metrics/api_metrics/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    API Description
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../metrics/deletion/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Deletion
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../metrics/insertion/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Insertion
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../metrics/mu_fidelity/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    MuFidelity
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../metrics/avg_stability/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    AverageStability
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pytorch/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    PyTorch
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../callable/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Callable
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../classification/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Classification
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    Object Detection
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  <span class="md-ellipsis">
+    Object Detection
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#which-kind-of-tasks-are-supported-by-xplique" class="md-nav__link">
+    Which kind of tasks are supported by Xplique?
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#simple-example" class="md-nav__link">
+    Simple example
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#how-to-use-it" class="md-nav__link">
+    How to use it?
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-operator" class="md-nav__link">
+    The operator
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#models-output" class="md-nav__link">
+    Model's output
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-targets-parameter" class="md-nav__link">
+    The targets parameter
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-can-be-explained-and-how" class="md-nav__link">
+    What can be explained and how?
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#custom-intersection-score" class="md-nav__link">
+    Custom intersection score
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../regression/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Regression
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../semantic_segmentation/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Semantic Segmentation
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Concept based
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            Concept based
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/cav/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Cav
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/tcav/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Tcav
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Feature visualization
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            Feature visualization
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../feature_viz/maco/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Modern Feature Visualization (MaCo)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../feature_viz/feature_viz/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Feature visualization
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../tutorials/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Tutorials
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../contributing/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Contributing
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#which-kind-of-tasks-are-supported-by-xplique" class="md-nav__link">
+    Which kind of tasks are supported by Xplique?
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#simple-example" class="md-nav__link">
+    Simple example
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#how-to-use-it" class="md-nav__link">
+    How to use it?
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-operator" class="md-nav__link">
+    The operator
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#models-output" class="md-nav__link">
+    Model's output
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-targets-parameter" class="md-nav__link">
+    The targets parameter
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-can-be-explained-and-how" class="md-nav__link">
+    What can be explained and how?
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#custom-intersection-score" class="md-nav__link">
+    Custom intersection score
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  
+  
+
+
+<h1 id="object-detection-with-xplique">Object detection with Xplique<a class="headerlink" href="#object-detection-with-xplique" title="Permanent link">&para;</a></h1>
+<p><a href="https://colab.research.google.com/drive/1X3Yq7BduMKqTA0XEheoVIpOo3IvOrzWL">Attributions: Object Detection tutorial</a> <sub> <a href="https://colab.research.google.com/drive/1X3Yq7BduMKqTA0XEheoVIpOo3IvOrzWL"><img alt="Open In Colab" src="https://colab.research.google.com/assets/colab-badge.svg" /></a> </sub></p>
+<h2 id="which-kind-of-tasks-are-supported-by-xplique">Which kind of tasks are supported by Xplique?<a class="headerlink" href="#which-kind-of-tasks-are-supported-by-xplique" title="Permanent link">&para;</a></h2>
+<p>With the <a href="../api/attributions/operator">operator's api</a> you can treat many different problems with Xplique. There is one operator for each task.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Task and Documentation link</th>
+<th style="text-align: left;"><code>operator</code> parameter value <br/> from <code>xplique.Tasks</code> Enum</th>
+<th style="text-align: left;">Tutorial link</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><a href="../classification/">Classification</a></td>
+<td style="text-align: left;"><code>CLASSIFICATION</code></td>
+<td style="text-align: left;"><sub> <a href="https://colab.research.google.com/drive/1XproaVxXjO9nrBSyyy7BuKJ1vy21iHs2"><img alt="Open In Colab" src="https://colab.research.google.com/assets/colab-badge.svg" /></a> </sub></td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Object Detection</strong></td>
+<td style="text-align: left;"><code>OBJECT_DETECTION</code></td>
+<td style="text-align: left;"><sub> <a href="https://colab.research.google.com/drive/1X3Yq7BduMKqTA0XEheoVIpOo3IvOrzWL"><img alt="Open In Colab" src="https://colab.research.google.com/assets/colab-badge.svg" /></a> </sub></td>
+</tr>
+<tr>
+<td style="text-align: left;"><a href="../regression/">Regression</a></td>
+<td style="text-align: left;"><code>REGRESSION</code></td>
+<td style="text-align: left;"><sub> <a href="https://colab.research.google.com/drive/1pjDJmAa9oeSquYtbYh6tksU6eTmObIcq"><img alt="Open In Colab" src="https://colab.research.google.com/assets/colab-badge.svg" /></a> </sub></td>
+</tr>
+<tr>
+<td style="text-align: left;"><a href="../semantic_segmentation/">Semantic Segmentation</a></td>
+<td style="text-align: left;"><code>SEMANTIC_SEGMENTATION</code></td>
+<td style="text-align: left;"><sub> <a href="https://colab.research.google.com/drive/1AHg7KO1fCOX5nZLGZfxkZ2-DLPPdSfbX"><img alt="Open In Colab" src="https://colab.research.google.com/assets/colab-badge.svg" /></a> </sub></td>
+</tr>
+</tbody>
+</table>
+<div class="admonition info">
+<p class="admonition-title">Info</p>
+<p>They all share the <a href="../api_attributions/">API for Xplique attribution methods</a>.</p>
+</div>
+<h2 id="simple-example">Simple example<a class="headerlink" href="#simple-example" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><span class="kn">import</span> <span class="nn">xplique</span>
+<span class="kn">from</span> <span class="nn">xplique.attributions</span> <span class="kn">import</span> <span class="n">Saliency</span>
+<span class="kn">from</span> <span class="nn">xplique.metrics</span> <span class="kn">import</span> <span class="n">Deletion</span>
+
+<span class="c1"># load images and model</span>
+<span class="c1"># ...</span>
+
+<span class="n">predictions</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">images</span><span class="p">)</span>
+<span class="n">explainer</span> <span class="o">=</span> <span class="n">Saliency</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">operator</span><span class="o">=</span><span class="n">xplique</span><span class="o">.</span><span class="n">Tasks</span><span class="o">.</span><span class="n">OBJECT_DETECTION</span><span class="p">)</span>
+
+<span class="c1"># explain each image - bounding-box pair separately</span>
+<span class="k">for</span> <span class="n">all_bbx_for_one_image</span><span class="p">,</span> <span class="n">image</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">images</span><span class="p">):</span>
+    <span class="c1"># an image is needed per bounding box, so we tile them</span>
+    <span class="n">repeated_image</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span>
+                             <span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">all_bbx_for_one_image</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+
+    <span class="n">explanations</span> <span class="o">=</span> <span class="n">explainer</span><span class="p">(</span><span class="n">repeated_image</span><span class="p">,</span> <span class="n">all_bbx_for_one_image</span><span class="p">)</span>
+
+    <span class="c1"># either compute several score or</span>
+    <span class="c1"># concatenate repeated images and corresponding boxes in one tensor</span>
+    <span class="n">metric_for_one_image</span> <span class="o">=</span> <span class="n">Deletion</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">repeated_image</span><span class="p">,</span> <span class="n">all_bbx_for_one_image</span><span class="p">,</span>
+                                    <span class="n">operator</span><span class="o">=</span><span class="n">xplique</span><span class="o">.</span><span class="n">Tasks</span><span class="o">.</span><span class="n">OBJECT_DETECTION</span><span class="p">)</span>
+    <span class="n">score_saliency</span> <span class="o">=</span> <span class="n">metric</span><span class="p">(</span><span class="n">explanations</span><span class="p">)</span>
+</code></pre></div>
+<h2 id="how-to-use-it">How to use it?<a class="headerlink" href="#how-to-use-it" title="Permanent link">&para;</a></h2>
+<p>To apply attribution methods, the <a href="../api_attributions/"><strong>common API documentation</strong></a> describes the parameters and how to fix them. However, depending on the task and thus on the <code>operator</code>, there are three points that vary:</p>
+<ul>
+<li>
+<p><strong><a href="#the-operator">The <code>operator</code> parameter</a></strong> value, it is an Enum or a string identifying the task,</p>
+</li>
+<li>
+<p><strong><a href="#models-output">The model's output</a></strong> specification, as <code>model(inputs)</code> is used in the computation of the operators, and</p>
+</li>
+<li>
+<p><strong><a href="#the-targets-parameter">The <code>targets</code> parameter</a></strong> format, indeed, the <code>targets</code> parameter specifies what to explain and the format of such specification depends on the task.</p>
+</li>
+</ul>
+<h2 id="the-operator">The <code>operator</code><a class="headerlink" href="#the-operator" title="Permanent link">&para;</a></h2>
+<h3 id="how-to-specify-it">How to specify it<a class="headerlink" href="#how-to-specify-it" title="Permanent link">&para;</a></h3>
+<p>In Xplique, to adapt attribution methods, you should specify the task to the <code>operator</code> parameter. In the case of object detection, with either:
+<div class="highlight"><pre><span></span><code><span class="n">Method</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">operator</span><span class="o">=</span><span class="s2">&quot;object detection&quot;</span><span class="p">)</span>
+<span class="c1"># or</span>
+<span class="n">Method</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">operator</span><span class="o">=</span><span class="n">xplique</span><span class="o">.</span><span class="n">Tasks</span><span class="o">.</span><span class="n">OBJECT_DETECTION</span><span class="p">)</span>
+</code></pre></div></p>
+<div class="admonition info">
+<p class="admonition-title">Info</p>
+<p>There are several <a href="#the-different-operators-variant-and-what-they-explain">variants of the object detection operator</a> to explain part of the prediction.</p>
+</div>
+<h3 id="the-computation">The computation<a class="headerlink" href="#the-computation" title="Permanent link">&para;</a></h3>
+<p>This operator is a generalization of DRise method introduced by Petsiuk &amp; al. [^1] to most attribution methods. The computation is the same as the one described in the DRise paper. The DRise can be divided into two principles:</p>
+<ul>
+<li><strong>The matching</strong>: DRise extends Rise (described in detail in <a href="https://colab.research.google.com/drive/1icu2b1JGfpTRa-ic8tBSXnqqfuCGW2mO">the Rise tutorial</a>) to explain object detection. Rise is a perturbation-based method, hence current predictions are compared to predictions on perturbed inputs. However, object detectors predict several boxes with no consistency in the order, thus DRise chooses to match the current bounding box to the most similar one and use the similarity metric as the perturbation score.</li>
+<li><strong>The similarity metric</strong>: This is the score used by DRise to match bounding boxes. It uses the three parts of a bounding box prediction, the position of the box, the box objectness, and the associated class. A score is computed for each of those three parts and these scores are multiplied:</li>
+</ul>
+<div class="arithmatex">\[
+score = intersection\_score * detection\_probability * classification\_score
+\]</div>
+<p>With:
+$$
+intersection_score = IOU(coordinates_{ref}, coordinates_{pred})
+$$</p>
+<div class="arithmatex">\[
+detection\_probability = objectness_{pred}
+\]</div>
+<div class="arithmatex">\[
+classification\_score = \frac{\sum(classes_{ref} * classes_{pred})}{||classes_{ref}|| * ||classes_{pred}||}
+\]</div>
+<div class="admonition info">
+<p class="admonition-title">Info</p>
+<p>The intersection score of the operator is the IOU (Intersection Over Union) by default but can be modified by specifying as <a href="#custom-intersection-score">custom intersection score</a>.</p>
+</div>
+<div class="admonition info">
+<p class="admonition-title">Info</p>
+<p>With the DRise formula the methods explain the box position, the box objectness, and the class prediction at the same time. However, the user may want to explain them separately, therefore several variants of this operator are available in Xplique and described in <a href="#what-can-we-explain-and-how">What can we explain and how? section</a>.</p>
+</div>
+<h3 id="the-behavior">The behavior<a class="headerlink" href="#the-behavior" title="Permanent link">&para;</a></h3>
+<ul>
+<li>In the case of <a href="../api_attributions/#gradient-based-approaches">perturbation-based methods</a>, the perturbation score is the similarity metric aforementioned.</li>
+<li>For <a href="../api_attributions/#perturbation-based-approaches">gradient-based methods</a>, the gradient of the similarity metric is given, but no matching is necessary as no perturbation is made.</li>
+</ul>
+<h2 id="models-output">Model's output<a class="headerlink" href="#models-output" title="Permanent link">&para;</a></h2>
+<p>We expect <code>model(inputs)</code> to yield a <span class="arithmatex">\((n, nb\_boxes, 4 + 1 + nb\_classes)\)</span> tensors or array where:</p>
+<ul>
+<li><span class="arithmatex">\(n\)</span>: the number of inputs, it should match the first dimension of <code>inputs</code>.</li>
+<li><span class="arithmatex">\(nb\_boxes\)</span>: a fixed number of bounding boxes predicted for a given image (no NMS).</li>
+<li><span class="arithmatex">\((4 + 1 + nb\_classes)\)</span>: the encoding of a bounding box prediction</li>
+<li><span class="arithmatex">\(4\)</span>: the bounding box coordinates <span class="arithmatex">\((x_{top\_left}, y_{top\_left}, x_{bottom\_right}, y_{bottom\_right})\)</span>, with <span class="arithmatex">\(x_{top\_left} &lt; x_{bottom\_right}\)</span> and <span class="arithmatex">\(y_{top\_left} &lt; y_{bottom\_right}\)</span>.</li>
+<li><span class="arithmatex">\(1\)</span>: the objectness or detection probability of the bounding box,</li>
+<li><span class="arithmatex">\(nb\_classes\)</span>: the class of the bounding box, a soft class predictions not a one-hot encoding.</li>
+</ul>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Object detection models provided to the explainer should not include NMS and classification should be soft classification not one-hot encoding. Furthermore, if the model does not match the expected format, a wrapper may be needed. (see <a href="https://colab.research.google.com/drive/1X3Yq7BduMKqTA0XEheoVIpOo3IvOrzWL">the tutorial</a> for an example).</p>
+</div>
+<div class="admonition info">
+<p class="admonition-title">Info</p>
+<p>PyTorch models are not natively treated by Xplique, however, a simple wrapper is available in <a href="../pytorch/">pytorch documentation</a>.</p>
+</div>
+<h2 id="the-targets-parameter">The <code>targets</code> parameter<a class="headerlink" href="#the-targets-parameter" title="Permanent link">&para;</a></h2>
+<h3 id="role">Role<a class="headerlink" href="#role" title="Permanent link">&para;</a></h3>
+<p>The <code>targets</code> parameter specifies what is to explain in the <code>inputs</code>, it is passed to the <code>explain</code> or to the <code>__call__</code> method of an explainer or metric and used by the operators. In the case of object detection, it indicates which box to explain, furthermore, it gives the initial predictions to the operator as the reference for perturbation-based methods.</p>
+<h3 id="format">Format<a class="headerlink" href="#format" title="Permanent link">&para;</a></h3>
+<p>The <code>targets</code> parameter in the case of semantic segmentation should have the same shape as the <a href="#models-output">model's output</a> as the same computation are made. Concretely, the <code>targets</code> parameter should have a shape of <span class="arithmatex">\((n, 4 + 1 + nb\_classes)\)</span> to explain a bounding box for each input (detail in <a href="#models-output">model's output description</a>).</p>
+<p>Additionally, there is a possibility to explain a group of bounding boxes at the same time described in the <a href="#explain-several-bounding-boxes-simultaneously">explaining several bounding boxes section</a> which requires a different shape.</p>
+<h3 id="in-practice">In practice<a class="headerlink" href="#in-practice" title="Permanent link">&para;</a></h3>
+<p>To explain each bounding box individually, the images need to be repeated. Indeed, object detector predict several bounding boxes per image and the first dimension of <code>inputs</code> and <code>targets</code> should match as it corresponds to the sample dimension. Therefore, the easiest way to obtain this is for each image to repeat it so that it matches the number of bounding boxes to explain for this image.</p>
+<p>In the <a href="#simple-example">simple example</a>, there is a loop on the images - predictions pair, then images are repeated to match the number of predicted bounding boxes, and finally, the <code>targets</code> parameter takes the predicted bounding boxes.</p>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p>AS specified in the <a href="#models-output">model's output specification</a>, the NMS (Non Maximum Suppression) should not be included in the model. However, it can be used to select the bounding boxes to explain.</p>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Repeating images may create a tensor that exceeds memory for large images and/or when many bounding boxes are to be explained. In this case, we advise to make a loop on the images, then a loop on the boxes.</p>
+</div>
+<h3 id="explain-several-bounding-boxes-simultaneously">Explain several bounding boxes simultaneously<a class="headerlink" href="#explain-several-bounding-boxes-simultaneously" title="Permanent link">&para;</a></h3>
+<p>The user may not want to explain each bounding box individually but several bounding boxes at the same time (<em>i.e</em> a set of pedestrian bounding boxes on a sidewalk). In this case, the <code>targets</code> parameter shape will not be <span class="arithmatex">\((n, 4 + 1 + nb\_classes)\)</span> but <span class="arithmatex">\((n, nb\_boxes, 4 + 1 + nb\_classes)\)</span>, with <span class="arithmatex">\(nb\_boxes\)</span> the number of boxes to explain simultaneously. In this case, <span class="arithmatex">\(nb\_boxes\)</span> bounding boxes are associated to each sample and a single attribution map is returned. However, for different images, <span class="arithmatex">\(nb\_boxes\)</span> may not be fix and it may not be possible to make a single tensor in this case. Thus, we recommend to treat each group of bounding boxes with a different call to the attribution method with <span class="arithmatex">\(n=1\)</span>.</p>
+<p>To return one explanation for several bounding boxes, Xplique takes the mean of the bounding boxes individual explanations and returns it.</p>
+<p>For a concrete example, please refer to the <a href="https://colab.research.google.com/drive/1X3Yq7BduMKqTA0XEheoVIpOo3IvOrzWL">Attributions: Object detection</a> tutorial.</p>
+<h2 id="what-can-be-explained-and-how">What can be explained and how?<a class="headerlink" href="#what-can-be-explained-and-how" title="Permanent link">&para;</a></h2>
+<h3 id="the-different-elements-in-object-detection">The different elements in object detection<a class="headerlink" href="#the-different-elements-in-object-detection" title="Permanent link">&para;</a></h3>
+<p>In object detection, the prediction for a given bounding box include several pieces of information: The <strong>box position</strong>, the <strong>box probability of containing something</strong>, and the <strong>class of the detected object</strong>. Therefore we may want to explain each of them separately, however, the DRise method of matching bounding boxes should be kept in mind. Indeed, the box position cannot be removed from the score, otherwise, the explanation may not correspond to the same object.</p>
+<h3 id="the-different-operators-variants-and-what-they-explain">The different operator's variants and what they explain<a class="headerlink" href="#the-different-operators-variants-and-what-they-explain" title="Permanent link">&para;</a></h3>
+<p>The Xplique library allows the specification of which part of the prediction to explain via a set 4 operators: the one as defined by the DRise formula and three variants:</p>
+<ul>
+<li>
+<p><code>"object detection"</code>: the one described in <a href="#the-operator">the operator section</a>:</p>
+<div class="arithmatex">\[score = intersection\_score * detection\_probability * classification\_score\]</div>
+</li>
+<li>
+<p><code>"object detection box position"</code>: explains only the bounding box position:</p>
+<div class="arithmatex">\[score = intersection\_score\]</div>
+</li>
+<li>
+<p><code>"object detection box proba"</code>: explains the probability of a bounding box to contain something:</p>
+<div class="arithmatex">\[score = intersection\_score * detection\_probability\]</div>
+</li>
+<li>
+<p><code>"object detection box class"</code>: explains the class of a bounding box:</p>
+<div class="arithmatex">\[score = intersection\_score * classification\_score\]</div>
+</li>
+</ul>
+<h2 id="custom-intersection-score">Custom intersection score<a class="headerlink" href="#custom-intersection-score" title="Permanent link">&para;</a></h2>
+<p>The default intersection score is IOU, but it is possible to define a custom intersection score. The only constraint is that it should follow <code>xplique.commons.object_detection_operator._box_iou</code> signature for it to work.</p>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span> <span class="nn">xplique.attributions</span> <span class="kn">import</span> <span class="n">Saliency</span>
+<span class="kn">from</span> <span class="nn">xplique.commons.operators</span> <span class="kn">import</span> <span class="n">object_detection_operator</span>
+
+<span class="n">custom_intersection_score</span> <span class="o">=</span> <span class="o">...</span>
+
+<span class="n">custom_operator</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">model</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">targets</span><span class="p">:</span> <span class="n">object_detection_operator</span><span class="p">(</span>
+    <span class="n">model</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">targets</span><span class="p">,</span> <span class="n">intersection_score</span><span class="o">=</span><span class="n">custom_intersection_score</span>
+<span class="p">)</span>
+
+<span class="n">explainer</span> <span class="o">=</span> <span class="n">Saliency</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">operator</span><span class="o">=</span><span class="n">custom_operator</span><span class="p">)</span>
+
+<span class="o">...</span>  <span class="c1"># All following steps are the same as the examples</span>
+</code></pre></div>
+<p>[^1] <a href="https://arxiv.org/pdf/2006.03204.pdf">Black-box Explanation of Object Detectors via Saliency Maps (2021)</a></p>
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    <script id="__config" type="application/json">{"base": "../../..", "features": [], "search": "../../../assets/javascripts/workers/search.a264c092.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.6eac0284.min.js"></script>
+      
+        <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+      
+        <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+      
+        <script src="../../../js/custom.js"></script>
+      
+    
+  </body>
+</html>
