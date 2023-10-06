@@ -4,6 +4,7 @@ Test MMDCritic
 import os
 import sys
 sys.path.append(os.getcwd())
+import time
 
 from math import prod, sqrt, ceil
 
