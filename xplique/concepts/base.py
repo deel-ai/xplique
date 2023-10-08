@@ -3,6 +3,7 @@ Module related to abstract concept explainer
 """
 
 from abc import ABC, abstractmethod
+import numpy as np
 
 class BaseConceptExtractor(ABC):
 
@@ -57,7 +58,7 @@ class BaseConceptExtractor(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def transform(self, inputs):
+    def transform(self, inputs) -> np.ndarray:
         """
         Transform the input data into a concepts embedding.
 
