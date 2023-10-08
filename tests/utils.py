@@ -5,6 +5,9 @@ from tensorflow.keras.models import Sequential, Model
 from tensorflow.keras.layers import (Dense, Conv1D, Conv2D, Activation, GlobalAveragePooling1D,
                                      Dropout, Flatten, MaxPooling2D, Input, Reshape)
 from tensorflow.keras.utils import to_categorical
+from PIL import Image, ImageDraw, ImageFont
+import urllib.request
+import requests
 
 def generate_data(x_shape=(32, 32, 3), num_labels=10, samples=100):
     x = np.random.rand(samples, *x_shape).astype(np.float32)
@@ -16,7 +19,7 @@ def generate_model(input_shape=(32, 32, 3), output_shape=10):
     model = Sequential()
     model.add(Input(shape=input_shape))
     model.add(Conv2D(4, kernel_size=(2, 2),
-                     activation='relu'))
+                     activation='relu', name='conv2d'))
     model.add(MaxPooling2D(pool_size=(2, 2)))
     model.add(Dropout(0.25))
     model.add(Flatten())
@@ -155,3 +158,85 @@ def generate_object_detection_model(input_shape=(32, 32, 3), max_nb_boxes=10, nb
     if with_nmf:
         return model_with_random_nb_boxes
     return valid_model
+
+def generate_txt_images_data(x_shape=(32, 32, 3), num_labels=10, samples=100):
+    """
+    Generate an image dataset composed of white texts over black background.
+    The texts are words of 3 successive letters, the number of classes is set by the
+    parameter num_labels. The location of the text in the image is cycling over the
+    image dimensions.
+    Ex: with num_labels=3, the 3 classes will be 'ABC', 'BCD' and 'CDE'.
+
+    """
+    all_labels_str = "".join([chr(lab_idx) for lab_idx in range(65, 65+num_labels+2)])  # ABCDEF
+    labels_str = [all_labels_str[i:i+3] for i in range(len(all_labels_str) - 2)]        # ['ABC', 'BCD', 'CDE', 'DEF']
+
+    def create_image_from_txt(image_shape, txt, offset_x, offset_y):
+        # Get a Pillow font (OS independant)
+        try:
+            fnt = ImageFont.truetype("FreeMono.ttf", 16)
+        except OSError:
+            # dl the font it is it not in the system
+            url = "https://github.com/python-pillow/Pillow/raw/main/Tests/fonts/FreeMono.ttf"
+            urllib.request.urlretrieve(url, "tests/FreeMono.ttf")
+            fnt = ImageFont.truetype("tests/FreeMono.ttf", 16)
+
+        # Make a black image and draw the input text in white at the location offset_x, offset_y
+        rgb = (len(image_shape) == 3 and image_shape[2] > 1)
+        if rgb:
+            image = Image.new("RGB", (image_shape[0], image_shape[1]), (0, 0, 0))
+        else:
+            # grayscale
+            image = Image.new("L", (image_shape[0], image_shape[1]), 0)
+        d = ImageDraw.Draw(image)
+        d.text((offset_x, offset_y), txt, font=fnt, fill='white')
+        return image
+
+    x = np.empty((samples, *x_shape)).astype(np.float32)
+    y = np.empty(samples)
+
+    # Iterate over the samples and generate images of labels shifted by increasing offsets
+    offset_x_max = x_shape[0] - 25
+    offset_y_max = x_shape[1] - 10
+
+    current_label_id = 0
+    offset_x = offset_y = 0
+    for i in range(samples):
+        image = create_image_from_txt(x_shape, txt=labels_str[current_label_id], offset_x=offset_x, offset_y=offset_y)
+        image = np.reshape(image, x_shape)
+        x[i] = np.array(image).astype(np.float32)/255.0
+        y[i] = current_label_id
+
+        # cycle labels
+        current_label_id = (current_label_id + 1) % num_labels
+        offset_x = (offset_x + 1) % offset_x_max
+        offset_y = ((i+2) % offset_y_max)
+        if offset_y > offset_y_max:
+            break
+    x = x[0:i]
+    y = y[0:i]
+    return x, to_categorical(y, num_labels), i, labels_str
+
+def download_file(identifier: str,
+                  destination: str):
+    """
+    Helper to download a binary file from Google Drive.
+
+    Parameters
+    ----------
+    identifier
+        The file id of the document to download. It follows this
+        naming: https://drive.google.com/file/d/<file_id>/
+    destination
+        The path to save the file locally.
+    """
+    googledoc_url = "https://docs.google.com/uc?export=download"
+    session = requests.Session()
+    response = session.get(googledoc_url, params = {'id' : identifier}, stream = True)
+
+    # Save the response contents locally
+    with open(destination, "wb") as file:
+        chunk_size = 32768
+        for chunk in response.iter_content(chunk_size):
+            if chunk:
+                file.write(chunk)
