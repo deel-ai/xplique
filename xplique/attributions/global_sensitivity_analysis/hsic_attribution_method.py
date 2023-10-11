@@ -41,6 +41,10 @@ class HsicAttributionMethod(GSABaseAttributionMethod):
         'inpainting', 'blurring', or 'amplitude'.
     batch_size
         Batch size to use for the forwards.
+    estimator_batch_size
+        Batch size to use in the estimator. It should only be set if HSIC exceeds the memory.
+        By default, a tensor of `grid_size`² * `nb_design`² is created.
+        `estimator_batch_size` is used over the `nb_design`² dimension.
     operator
         Function g to explain, g take 3 parameters (f, x, y) and should return a scalar,
         with f the model, x the inputs and y the targets. If None, use the standard
@@ -55,7 +59,8 @@ class HsicAttributionMethod(GSABaseAttributionMethod):
         sampler: Optional[Sampler] = None,
         estimator: Optional[HsicEstimator] = None,
         perturbation_function: Optional[Union[Callable, str]] = "inpainting",
-        batch_size=256,
+        batch_size: int = 256,
+        estimator_batch_size: int = None,
         operator: Optional[Union[Tasks, str, OperatorSignature]] = None,
     ):
 
@@ -71,6 +76,8 @@ class HsicAttributionMethod(GSABaseAttributionMethod):
 
         if isinstance(estimator, BinaryEstimator):
             assert sampler.binary, "The sampler must be binary for BinaryEstimator."
+
+        estimator.set_batch_size(estimator_batch_size)
 
         super().__init__(model = model, operator = operator,
                          sampler = sampler, estimator = estimator,

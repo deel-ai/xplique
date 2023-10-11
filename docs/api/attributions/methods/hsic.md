@@ -24,6 +24,9 @@ For the kernel $k$ applied on $X_i$, a modified Dirac kernel is used to enable a
 !!!tip
     We recommend using a grid size of $7 \times 7$ to define the image patches. The paper uses a number of forwards of $1500$ to obtain the most faithful explanations and $750$ for a more budget - but still faithful - version.
 
+!!!info
+    To explain small objects in images, it may be necessary to increase the `grid_size`, which also requires an increase in `nb_design`. However, increasing both may impact the memory usage and result in out of memory errors, hence, setting `estimator_batch_size` parameter enables a limited usage of the memory. Note that the classical `batch_size` correspond to the batch_size used in the model call, here `estimator_batch_size` is intern to the method estimator.
+
 
 ## Example
 
