@@ -52,7 +52,7 @@ class Protodash(Protogreedy):
         return objective, None 
 
 
-    def update_selection(self, selected_indices, selected_weights, objective,  objective_weights, best_sample_index):
+    def update_selection(self, selected_indices, selected_weights, objective, objective_weights, objective_argmax, best_sample_index):
 
         # update selected_indices 
         selected_indices = tf.concat([selected_indices, [best_sample_index]], axis=0)
@@ -65,21 +65,29 @@ class Protodash(Protogreedy):
         Otherwise, the stationarity and complementary slackness KKT conditions
         entails that w_{best_sample_index} = best_gradient / κ(best_sample_index, best_sample_index)
         """
-        best_gradient = tf.gather(objective, best_sample_index)
-        if best_gradient <=0:
+        best_gradient = tf.gather(objective, objective_argmax)
+        if best_gradient <= 0:
 
             selected_weights = tf.concat([selected_weights, [0]], axis=0)
 
         else:
-
-            initial_w = tf.concat([selected_weights, [best_gradient / tf.gather(tf.linalg.diag_part(self.kernel_matrix), best_sample_index)]], axis=0)
-            opt = Optimiser(initial_w)
             
             u = tf.expand_dims(tf.gather(self.colmean, selected_indices), axis=1)
             K = tf.gather(tf.gather(self.kernel_matrix, selected_indices), selected_indices, axis=1)
 
-            selected_weights, _ = opt.optimize(u, K)
-            selected_weights = tf.squeeze(selected_weights, axis=1)
+            if self.use_optimiser:
+
+                initial_w = tf.concat([selected_weights, [best_gradient / tf.gather(tf.linalg.diag_part(self.kernel_matrix), best_sample_index)]], axis=0)
+                opt = Optimiser(initial_w)
+
+                selected_weights, _ = opt.optimize(u, K)
+                selected_weights = tf.squeeze(selected_weights, axis=0)
+
+            else:
+                selected_weights = tf.matmul(tf.linalg.inv(K), u)
+                selected_weights = tf.maximum(selected_weights, 0)
+                
+                selected_weights = tf.squeeze(selected_weights, axis=1)
        
         return selected_indices, selected_weights
     
