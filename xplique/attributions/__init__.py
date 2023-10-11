@@ -6,9 +6,6 @@ from .saliency import Saliency
 from .gradient_input import GradientInput
 from .grad_cam import GradCAM
 from .integrated_gradients import IntegratedGradients
-from .smoothgrad import SmoothGrad
-from .vargrad import VarGrad
-from .square_grad import SquareGrad
 from .occlusion import Occlusion
 from .rise import Rise
 from .guided_backpropagation import GuidedBackprop
@@ -18,4 +15,5 @@ from .lime import Lime
 from .kernel_shap import KernelShap
 from .object_detector import BoundingBoxesExplainer
 from .global_sensitivity_analysis import SobolAttributionMethod, HsicAttributionMethod
+from .gradient_statistics import SmoothGrad, VarGrad, SquareGrad
 from . import global_sensitivity_analysis

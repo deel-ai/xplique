@@ -1,18 +1,18 @@
 """
-Module related to VarGrad method
+Module related to SquareGrad method
 """
 
-import tensorflow as tf
+from .gradient_statistic import GradientStatistic
+from ...commons.online_statistics import OnlineSquareMean
 
-from .smoothgrad import SmoothGrad
 
-
-class VarGrad(SmoothGrad):
+class SquareGrad(GradientStatistic):
     """
-     VarGrad is a variance analog to SmoothGrad.
+    SquareGrad (or SmoothGrad^2) is an unpublished variant of classic SmoothGrad which squares
+    each gradients of the noisy inputs before averaging.
 
-    Ref. Adebayo & al., Sanity check for Saliency map (2018).
-    https://papers.nips.cc/paper/8160-sanity-checks-for-saliency-maps.pdf
+    Ref. Hooker & al., A Benchmark for Interpretability Methods in Deep Neural Networks (2019).
+    https://papers.nips.cc/paper/9167-a-benchmark-for-interpretability-methods-in-deep-neural-networks.pdf
 
     Parameters
     ----------
@@ -37,20 +37,13 @@ class VarGrad(SmoothGrad):
         Scalar, noise used as standard deviation of a normal law centered on zero.
     """
 
-    @staticmethod
-    @tf.function
-    def _reduce_gradients(gradients: tf.Tensor) -> tf.Tensor:
+    def _get_online_statistic_class(self) -> type:
         """
-        Reduce the gradients using the variance obtained on each noisy samples.
-
-        Parameters
-        ----------
-        gradients
-            Gradients to reduce the sampling dimension for each inputs.
+        Specify the online statistic (square mean) for the parent class `__init__`.
 
         Returns
         -------
-        reduced_gradients
-            Single saliency map for each input.
+        online_statistic_class
+            Class of the online statistic used to aggregated gradients on perturbed inputs.
         """
-        return tf.math.reduce_variance(gradients, axis=1)
+        return OnlineSquareMean
