@@ -4,7 +4,6 @@ GSA Attribution Method base explainer
 
 from enum import Enum
 
-import cv2
 import numpy as np
 import tensorflow as tf
 

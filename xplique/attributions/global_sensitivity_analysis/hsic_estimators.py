@@ -11,6 +11,8 @@ import numpy as np
 
 from .kernels import Kernel
 
+from ...commons import batch_tensor
+
 
 class HsicEstimator(ABC):
     """
@@ -22,6 +24,10 @@ class HsicEstimator(ABC):
         assert output_kernel in [
             "rbf"
         ], "Only 'rbf' output kernel is supported for now."
+
+        # set a batch_size higher than any `grid_size`² possible
+        # updated if an `estimator_batch_size` is given to `HsicAttributionMethod`.
+        self.batch_size = 100000
 
     @staticmethod
     def masks_dim(masks):
@@ -98,6 +104,20 @@ class HsicEstimator(ABC):
         """
         raise NotImplementedError()
 
+    def set_batch_size(self, batch_size=None):
+        """
+        Set the batch size to use for the estimator.
+
+        Parameters
+        ----------
+        batch_size
+            Batch size to use for the estimator.
+        """
+        if batch_size is not None:
+            self.batch_size = batch_size
+        else:
+            pass  # already set to 100000 in the init
+
     @tf.function
     def estimator(self, masks, L, nb_dim, nb_design):
         """
@@ -123,18 +143,33 @@ class HsicEstimator(ABC):
 
         X1 = tf.reshape(X, (nb_dim, 1, nb_design, 1))
         X2 = tf.transpose(X1, [0, 1, 3, 2])
-        K = self.input_kernel_func(X1, X2)
-        K = tf.math.reduce_prod(1 + K, axis=1)
 
-        H = tf.eye(nb_design) - tf.ones((nb_design, nb_design)) / nb_design
-        HK = tf.einsum("jk,ikl->ijl", H, K)
-        HL = tf.einsum("jk,kl->jl", H, L)
+        # min(self.batch_size, nb_dim) is used to avoid OOM
+        batch_size = tf.cond(nb_dim > self.batch_size,
+                             lambda: tf.cast(tf.constant(self.batch_size), tf.int64),
+                             lambda: tf.cast(nb_dim, tf.int64))
 
-        Kc = tf.einsum("ijk,kl->ijl", HK, H)
-        Lc = tf.einsum("jk,kl->jl", HL, H)
+        # initialize array of scores
+        scores = tf.zeros((0,))
+        # batch over the mask dimensions (may be done only once)
+        for x1, x2 in batch_tensor((X1, X2), tf.cast(batch_size, tf.int64)):
 
-        score = tf.math.reduce_sum(Kc * tf.transpose(Lc), axis=[1, 2]) / nb_design
-        return score
+            K = self.input_kernel_func(x1, x2)
+            K = tf.math.reduce_prod(1 + K, axis=1)
+
+            H = tf.eye(nb_design) - tf.ones((nb_design, nb_design)) / nb_design
+            HK = tf.einsum("jk,ikl->ijl", H, K)
+            HL = tf.einsum("jk,kl->jl", H, L)
+
+            Kc = tf.einsum("ijk,kl->ijl", HK, H)
+            Lc = tf.einsum("jk,kl->jl", HL, H)
+
+            score = tf.math.reduce_sum(Kc * tf.transpose(Lc), axis=[1, 2]) / nb_design
+
+            # add score to array of scores
+            scores = tf.concat([scores, score], axis=0)
+
+        return scores
 
     def __call__(self, masks, outputs, nb_design):
         """
