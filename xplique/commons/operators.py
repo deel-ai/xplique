@@ -172,7 +172,7 @@ def object_detection_operator(model: Callable,
         current_boxes, proba_detection, classification = _format_objects(obj)
         size = tf.shape(current_boxes)[0]
 
-        if len(tf.shape(obj_ref)) == 1:
+        if tf.shape(obj_ref).shape[0] == 1:
             obj_ref = tf.expand_dims(obj_ref, axis=0)
 
         # DRise consider the reference objectness to be 1
