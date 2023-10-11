@@ -1,5 +1,9 @@
 # Feature Visualization
 
+<sub>
+    <img src="https://upload.wikimedia.org/wikipedia/commons/d/d0/Google_Colaboratory_SVG_Logo.svg" width="20">
+</sub> [View colab tutorial](https://colab.research.google.com/drive/1st43K9AH-UL4eZM1S4QdyrOi7Epa5K8v)
+
 One of the specificities of neural networks is their differentiability. This characteristic allows us to compute gradients, either the gradient of a loss with respect to the parameters, or in the case we are interested in here, of a part of the network with respect to the input.
 This gradient then allows us to iteratively modify the input in order to maximize an objective such as a neuron, a channel or a combination of objectives.
 
