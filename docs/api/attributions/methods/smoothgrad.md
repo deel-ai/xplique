@@ -54,6 +54,6 @@ explanations = method.explain(images, labels)
 /1XproaVxXjO9nrBSyyy7BuKJ1vy21iHs2)
 - [**SmoothGrad**: Going Further](https://colab.research.google.com/drive/12-tlM_TdZ12oc5lNL2S2g-hcMJV8tZUD)
 
-{{xplique.attributions.smoothgrad.SmoothGrad}}
+{{xplique.attributions.gradient_statistics.SmoothGrad}}
 
 [^1]: [SmoothGrad: removing noise by adding noise (2017)](https://arxiv.org/abs/1706.03825)
