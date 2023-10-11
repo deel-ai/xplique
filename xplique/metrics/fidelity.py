@@ -10,6 +10,7 @@ from scipy.stats import spearmanr
 
 from .base import ExplanationMetric
 from ..types import Union, Callable, Optional, Dict
+from ..commons import batch_tensor
 
 
 class MuFidelity(ExplanationMetric):
@@ -59,6 +60,7 @@ class MuFidelity(ExplanationMetric):
         if you want to measure a 'drop of probability' by adding a sigmoid or softmax
         after getting your logits. If None does not add a layer to your model.
     """
+    # pylint: disable=too-many-instance-attributes
 
     def __init__(self,
                  model: Callable,
@@ -71,30 +73,26 @@ class MuFidelity(ExplanationMetric):
                  nb_samples: int = 200,
                  operator: Optional[Callable] = None,
                  activation: Optional[str] = None):
-        # pylint: disable=R0913
+        # pylint: disable=too-many-arguments
         super().__init__(model, inputs, targets, batch_size, operator, activation)
         self.grid_size = grid_size
         self.subset_percent = subset_percent
         self.baseline_mode = baseline_mode
         self.nb_samples = nb_samples
 
+        # set batch_size for inputs and perturbations
+        self.batch_size = self.batch_size or (len(self.inputs) * self.nb_samples)
+        self.perturbation_batch_size = min(self.batch_size, self.nb_samples)
+        self.inputs_batch_size = max(1, self.batch_size // self.perturbation_batch_size)
+
         # if unspecified use the original equation (pixel-wise modification)
         self.grid_size = grid_size or self.inputs.shape[1]
         # cardinal of subset (|S| in the equation)
         self.subset_size = int(self.grid_size ** 2 * self.subset_percent)
 
-        # prepare the random masks that will designate the modified subset (S in original equation)
-        # we ensure the masks have exactly `subset_size` pixels set to baseline
-        subset_masks = np.random.rand(self.nb_samples, self.grid_size ** 2)
-        subset_masks = subset_masks.argsort(axis=-1) > self.subset_size
-
-        # and interpolate them if needed
-        subset_masks = subset_masks.astype(np.float32).reshape(
-            (self.nb_samples, self.grid_size, self.grid_size, 1))
-        self.subset_masks = tf.image.resize(subset_masks, self.inputs.shape[1:-1], method="nearest")
-
         self.base_predictions = self.batch_inference_function(self.model, self.inputs,
                                                               self.targets, self.batch_size)
+        self.base_predictions = tf.expand_dims(self.base_predictions, axis=1)
 
     def evaluate(self,
                  explanations: Union[tf.Tensor, np.ndarray]) -> float:
@@ -119,29 +117,125 @@ class MuFidelity(ExplanationMetric):
                                             f" vs {len(self.inputs)}"
 
         correlations = []
-        for inp, label, phi, base in zip(self.inputs, self.targets, explanations,
-                                         self.base_predictions):
-            label = tf.repeat(label[None, :], self.nb_samples, 0)
-            baseline = self.baseline_mode(inp) if isfunction(self.baseline_mode) else \
-                self.baseline_mode
-            # use the masks to set the selected subsets to baseline state
-            degraded_inputs = inp * self.subset_masks + (1.0 - self.subset_masks) * baseline
-            # measure the two terms that should be correlated
-            preds = base - self.batch_inference_function(self.model, degraded_inputs,
-                                                         label, self.batch_size)
+        for inp, label, phi, base in batch_tensor((self.inputs, self.targets,
+                                                   explanations, self.base_predictions),
+                                                  self.inputs_batch_size):
+            # reshape the explanations to align with future mask multiplications
+            if len(inp.shape) > len(phi.shape):
+                phi = tf.expand_dims(phi, axis=-1)
+            phi = tf.expand_dims(phi, axis=1)
 
-            attrs = tf.reduce_sum(phi * (1.0 - self.subset_masks), (1, 2, 3))
-            corr_score = spearmanr(preds, attrs)[0]
+            total_perturbed_samples = 0
+            preds, attrs = None, None
+            # loop over perturbations (a single pass if batch_size > nb_samples, batched otherwise)
+            while total_perturbed_samples < self.nb_samples:
+                nb_perturbations = min(self.perturbation_batch_size,
+                                       self.nb_samples - total_perturbed_samples)
+                total_perturbed_samples += nb_perturbations
 
-            # sanity check: if the model predictions are the same, no variation
-            if np.isnan(corr_score):
-                corr_score = 0.0
+                degraded_inputs, subset_masks = self._perturb_samples(inp, nb_perturbations)
+                repeated_label = tf.repeat(label, nb_perturbations, 0)
 
-            correlations.append(corr_score)
+                # compute the predictions for a batch of perturbed inputs
+                perturbed_predictions = self.batch_inference_function(
+                    self.model, degraded_inputs, repeated_label, self.batch_size)
+
+                # reshape the predictions to align with the inputs
+                perturbed_predictions = tf.reshape(perturbed_predictions,
+                           (inp.shape[0], nb_perturbations))
+
+
+                # measure the two terms that should be correlated
+                pred = base - perturbed_predictions
+                preds = pred if preds is None else tf.concat([preds, pred], axis=1)
+
+                attr = tf.reduce_sum(phi * (1.0 - subset_masks),
+                                     axis=list(range(2, len(subset_masks.shape))))
+                attrs = attr if attrs is None else tf.concat([attrs, attr], axis=1)
+
+            # iterate over samples of the batch
+            batch_correlations = []
+            for pred, attr in zip(preds, attrs):
+                # compute correlation
+                corr_score = spearmanr(pred, attr)[0]
+
+                # sanity check: if the model predictions are the same, no variation
+                if np.isnan(corr_score):
+                    corr_score = 0.0
+                batch_correlations.append(corr_score)
+            correlations += batch_correlations
 
         fidelity_score = np.mean(correlations)
 
         return float(fidelity_score)
+
+    @tf.function
+    def _perturb_samples(self,
+                         inputs: tf.Tensor,
+                         nb_perturbations: int) -> tf.Tensor:
+        """
+        Duplicate the samples and apply a noisy mask to each of them.
+
+        Parameters
+        ----------
+        inputs
+            Input samples to be explained. (n, ...)
+        nb_perturbations
+            Number of perturbations to apply for each input.
+
+        Returns
+        -------
+        perturbed_inputs
+            Duplicated inputs perturbed with random noise. (n * nb_perturbations, ...)
+        """
+        # (n, nb_perturbations, ...)
+        perturbed_inputs = tf.repeat(inputs[:, tf.newaxis], repeats=nb_perturbations, axis=1)
+
+        # prepare the random masks that will designate the modified subset (S in original equation)
+        # we ensure the masks have exactly `subset_size` pixels set to baseline
+        # and interpolate them if needed
+        # the masks format depend on the data type
+        if len(inputs.shape) == 2:  # tabular data, grid size is ignored
+            # prepare the random masks
+            subset_masks = tf.random.uniform((nb_perturbations, inputs.shape[1]), 0, 1, tf.float32)
+            subset_masks = tf.argsort(subset_masks, axis=-1) > self.subset_size
+            subset_masks = tf.cast(subset_masks, tf.float32)
+
+        elif len(inputs.shape) == 3:  # time series
+            # prepare the random masks
+            subset_masks = tf.random.uniform((nb_perturbations, self.grid_size * inputs.shape[2]),
+                                             minval=0, maxval=1, dtype=tf.float32)
+            subset_masks = tf.argsort(subset_masks, axis=-1) > self.subset_size
+
+            # and interpolate them if needed
+            subset_masks = tf.reshape(tf.cast(subset_masks, tf.float32),
+                                      (nb_perturbations, self.grid_size, inputs.shape[2], 1))
+            subset_masks = tf.image.resize(subset_masks, self.inputs.shape[1:], method="nearest")
+            subset_masks = tf.squeeze(subset_masks, axis=-1)
+
+        elif len(inputs.shape) == 4:  # image data
+            # prepare the random masks
+            subset_masks = tf.random.uniform(shape=(nb_perturbations, self.grid_size ** 2),
+                                             minval=0, maxval=1, dtype=tf.float32)
+            subset_masks = tf.argsort(subset_masks, axis=-1) > self.subset_size
+
+            # and interpolate them if needed
+            subset_masks = tf.reshape(tf.cast(subset_masks, tf.float32),
+                                      (nb_perturbations, self.grid_size, self.grid_size, 1))
+            subset_masks = tf.image.resize(subset_masks, self.inputs.shape[1:-1], method="nearest")
+
+        # (n, nb_perturbations, ...)
+        subset_masks = tf.repeat(subset_masks[tf.newaxis],
+                                 repeats=perturbed_inputs.shape[0], axis=0)
+
+        baseline = self.baseline_mode(perturbed_inputs) if isfunction(self.baseline_mode) else \
+                self.baseline_mode
+
+        perturbed_inputs = perturbed_inputs * subset_masks + (1.0 - subset_masks) * baseline
+
+        perturbed_inputs = tf.reshape(perturbed_inputs, (-1, *self.inputs.shape[1:]))
+
+        return perturbed_inputs, subset_masks
 
 
 class CausalFidelity(ExplanationMetric):
