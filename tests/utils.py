@@ -1,3 +1,5 @@
+import signal, time
+
 import numpy as np
 from sklearn.linear_model import LinearRegression
 import tensorflow as tf
@@ -142,14 +144,14 @@ def generate_object_detection_model(input_shape=(32, 32, 3), max_nb_boxes=10, nb
     
     valid_model = lambda inputs: make_plausible_boxes(model(inputs))
 
-    # equivalent of nmf
+    # equivalent of nms
     def randomly_select_boxes(boxes):
         boxes_ids = tf.range(tf.shape(boxes)[0])
         nb_boxes = tf.experimental.numpy.random.randint(1, max_nb_boxes)
         boxes_ids = tf.random.shuffle(boxes_ids)[:nb_boxes]
         return tf.gather(boxes, boxes_ids)
 
-    # model with nmf
+    # model with nms
     def model_with_random_nb_boxes(input):
         all_boxes = valid_model(input)
         some_boxes = [randomly_select_boxes(boxes) for boxes in all_boxes]
