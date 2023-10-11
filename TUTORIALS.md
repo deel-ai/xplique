@@ -66,6 +66,9 @@ Here is the lists of the available tutorial for now:
 
 **WIP**
 
-## Features Visualizations
+## Feature Visualization
 
-**WIP**
+| **Tutorial Name**                      | Notebook                                                                                                                                                |
+| :------------------------------------- | :-----------------------------------------------------------------------------------------------------------------------------------------------------: |
+| Feature Visualization: Getting started | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1st43K9AH-UL4eZM1S4QdyrOi7Epa5K8v) |
+| Modern Feature Visualization: MaCo     | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1l0kag1o-qMY4NCbWuAwnuzkzd9sf92ic) |

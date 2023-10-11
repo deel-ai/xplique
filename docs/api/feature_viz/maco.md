@@ -1,5 +1,13 @@
 # Modern Feature Visualization (MaCo)
 
+<sub>
+    <img src="https://upload.wikimedia.org/wikipedia/commons/d/d0/Google_Colaboratory_SVG_Logo.svg" width="20">
+</sub> [View colab tutorial](https://colab.research.google.com/drive/1l0kag1o-qMY4NCbWuAwnuzkzd9sf92ic) |
+<sub>
+    <img src="https://upload.wikimedia.org/wikipedia/commons/9/91/Octicons-mark-github.svg" width="20">
+</sub> [View source](https://github.com/deel-ai/xplique/blob/master/xplique/features_visualizations/maco.py) |
+📰 [Paper](https://arxiv.org/pdf/2306.06805.pdf)
+
 Feature visualization has become increasingly popular, especially after the groundbreaking work by Olah et al. [^1], which established it as a vital tool for enhancing explainability. Despite its significance, the widespread adoption of feature visualization has been hindered by the reliance on various tricks to create interpretable images, making it challenging to scale the method effectively for deeper neural networks.
 
 Addressing these limitations, a recent method called MaCo [^2] offers a straightforward solution. The core concept involves generating images by optimizing the phase spectrum while keeping the magnitude of the Fourier spectrum constant. This ensures that the generated images reside in the space of natural images in the Fourier domain, providing a more stable and interpretable approach.
