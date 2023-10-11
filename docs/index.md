@@ -40,7 +40,7 @@
   ·
   <a href="api/feature_viz/feature_viz/">Feature Visualization</a>
   ·
-  <a href="api/metrics/api_metrics/">Metrics</a>
+  <a href="api/attributions/metrics/api_metrics/">Metrics</a>
 </div>
 
 The library is composed of several modules, the _Attributions Methods_ module implements various methods (e.g Saliency, Grad-CAM, Integrated-Gradients...), with explanations, examples and links to official papers.

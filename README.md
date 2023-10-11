@@ -40,7 +40,7 @@
   ·
   <a href="https://deel-ai.github.io/xplique/latest/api/feature_viz/feature_viz/">Feature Visualization</a>
   ·
-  <a href="https://deel-ai.github.io/xplique/latest/api/metrics/api_metrics/">Metrics</a>
+  <a href="https://deel-ai.github.io/xplique/latest/api/attributions/metrics/api_metrics/">Metrics</a>
 </p>
 
 The library is composed of several modules, the _Attributions Methods_ module implements various methods (e.g Saliency, Grad-CAM, Integrated-Gradients...), with explanations, examples and links to official papers.
@@ -222,7 +222,7 @@ metric = Deletion(wrapped_model, inputs, targets)
 score_saliency = metric(explanations)
 ```
 
-Want to know more ? Check the [PyTorch documentation](https://deel-ai.github.io/xplique/latest/api/attributions/PyTorch/)
+Want to know more ? Check the [PyTorch documentation](https://deel-ai.github.io/xplique/latest/api/attributions/pytorch/)
 
 </details>
 
