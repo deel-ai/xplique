@@ -19,24 +19,33 @@ from .protogreedy import Protogreedy
 
 class MMDCritic(Protogreedy):
     
-    def __init__(
-        self,
-        cases_dataset: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
-        labels_dataset: Optional[Union[tf.data.Dataset, tf.Tensor, np.ndarray]] = None,
-        targets_dataset: Union[tf.data.Dataset, tf.Tensor, np.ndarray] = None,
-        k: int = 1,
-        projection: Union[Projection, Callable] = None,
-        search_returns: Optional[Union[List[str], str]] = None,
-        batch_size: Optional[int] = 32,
-        distance: Union[int, str, Callable] = "euclidean",
-        kernel: Union[Callable, tf.Tensor, np.ndarray] = rbf_kernel,
-        kernel_type: str = 'local',
-    ): # pylint: disable=R0801
-        super().__init__(
-            cases_dataset, labels_dataset, targets_dataset, k, projection, search_returns, batch_size, distance, kernel, kernel_type
-        )
 
-        self.set_equal_weights = True
+    def compute_objective(self, S, Sw, c):
+        
+        # special case of protogreedy where we give equal weights to all prototypes, 
+        # the objective here is simplified to speed up processing
+        """
+        Find argmax_{c} F(S ∪ c) - F(S)
+        ≡
+        Find argmax_{c} F(S ∪ c)
+        ≡
+        Find argmax_{c} (sum1 - sum2) where: sum1 = (2 / n) * ∑[i=1 to n] κ(x_i, c) 
+                                                sum2 = 1/(|S|+1) [2 * ∑[j=1 to |S|] * κ(x_j, c) + κ(c, c)]
+        """
+
+        sum1 = 2 * tf.gather(self.colmean, c)
+
+        if S.shape[0] == 0:
+            sum2 = tf.abs(tf.gather(tf.linalg.diag_part(self.kernel_matrix),c))
+        else:
+            temp = tf.gather(tf.gather(self.kernel_matrix, S), c, axis=1)
+            sum2 = tf.reduce_sum(temp, axis=0) * 2 + tf.gather(tf.linalg.diag_part(self.kernel_matrix),c)
+            sum2 /= (S.shape[0] + 1)
+
+        objective = sum1 - sum2
+        objective_weights = tf.ones(shape=(S.shape[0]+1, c.shape[0]), dtype=tf.float32) / tf.cast(S.shape[0]+1, dtype=tf.float32)
+
+        return objective, objective_weights
     
     
     def compute_MMD_distance(self, Z):

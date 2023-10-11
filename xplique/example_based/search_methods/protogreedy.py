@@ -50,7 +50,7 @@ class Optimiser():
         # Extract the optimal value of w
         optimal_w = result.x
         optimal_w = tf.convert_to_tensor(optimal_w, dtype=tf.float32)
-        optimal_w = tf.expand_dims(optimal_w, axis=1)
+        optimal_w = tf.expand_dims(optimal_w, axis=0)
 
         # Compute F(S)
         F_S = -result.fun
@@ -172,7 +172,7 @@ class Protogreedy(BaseSearchMethod):
             if distance is None:
                 distance = "euclidean"
 
-        self.set_equal_weights = False
+        self.use_optimiser = True
         self.sample_indices = tf.range(0, self.kernel_matrix.shape[0])
         self.n = self.sample_indices.shape[0]
         self.colsum = tf.reduce_sum(self.kernel_matrix, axis=0)
@@ -220,101 +220,58 @@ class Protogreedy(BaseSearchMethod):
     
     def compute_objective(self, S, Sw, c):
 
-        # MMD_Critic
-        if self.set_equal_weights:
+        # Concatenate selection with each candidate
+        # S = S ∪ {c}
+        repeated_selected_indices = tf.tile(tf.expand_dims(S, 0), [c.shape[0], 1])
+        all_indices = tf.concat([repeated_selected_indices, tf.expand_dims(c, 1)], axis=1)
 
-            """
-            Find argmax_{c} F(S ∪ c) - F(S), where F(S) ≡ max_{w:supp(w)∈ S, w ≥ 0} l(w), where l(w) = w^T * μ - 1/2 * w^T * K * w
-            ≡
-            Find argmax_{c} F(S ∪ c)
-            ≡
-            Find argmax_{c} (sum1 - sum2) where: sum1 = (2 / n) * ∑[i=1 to n] κ(x_i, c) 
-                                                 sum2 = 1/(|S|+1) [2 * ∑[j=1 to |S|] * κ(x_j, c) + κ(c, c)]
-            """
- 
-            sum1 = 2 * tf.gather(self.colmean, c)
+        if (self.use_optimiser):
 
-            if S.shape[0] == 0:
-                sum2 = tf.abs(tf.gather(tf.linalg.diag_part(self.kernel_matrix),c))
-            else:
-                temp = tf.gather(tf.gather(self.kernel_matrix, S), c, axis=1)
-                sum2 = tf.reduce_sum(temp, axis=0) * 2 + tf.gather(tf.linalg.diag_part(self.kernel_matrix),c)
-                sum2 /= (S.shape[0] + 1)
-
-            objective = sum1 - sum2
-
-            all_weights = tf.ones(shape=(S.shape[0]+1, c.shape[0]), dtype=tf.float32) / tf.cast(S.shape[0]+1, dtype=tf.float32)
-
-        # Protogreedy
-        else:
-
-            # Concatenate selection with each candidate
-            # S = S ∪ {c}
-            repeated_selected_indices = tf.tile(tf.expand_dims(S, 1), [1, c.shape[0]])
-            all_indices = tf.concat([repeated_selected_indices, tf.expand_dims(c, 0)], axis=0)
-
-            initial_w = tf.concat([Sw, [0]], axis=0)
-            opt = Optimiser(initial_w)
+            opt = Optimiser(initial_w=tf.concat([Sw, [0]], axis=0))
             
-            all_weights_list = []
+            objective_weights_list = []
             objective_list = []
-            for c in range(all_indices.shape[1]):
+            for c in range(all_indices.shape[0]):
             
-                indices = tf.gather(all_indices, c, axis=1)
+                indices = tf.gather(all_indices, c, axis=0)
 
                 u = tf.expand_dims(tf.gather(self.colmean, indices), axis=1)
                 K = tf.gather(tf.gather(self.kernel_matrix, indices), indices, axis=1)
 
                 optimal_w, F = opt.optimize(u, K)
 
-                all_weights_list.append(optimal_w)
+                objective_weights_list.append(optimal_w)
                 objective_list.append(F)
             
-            all_weights = tf.concat(all_weights_list, axis=1)
+            objective_weights = tf.concat(objective_weights_list, axis=0)
             objective = tf.concat(objective_list, axis=0)
 
-        return objective, all_weights
+        else:
 
-    # def compute_objective(self, S, Sw, c):
+            # adjust all_indices to be used to gather from flattened kernel_matrix
+            all_indices_adjusted = self.kernel_matrix.shape[1] * tf.expand_dims(all_indices, axis=2) + tf.expand_dims(all_indices, axis=1)
 
-    #     # Concatenate selection with each candidate
-    #     # S = S ∪ {c}
-    #     repeated_selected_indices = tf.tile(tf.expand_dims(S, 1), [1, c.shape[0]])
-    #     all_indices = tf.concat([repeated_selected_indices, tf.expand_dims(c, 0)], axis=0)
+            u = tf.expand_dims(tf.gather(self.colmean, all_indices), axis=2)
+            K = tf.gather(tf.reshape(self.kernel_matrix, [-1]), all_indices_adjusted)
 
-    #     all_weights_list = []
-    #     objective_list = []
-    #     for c in range(all_indices.shape[1]):
-        
-    #         indices = tf.gather(all_indices, c, axis=1)
+            optimal_w = tf.matmul(tf.linalg.inv(K), u)
+            optimal_w = tf.maximum(optimal_w, 0)
 
-    #         u = tf.expand_dims(tf.gather(self.colmean, indices), axis=1)
-    #         K = tf.gather(tf.gather(self.kernel_matrix, indices), indices, axis=1)
+            F = tf.matmul(tf.transpose(optimal_w, [0, 2, 1]), u) - 0.5 * tf.matmul(tf.matmul(tf.transpose(optimal_w, [0, 2, 1]), K), optimal_w)
 
-    #         # optimal_w, F = opt.optimize(u, K)
-            
-    #         w = tf.ones_like(u, dtype=tf.float32) / tf.cast(u.shape[0], dtype=tf.float32)
+            objective = tf.squeeze(F, axis=[1,2])
+            objective_weights = tf.reshape(optimal_w, (optimal_w.shape[0], -1))
 
-    #         F = tf.matmul(tf.transpose(w), u) - 0.5 * tf.matmul(tf.matmul(tf.transpose(w), K), w)
-    #         F = tf.squeeze(F, axis=1)
+        return objective, objective_weights
+    
 
-    #         all_weights_list.append(w)
-
-    #         objective_list.append(F)
-        
-    #     all_weights = tf.concat(all_weights_list, axis=1)
-    #     objective = tf.concat(objective_list, axis=0)
-
-    #     return objective, all_weights
-
-    def update_selection(self, selected_indices, selected_weights, objective, objective_weights, best_sample_index):
+    def update_selection(self, selected_indices, selected_weights, objective, objective_weights, objective_argmax, best_sample_index):
 
         # update selected_indices 
         selected_indices = tf.concat([selected_indices, [best_sample_index]], axis=0)
 
         # update selected_weights
-        if objective_weights is not None:
-            selected_weights = tf.gather(objective_weights, best_sample_index, axis=1)
+        selected_weights = tf.gather(objective_weights, objective_argmax)
        
         return selected_indices, selected_weights
         
@@ -335,13 +292,14 @@ class Protogreedy(BaseSearchMethod):
             objective,  objective_weights = self.compute_objective(selected_indices, selected_weights, candidate_indices)
 
             # Select the best sample index
-            best_sample_index = tf.gather(candidate_indices, tf.argmax(objective))
+            objective_argmax = tf.argmax(objective)
+            best_sample_index = tf.gather(candidate_indices, objective_argmax)
             
             # Update the binary mask to mark the best sample as selected.
             is_selected = tf.tensor_scatter_nd_update(is_selected, [[best_sample_index]], [k + 1])
 
             # Update selected_indices and selected_weights
-            selected_indices, selected_weights = self.update_selection(selected_indices, selected_weights, objective,  objective_weights, best_sample_index)
+            selected_indices, selected_weights = self.update_selection(selected_indices, selected_weights, objective, objective_weights, objective_argmax, best_sample_index)
 
             k += 1
 
