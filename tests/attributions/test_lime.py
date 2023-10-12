@@ -153,7 +153,7 @@ def test_compute():
                       kernel_width=10)
 
         explanations = method.explain(samples, labels)
-        assert samples.shape[:3] == explanations.shape
+        assert samples.shape[:-1] == explanations.shape[:-1]
 
 def test_inputs_batching():
     """ Ensure, that we can call explain with batched inputs """
@@ -169,4 +169,4 @@ def test_inputs_batching():
                     kernel_width=10)
 
     explanations = method.explain(samples, labels)
-    assert samples.shape[:3] == explanations.shape
+    assert samples.shape[:-1] == explanations.shape[:-1]

@@ -194,7 +194,7 @@ def test_tf_models_images():
 
                 explanations = explainer(inputs, targets)
 
-                assert explanations.shape == (samples, *input_shape[:2])
+                assert explanations.shape == (samples, *input_shape[:2], 1)
 
 def test_callable_models_tabular():
     """
@@ -244,4 +244,4 @@ def test_callable_models_images():
 
                 explanations = explainer(inputs, targets)
 
-                assert explanations.shape == (samples, *input_shape[:2])
+                assert explanations.shape == (samples, *input_shape[:2], 1)

@@ -23,7 +23,7 @@ def test_hsic_kernels_shape():
         method = HsicAttributionMethod(model, grid_size=2, nb_design=8)
         stis_maps = method.explain(x, y)
 
-        assert x.shape[:-1] == stis_maps.shape
+        assert x.shape[:-1] == stis_maps.shape[:-1]
 
 
 def test_estimators():
@@ -43,4 +43,4 @@ def test_estimators():
             )
             stis_maps = method.explain(x, y)
 
-            assert x.shape[:-1] == stis_maps.shape
+            assert x.shape[:-1] == stis_maps.shape[:-1]

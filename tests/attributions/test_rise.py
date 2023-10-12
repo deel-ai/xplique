@@ -20,11 +20,11 @@ def test_output_shape():
 
         method = Rise(model, nb_samples=100)
         rise_maps = method.explain(x, y)
-        assert x.shape[:-1] == rise_maps.shape
+        assert x.shape[:-1] == rise_maps.shape[:-1]
 
         method = Rise(model, nb_samples=100, grid_size=(3, 5))
         rise_maps = method.explain(x, y)
-        assert x.shape[:-1] == rise_maps.shape
+        assert x.shape[:-1] == rise_maps.shape[:-1]
 
 
 def reset_random_seed(seed: int = 0):

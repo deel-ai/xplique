@@ -21,7 +21,7 @@ def test_output_shape():
         method = SobolAttributionMethod(model,grid_size = 2, nb_design = 8)
         stis_maps = method.explain(x, y)
 
-        assert x.shape[:-1] == stis_maps.shape
+        assert x.shape[:-1] == stis_maps.shape[:-1]
 
 
 def test_samplers():
@@ -44,7 +44,7 @@ def test_samplers():
                 method = SobolAttributionMethod(model, grid_size = 2, nb_design = 8, sampler = sampler)
                 stis_maps = method.explain(x, y)
 
-                assert x.shape[:-1] == stis_maps.shape
+                assert x.shape[:-1] == stis_maps.shape[:-1]
             except ModuleNotFoundError:
                 pass
 
@@ -64,7 +64,7 @@ def test_perturbations():
             method = SobolAttributionMethod(model, grid_size = 2, nb_design = 8, perturbation_function = perturb)
             stis_maps = method.explain(x, y)
 
-            assert x.shape[:-1] == stis_maps.shape
+            assert x.shape[:-1] == stis_maps.shape[:-1]
 
 
 def test_estimators():
@@ -82,7 +82,7 @@ def test_estimators():
             method = SobolAttributionMethod(model, grid_size = 2, nb_design = 8, estimator = estimator)
             stis_maps = method.explain(x, y)
 
-            assert x.shape[:-1] == stis_maps.shape
+            assert x.shape[:-1] == stis_maps.shape[:-1]
 
 
 def test_ishigami():

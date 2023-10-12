@@ -13,6 +13,6 @@ def test_output_shape():
         model = generate_model(input_shape, nb_labels)
 
         method = GradientInput(model, -2)
-        outputs = method.explain(x, y)
+        explanations = method.explain(x, y)
 
-        assert x.shape == outputs.shape
+        assert x.shape[:-1] + (1,) == explanations.shape

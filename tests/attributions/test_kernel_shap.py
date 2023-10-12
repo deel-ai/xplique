@@ -60,7 +60,7 @@ def test_output_explain():
         method = KernelShap(model, map_to_interpret_space=map_four_by_four, nb_samples=10)
 
         explanations = method.explain(samples, labels)
-        assert samples.shape[:3] == explanations.shape
+        assert samples.shape[:-1] == explanations.shape[:-1]
 
 def test_inputs_batching():
     """ Ensure, that we can call explain with batched inputs """
@@ -75,4 +75,4 @@ def test_inputs_batching():
 
     explanations = method.explain(samples, labels)
 
-    assert samples.shape[:3] == explanations.shape
+    assert samples.shape[:-1] == explanations.shape[:-1]

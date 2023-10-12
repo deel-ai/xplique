@@ -15,9 +15,9 @@ def test_output_shape():
         model = generate_model(input_shape, nb_labels)
 
         method = IntegratedGradients(model, -2, steps=100)
-        outputs = method.explain(x, y)
+        explanations = method.explain(x, y)
 
-        assert x.shape == outputs.shape
+        assert x.shape[:-1] + (1,) == explanations.shape
 
 
 def test_straighline_path():
