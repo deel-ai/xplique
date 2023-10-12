@@ -36,11 +36,11 @@ def test_object_detector():
 
     # test with only one box to explain by image (3, 7)
     phis = explainer(x, obj_ref)
-    assert phis.shape == (obj_ref.shape[0], input_shape[0], input_shape[1])
+    assert phis.shape == (obj_ref.shape[0], input_shape[0], input_shape[1], 1)
     assert phis[0, 0, 0] != np.nan
 
     phis2 = explainer(x, tf.expand_dims(obj_ref, axis=1))
-    assert phis.shape == phis2.shape
+    assert phis.shape[:-1] == phis2.shape[:-1]
     assert almost_equal(phis, phis2)
 
 
@@ -63,7 +63,7 @@ def test_gradient_object_detector():
 
     phis = explainer(x, obj_ref)
 
-    assert phis.shape[:3] == (obj_ref.shape[0], input_shape[0], input_shape[1])
+    assert phis.shape == (obj_ref.shape[0], input_shape[0], input_shape[1], 1)
 
 
 def test_several_boxes_object_detector():
@@ -90,7 +90,7 @@ def test_several_boxes_object_detector():
     
     phis = explainer(x, several_object_refs)
 
-    assert phis.shape[:3] == (several_object_refs.shape[0], input_shape[0], input_shape[1])
+    assert phis.shape == (several_object_refs.shape[0], input_shape[0], input_shape[1], 1)
 
 
 def test_all_object_detector_operators():
@@ -154,7 +154,7 @@ def test_all_object_detector_operators():
     classification_phis = Occlusion(model, operator=classification_op, patch_size=4, patch_stride=2)(x, obj_ref)
 
     for phi in [phis, normal_phis, intersection_phis, probability_phis, classification_phis]:
-        assert phi.shape[:3] == (obj_ref.shape[0], input_shape[0], input_shape[1])
+        assert phi.shape == (obj_ref.shape[0], input_shape[0], input_shape[1], 1)
     
     assert almost_equal(phis, normal_phis)
 

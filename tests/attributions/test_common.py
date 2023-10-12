@@ -163,7 +163,6 @@ def test_data_types_shapes():
 
             explanation = explainer(inputs, targets)
 
-            print(data_type, (samples,) + input_shape, method.__name__, explanation.shape)  # TODO: remove
             if len(input_shape) == 3:  # image => explanation (n, h, w, 1)
                 assert almost_equal(
                     np.array(explanation.shape),

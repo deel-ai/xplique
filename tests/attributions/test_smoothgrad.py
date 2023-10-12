@@ -17,4 +17,4 @@ def test_output_shape():
         method = SmoothGrad(model, -2, batch_size=1, nb_samples=100)
         smoothed_gradients = method.explain(x, y)
 
-        assert x.shape == smoothed_gradients.shape
+        assert x.shape[:-1] == smoothed_gradients.shape[:-1]

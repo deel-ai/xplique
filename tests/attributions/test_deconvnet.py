@@ -18,7 +18,7 @@ def test_output_shape():
         method = DeconvNet(model, -2)
         explanations = method.explain(x, y)
 
-        assert x.shape == explanations.shape
+        assert x.shape[:-1] + (1,) == explanations.shape
 
 
 def test_deconv_mechanism():

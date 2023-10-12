@@ -40,7 +40,7 @@ def test_object_detector():
 
     phis = explainer(x, obj_ref)
 
-    assert phis.shape == (obj_ref.shape[0], input_shape[0], input_shape[1])
+    assert phis.shape == (obj_ref.shape[0], input_shape[0], input_shape[1], 1)
 
 
 def test_gradient_object_detector():
@@ -64,4 +64,4 @@ def test_gradient_object_detector():
 
     phis = explainer(x, obj_ref)
 
-    assert phis.shape == (obj_ref.shape[0], input_shape[0], input_shape[1])
+    assert phis.shape == (obj_ref.shape[0], input_shape[0], input_shape[1], 1)
