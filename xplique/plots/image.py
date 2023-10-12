@@ -58,6 +58,20 @@ def _clip_percentile(tensor: Union[tf.Tensor, np.ndarray],
     return tensor
 
 
+def _clip_normalize(explanation: Union[tf.Tensor, np.ndarray],
+                       clip_percentile: Optional[float] = 0.1,
+                       absolute_value: bool = False) -> Union[tf.Tensor, np.ndarray]:
+    if absolute_value:
+        explanation = np.abs(explanation)
+
+    if clip_percentile:
+        explanation = _clip_percentile(explanation, clip_percentile)
+
+    explanation = _normalize(explanation)
+
+    return explanation
+
+
 def plot_attribution(explanation,
                       image: Optional[np.ndarray] = None,
                       cmap: str = "jet",
@@ -95,16 +109,31 @@ def plot_attribution(explanation,
     if len(explanation.shape) == 4: # images channel are reduced
         explanation = np.mean(explanation, -1)
 
-    if absolute_value:
-        explanation = np.abs(explanation)
-
-    if clip_percentile:
-        explanation = _clip_percentile(explanation, clip_percentile)
-
-    explanation = _normalize(explanation)
+    explanation = _clip_normalize(explanation, clip_percentile, absolute_value)
 
     plt.imshow(explanation, cmap=cmap, alpha=alpha, **plot_kwargs)
     plt.axis('off')
+
+
+def _adjust_figure(cols, rows, img_size, spacing, margin, l_width, l_height):
+    figwidth = cols * img_size + (cols-1) * spacing + 2 * margin
+    figheight = rows * img_size * l_height/l_width + (rows-1) * spacing + 2 * margin
+
+    left = margin/figwidth
+    bottom = margin/figheight
+
+    fig = plt.figure()
+    fig.set_size_inches(figwidth, figheight)
+
+    fig.subplots_adjust(
+        left = left,
+        bottom = bottom,
+        right = 1.-left,
+        top = 1.-bottom,
+        wspace = spacing/img_size,
+        hspace= spacing/img_size * l_width/l_height
+    )
+    return fig
 
 
 def plot_attributions(
@@ -157,23 +186,7 @@ def plot_attributions(
     # define the figure margin, width, height in inch
     margin = 0.3
     spacing = 0.3
-    figwidth = cols * img_size + (cols-1) * spacing + 2 * margin
-    figheight = rows * img_size * l_height/l_width + (rows-1) * spacing + 2 * margin
-
-    left = margin/figwidth
-    bottom = margin/figheight
-
-    fig = plt.figure()
-    fig.set_size_inches(figwidth, figheight)
-
-    fig.subplots_adjust(
-        left = left,
-        bottom = bottom,
-        right = 1.-left,
-        top = 1.-bottom,
-        wspace = spacing/img_size,
-        hspace= spacing/img_size * l_width/l_height
-    )
+    _adjust_figure(cols, rows, img_size, spacing, margin, l_width, l_height)
 
     for i, explanation in enumerate(explanations):
         plt.subplot(rows, cols, i+1)
