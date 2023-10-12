@@ -2,74 +2,52 @@
 Pretty plots option for explanations
 """
 
-import matplotlib
+from math import ceil
+
 from matplotlib import pyplot as plt
 import numpy as np
 import tensorflow as tf
 
-from ..types import Union, Dict, List, Any
+from ..types import Union, List, Optional
 
-
-def _arrange_subplots(
-        explanations: Dict[str, Union[np.array, tf.Tensor]],
-) -> Dict[str, Any]:
-    """
-    Determine how to arrange subplots so that the final output have coherent proportions.
-
-    Parameters
-    ----------
-    explanations
-        dictionary of explanations
-
-    Returns
-    -------
-    subplot_kwargs
-        Dictionary of arguments for the plt.subplots() method.
-
-    """
-    # initialize sizes and shapes
-    nb_subplots = len(explanations)
-    expl_shape = list(explanations.values())[0].shape
-    # matplotlib dimension are flipped compare to usual numpy of pandas
-    get_size = lambda x, y: (int(y * (1 + expl_shape[0] / 5)), int(x * (1 + expl_shape[1] / 5)))
-
-    found_arrange = False
-    # iterate to found arrangement
-    while not found_arrange:
-        for i in range(1, nb_subplots + 1):
-            if nb_subplots % i == 0:
-                plot_size = get_size(i, nb_subplots / i)
-                if plot_size[0] <= plot_size[1] <= 2 * plot_size[0]:
-                    found_arrange = True
-                    nrows = i
-                    ncols = int(nb_subplots / i)
-                    break
-        nb_subplots += 1
-    return {"nrows": nrows, "ncols": ncols, "figsize": plot_size}
+from .image import _clip_normalize, _adjust_figure
 
 
 def _show_heatmap(
-        axe: matplotlib.axes.Axes,
-        explanations: Union[np.array, tf.Tensor],
+        explanation: Union[np.array, tf.Tensor],
         features: List[str],
         title: str = "",
         cmap: str = "coolwarm",
+        colorbar: bool = False,
+        clip_percentile: Optional[float] = 0.1,
+        absolute_value: bool = False,
+        img_size: float = 2.,
         **plot_kwargs
-) -> matplotlib.image.AxesImage:
+):
     """
     Display a heatmap representing the attributions for timeseries.
 
     Parameters
     ----------
     explanations
-        Attributions, they are numpy arrays or tensorflow tensors.
+        Attributions for one prediction, they are numpy arrays or tensorflow tensors.
         (With features * timesteps format).
     features
-        List of features names, should match the first dimension of explanations
+        List of features names, should match the first dimension of explanations.
     title
         Title of the plot.
     cmap
         Matplotlib color map to apply.
+    colorbar
+        If the color bar should be shown.
+    clip_percentile
+        Percentile value to use if clipping is needed, e.g a value of 1 will perform a clipping
+        between percentile 1 and 99. This parameter allows to avoid outliers  in case of too
+        extreme values.
+    absolute_value
+        Whether an absolute value is applied to the explanations.
+    img_size
+        Size of each subplots (in inch), considering we keep aspect ratio.
     plot_kwargs
         Additional parameters passed to `plt.imshow()`.
 
@@ -78,45 +56,53 @@ def _show_heatmap(
     image
         output of ax.imshow().
     """
-    image = axe.imshow(np.array(explanations).transpose(), cmap=cmap, **plot_kwargs)
 
-    axe .set_title(title, fontsize=12)
+    explanation = _clip_normalize(explanation, clip_percentile, absolute_value)
 
-    axe .set_xlabel("time-steps", fontsize=10)
-    time_steps = list(range(-explanations.shape[0], 0))
-    axe .set_xticks(np.arange(len(time_steps)))
-    axe .set_xticklabels(time_steps, fontsize=5)
+    image = plt.imshow(np.array(explanation, np.float32).transpose(), cmap=cmap,
+                       vmax=1, vmin=-1, **plot_kwargs)
 
-    axe .set_ylabel("features", fontsize=10)
-    axe .set_yticks(np.arange(len(features)))
-    axe .set_yticklabels(features, fontsize=8)
+    plt.title(title, fontsize=3 * img_size)
 
-    return image
+    plt.xlabel("time-steps", fontsize=2 * img_size)
+    time_steps = list(range(-explanation.shape[0], 0))
+    plt.xticks(np.arange(len(time_steps)), time_steps, fontsize=0.8 * img_size)
+
+    plt.ylabel("features", fontsize=2 * img_size)
+    plt.yticks(np.arange(len(features)), features, fontsize=1 * img_size)
+
+    if colorbar:
+        plt.colorbar(image)
 
 
-def plot_attributions(
-        explanations: Union[Dict[str, Union[np.array, tf.Tensor]], np.array, tf.Tensor],
+def plot_timeseries_attributions(
+        explanations: Union[tf.Tensor, np.ndarray],
         features: List[str],
-        title: str = "",
-        filepath: str = None,
+        title: Optional[str] = None,
+        subtitles: Optional[List[str]] = None,
+        filepath: Optional[str] = None,
         cmap: str = "coolwarm",
         colorbar: bool = False,
-        **plot_kwargs,
+        clip_percentile: Optional[float] = 0.1,
+        absolute_value: bool = False,
+        cols: int = 5,
+        img_size: float = 3.,
+        **plot_kwargs
 ):
     """
-    Display a heatmap representing the attributions for timeseries,
-    if it is called with a dictionary of explanations,
-    it will make subplots and show an heatmap for all elements of the dictionary.
+    Displays a series of explanations and their associated images if these are provided.
+    Applies pre-processing to facilitate the interpretation of heatmaps.
 
     Parameters
     ----------
     explanations
-        Can either be a dictionary of explanations or one explanation.
-        The explanations are numpy arrays or tensorflow tensors. (With features * timesteps format).
+        Attributions values to plot.
     features
-        List of features names, should match the first dimension of explanations
+        List of features names, should match the first dimension of explanations.
     title
         Title of the plot.
+    subtitles
+        List of titles for the different samples i.e. subplots.
     filepath
         Path the file will be saved at.
         If None, the function will call plt.show()
@@ -124,43 +110,43 @@ def plot_attributions(
         Matplotlib color map to apply.
     colorbar
         If the color bar should be shown.
+    clip_percentile
+        Percentile value to use if clipping is needed, e.g a value of 1 will perform a clipping
+        between percentile 1 and 99. This parameter allows to avoid outliers  in case of too
+        extreme values.
+    absolute_value
+        Whether an absolute value is applied to the explanations.
+    cols
+        Number of columns.
+    img_size
+        Size of each subplots (in inch), considering we keep aspect ratio.
     plot_kwargs
         Additional parameters passed to `plt.imshow()`.
     """
-    if isinstance(explanations, dict):
-        # find the right arrangement
-        subplot_kwargs = _arrange_subplots(explanations)
-        nrows, ncols = subplot_kwargs["nrows"], subplot_kwargs["ncols"]
-        fig, axes = plt.subplots(**subplot_kwargs)
-
-        # plot multiple heatmaps
-        for i, (method, explanation) in enumerate(explanations.items()):
-            if nrows == 1 or ncols == 1:
-                axe = axes[i]
-            else:
-                axe = axes[i % nrows, i // nrows]
-            image = _show_heatmap(
-                axe,
-                explanation,
-                features,
-                title=method,
-                cmap=cmap,
-                **plot_kwargs
-            )
-        fig.suptitle(title, fontsize=16)
-        plt.subplots_adjust(wspace=0.4)
-        if colorbar:
-            fig.colorbar(image, ax=axes.ravel().tolist())
+    if subtitles is not None:
+        assert len(subtitles) == len(explanations), "If you provide subtitles, " +\
+                                                    "there must be as many as explanations."
     else:
-        # plot a single heatmap
-        fig, axe = plt.subplots(
-            figsize=(1 + explanations.shape[1] / 5, 1 + explanations.shape[0] / 5)
-        )
-        image = _show_heatmap(axe, explanations, features, title=title, cmap=cmap, **plot_kwargs)
-        if colorbar:
-            fig.colorbar(image, ax=axe)
-        fig.tight_layout()
+        subtitles = [None] * len(explanations)
 
+    rows = ceil(len(explanations) / cols)
+    # get width and height of our images
+    l_width, l_height = explanations.shape[1:]
+
+    # define the figure margin, width, height in inch
+    margin = 0.3 + 0.7 * int(colorbar) + int(title is not None)
+    spacing = 1.5
+    _adjust_figure(cols, rows, img_size, spacing, margin, l_width, l_height)
+
+    if title is not None:
+        plt.suptitle(title, fontsize=4 * img_size)
+
+    for i, explanation in enumerate(explanations):
+        plt.subplot(rows, cols, i+1)
+
+        _show_heatmap(explanation, features=features, title=subtitles[i],
+                      cmap=cmap, colorbar=colorbar, img_size=img_size,
+                      clip_percentile=clip_percentile, absolute_value=absolute_value, **plot_kwargs)
     if filepath is not None:
         plt.savefig(filepath)
     else:
