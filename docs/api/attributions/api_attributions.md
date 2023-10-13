@@ -98,7 +98,10 @@ Those approaches are also called white-box methods as **they require a full acce
 
 *: Before using a PyTorch model it is highly recommended to read the [dedicated documentation](../pytorch/)
 
-In addition, these methods inherit from `WhiteBoxExplainer` (itself inheriting from `BlackBoxExplainer`). Thus, an additional `__init__` argument is added: `output_layer`. It is the layer to target for the output (e.g logits or after softmax). If an `int` is provided, it will be interpreted as a layer index, if a `string` is provided it will look for the layer name. Default to the last layer.
+In addition, these methods inherit from `WhiteBoxExplainer` (itself inheriting from `BlackBoxExplainer`). Thus, two additional `__init__` arguments are added:
+
+- `output_layer`. It is the layer to target for the output (e.g logits or after softmax). If an `int` is provided, it will be interpreted as a layer index, if a `string` is provided it will look for the layer name. Default to the last layer.
+- `reducer`. For images, most gradient-based provide a value for each channel, however, for consistency, it was decided that for images, explanations will have the shape $(n, h, w, 1)$. Therefore, gradient-based methods need to reduce the channel dimension of their image explanations and the `reducer` parameter choose how to do it among {`"mean"`, `"min"`, `"max"`, `"sum"`, `None`}. In the case `None` is give, the channel dimension is not reduced. The default value is `"mean"` for methods excepts `Saliency` which is `"max"` to comply with the paper and `GradCAM` and `GradCAMPP` which are not concerned.
 
 !!!tip
     It is recommended to use the layer before Softmax.
@@ -325,12 +328,14 @@ Then you should take a look at the [Callable documentation](../callable/) or you
 
 
 
-## `inputs` ##
+## `inputs` and data types ##
 
 !!!Warning
     `inputs` in this section correspond to the argument in the `explain` method of `BlackBoxExplainer`. The `model` specified at the initialization of the `BlackBoxExplainer` should be able to be called through `model(inputs)`. Otherwise, a wrapper needs to be implemented as described in the [Models not respecting the specifications section](#models-not-respecting-the-specifications).
 
 `inputs`: Must be one of the following: a `tf.data.Dataset` (in which case you should not provide targets), a `tf.Tensor` or a `np.ndarray`.
+
+Examples are provided in the different tutorials: [images](https://colab.research.google.com/drive/1XproaVxXjO9nrBSyyy7BuKJ1vy21iHs2), [time-series](https://colab.research.google.com/drive/1h0lThbcP5d2VKtRxwLG8z7KC8PExcVIA), and [tabular data](https://colab.research.google.com/drive/1pjDJmAa9oeSquYtbYh6tksU6eTmObIcq). The conventions are as follow:
 
 - If inputs are images, the expected shape of `inputs` is $(N, H, W, C)$ following the TF's conventions where:
     - $N$: the number of inputs
@@ -338,23 +343,20 @@ Then you should take a look at the [Callable documentation](../callable/) or you
     - $W$: the width of the images
     - $C$: the number of channels (works for $C=3$ or $C=1$, other values might not work or need further customization)
 
-- If inputs are tabular data, the expected shape of `inputs` is $(N, W)$ where:
-    - $N$: the number of inputs
-    - $W$: the feature dimension of a single input
-
-    !!!tip
-        Please refer to the [table of attributions available](../../../#whats-included) to see which methods might work with Tabular Data.
-
-- (Experimental) If inputs are Time Series, the expected shape of `inputs` is $(N, T, W)$
+- If inputs are time-series, the expected shape of `inputs` is $(N, T, W)$
     - $N$: the number of inputs
     - $T$: the temporal dimension of a single input
     - $W$: the feature dimension of a single input
 
-        !!!warning
-            By default `Lime` & `KernelShap` will treat such inputs as grey images. You will need to define a custom `map_to_interpret_space` function when instantiating these methods in order to create a meaningful mapping of Time-Series data into an interpretable space when building such explainers. An example of this is provided at the end of the [Lime's documentation](../methods/lime/).
+- If inputs are tabular data, the expected shape of `inputs` is $(N, W)$ where:
+    - $N$: the number of inputs
+    - $W$: the feature dimension of a single input
 
-    !!!note
-        If your model is not following the same conventions, please refer to the [model not respecting the specification documentation](#models-not-respecting-the-specifications).
+!!!tip
+    Please refer to the [table of attributions available](../../../#whats-included) to see which methods might work with for the different data types.
+
+!!!note
+    If your model is not following the same conventions, please refer to the [model not respecting the specification documentation](#models-not-respecting-the-specifications).
 
 
 
