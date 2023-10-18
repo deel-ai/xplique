@@ -40,10 +40,6 @@ class GradCAMPP(GradCAM):
         If a string is provided it will look for the layer name.
     """
 
-    # Avoid zero division during procedure. (the value is not important, as if the denominator is
-    # zero, then the nominator will also be zero).
-    EPSILON = tf.constant(1e-4)
-
     @staticmethod
     @tf.function
     def _compute_weights(feature_maps_gradients: tf.Tensor,
@@ -71,7 +67,11 @@ class GradCAMPP(GradCAM):
         nominator = feature_maps_gradients_square
         denominator = 2.0 * feature_maps_gradients_square + \
                       feature_maps_gradients_cube * feature_map_avg
-        denominator += tf.cast(denominator == 0, tf.float32) * GradCAMPP.EPSILON
+
+        # Avoid zero division during procedure. (the value is not important, as if the denominator is
+        # zero, then the nominator will also be zero).
+        EPSILON = tf.constant(1e-4)
+        denominator += tf.cast(denominator == 0, tf.float32) * EPSILON
 
         feature_map_alphas = nominator / denominator * tf.nn.relu(feature_maps_gradients)
         weights = tf.reduce_mean(feature_map_alphas, axis=(1, 2))
