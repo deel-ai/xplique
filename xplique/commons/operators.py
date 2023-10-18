@@ -7,7 +7,7 @@ from deprecated import deprecated
 import tensorflow as tf
 
 from ..types import Callable, Optional
-from ..utils_functions.object_detection import _box_iou, _format_objects, _EPSILON
+from ..utils_functions.object_detection import _box_iou, _format_objects
 
 
 @tf.function
@@ -197,6 +197,7 @@ def object_detection_operator(model: Callable,
         class_refs = tf.repeat(tf.expand_dims(class_refs, axis=1), repeats=size, axis=1)
 
         # (nb_box_ref, nb_box_pred)
+        _EPSILON = tf.constant(1e-4)
         classification_score = tf.reduce_sum(class_refs * classification, axis=-1) \
                 / (tf.norm(classification, axis=-1) * tf.norm(class_refs, axis=-1)+ _EPSILON)
 
