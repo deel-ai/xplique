@@ -4,9 +4,6 @@ Operator for object detection
 from typing import Tuple
 import tensorflow as tf
 
-_EPSILON = tf.constant(1e-4)
-
-
 def _box_iou(boxes_a: tf.Tensor, boxes_b: tf.Tensor) -> tf.Tensor:
     """
     Compute the intersection between two batched bounding boxes.
@@ -40,6 +37,7 @@ def _box_iou(boxes_a: tf.Tensor, boxes_b: tf.Tensor) -> tf.Tensor:
 
     union_area = a_area + b_area - intersection_area
 
+    _EPSILON = tf.constant(1e-4)
     iou_score = intersection_area / (union_area + _EPSILON)
 
     return iou_score

@@ -42,10 +42,6 @@ class Rise(BlackBoxExplainer):
         Value used as when applying masks.
     """
 
-    # Avoid zero division during procedure. (the value is not important, as if the denominator is
-    # zero, then the nominator will also be zero).
-    EPSILON = tf.constant(1e-4)
-
     def __init__(self,
                  model: Callable,
                  batch_size: Optional[int] = 32,
@@ -113,7 +109,10 @@ class Rise(BlackBoxExplainer):
                 rise_nominator += tf.reduce_sum(predictions * masks_upsampled, 0)
                 rise_denominator += tf.reduce_sum(masks_upsampled, 0)
 
-            rise_map = rise_nominator / (rise_denominator + Rise.EPSILON)
+            # Avoid zero division during procedure. (the value is not important, as if the denominator is
+            # zero, then the nominator will also be zero).
+            EPSILON = tf.constant(1e-4)
+            rise_map = rise_nominator / (rise_denominator + EPSILON)
             rise_map = rise_map[tf.newaxis]
 
             rise_maps = rise_map if rise_maps is None else tf.concat([rise_maps, rise_map], axis=0)
