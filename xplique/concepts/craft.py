@@ -846,7 +846,7 @@ class BaseCraft(BaseConceptExtractor, ABC):
         self.plot_concepts_importances(importances=importances,
                                        display_importance_order=display_importance_order,
                                        nb_most_important_concepts=nb_most_important_concepts,
-                                       verbose=True)
+                                       verbose=False)
 
         if filepath is not None:
             plt.savefig(filepath)
