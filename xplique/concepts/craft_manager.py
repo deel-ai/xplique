@@ -145,6 +145,7 @@ class BaseCraftManager(ABC):
                             nb_most_important_concepts: int = 5,
                             filter_percentile: int = 90,
                             clip_percentile: Optional[float] = 10,
+                            alpha: float = 0.65,
                             filepath: Optional[str] = None):
         """
         All in one method displaying several plots for the image `id` given in argument:
@@ -173,6 +174,8 @@ class BaseCraftManager(ABC):
             e.g a value of 1 will perform a clipping between percentile 1 and 99.
             This parameter allows to avoid outliers in case of too extreme values.
             Default to 10.
+        alpha
+            The alpha channel value for the heatmaps. Defaults to 0.65.
         filepath
             Path the file will be saved at. If None, the function will call plt.show().
         """
@@ -181,4 +184,5 @@ class BaseCraftManager(ABC):
                                             nb_most_important_concepts=nb_most_important_concepts,
                                             filter_percentile=filter_percentile,
                                             clip_percentile=clip_percentile,
+                                            alpha=alpha,
                                             filepath=filepath)
