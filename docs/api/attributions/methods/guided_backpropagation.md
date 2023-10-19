@@ -45,4 +45,4 @@ explanations = method.explain(images, labels)
 /1XproaVxXjO9nrBSyyy7BuKJ1vy21iHs2)
 - [**Guided Backprop**: Going Further](https://colab.research.google.com/drive/19eB3uwAtCKZgkoWtMzrF0LTJ-htF_KE7)
 
-{{xplique.attributions.guided_backpropagation.GuidedBackprop}}
+{{xplique.attributions.gradient_override.guided_backpropagation.GuidedBackprop}}
