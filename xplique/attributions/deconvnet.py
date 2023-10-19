@@ -6,11 +6,10 @@ import tensorflow as tf
 import numpy as np
 
 from .base import WhiteBoxExplainer, sanitize_input_output
-from ..commons import override_relu_gradient, deconv_relu_policy, Tasks
+from ..commons import deconv_relu_policy, override_relu_gradient, Tasks
 from ..types import Union, Optional, OperatorSignature
 
-
-class DeconvNet(WhiteBoxExplainer):
+class DeconvNet(WhiteBoxExplainer):  # pylint: disable=duplicate-code
     """
     Used to compute the DeconvNet method, which modifies the classic Saliency procedure on
     ReLU's non linearities, allowing only the positive gradients (even from negative inputs) to
@@ -43,9 +42,8 @@ class DeconvNet(WhiteBoxExplainer):
                 model: tf.keras.Model,
                 output_layer: Optional[Union[str, int]] = None,
                 batch_size: Optional[int] = 32,
-                operator: Optional[Union[Tasks, str, OperatorSignature]] = None,
-                reducer: Optional[str] = "mean",):
-        super().__init__(model, output_layer, batch_size, operator, reducer)
+                operator: Optional[Union[Tasks, str, OperatorSignature]] = None):
+        super().__init__(model, output_layer, batch_size, operator)
         self.model = override_relu_gradient(self.model, deconv_relu_policy)
 
     @sanitize_input_output

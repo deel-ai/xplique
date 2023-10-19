@@ -10,7 +10,7 @@ from ..commons import guided_relu_policy, override_relu_gradient, Tasks
 from ..types import Union, Optional, OperatorSignature
 
 
-class GuidedBackprop(WhiteBoxExplainer):
+class GuidedBackprop(WhiteBoxExplainer):  # pylint: disable=duplicate-code
     """
     Used to compute the Guided Backpropagation, which modifies the classic Saliency procedure on
     ReLU's non linearities, allowing only the positive gradients from positive activations to pass
@@ -39,14 +39,12 @@ class GuidedBackprop(WhiteBoxExplainer):
     reducer
         String, name of the reducer to use. Either "min", "mean", "max" or "sum".
     """
-
     def __init__(self,
                 model: tf.keras.Model,
                 output_layer: Optional[Union[str, int]] = None,
                 batch_size: Optional[int] = 32,
-                operator: Optional[Union[Tasks, str, OperatorSignature]] = None,
-                reducer: Optional[str] = "mean",):
-        super().__init__(model, output_layer, batch_size, operator, reducer)
+                operator: Optional[Union[Tasks, str, OperatorSignature]] = None):
+        super().__init__(model, output_layer, batch_size, operator)
         self.model = override_relu_gradient(self.model, guided_relu_policy)
 
     @sanitize_input_output
@@ -55,7 +53,8 @@ class GuidedBackprop(WhiteBoxExplainer):
                 inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
                 targets: Optional[Union[tf.Tensor, np.ndarray]] = None) -> tf.Tensor:
         """
-        Compute Guided Backpropagation for a batch of samples.
+        Compute DeconvNet for a batch of samples.
+        Accept Tensor, numpy array or tf.data.Dataset (in that case targets is None)
 
         Parameters
         ----------
@@ -73,7 +72,7 @@ class GuidedBackprop(WhiteBoxExplainer):
         Returns
         -------
         explanations
-            Guided Backpropagation maps.
+            Deconv maps.
         """
         gradients = self.batch_gradient(self.model, inputs, targets, self.batch_size)
         return gradients
