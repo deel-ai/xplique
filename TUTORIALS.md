@@ -13,6 +13,7 @@ Here is the lists of the available tutorial for now:
 | :------------------------------ | :----------------------------------------------------------------------------------------------------------------------------------------------------------------: |
 | Getting Started                 | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1XproaVxXjO9nrBSyyy7BuKJ1vy21iHs2)            |
 | Sanity checks for Saliency Maps | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1uJOmAg6RjlOIJj6SWN9sYRamBdHAuyaS)            |
+| Times Series and Regression     | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1h0lThbcP5d2VKtRxwLG8z7KC8PExcVIA)            |
 | Tabular data and Regression     | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1pjDJmAa9oeSquYtbYh6tksU6eTmObIcq)            |
 | Object detection                | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1X3Yq7BduMKqTA0XEheoVIpOo3IvOrzWL)            |
 | Semantic Segmentation           | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1AHg7KO1fCOX5nZLGZfxkZ2-DLPPdSfbX)            |
@@ -23,8 +24,8 @@ Here is the lists of the available tutorial for now:
 
 ## Attributions
 
-| Category     | **Tutorial Name**       | Notebook                                                                                                                                                           |
-|:------------ | :-----------------------| :----------------------------------------------------------------------------------------------------------------------------------------------------------------: |
+| Category     | **Tutorial Name**       | Notebook                                                                                                                                                |
+|:------------ | :-----------------------| :-----------------------------------------------------------------------------------------------------------------------------------------------------: |
 | BlackBox     | KernelShap              | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1frholXRE4XQQ3W5yZuPQ2-xqc-LTczfT) |
 | BlackBox     | Lime                    | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1frholXRE4XQQ3W5yZuPQ2-xqc-LTczfT) |
 | BlackBox     | Occlusion               | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/15xmmlxQkNqNuXgHO51eKogXvLgs-sG4q) |
@@ -42,6 +43,7 @@ Here is the lists of the available tutorial for now:
 | WhiteBox     | VarGrad                 | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/12-tlM_TdZ12oc5lNL2S2g-hcMJV8tZUD) |
 |  |  |  |
 | Tabular Data | Regression Tabular Data | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1pjDJmAa9oeSquYtbYh6tksU6eTmObIcq) |
+| Times Series | Regression Time Series  | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1h0lThbcP5d2VKtRxwLG8z7KC8PExcVIA) |
 
 ## Metrics
 
