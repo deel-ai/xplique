@@ -1,5 +1,9 @@
 import numpy as np
+import matplotlib.pyplot as plt
+from math import prod, sqrt, ceil
+from pathlib import Path
 from sklearn.linear_model import LinearRegression
+from sklearn.datasets import load_svmlight_file
 import tensorflow as tf
 from tensorflow.keras.models import Sequential, Model
 from tensorflow.keras.layers import Dense, Conv1D, Conv2D, Activation, GlobalAveragePooling1D, Dropout, Flatten, MaxPooling2D, Input
@@ -122,3 +126,48 @@ def generate_linear_model(
 
         return tf_model
 
+
+def get_Gaussian_Data(nb_samples_class=20):
+
+    sigma = 0.05
+
+    mu = [10, 20, 30]
+
+    X = tf.concat([tf.random.normal(shape=(nb_samples_class,1), mean=mu[i], stddev=sigma, dtype=tf.float32) for i in range(3)], axis=0)
+    y = tf.concat([tf.ones(shape=(nb_samples_class), dtype=tf.int32) * i for i in range(3)], axis=0)
+
+    return(X, y)
+
+def load_data(fname):
+    data_dir = Path('/home/mohamed-chafik.bakey/MMD-critic/data')
+    X, y = load_svmlight_file(str(data_dir / fname))  
+    X = tf.constant(X.todense(), dtype=tf.float32)
+    y = tf.constant(np.array(y), dtype=tf.int64)
+    sort_indices = y.numpy().argsort()
+    X = tf.gather(X, sort_indices, axis=0)
+    y = tf.gather(y, sort_indices)
+    y -= 1
+    return X, y
+
+def plot(prototypes_sorted, prototype_weights_sorted, extension):
+
+    output_dir = Path('/home/mohamed-chafik.bakey/xplique/tests/example_based/tmp')
+    k = prototypes_sorted.shape[0]
+
+    # Visualize all prototypes
+    num_cols = 8
+    num_rows = ceil(k / num_cols)
+    fig, axes = plt.subplots(num_rows, num_cols, figsize=(6, num_rows * 0.75))
+    if prototype_weights_sorted is not None:
+        # Adjust the spacing between lines
+        plt.subplots_adjust(hspace=1)
+    for i, axis in enumerate(axes.ravel()):
+        if i >= k:
+            axis.axis('off')
+            continue
+        axis.imshow(prototypes_sorted[i].numpy().reshape(16, 16), cmap='gray')
+        if prototype_weights_sorted is not None:
+            axis.set_title("{:.2f}".format(prototype_weights_sorted[i].numpy()))
+        axis.axis('off')
+    # fig.suptitle(f'{k} Prototypes')
+    plt.savefig(output_dir / f'{k}_prototypes_{extension}.png')

@@ -43,7 +43,7 @@ class MMDCritic(Protogreedy):
             sum2 /= (S.shape[0] + 1)
 
         objective = sum1 - sum2
-        objective_weights = tf.ones(shape=(S.shape[0]+1, c.shape[0]), dtype=tf.float32) / tf.cast(S.shape[0]+1, dtype=tf.float32)
+        objective_weights = tf.ones(shape=(c.shape[0], S.shape[0]+1), dtype=tf.float32) / tf.cast(S.shape[0]+1, dtype=tf.float32)
 
         return objective, objective_weights
     

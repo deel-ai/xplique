@@ -29,12 +29,10 @@ class Optimiser():
         self.bounds = [(minWeight, maxWeight)] * initial_w.shape[0] # w >= minWeight and w <= maxWeight
         self.objective = self.create_objective()
 
-
     def create_objective(self):
         def objective(w, u, K):
             return - (w @ u - 0.5 * w @ K @ w)  # Negative of l(w) to maximize
         return objective
-
 
     def optimize(self, u, K):
         """"
@@ -172,7 +170,7 @@ class Protogreedy(BaseSearchMethod):
             if distance is None:
                 distance = "euclidean"
 
-        self.use_optimiser = True
+        self.use_optimiser = False
         self.sample_indices = tf.range(0, self.kernel_matrix.shape[0])
         self.n = self.sample_indices.shape[0]
         self.colsum = tf.reduce_sum(self.kernel_matrix, axis=0)
@@ -254,7 +252,14 @@ class Protogreedy(BaseSearchMethod):
             u = tf.expand_dims(tf.gather(self.colmean, all_indices), axis=2)
             K = tf.gather(tf.reshape(self.kernel_matrix, [-1]), all_indices_adjusted)
 
-            optimal_w = tf.matmul(tf.linalg.inv(K), u)
+            # determinant = tf.linalg.det(K)
+            # is_not_invertible = tf.math.abs(determinant) <= 1e-6
+
+            # We added epsilon to the diagonal of K to ensure that K is invertible*          
+            epsilon = 1e-6
+            K_inv = tf.linalg.inv(K + epsilon * tf.eye(K.shape[-1]))
+
+            optimal_w = tf.matmul(K_inv, u)
             optimal_w = tf.maximum(optimal_w, 0)
 
             F = tf.matmul(tf.transpose(optimal_w, [0, 2, 1]), u) - 0.5 * tf.matmul(tf.matmul(tf.transpose(optimal_w, [0, 2, 1]), K), optimal_w)
