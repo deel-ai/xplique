@@ -37,7 +37,7 @@ class Protodash(Protogreedy):
 
         if S.shape[0] == 0:
 
-            # S = ∅ and ζ^(∅) = 0            
+            # S = ∅ and ζ^(∅) = 0, g = ∇l(ζ^(∅)) = μ_p            
             objective = u
 
         else:
@@ -84,9 +84,13 @@ class Protodash(Protogreedy):
                 selected_weights = tf.squeeze(selected_weights, axis=0)
 
             else:
-                selected_weights = tf.matmul(tf.linalg.inv(K), u)
-                selected_weights = tf.maximum(selected_weights, 0)
-                
+
+                # We added epsilon to the diagonal of K to ensure that K is invertible
+                epsilon = 1e-6
+                K_inv = tf.linalg.inv(K + epsilon * tf.eye(K.shape[-1]))
+
+                selected_weights = tf.linalg.matmul(K_inv, u)
+                selected_weights = tf.maximum(selected_weights, 0)            
                 selected_weights = tf.squeeze(selected_weights, axis=1)
        
         return selected_indices, selected_weights
