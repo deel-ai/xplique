@@ -12,7 +12,8 @@ from ..utils import download_file
 
 def generate_torch_data(x_shape=(3, 32, 32), num_labels=10, samples=100):
     x = torch.tensor(np.random.rand(samples, *x_shape).astype(np.float32))
-    y = F.one_hot(torch.tensor(np.random.randint(0, num_labels, samples)), num_labels)
+    y = F.one_hot(torch.tensor(np.random.randint(0, num_labels, samples), dtype=torch.int64),
+                  num_labels)
 
     return x, y
 
