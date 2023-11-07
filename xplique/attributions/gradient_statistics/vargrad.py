@@ -2,8 +2,9 @@
 Module related to VarGrad method
 """
 
+import tensorflow as tf
+
 from .gradient_statistic import GradientStatistic
-from ...commons.online_statistics import OnlineVariance
 
 
 class VarGrad(GradientStatistic):
@@ -36,13 +37,54 @@ class VarGrad(GradientStatistic):
         Scalar, noise used as standard deviation of a normal law centered on zero.
     """
 
-    def _get_online_statistic_class(self) -> type:
+    def _initialize_online_statistic(self):
         """
-        Specify the online statistic (variance) for the parent class `__init__`.
+        Initialize values for the online statistic.
+        """
+        self._elements_counter = 0
+        self._actual_sum = 0
+        self._actual_square_sum = 0
+
+    def _update_online_statistic(self, elements):
+        """
+        Update the running variance by taking new elements into account.
+
+        Parameters
+        ----------
+        elements
+            Batch of batch of elements.
+            Part of all the elements the variance should be computed on.
+            Shape: (inputs_batch_size, perturbation_batch_size, ...)
+        """
+        # compute new elements
+        new_elements_sum = tf.reduce_sum(elements, axis=1)
+        new_elements_square_sum = tf.reduce_sum(elements**2, axis=1)
+        new_elements_count = elements.shape[1]
+
+        # actualize means
+        self._actual_sum += new_elements_sum
+        self._actual_square_sum += new_elements_square_sum
+
+        # actualize count
+        self._elements_counter += new_elements_count
+
+    def _get_online_statistic_final_value(self):
+        """
+        Return the final value of the variance.
 
         Returns
         -------
-        online_statistic_class
-            Class of the online statistic used to aggregated gradients on perturbed inputs.
+        variance
+            The variance computed online.
         """
-        return OnlineVariance
+        # compute coefficient for an unbiased variance
+        assert self._elements_counter >= 2, "Variance cannot be computed with only one element." +\
+            "In the case of `VarGrad`, increase `nb_samples`."
+        unbiased_coefficient = self._elements_counter / (self._elements_counter - 1)
+
+        # compute the online mean and square mean
+        mean = self._actual_sum / self._elements_counter
+        square_mean = self._actual_square_sum / self._elements_counter
+
+        # compute variance
+        return unbiased_coefficient * (square_mean - mean**2)
