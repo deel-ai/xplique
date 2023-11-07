@@ -2,8 +2,9 @@
 Module related to SmoothGrad method
 """
 
+import tensorflow as tf
+
 from .gradient_statistic import GradientStatistic
-from ...commons.online_statistics import OnlineMean
 
 
 class SmoothGrad(GradientStatistic):
@@ -37,13 +38,40 @@ class SmoothGrad(GradientStatistic):
         Scalar, noise used as standard deviation of a normal law centered on zero.
     """
 
-    def _get_online_statistic_class(self) -> type:
+    def _initialize_online_statistic(self):
         """
-        Specify the online statistic (mean) for the parent class `__init__`.
+        Initialize values for the online statistic.
+        """
+        self._elements_counter = 0
+        self._actual_sum = 0
+
+    def _update_online_statistic(self, elements):
+        """
+        Update the running mean by taking new elements into account.
+
+        Parameters
+        ----------
+        elements
+            Batch of batch of elements.
+            Part of all the elements the mean should be computed on.
+            Shape: (inputs_batch_size, perturbation_batch_size, ...)
+        """
+        new_elements_sum = tf.reduce_sum(elements, axis=1)
+        new_elements_count = elements.shape[1]
+
+        # actualize mean
+        self._actual_sum += new_elements_sum
+
+        # actualize count
+        self._elements_counter += new_elements_count
+
+    def _get_online_statistic_final_value(self):
+        """
+        Return the final value of the mean.
 
         Returns
         -------
-        online_statistic_class
-            Class of the online statistic used to aggregated gradients on perturbed inputs.
+        mean
+            The mean computed online.
         """
-        return OnlineMean
+        return self._actual_sum / self._elements_counter

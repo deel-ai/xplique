@@ -2,8 +2,9 @@
 Module related to SquareGrad method
 """
 
+import tensorflow as tf
+
 from .gradient_statistic import GradientStatistic
-from ...commons.online_statistics import OnlineSquareMean
 
 
 class SquareGrad(GradientStatistic):
@@ -37,13 +38,40 @@ class SquareGrad(GradientStatistic):
         Scalar, noise used as standard deviation of a normal law centered on zero.
     """
 
-    def _get_online_statistic_class(self) -> type:
+    def _initialize_online_statistic(self):
         """
-        Specify the online statistic (square mean) for the parent class `__init__`.
+        Initialize values for the online statistic.
+        """
+        self._elements_counter = 0
+        self._actual_square_sum = 0
+
+    def _update_online_statistic(self, elements):
+        """
+        Update the running square mean by taking new elements into account.
+
+        Parameters
+        ----------
+        elements
+            Batch of batch of elements.
+            Part of all the elements the square mean should be computed on.
+            Shape: (inputs_batch_size, perturbation_batch_size, ...)
+        """
+        new_elements_square_sum = tf.reduce_sum(elements**2, axis=1)
+        new_elements_count = elements.shape[1]
+
+        # actualize mean
+        self._actual_square_sum += new_elements_square_sum
+
+        # actualize count
+        self._elements_counter += new_elements_count
+
+    def _get_online_statistic_final_value(self):
+        """
+        Return the final value of the square mean.
 
         Returns
         -------
-        online_statistic_class
-            Class of the online statistic used to aggregated gradients on perturbed inputs.
+        square_mean
+            The square mean computed online.
         """
-        return OnlineSquareMean
+        return self._actual_square_sum / self._elements_counter

@@ -60,22 +60,9 @@ class GradientStatistic(WhiteBoxExplainer, ABC):
                  nb_samples: int = 50,
                  noise: float = 0.2):
         super().__init__(model, output_layer, batch_size, operator, reducer)
-        self.online_statistic_class = self._get_online_statistic_class()
         self.nb_samples = nb_samples
         self.noise = noise
-
-    @abstractmethod
-    def _get_online_statistic_class(self) -> type:
-        """
-        Method to get the online statistic class.
-
-        Returns
-        -------
-        online_statistic_class
-            Class of the online statistic used to aggregated gradients on perturbed inputs.
-            This class should inherit from `OnlineStatistic`.
-        """
-        raise NotImplementedError
+        self._initialize_online_statistic()
 
     @sanitize_input_output
     @WhiteBoxExplainer._harmonize_channel_dimension
@@ -112,8 +99,8 @@ class GradientStatistic(WhiteBoxExplainer, ABC):
         for x_batch, y_batch in batch_tensor((inputs, targets), inputs_batch_size):
             total_perturbed_samples = 0
 
-            # initialize online statistic
-            online_statistic = self.online_statistic_class()
+            # reset online statistic values
+            self._initialize_online_statistic()
 
             # loop over perturbation (a single pass if batch_size > nb_samples, batched otherwise)
             while total_perturbed_samples < self.nb_samples:
@@ -135,10 +122,10 @@ class GradientStatistic(WhiteBoxExplainer, ABC):
                     gradients, (x_batch.shape[0], nb_perturbations, *gradients.shape[1:]))
 
                 # update online estimation
-                online_statistic.update(gradients)
+                self._update_online_statistic(gradients)
 
             # extract online estimation
-            reduced_gradients = online_statistic.get_statistic()
+            reduced_gradients = self._get_online_statistic_final_value()
             smoothed_gradients.append(reduced_gradients)
 
         smoothed_gradients = tf.concat(smoothed_gradients, axis=0)
@@ -169,3 +156,37 @@ class GradientStatistic(WhiteBoxExplainer, ABC):
         perturbed_inputs = tf.repeat(inputs, repeats=nb_perturbations, axis=0)
         perturbed_inputs += tf.random.normal(perturbed_inputs.shape, 0.0, noise, dtype=tf.float32)
         return perturbed_inputs
+
+    @abstractmethod
+    def _initialize_online_statistic(self):
+        """
+        Initialize values for the online statistic.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def _update_online_statistic(self, elements):
+        """
+        Update the running statistic by taking new elements into account.
+        It reduces elements to a statistic and only saves the statistic.
+
+        Parameters
+        ----------
+        elements
+            Batch of batch of elements.
+            Part of all the elements the statistic should be computed on.
+            Shape: (inputs_batch_size, perturbation_batch_size, ...)
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def _get_online_statistic_final_value(self):
+        """
+        Return the final value of the statistic.
+
+        Returns
+        -------
+        statistic
+            The statistic computed online.
+        """
+        raise NotImplementedError
