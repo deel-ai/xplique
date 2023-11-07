@@ -457,7 +457,8 @@ class BaseCraft(BaseConceptExtractor, ABC):
 
     def plot_concepts_crops(self,
                             nb_crops: int = 10,
-                            nb_most_important_concepts: int = None) -> None:
+                            nb_most_important_concepts: int = None,
+                            verbose: bool = False) -> None:
         """
         Display the crops for each concept.
 
@@ -469,6 +470,9 @@ class BaseCraft(BaseConceptExtractor, ABC):
             The number of concepts to display. If provided, only display
             nb_most_important_concepts, otherwise display them all.
             Default is None.
+        verbose
+            If True, then print the importance value of each concept,
+            otherwise no textual output will be printed.
         """
         most_important_concepts = self.sensitivity.most_important_concepts
         if nb_most_important_concepts is not None:
@@ -478,8 +482,9 @@ class BaseCraft(BaseConceptExtractor, ABC):
             best_crops_ids = np.argsort(self.factorization.crops_u[:, c_id])[::-1][:nb_crops]
             best_crops = np.array(self.factorization.crops)[best_crops_ids]
 
-            print(f"Concept {c_id} has an importance value of " \
-                  f"{self.sensitivity.importances[c_id]:.2f}")
+            if verbose:
+                print(f"Concept {c_id} has an importance value of " \
+                    f"{self.sensitivity.importances[c_id]:.2f}")
             plt.figure(figsize=(7, (2.5/2)*ceil(nb_crops/5)))
             for i in range(nb_crops):
                 plt.subplot(ceil(nb_crops/5), 5, i+1)

@@ -1,4 +1,3 @@
-
 """
 CRAFT Module for Pytorch
 """
@@ -55,6 +54,7 @@ def _batch_inference(model: torch.nn.Module,
 
             results.append(model(batch).cpu())
 
+    # pylint disable=no-member
     results = torch.cat(results)
     return results
 
@@ -142,6 +142,7 @@ class CraftTorch(BaseCraft):
         logits
             The logits of shape (n_samples, n_classes)
         """
+        # pylint disable=no-member
         activations_perturbated = torch.from_numpy(activations)
 
         if len(activations_perturbated.shape) == 4:
@@ -182,12 +183,14 @@ class CraftTorch(BaseCraft):
         # encode the patches and obtain the activations
         activations = self._latent_predict(patches, resize=image_size)
 
+        # pylint disable=no-member
         assert torch.min(activations) >= 0.0, "Activations must be positive."
 
         # if the activations have shape (n_samples, height, width, n_channels),
         # apply average pooling
         if len(activations.shape) == 4:
             # activations: (N, H, W, R)
+            # pylint disable=no-member
             activations = torch.mean(activations, dim=(1, 2))
 
         return self._to_np_array(patches), self._to_np_array(activations)
@@ -265,5 +268,5 @@ class CraftManagerTorch(BaseCraftManager):
         model = nn.Sequential(self.input_to_latent_model, self.latent_to_logit_model)
         activations = _batch_inference(model, self.inputs, self.batch_size, None,
                                        device=self.device)
-        y_preds = np.array(torch.argmax(activations, -1))
+        y_preds = np.array(torch.argmax(activations, -1))  # pylint disable=no-member
         return y_preds
