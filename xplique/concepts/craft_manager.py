@@ -61,7 +61,7 @@ class BaseCraftManager(ABC):
         """
         raise NotImplementedError
 
-    def fit(self, nb_samples_per_class: Optional[int] = None):
+    def fit(self, nb_samples_per_class: Optional[int] = None, verbose: bool = False):
         """
         Fit the Craft models on their respective class of interest.
 
@@ -70,11 +70,15 @@ class BaseCraftManager(ABC):
         nb_samples_per_class
             Number of samples to use to fit the Craft model.
             Default is None, which means that all the samples will be used.
+        verbose
+            If True, then print the current class CRAFT is fitting,
+            otherwise no textual output will be printed.
         """
         y_preds = self.compute_predictions()
 
         for class_of_interest, craft_instance in self.craft_instances.items():
-            print(f'Fitting CRAFT instance for class {class_of_interest} ')
+            if verbose:
+                print(f'Fitting CRAFT instance for class {class_of_interest} ')
             filtered_indices = np.where(y_preds == class_of_interest)
             class_inputs = self.inputs[filtered_indices]
             class_labels = self.labels[filtered_indices]
@@ -83,7 +87,7 @@ class BaseCraftManager(ABC):
                 class_labels = class_labels[:nb_samples_per_class]
             craft_instance.fit(class_inputs, class_id=class_of_interest)
 
-    def estimate_importance(self, nb_design: int = 32):
+    def estimate_importance(self, nb_design: int = 32, verbose: bool = False):
         """
         Estimates the importance of each concept for all the classes of interest.
 
@@ -91,9 +95,13 @@ class BaseCraftManager(ABC):
         ----------
         nb_design
             The number of design to use for the importance estimation. Default is 32.
+        verbose
+            If True, then print the current class CRAFT is estimating importances for,
+            otherwise no textual output will be printed.
         """
         for class_of_interest, craft_instance in self.craft_instances.items():
-            print(f'Estimating importances for class {class_of_interest} ')
+            if verbose:
+                print(f'Estimating importances for class {class_of_interest} ')
             craft_instance.estimate_importance(nb_design=nb_design)
 
     def plot_concepts_importances(self,
