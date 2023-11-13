@@ -33,7 +33,7 @@ def recorrelate_colors(images: tf.Tensor) -> tf.Tensor:
     images
         Images recorrelated.
     """
-    
+
     # constant
     imagenet_color_correlation = tf.cast(
       [[0.56282854, 0.58447580, 0.58447580],
