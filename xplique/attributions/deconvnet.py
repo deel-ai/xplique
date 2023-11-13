@@ -35,15 +35,17 @@ class DeconvNet(WhiteBoxExplainer):  # pylint: disable=duplicate-code
         with f the model, x the inputs and y the targets. If None, use the standard
         operator g(f, x, y) = f(x)[y].
     reducer
-        String, name of the reducer to use. Either "min", "mean", "max" or "sum".
+        String, name of the reducer to use. Either "min", "mean", "max", "sum", or `None` to ignore.
+        Used only for images to obtain explanation with shape (n, h, w, 1).
     """
 
     def __init__(self,
                 model: tf.keras.Model,
                 output_layer: Optional[Union[str, int]] = None,
                 batch_size: Optional[int] = 32,
-                operator: Optional[Union[Tasks, str, OperatorSignature]] = None):
-        super().__init__(model, output_layer, batch_size, operator)
+                operator: Optional[Union[Tasks, str, OperatorSignature]] = None,
+                reducer: Optional[str] = "mean",):
+        super().__init__(model, output_layer, batch_size, operator, reducer)
         self.model = override_relu_gradient(self.model, deconv_relu_policy)
 
     @sanitize_input_output
