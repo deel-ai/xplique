@@ -46,4 +46,4 @@ explanations = method.explain(images, labels)
 /1XproaVxXjO9nrBSyyy7BuKJ1vy21iHs2)
 - [**DeconvNet**: Going Further](https://colab.research.google.com/drive/19eB3uwAtCKZgkoWtMzrF0LTJ-htF_KE7)
 
-{{xplique.attributions.gradient_override.deconvnet.DeconvNet}}
+{{xplique.attributions.deconvnet.DeconvNet}}
