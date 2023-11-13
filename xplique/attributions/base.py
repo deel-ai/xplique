@@ -133,7 +133,8 @@ class WhiteBoxExplainer(BlackBoxExplainer, ABC):
     operator
         Operator to use to compute the explanation, if None use standard predictions.
     reducer
-        String, name of the reducer to use. Either "min", "mean", "max" or "sum".
+        String, name of the reducer to use. Either "min", "mean", "max", "sum", or `None` to ignore.
+        Used only for images to obtain explanation with shape (n, h, w, 1).
     """
 
     def __init__(self,
@@ -170,13 +171,18 @@ class WhiteBoxExplainer(BlackBoxExplainer, ABC):
         Parameters
         ----------
         reducer
-            String, name of the reducer to use. Either "min", "mean", "max" or "sum".
+            String, name of the reducer to use. Either "min", "mean", "max", "sum".
             It can also be None, in that case, no reduction is applied.
+            Used only for images to obtain explanation with shape (n, h, w, 1).
         """
         if reducer is None:
             self.reduce = lambda x, axis, keepdims: x
         else:
-            self.reduce = getattr(tf, "reduce_" + reducer)
+            try:
+                self.reduce = getattr(tf, "reduce_" + reducer)
+            except AttributeError as exc:
+                raise ValueError("reducer should be either 'min', 'mean', 'max', 'sum' or None.")\
+                    from exc
 
     @staticmethod
     def _harmonize_channel_dimension(explain_method: Callable):
