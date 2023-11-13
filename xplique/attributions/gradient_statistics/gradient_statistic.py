@@ -44,7 +44,8 @@ class GradientStatistic(WhiteBoxExplainer, ABC):
         with f the model, x the inputs and y the targets. If None, use the standard
         operator g(f, x, y) = f(x)[y].
     reducer
-        String, name of the reducer to use. Either "min", "mean", "max" or "sum".
+        String, name of the reducer to use. Either "min", "mean", "max", "sum", or `None` to ignore.
+        Used only for images to obtain explanation with shape (n, h, w, 1).
     nb_samples
         Number of noisy samples generated for the smoothing procedure.
     noise

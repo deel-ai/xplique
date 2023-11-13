@@ -31,6 +31,9 @@ class VarGrad(GradientStatistic):
         Function g to explain, g take 3 parameters (f, x, y) and should return a scalar,
         with f the model, x the inputs and y the targets. If None, use the standard
         operator g(f, x, y) = f(x)[y].
+    reducer
+        String, name of the reducer to use. Either "min", "mean", "max", "sum", or `None` to ignore.
+        Used only for images to obtain explanation with shape (n, h, w, 1).
     nb_samples
         Number of noisy samples generated for the smoothing procedure.
     noise
