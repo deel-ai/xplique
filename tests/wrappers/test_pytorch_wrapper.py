@@ -1,7 +1,7 @@
 import numpy as np
 
-import torch.nn as nn
 import tensorflow as tf
+import torch.nn as nn
 
 import pytest
 

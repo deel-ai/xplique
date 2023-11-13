@@ -25,9 +25,14 @@ class TorchWrapper(tf.keras.Model):
 
     def __init__(self, torch_model: "nn.Module", device: Union["torch.device", str],
                  is_channel_first: Optional[bool] = None
-                 ): # pylint: disable=C0415,C0103
+                 ): # pylint: disable=C0415,C0103,W0719
 
-        super().__init__()
+        try:
+            super().__init__()
+        except tf.errors.InternalError as error:
+            raise Exception("If you have a tensorflow InternalError with cudaGetDevice() here, \
+            it is possible that importing tensorflow before torch might resolve the issue."
+            ) from error
 
         try:
             # use PyTorch functionality
