@@ -4,7 +4,7 @@ Operator for object detection
 from typing import Tuple
 import tensorflow as tf
 
-_EPSILON = tf.constant(1e-4)
+_EPSILON = 1e-4
 
 
 def _box_iou(boxes_a: tf.Tensor, boxes_b: tf.Tensor) -> tf.Tensor:
