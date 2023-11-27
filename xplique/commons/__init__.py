@@ -11,3 +11,4 @@ from .operators_operations import (Tasks, get_operator, check_operator, operator
                                    get_inference_function, get_gradient_functions)
 from .exceptions import no_gradients_available, raise_invalid_operator
 from .forgrad import forgrad
+from .nlp import TokenExtractor, WordExtractor, SentenceExtractor, ClauseExtractor, ExcerptExtractor, ExtractorFactory

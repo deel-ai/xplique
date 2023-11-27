@@ -16,13 +16,6 @@ from ..types import Tuple, Union, Callable
 IMAGENET_SPECTRUM_URL = "https://storage.googleapis.com/serrelab/loupe/"\
                         "spectrums/imagenet_decorrelated.npy"
 
-imagenet_color_correlation = tf.cast(
-      [[0.56282854, 0.58447580, 0.58447580],
-       [0.19482528, 0.00000000,-0.19482528],
-       [0.04329450,-0.10823626, 0.06494176]], tf.float32
-)
-
-
 def recorrelate_colors(images: tf.Tensor) -> tf.Tensor:
     """
     Map uncorrelated colors to 'normal colors' by using empirical color
@@ -39,6 +32,11 @@ def recorrelate_colors(images: tf.Tensor) -> tf.Tensor:
     images
         Images recorrelated.
     """
+    imagenet_color_correlation = tf.cast(
+      [[0.56282854, 0.58447580, 0.58447580],
+       [0.19482528, 0.00000000,-0.19482528],
+       [0.04329450,-0.10823626, 0.06494176]], tf.float32
+    )
     images_flat = tf.reshape(images, [-1, 3])
     images_flat = tf.matmul(images_flat, imagenet_color_correlation)
     return tf.reshape(images_flat, tf.shape(images))
