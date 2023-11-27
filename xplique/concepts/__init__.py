@@ -8,5 +8,6 @@ from .craft import DisplayImportancesOrder
 from .craft_tf import CraftTf, CraftManagerTf
 try:
     from .craft_torch import CraftTorch, CraftManagerTorch
+    from .cockatiel import CockatielTorch
 except ImportError:
     pass
