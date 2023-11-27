@@ -104,6 +104,11 @@ class BaseCraftManager(ABC):
                 print(f'Estimating importances for class {class_of_interest} ')
             craft_instance.estimate_importance(nb_design=nb_design)
 
+
+class CraftManagerImageVisualizationMixin():
+    """
+    Class containing image visualization methods for CraftManager.
+    """
     def plot_concepts_importances(self,
                                   class_id: int,
                                   nb_most_important_concepts: int = 5,

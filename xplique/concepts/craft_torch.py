@@ -3,13 +3,14 @@ CRAFT Module for Pytorch
 """
 
 from typing import Callable, Optional, Tuple
+from types import MethodType
 from math import ceil
 import torch
 from torch import nn
 import numpy as np
 
-from .craft import BaseCraft
-from .craft_manager import BaseCraftManager
+from .craft import BaseCraft, CraftImageVisualizationMixin
+from .craft_manager import BaseCraftManager, CraftManagerImageVisualizationMixin
 
 def _batch_inference(model: torch.nn.Module,
                      dataset: torch.Tensor,
@@ -59,9 +60,9 @@ def _batch_inference(model: torch.nn.Module,
     return results
 
 
-class CraftTorch(BaseCraft):
+class BaseCraftTorch(BaseCraft):
     """
-    Class Implementing the CRAFT Concept Extraction Mechanism on Pytorch.
+    Base class implementing the CRAFT Concept Extraction Mechanism on Pytorch.
 
     Parameters
     ----------
@@ -83,7 +84,6 @@ class CraftTorch(BaseCraft):
     device
         The device to use. Default is 'cuda'.
     """
-
     def __init__(self, input_to_latent_model: Callable,
                        latent_to_logit_model: Callable,
                        number_of_concepts: int = 20,
@@ -96,11 +96,13 @@ class CraftTorch(BaseCraft):
         self.device = device
 
         # Check model type
+        is_method = isinstance(input_to_latent_model, MethodType) & \
+                    isinstance(latent_to_logit_model, MethodType)
         is_torch_model = issubclass(type(input_to_latent_model), torch.nn.modules.module.Module) & \
                          issubclass(type(latent_to_logit_model), torch.nn.modules.module.Module)
-        if not is_torch_model:
+        if not (is_method or is_torch_model):
             raise TypeError('input_to_latent_model and latent_to_logit_model are not ' \
-                            'Pytorch modules')
+                            'Pytorch modules nor methods')
 
     def _latent_predict(self, inputs: torch.Tensor, resize=None) -> torch.Tensor:
         """
@@ -204,10 +206,35 @@ class CraftTorch(BaseCraft):
             return res.astype(dtype)
         return res
 
-
-class CraftManagerTorch(BaseCraftManager):
+class CraftTorch(BaseCraftTorch, CraftImageVisualizationMixin):
     """
-    Class implementing the CraftManager on Tensorflow.
+    Class Implementing the CRAFT Concept Extraction Mechanism on Pytorch,
+    adpated for image processing.
+
+    Parameters
+    ----------
+    input_to_latent_model
+        The first part of the model taking an input and returning
+        positive activations, g(.) in the original paper.
+        Must be a Pytorch model (torch.nn.modules.module.Module) accepting
+        data of shape (n_samples, channels, height, width).
+    latent_to_logit_model
+        The second part of the model taking activation and returning
+        logits, h(.) in the original paper.
+        Must be a Pytorch model (torch.nn.modules.module.Module).
+    number_of_concepts
+        The number of concepts to extract. Default is 20.
+    batch_size
+        The batch size to use during training and prediction. Default is 64.
+    patch_size
+        The size of the patches (crops) to extract from the input data. Default is 64.
+    device
+        The device to use. Default is 'cuda'.
+    """
+
+class BaseCraftManagerTorch(BaseCraftManager):
+    """
+    Base class implementing the CraftManager on Pytorch.
     This manager creates one CraftTorch instance per class to explain.
 
     Parameters
@@ -270,3 +297,33 @@ class CraftManagerTorch(BaseCraftManager):
                                        device=self.device)
         y_preds = np.array(torch.argmax(activations, -1))  # pylint disable=no-member
         return y_preds
+
+class CraftManagerTorch(BaseCraftManagerTorch, CraftManagerImageVisualizationMixin):
+   """
+    Class implementing the CraftManager on Pytorch, adapted for image processing.
+    This manager creates one CraftTorch instance per class to explain.
+
+    Parameters
+    ----------
+    input_to_latent_model
+        The first part of the model taking an input and returning
+        positive activations, g(.) in the original paper.
+        Must return positive activations.
+    latent_to_logit_model
+        The second part of the model taking activation and returning
+        logits, h(.) in the original paper.
+    inputs
+        Input data of shape (n_samples, height, width, channels).
+        (x1, x2, ..., xn) in the paper.
+    labels
+        Labels of the inputs of shape (n_samples, class_id)
+    list_of_class_of_interest
+        A list of the classes id to explain. The manager will instanciate one
+        CraftTorch object per element of this list.
+    number_of_concepts
+        The number of concepts to extract. Default is 20.
+    batch_size
+        The batch size to use during training and prediction. Default is 64.
+    patch_size
+        The size of the patches (crops) to extract from the input data. Default is 64.
+    """
