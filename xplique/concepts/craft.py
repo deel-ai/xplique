@@ -16,7 +16,8 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap, LinearSegmentedColormap
 from matplotlib import gridspec
 
-from xplique.attributions.global_sensitivity_analysis import (HaltonSequenceRS, JansenEstimator)
+from xplique.attributions.global_sensitivity_analysis import \
+    (HaltonSequenceRS, ScipySobolSequenceRS, LatinHypercubeRS, JansenEstimator)
 from xplique.plots.image import _clip_percentile
 
 from ..types import Callable, Tuple, Optional, Union
@@ -140,6 +141,14 @@ class DisplayImportancesOrder(Enum):
     """
     GLOBAL = 0
     LOCAL  = 1
+
+    def __eq__(self, other):
+        return self.value == other.value
+
+class MaskSampler(Enum):
+    HALTON = HaltonSequenceRS
+    SOBOL = ScipySobolSequenceRS
+    LATIN = LatinHypercubeRS
 
     def __eq__(self, other):
         return self.value == other.value
@@ -292,7 +301,10 @@ class BaseCraft(BaseConceptExtractor, ABC):
             coeffs_u = np.reshape(coeffs_u, (*original_shape, coeffs_u.shape[-1]))
         return coeffs_u
 
-    def estimate_importance(self, inputs : np.ndarray = None, nb_design: int = 32) -> np.ndarray:
+    def estimate_importance(self,
+                            inputs: np.ndarray = None,
+                            sampler: MaskSampler = MaskSampler.HALTON,
+                            nb_design: int = 32) -> np.ndarray:
         """
         Estimates the importance of each concept for a given class, either globally
         on the whole dataset provided in the fit() method (in this case, inputs shall
@@ -305,6 +317,8 @@ class BaseCraft(BaseConceptExtractor, ABC):
             If None, then the inputs provided in the fit() method
             will be used (global importance of the whole dataset).
             Default is None.
+        sampler
+            The sampling method to use for masking. Default to MaskSampler.HALTON.
         nb_design
             The number of design to use for the importance estimation. Default is 32.
 
@@ -323,7 +337,7 @@ class BaseCraft(BaseConceptExtractor, ABC):
 
         coeffs_u = self.transform(inputs)
 
-        masks = HaltonSequenceRS()(self.number_of_concepts, nb_design = nb_design)
+        masks = sampler.value()(self.number_of_concepts, nb_design = nb_design)
         estimator = JansenEstimator()
 
         importances = []
