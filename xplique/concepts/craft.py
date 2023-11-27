@@ -129,7 +129,7 @@ class Sensitivity:
         if len(self.cmaps) < len(self.most_important_concepts):
             raise RuntimeError(f'Not enough colors in cmaps ({len(self.cmaps)}) ' \
                                f'compared to the number of important concepts ' \
-                               '({len(self.most_important_concepts)})')
+                               f'({len(self.most_important_concepts)})')
 
 class DisplayImportancesOrder(Enum):
     """
@@ -455,6 +455,44 @@ class BaseCraft(BaseConceptExtractor, ABC):
         plt.imshow(img, **kwargs)
         plt.axis('off')
 
+    def _gen_best_concepts_crops(self,
+                                 nb_crops: int = 10,
+                                 nb_most_important_concepts: int = None) \
+                                 -> Tuple[int, float, np.ndarray]:
+        """
+        Generate the best concept crops for each concept.
+
+        Parameters
+        ----------
+        nb_crops : int
+            The number of crops (patches) to display per concept. Defaults to 10.
+        nb_most_important_concepts : int
+            The number of concepts to consider. If provided, only take into account
+            nb_most_important_concepts, otherwise use them all.
+            Default is None.
+        Returns
+        -------
+        Tuple
+            A tuple containing:
+            - The current concept id.
+            - The overall importance score for this concept.
+            - An array containing the best crops for this concept.
+        """
+        most_important_concepts = self.sensitivity.most_important_concepts
+        if nb_most_important_concepts is not None:
+            most_important_concepts = most_important_concepts[:nb_most_important_concepts]
+
+        for c_id in most_important_concepts:
+            best_crops_ids = np.argsort(self.factorization.crops_u[:, c_id])[::-1][:nb_crops]
+            best_crops = np.array(self.factorization.crops)[best_crops_ids]
+            c_id_importance = self.sensitivity.importances[c_id]
+            yield c_id, c_id_importance, best_crops
+
+
+class CraftImageVisualizationMixin():
+    """
+    Class containing image visualization methods for Craft.
+    """
     def plot_concepts_crops(self,
                             nb_crops: int = 10,
                             nb_most_important_concepts: int = None,
@@ -474,17 +512,11 @@ class BaseCraft(BaseConceptExtractor, ABC):
             If True, then print the importance value of each concept,
             otherwise no textual output will be printed.
         """
-        most_important_concepts = self.sensitivity.most_important_concepts
-        if nb_most_important_concepts is not None:
-            most_important_concepts = most_important_concepts[:nb_most_important_concepts]
-
-        for c_id in most_important_concepts:
-            best_crops_ids = np.argsort(self.factorization.crops_u[:, c_id])[::-1][:nb_crops]
-            best_crops = np.array(self.factorization.crops)[best_crops_ids]
-
+        for c_id, c_id_importance, best_crops in \
+            self._gen_best_concepts_crops(nb_crops, nb_most_important_concepts):
             if verbose:
                 print(f"Concept {c_id} has an importance value of " \
-                    f"{self.sensitivity.importances[c_id]:.2f}")
+                        f"{c_id_importance:.2f}")
             plt.figure(figsize=(7, (2.5/2)*ceil(nb_crops/5)))
             for i in range(nb_crops):
                 plt.subplot(ceil(nb_crops/5), 5, i+1)

@@ -7,13 +7,12 @@ from typing import Callable, Tuple, Optional
 import tensorflow as tf
 import numpy as np
 
-from .craft import BaseCraft
-from .craft_manager import BaseCraftManager
+from .craft import BaseCraft, CraftImageVisualizationMixin
+from .craft_manager import BaseCraftManager, CraftManagerImageVisualizationMixin
 
-class CraftTf(BaseCraft):
-
+class BaseCraftTf(BaseCraft):
     """
-    Class implementing the CRAFT Concept Extraction Mechanism on Tensorflow.
+    Base class implementing the CRAFT Concept Extraction Mechanism on Tensorflow.
 
     Parameters
     ----------
@@ -137,10 +136,34 @@ class CraftTf(BaseCraft):
         """
         return np.array(inputs, dtype)
 
-
-class CraftManagerTf(BaseCraftManager):
+class CraftTf(BaseCraftTf, CraftImageVisualizationMixin):
     """
-    Class implementing the CraftManager on Tensorflow.
+    Base class implementing the CRAFT Concept Extraction Mechanism on Tensorflow,
+    adapted for image processing.
+
+    Parameters
+    ----------
+    input_to_latent_model
+        The first part of the model taking an input and returning
+        positive activations, g(.) in the original paper.
+        Must be a Tensorflow model (tf.keras.engine.base_layer.Layer) accepting
+        data of shape (n_samples, height, width, channels).
+    latent_to_logit_model
+        The second part of the model taking activation and returning
+        logits, h(.) in the original paper.
+        Must be a Tensorflow model (tf.keras.engine.base_layer.Layer).
+    number_of_concepts
+        The number of concepts to extract. Default is 20.
+    batch_size
+        The batch size to use during training and prediction. Default is 64.
+    patch_size
+        The size of the patches to extract from the input data. Default is 64.
+    """
+
+
+class BaseCraftManagerTf(BaseCraftManager):
+    """
+    Base class implementing the CraftManager on Tensorflow.
     This manager creates one CraftTf instance per class to explain.
 
     Parameters
@@ -198,3 +221,33 @@ class CraftManagerTf(BaseCraftManager):
         y_preds = np.array(tf.argmax(self.latent_to_logit_model.predict(
                             self.input_to_latent_model.predict(self.inputs)), 1))
         return y_preds
+
+class CraftManagerTf(BaseCraftManagerTf, CraftManagerImageVisualizationMixin):
+    """
+    Class implementing the CraftManager on Tensorflow, adapted for image processing.
+    This manager creates one CraftTf instance per class to explain.
+
+    Parameters
+    ----------
+    input_to_latent_model
+        The first part of the model taking an input and returning
+        positive activations, g(.) in the original paper.
+        Must return positive activations.
+    latent_to_logit_model
+        The second part of the model taking activation and returning
+        logits, h(.) in the original paper.
+    inputs
+        Input data of shape (n_samples, height, width, channels).
+        (x1, x2, ..., xn) in the paper.
+    labels
+        Labels of the inputs of shape (n_samples, class_id)
+    list_of_class_of_interest
+        A list of the classes id to explain. The manager will instanciate one
+        CraftTf object per element of this list.
+    number_of_concepts
+        The number of concepts to extract. Default is 20.
+    batch_size
+        The batch size to use during training and prediction. Default is 64.
+    patch_size
+        The size of the patches (crops) to extract from the input data. Default is 64.
+    """
