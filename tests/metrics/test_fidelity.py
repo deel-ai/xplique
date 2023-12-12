@@ -28,12 +28,12 @@ def test_mu_fidelity():
 
 def test_causal_metrics():
     # ensure we can compute insertion/deletion metric with consistent arguments
-    input_shape, nb_labels, nb_samples = ((32, 32, 3), 10, 20)
+    input_shape, nb_labels, nb_samples = ((10, 10, 3), 10, 20)
     x, y = generate_data(input_shape, nb_labels, nb_samples)
     model = generate_model(input_shape, nb_labels)
     explanations = np.random.uniform(0, 1, x.shape[:-1] + (1,)).astype(np.float32)
 
-    for step in [5, 10]:
+    for step in [-1, 5, 10]:
         for baseline_mode in [0.0, lambda x: x-0.5]:
             score_insertion = Insertion(model, x, y,
                                         baseline_mode=baseline_mode,
