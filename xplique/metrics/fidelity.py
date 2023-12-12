@@ -303,7 +303,7 @@ class CausalFidelity(ExplanationMetric):
 
         assert 0.0 < max_percentage_perturbed <= 1.0, \
             "`max_percentage_perturbed` must be in ]0, 1]."
-        self.max_nb_perturbed = tf.math.floor(self.nb_features * max_percentage_perturbed)
+        self.max_nb_perturbed = int(np.floor(self.nb_features * max_percentage_perturbed))
 
         if steps == -1:
             steps = self.max_nb_perturbed
