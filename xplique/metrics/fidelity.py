@@ -87,8 +87,6 @@ class MuFidelity(ExplanationMetric):
 
         # if unspecified use the original equation (pixel-wise modification)
         self.grid_size = grid_size or self.inputs.shape[1]
-        # cardinal of subset (|S| in the equation)
-        self.subset_size = int(self.grid_size ** 2 * self.subset_percent)
 
         self.base_predictions = self.batch_inference_function(self.model, self.inputs,
                                                               self.targets, self.batch_size)
@@ -198,14 +196,14 @@ class MuFidelity(ExplanationMetric):
         if len(inputs.shape) == 2:  # tabular data, grid size is ignored
             # prepare the random masks
             subset_masks = tf.random.uniform((nb_perturbations, inputs.shape[1]), 0, 1, tf.float32)
-            subset_masks = tf.argsort(subset_masks, axis=-1) > self.subset_size
+            subset_masks = subset_masks > self.subset_percent
             subset_masks = tf.cast(subset_masks, tf.float32)
 
         elif len(inputs.shape) == 3:  # time series
             # prepare the random masks
             subset_masks = tf.random.uniform((nb_perturbations, self.grid_size * inputs.shape[2]),
                                              minval=0, maxval=1, dtype=tf.float32)
-            subset_masks = tf.argsort(subset_masks, axis=-1) > self.subset_size
+            subset_masks = subset_masks > self.subset_percent
 
             # and interpolate them if needed
             subset_masks = tf.reshape(tf.cast(subset_masks, tf.float32),
@@ -217,7 +215,7 @@ class MuFidelity(ExplanationMetric):
             # prepare the random masks
             subset_masks = tf.random.uniform(shape=(nb_perturbations, self.grid_size ** 2),
                                              minval=0, maxval=1, dtype=tf.float32)
-            subset_masks = tf.argsort(subset_masks, axis=-1) > self.subset_size
+            subset_masks = subset_masks > self.subset_percent
 
             # and interpolate them if needed
             subset_masks = tf.reshape(tf.cast(subset_masks, tf.float32),
