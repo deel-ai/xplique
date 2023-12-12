@@ -112,7 +112,7 @@ def test_data_types_shapes():
     explanation_metrics = {
         Deletion: {"steps": 3},
         Insertion: {"steps": 3},
-        MuFidelity: {"nb_samples": 3},
+        MuFidelity: {"nb_samples": 3, "grid_size": None, "subset_percent": 0.9},
     }
 
     for data_type, input_shape in data_types_input_shapes.items():
