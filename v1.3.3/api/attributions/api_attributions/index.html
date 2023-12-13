@@ -1,0 +1,1870 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+      
+        <link rel="prev" href="../../..">
+      
+      
+        <link rel="next" href="../methods/deconvnet/">
+      
+      
+      <link rel="icon" href="../../../assets/x_logo.png">
+      <meta name="generator" content="mkdocs-1.5.2, mkdocs-material-9.2.3">
+    
+    
+      
+        <title>API Description - Xplique</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.0e669242.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.85d0ee34.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../../css/custom.css">
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="dark" data-md-color-accent="indigo">
+  
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&"object"==typeof palette.color)for(var key of Object.keys(palette.color))document.body.setAttribute("data-md-color-"+key,palette.color[key])</script>
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#api-attributions-methods" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+          <aside class="md-banner md-banner--warning">
+            <div class="md-banner__inner md-grid md-typeset">
+              
+  You're not viewing the latest version.
+  <a href="../../../..">
+    <strong>Click here to go to latest.</strong>
+  </a>
+
+            </div>
+            <script>var el=document.querySelector("[data-md-component=outdated]"),outdated=__md_get("__outdated",sessionStorage);!0===outdated&&el&&(el.hidden=!1)</script>
+          </aside>
+        
+      </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../.." title="Xplique" class="md-header__button md-logo" aria-label="Xplique" data-md-component="logo">
+      
+  <img src="../../../assets/x_logo.png" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2Z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Xplique
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              API Description
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="dark" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_2" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 6H7c-3.31 0-6 2.69-6 6s2.69 6 6 6h10c3.31 0 6-2.69 6-6s-2.69-6-6-6zm0 10H7c-2.21 0-4-1.79-4-4s1.79-4 4-4h10c2.21 0 4 1.79 4 4s-1.79 4-4 4zM7 9c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_2">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 7H7a5 5 0 0 0-5 5 5 5 0 0 0 5 5h10a5 5 0 0 0 5-5 5 5 0 0 0-5-5m0 8a3 3 0 0 1-3-3 3 3 0 0 1 3-3 3 3 0 0 1 3 3 3 3 0 0 1-3 3Z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+      </label>
+      <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/deel-ai/xplique" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.4.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    deel-ai/xplique
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="Xplique" class="md-nav__button md-logo" aria-label="Xplique" data-md-component="logo">
+      
+  <img src="../../../assets/x_logo.png" alt="logo">
+
+    </a>
+    Xplique
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/deel-ai/xplique" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.4.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    deel-ai/xplique
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Home
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+    
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
+        
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Attributions methods
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            Attributions methods
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    API Description
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  <span class="md-ellipsis">
+    API Description
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#context" class="md-nav__link">
+    Context
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#common-api" class="md-nav__link">
+    Common API
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#methods" class="md-nav__link">
+    Methods
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#model" class="md-nav__link">
+    model
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tasks-and-operator" class="md-nav__link">
+    Tasks and operator
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#models-not-respecting-the-specifications" class="md-nav__link">
+    Models not respecting the specifications
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#inputs-and-data-types" class="md-nav__link">
+    inputs and data types
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#targets" class="md-nav__link">
+    targets
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_2" >
+        
+          <label class="md-nav__link" for="__nav_2_2" id="__nav_2_2_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Methods
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_2">
+            <span class="md-nav__icon md-icon"></span>
+            Methods
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../methods/deconvnet/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    DeconvNet
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../methods/forgrad/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ForGRad
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../methods/grad_cam/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Grad-CAM
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../methods/grad_cam_pp/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Grad-CAM++
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../methods/gradient_input/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Gradient Input
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../methods/guided_backpropagation/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Guided Backprop
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../methods/hsic/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Hsic Attribution Method
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../methods/integrated_gradients/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Integrated Gradient
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../methods/kernel_shap/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    KernelSHAP
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../methods/lime/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Lime
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../methods/occlusion/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Occlusion sensitivity
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../methods/rise/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Rise
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../methods/saliency/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Saliency
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../methods/smoothgrad/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    SmoothGrad
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../methods/sobol/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Sobol Attribution Method
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../methods/square_grad/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    SquareGrad
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../methods/vargrad/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    VarGrad
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_3" >
+        
+          <label class="md-nav__link" for="__nav_2_3" id="__nav_2_3_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Metrics
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_3">
+            <span class="md-nav__icon md-icon"></span>
+            Metrics
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../metrics/api_metrics/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    API Description
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../metrics/deletion/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Deletion
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../metrics/insertion/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Insertion
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../metrics/mu_fidelity/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    MuFidelity
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../metrics/avg_stability/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    AverageStability
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pytorch/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    PyTorch
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../callable/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Callable
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../classification/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Classification
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../object_detection/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Object Detection
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../regression/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Regression
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../semantic_segmentation/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Semantic Segmentation
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Concept based
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            Concept based
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/cav/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Cav
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/tcav/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Tcav
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/craft/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Craft
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Feature visualization
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            Feature visualization
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../feature_viz/maco/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Modern Feature Visualization (MaCo)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../feature_viz/feature_viz/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Feature visualization
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../tutorials/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Tutorials
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../contributing/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Contributing
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#context" class="md-nav__link">
+    Context
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#common-api" class="md-nav__link">
+    Common API
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#methods" class="md-nav__link">
+    Methods
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#model" class="md-nav__link">
+    model
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tasks-and-operator" class="md-nav__link">
+    Tasks and operator
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#models-not-respecting-the-specifications" class="md-nav__link">
+    Models not respecting the specifications
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#inputs-and-data-types" class="md-nav__link">
+    inputs and data types
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#targets" class="md-nav__link">
+    targets
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  
+  
+
+
+<h1 id="api-attributions-methods">API: Attributions Methods<a class="headerlink" href="#api-attributions-methods" title="Permanent link">&para;</a></h1>
+<ul>
+<li><a href="https://colab.research.google.com/drive/1XproaVxXjO9nrBSyyy7BuKJ1vy21iHs2"><strong>Attribution Methods</strong>: Getting started</a> <sub> <a href="https://colab.research.google.com/drive/1XproaVxXjO9nrBSyyy7BuKJ1vy21iHs2"><img alt="Open In Colab" src="https://colab.research.google.com/assets/colab-badge.svg" /></a> </sub></li>
+</ul>
+<h2 id="context">Context<a class="headerlink" href="#context" title="Permanent link">&para;</a></h2>
+<p>In 2013, <a href="http://arxiv.org/abs/1312.6034">Simonyan et al.</a> proposed a first attribution method, opening the way to a wide range of approaches which could be defined as follow:</p>
+<div class="admonition definition">
+<p class="admonition-title">Definition</p>
+<p>The main objective in attributions techniques is to highlight the discriminating variables for decision-making. For instance, with Computer Vision (CV) tasks, the main goal is to underline the pixels contributing the most in the input image(s) leading to the model’s output(s).</p>
+</div>
+<h2 id="common-api">Common API<a class="headerlink" href="#common-api" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><span class="n">explainer</span> <span class="o">=</span> <span class="n">Method</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">,</span> <span class="n">operator</span><span class="p">)</span>
+<span class="n">explanation</span> <span class="o">=</span> <span class="n">explainer</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">targets</span><span class="p">)</span>
+</code></pre></div>
+<p>The API have two steps:</p>
+<ul>
+<li>
+<p><strong><code>explainer</code> instantiation</strong>: <code>Method</code> is an attribution method among those displayed <a href="#methods">methods tables</a>. It inherits from the Base class <code>BlackBoxExplainer</code>. Their initialization takes 3 parameters apart from the specific ones and generates an <code>explainer</code>:</p>
+<ul>
+<li><code>model</code>: the model from which we want to obtain attributions (e.g: InceptionV3, ResNet, ...), see the <a href="#model">model section</a> for more details and specifications.</li>
+<li><code>batch_size</code>: an integer which allows to either process inputs per batch (gradient-based methods) or process perturbed samples of an input per batch (inputs are therefore processed one by one).</li>
+<li><code>operator</code>: enum identifying the task of the model (which is <a href="../classification/">Classification</a> by default), string identifying the task, or function to explain, see the <a href="#tasks-and-operator">task and operator section</a> for more detail.</li>
+</ul>
+</li>
+<li>
+<p><strong><code>explainer</code> call</strong>: The call to <code>explainer</code> generates the explanations, it takes two parameters:</p>
+<ul>
+<li><code>inputs</code>: the samples on which the explanations are requested, see <a href="#inputs">inputs section</a> for more detail.</li>
+<li><code>targets</code>: another parameter to specify what to explain in the <code>inputs</code>, it changes depending on the <code>operator</code>, see <a href="#targets">targets section</a> for more detail.</li>
+</ul>
+</li>
+</ul>
+<div class="admonition info">
+<p class="admonition-title">Info</p>
+<p>The <code>__call__</code> method of explainers is an alias for the <code>explain</code> method.</p>
+</div>
+<div class="admonition info">
+<p class="admonition-title">Info</p>
+<p>This documentation page covers the different parameters of the common API of attributions methods. It is common between the different <a href="#the-tasks-covered">tasks covered</a> by Xplique for attribution methods.</p>
+</div>
+<h2 id="methods">Methods<a class="headerlink" href="#methods" title="Permanent link">&para;</a></h2>
+<p>Even though we made an harmonized API for all attributions methods, it might be relevant for the user to distinguish <a href="#perturbation-based-approaches">Perturbation-based methods</a> and <a href="#gradient-based-approaches">Gradient-based methods</a>, also often referenced respectively as black-box and white-box methods, as their hyperparameters settings might be quite different.</p>
+<h3 id="perturbation-based-approaches">Perturbation-based approaches<a class="headerlink" href="#perturbation-based-approaches" title="Permanent link">&para;</a></h3>
+<p>Perturbation based methods focus on perturbing an input with a variety of techniques and, with the analysis of the resulting outputs, define an attribution representation. Thus, <strong>there is no need to explicitly know the model architecture</strong> as long as forward pass is available, which explains why they are also referenced as black-box methods.</p>
+<p>Therefore, to use perturbation-based approaches you do not need a TF model. To know more, please see the <a href="../callable/">Callable</a> documentation.</p>
+<p>Xplique includes the following black-box attributions:</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Method Name and Documentation link</th>
+<th style="text-align: center;"><strong>Tutorial</strong></th>
+<th style="text-align: center;">Available with TF</th>
+<th style="text-align: center;">Available with PyTorch*</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><a href="../methods/kernel_shap/">KernelShap</a></td>
+<td style="text-align: center;"><a href="https://colab.research.google.com/drive/1frholXRE4XQQ3W5yZuPQ2-xqc-LTczfT"><img alt="Open In Colab" src="https://colab.research.google.com/assets/colab-badge.svg" /></a></td>
+<td style="text-align: center;">✔</td>
+<td style="text-align: center;">✔</td>
+</tr>
+<tr>
+<td style="text-align: left;"><a href="../methods/lime/">Lime</a></td>
+<td style="text-align: center;"><a href="https://colab.research.google.com/drive/1frholXRE4XQQ3W5yZuPQ2-xqc-LTczfT"><img alt="Open In Colab" src="https://colab.research.google.com/assets/colab-badge.svg" /></a></td>
+<td style="text-align: center;">✔</td>
+<td style="text-align: center;">✔</td>
+</tr>
+<tr>
+<td style="text-align: left;"><a href="../methods/occlusion/">Occlusion</a></td>
+<td style="text-align: center;"><a href="https://colab.research.google.com/drive/15xmmlxQkNqNuXgHO51eKogXvLgs-sG4q"><img alt="Open In Colab" src="https://colab.research.google.com/assets/colab-badge.svg" /></a></td>
+<td style="text-align: center;">✔</td>
+<td style="text-align: center;">✔</td>
+</tr>
+<tr>
+<td style="text-align: left;"><a href="../methods/rise/">Rise</a></td>
+<td style="text-align: center;"><a href="https://colab.research.google.com/drive/1icu2b1JGfpTRa-ic8tBSXnqqfuCGW2mO"><img alt="Open In Colab" src="https://colab.research.google.com/assets/colab-badge.svg" /></a></td>
+<td style="text-align: center;">✔</td>
+<td style="text-align: center;">✔</td>
+</tr>
+<tr>
+<td style="text-align: left;"><a href="../methods/sobol/">Sobol Attribution</a></td>
+<td style="text-align: center;"><a href="https://colab.research.google.com/drive/1XproaVxXjO9nrBSyyy7BuKJ1vy21iHs2"><img alt="Open In Colab" src="https://colab.research.google.com/assets/colab-badge.svg" /></a></td>
+<td style="text-align: center;">✔</td>
+<td style="text-align: center;">✔</td>
+</tr>
+<tr>
+<td style="text-align: left;"><a href="../methods/hsic/">Hsic Attribution</a></td>
+<td style="text-align: center;"><a href="https://colab.research.google.com/drive/1XproaVxXjO9nrBSyyy7BuKJ1vy21iHs2"><img alt="Open In Colab" src="https://colab.research.google.com/assets/colab-badge.svg" /></a></td>
+<td style="text-align: center;">✔</td>
+<td style="text-align: center;">✔</td>
+</tr>
+</tbody>
+</table>
+<p>*: Before using a PyTorch model it is highly recommended to read the <a href="../pytorch/">dedicated documentation</a></p>
+<h3 id="gradient-based-approaches">Gradient-based approaches<a class="headerlink" href="#gradient-based-approaches" title="Permanent link">&para;</a></h3>
+<p>Those approaches are also called white-box methods as <strong>they require a full access to the model's architecture</strong>, notably it must <strong>allow computing gradients</strong>. Indeed, the core idea with the gradient-based approaches is to use back-propagation, not to update the model’s weights (which is already trained) but to reveal the most contributing inputs, potentially in a specific layer. All methods are available when the model works with TensorFlow but most methods also work with PyTorch (see <a href="../pytorch/">Xplique for PyTorch documentation</a>)</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Method Name and Documentation link</th>
+<th style="text-align: center;"><strong>Tutorial</strong></th>
+<th style="text-align: center;">Available with TF</th>
+<th style="text-align: center;">Available with PyTorch*</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><a href="../methods/deconvnet/">DeconvNet</a></td>
+<td style="text-align: center;"><a href="https://colab.research.google.com/drive/19eB3uwAtCKZgkoWtMzrF0LTJ-htF_KE7"><img alt="Open In Colab" src="https://colab.research.google.com/assets/colab-badge.svg" /></a></td>
+<td style="text-align: center;">✔</td>
+<td style="text-align: center;">❌</td>
+</tr>
+<tr>
+<td style="text-align: left;"><a href="../methods/grad_cam/">GradCAM</a></td>
+<td style="text-align: center;"><a href="https://colab.research.google.com/drive/1nsB7xdQbU0zeYQ1-aB_D-M67-RAnvt4X"><img alt="Open In Colab" src="https://colab.research.google.com/assets/colab-badge.svg" /></a></td>
+<td style="text-align: center;">✔</td>
+<td style="text-align: center;">❌</td>
+</tr>
+<tr>
+<td style="text-align: left;"><a href="../methods/grad_cam_pp/">GradCAM++</a></td>
+<td style="text-align: center;"><a href="https://colab.research.google.com/drive/1nsB7xdQbU0zeYQ1-aB_D-M67-RAnvt4X"><img alt="Open In Colab" src="https://colab.research.google.com/assets/colab-badge.svg" /></a></td>
+<td style="text-align: center;">✔</td>
+<td style="text-align: center;">❌</td>
+</tr>
+<tr>
+<td style="text-align: left;"><a href="../methods/gradient_input/">GradientInput</a></td>
+<td style="text-align: center;"><a href="https://colab.research.google.com/drive/19eB3uwAtCKZgkoWtMzrF0LTJ-htF_KE7"><img alt="Open In Colab" src="https://colab.research.google.com/assets/colab-badge.svg" /></a></td>
+<td style="text-align: center;">✔</td>
+<td style="text-align: center;">✔</td>
+</tr>
+<tr>
+<td style="text-align: left;"><a href="../methods/guided_backpropagation/">GuidedBackpropagation</a></td>
+<td style="text-align: center;"><a href="https://colab.research.google.com/drive/19eB3uwAtCKZgkoWtMzrF0LTJ-htF_KE7"><img alt="Open In Colab" src="https://colab.research.google.com/assets/colab-badge.svg" /></a></td>
+<td style="text-align: center;">✔</td>
+<td style="text-align: center;">❌</td>
+</tr>
+<tr>
+<td style="text-align: left;"><a href="../methods/integrated_gradients/">IntegratedGradients</a></td>
+<td style="text-align: center;"><a href="https://colab.research.google.com/drive/1UXJYVebDVIrkTOaOl-Zk6pHG3LWkPcLo"><img alt="Open In Colab" src="https://colab.research.google.com/assets/colab-badge.svg" /></a></td>
+<td style="text-align: center;">✔</td>
+<td style="text-align: center;">✔</td>
+</tr>
+<tr>
+<td style="text-align: left;"><a href="../methods/saliency/">Saliency</a></td>
+<td style="text-align: center;"><a href="https://colab.research.google.com/drive/19eB3uwAtCKZgkoWtMzrF0LTJ-htF_KE7"><img alt="Open In Colab" src="https://colab.research.google.com/assets/colab-badge.svg" /></a></td>
+<td style="text-align: center;">✔</td>
+<td style="text-align: center;">✔</td>
+</tr>
+<tr>
+<td style="text-align: left;"><a href="../methods/smoothgrad/">SmoothGrad</a></td>
+<td style="text-align: center;"><a href="https://colab.research.google.com/drive/12-tlM_TdZ12oc5lNL2S2g-hcMJV8tZUD"><img alt="Open In Colab" src="https://colab.research.google.com/assets/colab-badge.svg" /></a></td>
+<td style="text-align: center;">✔</td>
+<td style="text-align: center;">✔</td>
+</tr>
+<tr>
+<td style="text-align: left;"><a href="../methods/square_grad/">SquareGrad</a></td>
+<td style="text-align: center;"><a href="https://colab.research.google.com/drive/12-tlM_TdZ12oc5lNL2S2g-hcMJV8tZUD"><img alt="Open In Colab" src="https://colab.research.google.com/assets/colab-badge.svg" /></a></td>
+<td style="text-align: center;">✔</td>
+<td style="text-align: center;">✔</td>
+</tr>
+<tr>
+<td style="text-align: left;"><a href="../methods/vargrad/">VarGrad</a></td>
+<td style="text-align: center;"><a href="https://colab.research.google.com/drive/12-tlM_TdZ12oc5lNL2S2g-hcMJV8tZUD"><img alt="Open In Colab" src="https://colab.research.google.com/assets/colab-badge.svg" /></a></td>
+<td style="text-align: center;">✔</td>
+<td style="text-align: center;">✔</td>
+</tr>
+</tbody>
+</table>
+<p>*: Before using a PyTorch model it is highly recommended to read the <a href="../pytorch/">dedicated documentation</a></p>
+<p>In addition, these methods inherit from <code>WhiteBoxExplainer</code> (itself inheriting from <code>BlackBoxExplainer</code>). Thus, two additional <code>__init__</code> arguments are added:</p>
+<ul>
+<li><code>output_layer</code>. It is the layer to target for the output (e.g logits or after softmax). If an <code>int</code> is provided, it will be interpreted as a layer index, if a <code>string</code> is provided it will look for the layer name. Default to the last layer.</li>
+<li><code>reducer</code>. For images, most gradient-based provide a value for each channel, however, for consistency, it was decided that for images, explanations will have the shape <span class="arithmatex">\((n, h, w, 1)\)</span>. Therefore, gradient-based methods need to reduce the channel dimension of their image explanations and the <code>reducer</code> parameter choose how to do it among {<code>"mean"</code>, <code>"min"</code>, <code>"max"</code>, <code>"sum"</code>, <code>None</code>}. In the case <code>None</code> is give, the channel dimension is not reduced. The default value is <code>"mean"</code> for methods excepts <code>Saliency</code> which is <code>"max"</code> to comply with the paper and <code>GradCAM</code> and <code>GradCAMPP</code> which are not concerned.</li>
+</ul>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p>It is recommended to use the layer before Softmax.</p>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>The <code>output_layer</code> parameter will work well with TensorFlow models. However, it will not work with PyTorch models. For PyTorch, one should directly manipulate the model to focus on the layers of interest.</p>
+</div>
+<div class="admonition info">
+<p class="admonition-title">Info</p>
+<p>The "white-box" explainers that work with PyTorch are those that only require the gradient of the model without having to "modify" some part of the model (e.g. Deconvnet will commute all original ReLU by a custom ReLU policy)</p>
+</div>
+<h2 id="model"><code>model</code><a class="headerlink" href="#model" title="Permanent link">&para;</a></h2>
+<p><code>model</code> is the primary parameter of attribution methods: it represents model from which explanations are required. Even though we tried to support a wide-range of models, our attributions framework relies on some assumptions which we propose to see in this section.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>In case the <code>model</code> does not respect the specifications, a wrapper will be needed as described in the <a href="#models-not-respecting-the-specifications">Models not respecting the specifications section</a>.</p>
+</div>
+<p>In practice, we expect the <code>model</code> to be callable for the <code>inputs</code> parameters -- <em>i.e.</em> we can do <code>model(inputs)</code>. We expect this call to produce the <code>outputs</code> variables that are the predictions of the model on those inputs. As for most attribution methods, we need to manipulate and/or link the <code>outputs</code> to the <code>inputs</code>. We assume that the latter follow conventional shapes described in the <a href="#inputs">inputs section</a>.</p>
+<div class="admonition info">
+<p class="admonition-title">Info</p>
+<p>Depending on the <a href="#tasks-and-operator">task and operator</a> there may be supplementary specifications for the model, mainly on the output of the model.</p>
+</div>
+<h2 id="tasks-and-operator">Tasks and <code>operator</code><a class="headerlink" href="#tasks-and-operator" title="Permanent link">&para;</a></h2>
+<p><code>operator</code> is one of the main parameters for both attribution methods and <a href="../metrics/api_metrics/">metrics</a>. It defines the function that we want to explain. <em>E.g.</em>: In the case we have a classifier model, the function that we might want to explain is the one that given a target provides us the score of the model for that specific target -- <em>i.e</em> <span class="arithmatex">\(model(input)[target]\)</span>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The <code>operator</code> parameter is a feature available for version &gt; <span class="arithmatex">\(1.\)</span>. The <code>operator</code> default values are the ones used before the introduction of this new feature!</p>
+</div>
+<h3 id="leitmotiv">Leitmotiv<a class="headerlink" href="#leitmotiv" title="Permanent link">&para;</a></h3>
+<p>The <code>operator</code> parameter was introduced to offer users a flexible way to adapt current attribution methods or metrics. It should help them to empirically tackle new use-cases/new tasks. Broadly speaking, it should amplify the user's ability to experiment. However, this also implies that it is the user's responsibility to make sure that its derivations are in-scope of the original method and make sense.</p>
+<h3 id="operator-in-practice"><code>operator</code> in practice<a class="headerlink" href="#operator-in-practice" title="Permanent link">&para;</a></h3>
+<p>In practice, the user does not manipulate the function in itself. The use of the operator can be divided in three steps:</p>
+<ul>
+<li>Specify the operator to use in the method initialization (as shown in the <a href="#api-attributions-methods">API description</a>). Possible values are either an enum encoding the <a href="#the-tasks-covered">task</a>, a string, or a <a href="#providing-custom-operator">custom operator</a>.</li>
+<li>Make sure the model follows the model's specification relative to the selected <a href="#the-tasks-covered">task</a>.</li>
+<li>Specify what to explain in <code>inputs</code> through <code>targets</code>, the <code>targets</code> parameter specifications depend on the <a href="#the-tasks-covered">task</a>.</li>
+</ul>
+<h3 id="the-tasks-covered">The tasks covered<a class="headerlink" href="#the-tasks-covered" title="Permanent link">&para;</a></h3>
+<p>The <code>operator</code> parameter depends on the task to explain, as the function to explain depends on the task. In the case of Xplique, the tasks in the following table are supported natively, but new operators are welcome, please feel free to contribute.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Task and Documentation link</th>
+<th style="text-align: left;"><code>operator</code> parameter value <br/> from <code>xplique.Tasks</code> Enum</th>
+<th style="text-align: left;">Tutorial link</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><a href="../classification/">Classification</a></td>
+<td style="text-align: left;"><code>CLASSIFICATION</code></td>
+<td style="text-align: left;"><sub> <a href="https://colab.research.google.com/drive/1XproaVxXjO9nrBSyyy7BuKJ1vy21iHs2"><img alt="Open In Colab" src="https://colab.research.google.com/assets/colab-badge.svg" /></a> </sub></td>
+</tr>
+<tr>
+<td style="text-align: left;"><a href="../object_detection/">Object Detection</a></td>
+<td style="text-align: left;"><code>OBJECT_DETECTION</code></td>
+<td style="text-align: left;"><sub> <a href="https://colab.research.google.com/drive/1X3Yq7BduMKqTA0XEheoVIpOo3IvOrzWL"><img alt="Open In Colab" src="https://colab.research.google.com/assets/colab-badge.svg" /></a> </sub></td>
+</tr>
+<tr>
+<td style="text-align: left;"><a href="../regression/">Regression</a></td>
+<td style="text-align: left;"><code>REGRESSION</code></td>
+<td style="text-align: left;"><sub> <a href="https://colab.research.google.com/drive/1pjDJmAa9oeSquYtbYh6tksU6eTmObIcq"><img alt="Open In Colab" src="https://colab.research.google.com/assets/colab-badge.svg" /></a> </sub></td>
+</tr>
+<tr>
+<td style="text-align: left;"><a href="../semantic_segmentation/">Semantic Segmentation</a></td>
+<td style="text-align: left;"><code>SEMANTIC_SEGMENTATION</code></td>
+<td style="text-align: left;"><sub> <a href="https://colab.research.google.com/drive/1AHg7KO1fCOX5nZLGZfxkZ2-DLPPdSfbX"><img alt="Open In Colab" src="https://colab.research.google.com/assets/colab-badge.svg" /></a> </sub></td>
+</tr>
+</tbody>
+</table>
+<div class="admonition info">
+<p class="admonition-title">Info</p>
+<p>Classification is the default behavior, <em>i.e.</em>, if no <code>operator</code> value is specified or <code>None</code> is given.</p>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>To apply Xplique on different tasks, specifying the value of the <code>operator</code> is not enough. Be sure to respect the <a href="#operator-in-practice">"operator in practice" steps</a>.</p>
+</div>
+<h3 id="operators-signature">Operators' Signature<a class="headerlink" href="#operators-signature" title="Permanent link">&para;</a></h3>
+<p>An <code>operator</code> is a function that we want to explain. This function takes as input <span class="arithmatex">\(3\)</span> parameters:</p>
+<ul>
+<li>the <code>model</code> to explain as in the method instantiation (specifications in the <a href="#model">model section</a>).</li>
+<li>the <code>inputs</code> parameter representing the samples to explain as in method call (specifications in <a href="#inputs">inputs section</a>).</li>
+<li>the <code>targets</code> parameter encoding what to explain in the <code>inputs</code> (specifications in <a href="#targets">targets section</a>).</li>
+</ul>
+<p>This function should return a <strong>vector of scalar value</strong> of size <span class="arithmatex">\((N,)\)</span> where <span class="arithmatex">\(N\)</span> is the number of inputs in <code>inputs</code> -- <em>i.e</em> a scalar score per input.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>For <a href="#gradient-based-approaches">gradient-based methods</a> to work with the <code>operator</code>, it needs to be differentiable with respect to <code>inputs</code>.</p>
+</div>
+<h3 id="the-operators-mechanism">The operators mechanism<a class="headerlink" href="#the-operators-mechanism" title="Permanent link">&para;</a></h3>
+<details class="info">
+<summary>Operators behavior for Black-box attribution methods</summary>
+<p>For attribution approaches that do not require gradient computation, we mostly need to query the model. Thus, those methods need an inference function. If you provide an <code>operator</code>, it will be the inference function.</p>
+<p>More concretely, for this kind of approach, you want to compare some valued function for an original input and perturbed version of it:</p>
+<div class="highlight"><pre><span></span><code><span class="n">original_scores</span> <span class="o">=</span> <span class="n">operator</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">original_inputs</span><span class="p">,</span> <span class="n">original_targets</span><span class="p">)</span>
+
+<span class="c1"># depending on the attribution method, this `perturbation_function` is different</span>
+<span class="n">perturbed_inputs</span><span class="p">,</span> <span class="n">perturbed_targets</span> <span class="o">=</span> <span class="n">perturbation_function</span><span class="p">(</span><span class="n">original_inputs</span><span class="p">,</span> <span class="n">original_targets</span><span class="p">)</span>
+<span class="n">perturbed_scores</span> <span class="o">=</span> <span class="n">operator</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">perturbed_inputs</span><span class="p">,</span> <span class="n">perturbed_targets</span><span class="p">)</span>
+
+<span class="c1"># example of comparison of interest</span>
+<span class="n">diff_scores</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">((</span><span class="n">original_scores</span> <span class="o">-</span> <span class="n">perturbed_scores</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+</code></pre></div>
+</details>
+<details class="info">
+<summary>Operators behavior for White-box attribution methods</summary>
+<p>These methods usually require some gradients computation. The gradients that will be used are the ones of the operator function (see the <code>get_gradient_of_operator</code> method in the <a href="#providing-custom-operator">Providing custom operator</a> section).</p>
+</details>
+<h3 id="providing-custom-operator">Providing custom operator<a class="headerlink" href="#providing-custom-operator" title="Permanent link">&para;</a></h3>
+<p>The <code>operator</code> parameter also supports functions (<em>i.e.</em> <code>Callable</code>), this is considered a custom operator and in this case, you should be aware of the following points:</p>
+<ul>
+<li>An assertion will be made to ensure it respects <a href="#operators-signature">operators' signature</a>.</li>
+<li>If you use any white-box explainer, your operator will go through the <code>get_gradient_of_operator</code> function below.</li>
+</ul>
+<details class="example">
+<summary>Code of the <code>get_gradient_of_operator</code> function.</summary>
+<div class="highlight"><pre><span></span><code><span class="k">def</span> <span class="nf">get_gradient_of_operator</span><span class="p">(</span><span class="n">operator</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Get the gradient of an operator.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    operator</span>
+<span class="sd">        Operator of which to compute the gradient.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    gradient</span>
+<span class="sd">        Gradient of the operator.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="nd">@tf</span><span class="o">.</span><span class="n">function</span>
+    <span class="k">def</span> <span class="nf">gradient</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">targets</span><span class="p">):</span>
+        <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">GradientTape</span><span class="p">()</span> <span class="k">as</span> <span class="n">tape</span><span class="p">:</span>
+            <span class="n">tape</span><span class="o">.</span><span class="n">watch</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
+            <span class="n">scores</span> <span class="o">=</span> <span class="n">operator</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">targets</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">tape</span><span class="o">.</span><span class="n">gradient</span><span class="p">(</span><span class="n">scores</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">gradient</span>
+</code></pre></div>
+</details>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p>Writing your operator with only tensorflow functions should increase your chance that this method does not yield any errors. In addition, providing a <code>@tf.function</code> decorator is also welcome!</p>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>The <code>targets</code> parameter is the key to specifying what to explain and differs greatly depending on the operator. </p>
+</div>
+<h2 id="models-not-respecting-the-specifications">Models not respecting the specifications<a class="headerlink" href="#models-not-respecting-the-specifications" title="Permanent link">&para;</a></h2>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>In any case, when you are out of the scope of the original API, you should take a deep look at the source code to be sure that your Use Case will make sense.</p>
+</div>
+<h3 id="my-inputs-follow-a-different-shape-convention">My inputs follow a different shape convention<a class="headerlink" href="#my-inputs-follow-a-different-shape-convention" title="Permanent link">&para;</a></h3>
+<p>In the case where you want to handle images or time series data that does not follow the previous conventions, it is recommended to reshape the data to the expected shape for the explainers (attribution methods) to handle them correctly. Then, you can simply define a wrapper of your model so that data is reshape to your model convenience when it is called.</p>
+<p>For example, if you have a <code>model</code> that classifies images but want the images to be channel-first (<em>i.e.</em> with <span class="arithmatex">\((N, C, H, W)\)</span> shape) then you should:</p>
+<ul>
+<li>Move the axis so inputs are <span class="arithmatex">\((N, H, W, C)\)</span> for the explainers</li>
+<li>Write the following wrapper for your model:</li>
+</ul>
+<details class="example">
+<summary>Example of a wrapper.</summary>
+<div class="highlight"><pre><span></span><code><span class="k">class</span> <span class="nc">ModelWrapper</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">Model</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nchw_model</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">ModelWrapper</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">nchw_model</span>
+
+    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nhwc_inputs</span><span class="p">):</span>
+        <span class="c1"># transform the NHWC inputs (wanted for the explainers) back to NCHW inputs</span>
+        <span class="n">nchw_inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_transform_inputs</span><span class="p">(</span><span class="n">nhwc_inputs</span><span class="p">)</span>
+        <span class="c1"># make predictions</span>
+        <span class="n">outputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nchw_model</span><span class="p">(</span><span class="n">nchw_inputs</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">outputs</span>
+
+    <span class="k">def</span> <span class="nf">_transform_inputs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nhwc_inputs</span><span class="p">):</span>
+        <span class="c1"># include in this function all transformation</span>
+        <span class="c1"># needed for your model to work with NHWC inputs</span>
+        <span class="c1"># , here for example we move axis from channels last</span>
+        <span class="c1"># to channels first</span>
+        <span class="n">nchw_inputs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">moveaxis</span><span class="p">(</span><span class="n">nhwc_inputs</span><span class="p">,</span> <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
+
+        <span class="k">return</span> <span class="n">nchw_inputs</span>
+
+<span class="n">wrapped_model</span> <span class="o">=</span> <span class="n">ModelWrapper</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+<span class="n">explainer</span> <span class="o">=</span> <span class="n">Saliency</span><span class="p">(</span><span class="n">wrapped_model</span><span class="p">)</span>
+<span class="c1"># images should be (N, H, W, C) for the explain call</span>
+<span class="n">explanations</span> <span class="o">=</span> <span class="n">explainer</span><span class="o">.</span><span class="n">explain</span><span class="p">(</span><span class="n">images</span><span class="p">,</span> <span class="n">labels</span><span class="p">)</span>
+</code></pre></div>
+</details>
+<h3 id="i-have-a-pytorch-model">I have a PyTorch model<a class="headerlink" href="#i-have-a-pytorch-model" title="Permanent link">&para;</a></h3>
+<p>Then you should definitely take a look at the <a href="../pytorch/">PyTorch documentation</a>!</p>
+<h3 id="i-have-a-model-that-is-neither-a-tfkerasmodel-nor-a-torchnnmodule">I have a model that is neither a tf.keras.Model nor a torch.nn.Module<a class="headerlink" href="#i-have-a-model-that-is-neither-a-tfkerasmodel-nor-a-torchnnmodule" title="Permanent link">&para;</a></h3>
+<p>Then you should take a look at the <a href="../callable/">Callable documentation</a> or you could take inspiration on the <a href="../pytorch/">PyTorch Wrapper</a> to write a wrapper that will integrate your model into our API!</p>
+<h2 id="inputs-and-data-types"><code>inputs</code> and data types<a class="headerlink" href="#inputs-and-data-types" title="Permanent link">&para;</a></h2>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p><code>inputs</code> in this section correspond to the argument in the <code>explain</code> method of <code>BlackBoxExplainer</code>. The <code>model</code> specified at the initialization of the <code>BlackBoxExplainer</code> should be able to be called through <code>model(inputs)</code>. Otherwise, a wrapper needs to be implemented as described in the <a href="#models-not-respecting-the-specifications">Models not respecting the specifications section</a>.</p>
+</div>
+<p><code>inputs</code>: Must be one of the following: a <code>tf.data.Dataset</code> (in which case you should not provide targets), a <code>tf.Tensor</code> or a <code>np.ndarray</code>.</p>
+<p>Examples are provided in the different tutorials: <a href="https://colab.research.google.com/drive/1XproaVxXjO9nrBSyyy7BuKJ1vy21iHs2">images</a>, <a href="https://colab.research.google.com/drive/1h0lThbcP5d2VKtRxwLG8z7KC8PExcVIA">time-series</a>, and <a href="https://colab.research.google.com/drive/1pjDJmAa9oeSquYtbYh6tksU6eTmObIcq">tabular data</a>. The conventions are as follow:</p>
+<ul>
+<li>
+<p>If inputs are images, the expected shape of <code>inputs</code> is <span class="arithmatex">\((N, H, W, C)\)</span> following the TF's conventions where:</p>
+<ul>
+<li><span class="arithmatex">\(N\)</span>: the number of inputs</li>
+<li><span class="arithmatex">\(H\)</span>: the height of the images</li>
+<li><span class="arithmatex">\(W\)</span>: the width of the images</li>
+<li><span class="arithmatex">\(C\)</span>: the number of channels (works for <span class="arithmatex">\(C=3\)</span> or <span class="arithmatex">\(C=1\)</span>, other values might not work or need further customization)</li>
+</ul>
+</li>
+<li>
+<p>If inputs are time-series, the expected shape of <code>inputs</code> is <span class="arithmatex">\((N, T, W)\)</span></p>
+<ul>
+<li><span class="arithmatex">\(N\)</span>: the number of inputs</li>
+<li><span class="arithmatex">\(T\)</span>: the temporal dimension of a single input</li>
+<li><span class="arithmatex">\(W\)</span>: the feature dimension of a single input</li>
+</ul>
+</li>
+<li>
+<p>If inputs are tabular data, the expected shape of <code>inputs</code> is <span class="arithmatex">\((N, W)\)</span> where:</p>
+<ul>
+<li><span class="arithmatex">\(N\)</span>: the number of inputs</li>
+<li><span class="arithmatex">\(W\)</span>: the feature dimension of a single input</li>
+</ul>
+</li>
+</ul>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p>Please refer to the <a href="../../../#whats-included">table of attributions available</a> to see which methods might work with for the different data types.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If your model is not following the same conventions, please refer to the <a href="#models-not-respecting-the-specifications">model not respecting the specification documentation</a>.</p>
+</div>
+<h2 id="targets"><code>targets</code><a class="headerlink" href="#targets" title="Permanent link">&para;</a></h2>
+<p><code>targets</code>: Must be one of the following: a <code>tf.Tensor</code> or a <code>np.ndarray</code>. It has a shape of <span class="arithmatex">\((N, ...)\)</span> where N should match the first dimension of <code>inputs</code>, while <span class="arithmatex">\(...\)</span> depend on the task and operators. Indeed, the <code>targets</code> parameter is highly dependent on the <code>operator</code> selected for the attribution methods, hence, for more information please refer to the <a href="#tasks-and-operator">tasks and operators table</a> which will lead you to the pertinent task documentation page.</p>
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    <script id="__config" type="application/json">{"base": "../../..", "features": [], "search": "../../../assets/javascripts/workers/search.dfff1995.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.78eede0e.min.js"></script>
+      
+        <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+      
+        <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+      
+        <script src="../../../js/custom.js"></script>
+      
+    
+  </body>
+</html>
