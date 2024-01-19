@@ -229,7 +229,8 @@ class BaseCraft(BaseConceptExtractor, ABC):
 
     def fit(self,
             inputs : np.ndarray,
-            class_id: int = 0) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+            class_id: int = 0,
+            alpha_w: float = 1e-2) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """
         Fit the Craft model to the input data.
 
@@ -240,6 +241,8 @@ class BaseCraft(BaseConceptExtractor, ABC):
             (x1, x2, ..., xn) in the paper.
         class_id
             The class id of the inputs.
+        alpha_w
+            Constant that multiplies the NMF regularization terms of the concept banck (W in the paper).
 
         Returns
         -------
@@ -255,7 +258,7 @@ class BaseCraft(BaseConceptExtractor, ABC):
         crops, activations = self._extract_patches(inputs)
 
         # apply NMF to the activations to obtain matrices U and W
-        reducer = NMF(n_components=self.number_of_concepts, alpha_W=1e-2)
+        reducer = NMF(n_components=self.number_of_concepts, alpha_W=alpha_w)
         crops_u = reducer.fit_transform(activations)
         concept_bank_w = reducer.components_.astype(np.float32)
 

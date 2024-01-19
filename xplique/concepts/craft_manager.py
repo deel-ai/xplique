@@ -61,7 +61,10 @@ class BaseCraftManager(ABC):
         """
         raise NotImplementedError
 
-    def fit(self, nb_samples_per_class: Optional[int] = None, verbose: bool = False):
+    def fit(self,
+            nb_samples_per_class: Optional[int] = None,
+            alpha_w: float = 1e-2,
+            verbose: bool = False):
         """
         Fit the Craft models on their respective class of interest.
 
@@ -70,6 +73,8 @@ class BaseCraftManager(ABC):
         nb_samples_per_class
             Number of samples to use to fit the Craft model.
             Default is None, which means that all the samples will be used.
+        alpha_w
+            Constant that multiplies the NMF regularization terms of `W`.
         verbose
             If True, then print the current class CRAFT is fitting,
             otherwise no textual output will be printed.
@@ -85,7 +90,7 @@ class BaseCraftManager(ABC):
             if nb_samples_per_class is not None:
                 class_inputs = class_inputs[:nb_samples_per_class]
                 class_labels = class_labels[:nb_samples_per_class]
-            craft_instance.fit(class_inputs, class_id=class_of_interest)
+            craft_instance.fit(class_inputs, class_id=class_of_interest, alpha_w=alpha_w)
 
     def estimate_importance(self, nb_design: int = 32, verbose: bool = False):
         """
