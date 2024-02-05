@@ -16,4 +16,5 @@ from .kernel_shap import KernelShap
 from .object_detector import BoundingBoxesExplainer
 from .global_sensitivity_analysis import SobolAttributionMethod, HsicAttributionMethod
 from .gradient_statistics import SmoothGrad, VarGrad, SquareGrad
+from .nlp_occlusion import NlpOcclusion
 from . import global_sensitivity_analysis
