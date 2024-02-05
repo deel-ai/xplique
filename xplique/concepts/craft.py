@@ -131,9 +131,18 @@ class Sensitivity:
             self.cmaps = [Sensitivity._get_alpha_cmap(cmap) for cmap in cmaps]
 
         if len(self.cmaps) < len(self.most_important_concepts):
-            raise RuntimeError(f'Not enough colors in cmaps ({len(self.cmaps)}) ' \
-                               f'compared to the number of important concepts ' \
-                               f'({len(self.most_important_concepts)})')
+            nb_colors_missing = len(
+                self.most_important_concepts) - len(self.cmaps)
+            print(f'Not enough colors in cmaps ({len(self.cmaps)}) '
+                  f'compared to the number of important concepts '
+                  f'({len(self.most_important_concepts)}). '
+                  f'Adding {nb_colors_missing} random colors.')
+
+            for _ in range(nb_colors_missing):
+                random_color = (random.random(),
+                                random.random(), random.random())
+                self.cmaps.append(Sensitivity._get_alpha_cmap(random_color))
+
 
 class DisplayImportancesOrder(Enum):
     """

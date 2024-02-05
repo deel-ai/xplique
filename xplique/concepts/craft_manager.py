@@ -111,6 +111,26 @@ class BaseCraftManager(ABC):
                 print(f'Estimating importances for class {class_of_interest} ')
             craft_instance.estimate_importance(nb_design=nb_design)
 
+    def set_concept_attribution_cmap(self,
+                                     class_id: int,
+                                     cmaps: Optional[Union[Tuple, str]] = None):
+        """
+        Set the colormap used for the concepts displayed in the attribution maps,
+        form the class 'class_id'.
+
+        Parameters
+        ----------
+        class_id
+            The class to explain.
+        cmaps
+            The list of colors associated with each concept.
+            Can be either:
+                - A list of (r, g, b) colors to use as a base for the colormap.
+                - A colormap name compatible with `plt.get_cmap(cmap)`.
+        """
+        self.craft_instances[class_id].sensitivity.set_concept_attribution_cmap(
+            cmaps)
+
 
 class CraftManagerImageVisualizationMixin():
     """
