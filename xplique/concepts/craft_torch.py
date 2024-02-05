@@ -12,11 +12,12 @@ import numpy as np
 from .craft import BaseCraft, CraftImageVisualizationMixin
 from .craft_manager import BaseCraftManager, CraftManagerImageVisualizationMixin
 
+
 def _batch_inference(model: torch.nn.Module,
                      dataset: torch.Tensor,
                      batch_size: int = 128,
                      resize: Optional[int] = None,
-                     device: str='cuda') -> torch.Tensor:
+                     device: str = 'cuda') -> torch.Tensor:
     """
     Compute the model predictions of the input images.
 
@@ -84,12 +85,13 @@ class BaseCraftTorch(BaseCraft):
     device
         The device to use. Default is 'cuda'.
     """
+
     def __init__(self, input_to_latent_model: Callable,
-                       latent_to_logit_model: Callable,
-                       number_of_concepts: int = 20,
-                       batch_size: int = 64,
-                       patch_size: int = 64,
-                       device : str = 'cuda'):
+                 latent_to_logit_model: Callable,
+                 number_of_concepts: int = 20,
+                 batch_size: int = 64,
+                 patch_size: int = 64,
+                 device: str = 'cuda'):
         super().__init__(input_to_latent_model, latent_to_logit_model,
                          number_of_concepts, batch_size)
         self.patch_size = patch_size
@@ -97,11 +99,12 @@ class BaseCraftTorch(BaseCraft):
 
         # Check model type
         is_method = isinstance(input_to_latent_model, MethodType) & \
-                    isinstance(latent_to_logit_model, MethodType)
+            isinstance(latent_to_logit_model, MethodType)
         is_torch_model = issubclass(type(input_to_latent_model), torch.nn.modules.module.Module) & \
-                         issubclass(type(latent_to_logit_model), torch.nn.modules.module.Module)
+            issubclass(type(latent_to_logit_model),
+                       torch.nn.modules.module.Module)
         if not (is_method or is_torch_model):
-            raise TypeError('input_to_latent_model and latent_to_logit_model are not ' \
+            raise TypeError('input_to_latent_model and latent_to_logit_model are not '
                             'Pytorch modules nor methods')
 
     def _latent_predict(self, inputs: torch.Tensor, resize=None) -> torch.Tensor:
@@ -120,7 +123,8 @@ class BaseCraftTorch(BaseCraft):
         """
         # inputs: (N, C, H, W)
         if len(inputs.shape) == 3:
-            inputs = inputs.unsqueeze(0) # add an extra dim in case we get only 1 image to predict
+            # add an extra dim in case we get only 1 image to predict
+            inputs = inputs.unsqueeze(0)
 
         activations = _batch_inference(self.input_to_latent_model, inputs,
                                        self.batch_size, resize, device=self.device)
@@ -149,7 +153,8 @@ class BaseCraftTorch(BaseCraft):
 
         if len(activations_perturbated.shape) == 4:
             # activations_perturbated: (N, H, W, C) -> (N, C, H, W)
-            activations_perturbated = activations_perturbated.permute(0, 3, 1, 2)
+            activations_perturbated = activations_perturbated.permute(
+                0, 3, 1, 2)
 
         y_pred = _batch_inference(self.latent_to_logit_model, activations_perturbated,
                                   self.batch_size, resize, device=self.device)
@@ -178,7 +183,8 @@ class BaseCraftTorch(BaseCraft):
         # extract patches from the input data, keep patches on cpu
         strides = int(self.patch_size * 0.80)
 
-        patches = torch.nn.functional.unfold(inputs, kernel_size=self.patch_size, stride=strides)
+        patches = torch.nn.functional.unfold(
+            inputs, kernel_size=self.patch_size, stride=strides)
         patches = patches.transpose(1, 2).contiguous().view(-1, num_channels,
                                                             self.patch_size, self.patch_size)
 
@@ -206,6 +212,7 @@ class BaseCraftTorch(BaseCraft):
             return res.astype(dtype)
         return res
 
+
 class CraftTorch(BaseCraftTorch, CraftImageVisualizationMixin):
     """
     Class Implementing the CRAFT Concept Extraction Mechanism on Pytorch,
@@ -231,6 +238,7 @@ class CraftTorch(BaseCraftTorch, CraftImageVisualizationMixin):
     device
         The device to use. Default is 'cuda'.
     """
+
 
 class BaseCraftManagerTorch(BaseCraftManager):
     """
@@ -261,22 +269,22 @@ class BaseCraftManagerTorch(BaseCraftManager):
     patch_size
         The size of the patches (crops) to extract from the input data. Default is 64.
     """
-    def __init__(self, input_to_latent_model : Callable,
-                    latent_to_logit_model : Callable,
-                    inputs : np.ndarray,
-                    labels : np.ndarray,
-                    list_of_class_of_interest : list = None,
-                    number_of_concepts: int = 20,
-                    batch_size: int = 64,
-                    patch_size: int = 64,
-                    device : str = 'cuda'):
+
+    def __init__(self, input_to_latent_model: Callable,
+                 latent_to_logit_model: Callable,
+                 inputs: np.ndarray,
+                 labels: np.ndarray,
+                 list_of_class_of_interest: list = None,
+                 number_of_concepts: int = 20,
+                 batch_size: int = 64,
+                 patch_size: int = 64,
+                 device: str = 'cuda'):
 
         super().__init__(input_to_latent_model, latent_to_logit_model,
                          inputs, labels, list_of_class_of_interest)
 
         self.batch_size = batch_size
         self.device = device
-        self.craft_instances = {}
         for class_of_interest in self.list_of_class_of_interest:
             craft = CraftTorch(input_to_latent_model, latent_to_logit_model,
                                number_of_concepts, batch_size, patch_size, device)
@@ -292,14 +300,17 @@ class BaseCraftManagerTorch(BaseCraftManager):
         y_preds
             the predictions
         """
-        model = nn.Sequential(self.input_to_latent_model, self.latent_to_logit_model)
+        model = nn.Sequential(self.input_to_latent_model,
+                              self.latent_to_logit_model)
         activations = _batch_inference(model, self.inputs, self.batch_size, None,
                                        device=self.device)
-        y_preds = np.array(torch.argmax(activations, -1))  # pylint disable=no-member
+        y_preds = np.array(torch.argmax(activations, -1)
+                           )  # pylint disable=no-member
         return y_preds
 
+
 class CraftManagerTorch(BaseCraftManagerTorch, CraftManagerImageVisualizationMixin):
-   """
+    """
     Class implementing the CraftManager on Pytorch, adapted for image processing.
     This manager creates one CraftTorch instance per class to explain.
 

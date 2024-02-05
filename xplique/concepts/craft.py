@@ -7,6 +7,7 @@ import dataclasses
 from enum import Enum
 import colorsys
 from math import ceil
+import random
 
 import numpy as np
 import cv2
@@ -23,6 +24,7 @@ from xplique.plots.image import _clip_percentile
 from ..types import Callable, Tuple, Optional, Union
 from .base import BaseConceptExtractor
 
+
 @dataclasses.dataclass
 class Factorization:
     """ Dataclass handling data produced during the Factorization step."""
@@ -32,6 +34,7 @@ class Factorization:
     reducer: NMF
     crops_u: np.ndarray
     concept_bank_w: np.ndarray
+
 
 class Sensitivity:
     """
@@ -54,14 +57,14 @@ class Sensitivity:
     """
 
     def __init__(self, importances: np.ndarray,
-                       most_important_concepts: np.ndarray,
-                       cmaps: Optional[Union[list, str]]=None):
+                 most_important_concepts: np.ndarray,
+                 cmaps: Optional[Union[list, str]] = None):
         self.importances = importances
         self.most_important_concepts = most_important_concepts
         self.set_concept_attribution_cmap(cmaps=cmaps)
 
     @staticmethod
-    def _get_alpha_cmap(cmap: Union[Tuple,str]):
+    def _get_alpha_cmap(cmap: Union[Tuple, str]):
         """
         Creat a colormap with an alpha channel, out of 3 (r, g, b) values.
         This is used in particular by `set_concept_attribution_cmap()` to
@@ -94,12 +97,12 @@ class Sensitivity:
             cmap = LinearSegmentedColormap.from_list("", [colors, cmax])
 
         alpha_cmap = cmap(np.arange(256))
-        alpha_cmap[:,-1] = np.linspace(0, 0.85, 256)
+        alpha_cmap[:, -1] = np.linspace(0, 0.85, 256)
         alpha_cmap = ListedColormap(alpha_cmap)
 
         return alpha_cmap
 
-    def set_concept_attribution_cmap(self, cmaps: Optional[Union[Tuple, str]]=None):
+    def set_concept_attribution_cmap(self, cmaps: Optional[Union[Tuple, str]] = None):
         """
         Set the colormap used for the concepts displayed in the attribution maps.
 
@@ -113,16 +116,16 @@ class Sensitivity:
         """
         if cmaps is None:
             self.cmaps = [
-                    Sensitivity._get_alpha_cmap((54, 197, 240)),
-                    Sensitivity._get_alpha_cmap((210, 40, 95)),
-                    Sensitivity._get_alpha_cmap((236, 178, 46)),
-                    Sensitivity._get_alpha_cmap((15, 157, 88)),
-                    Sensitivity._get_alpha_cmap((84, 25, 85)),
-                    Sensitivity._get_alpha_cmap((55, 35, 235))
-                ]
+                Sensitivity._get_alpha_cmap((54, 197, 240)),
+                Sensitivity._get_alpha_cmap((210, 40, 95)),
+                Sensitivity._get_alpha_cmap((236, 178, 46)),
+                Sensitivity._get_alpha_cmap((15, 157, 88)),
+                Sensitivity._get_alpha_cmap((84, 25, 85)),
+                Sensitivity._get_alpha_cmap((55, 35, 235))
+            ]
             # Add more colors by default
             cmaps_more = [Sensitivity._get_alpha_cmap(cmap)
-                            for cmap in plt.get_cmap('tab10').colors]
+                          for cmap in plt.get_cmap('tab10').colors]
             self.cmaps.extend(cmaps_more)
         else:
             self.cmaps = [Sensitivity._get_alpha_cmap(cmap) for cmap in cmaps]
@@ -140,10 +143,11 @@ class DisplayImportancesOrder(Enum):
     LOCAL: Order concepts by their Local importance on a single sample
     """
     GLOBAL = 0
-    LOCAL  = 1
+    LOCAL = 1
 
     def __eq__(self, other):
         return self.value == other.value
+
 
 class MaskSampler(Enum):
     HALTON = HaltonSequenceRS
@@ -152,6 +156,7 @@ class MaskSampler(Enum):
 
     def __eq__(self, other):
         return self.value == other.value
+
 
 class BaseCraft(BaseConceptExtractor, ABC):
     """
@@ -180,11 +185,11 @@ class BaseCraft(BaseConceptExtractor, ABC):
         The size of the patches (crops) to extract from the input data. Default is 64.
     """
 
-    def __init__(self, input_to_latent_model : Callable,
-                       latent_to_logit_model : Callable,
-                       number_of_concepts: int = 20,
-                       batch_size: int = 64,
-                       patch_size: int = 64):
+    def __init__(self, input_to_latent_model: Callable,
+                 latent_to_logit_model: Callable,
+                 number_of_concepts: int = 20,
+                 batch_size: int = 64,
+                 patch_size: int = 64):
         super().__init__(number_of_concepts, batch_size)
         self.input_to_latent_model = input_to_latent_model
         self.latent_to_logit_model = latent_to_logit_model
@@ -194,11 +199,10 @@ class BaseCraft(BaseConceptExtractor, ABC):
         self.sensitivity = None
 
         # sanity checks
-        assert(hasattr(input_to_latent_model, "__call__")), \
-               "input_to_latent_model must be a callable function"
-        assert(hasattr(latent_to_logit_model, "__call__")), \
-               "latent_to_logit_model must be a callable function"
-
+        assert (hasattr(input_to_latent_model, "__call__")), \
+            "input_to_latent_model must be a callable function"
+        assert (hasattr(latent_to_logit_model, "__call__")), \
+            "latent_to_logit_model must be a callable function"
 
     @abstractmethod
     def _latent_predict(self, inputs: np.ndarray):
@@ -225,10 +229,11 @@ class BaseCraft(BaseConceptExtractor, ABC):
             If the factorization model has not been fitted to input data.
         """
         if self.factorization is None:
-            raise NotFittedError("The factorization model has not been fitted to input data yet.")
+            raise NotFittedError(
+                "The factorization model has not been fitted to input data yet.")
 
     def fit(self,
-            inputs : np.ndarray,
+            inputs: np.ndarray,
             class_id: int = 0,
             alpha_w: float = 1e-2) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """
@@ -267,7 +272,7 @@ class BaseCraft(BaseConceptExtractor, ABC):
 
         return crops, crops_u, concept_bank_w
 
-    def transform(self, inputs : np.ndarray, activations : np.ndarray = None) -> np.ndarray:
+    def transform(self, inputs: np.ndarray, activations: np.ndarray = None) -> np.ndarray:
         """Transforms the inputs data into its concept representation.
 
         Parameters
@@ -301,13 +306,15 @@ class BaseCraft(BaseConceptExtractor, ABC):
 
         if is_4d:
             # (N * W * H, R) -> (N, W, H, R) with R = nb_concepts
-            coeffs_u = np.reshape(coeffs_u, (*original_shape, coeffs_u.shape[-1]))
+            coeffs_u = np.reshape(
+                coeffs_u, (*original_shape, coeffs_u.shape[-1]))
         return coeffs_u
 
     def estimate_importance(self,
                             inputs: np.ndarray = None,
                             sampler: MaskSampler = MaskSampler.HALTON,
-                            nb_design: int = 32) -> np.ndarray:
+                            nb_design: int = 32,
+                            cmaps: Optional[Union[Tuple, str]] = None) -> np.ndarray:
         """
         Estimates the importance of each concept for a given class, either globally
         on the whole dataset provided in the fit() method (in this case, inputs shall
@@ -324,6 +331,11 @@ class BaseCraft(BaseConceptExtractor, ABC):
             The sampling method to use for masking. Default to MaskSampler.HALTON.
         nb_design
             The number of design to use for the importance estimation. Default is 32.
+        cmaps
+            The list of colors associated with each concept.
+            Can be either:
+                - A list of (r, g, b) colors to use as a base for the colormap.
+                - A colormap name compatible with `plt.get_cmap(cmap)`.
 
         Returns
         -------
@@ -340,7 +352,7 @@ class BaseCraft(BaseConceptExtractor, ABC):
 
         coeffs_u = self.transform(inputs)
 
-        masks = sampler.value()(self.number_of_concepts, nb_design = nb_design)
+        masks = sampler.value()(self.number_of_concepts, nb_design=nb_design)
         estimator = JansenEstimator()
 
         importances = []
@@ -365,9 +377,9 @@ class BaseCraft(BaseConceptExtractor, ABC):
             for coeff in coeffs_u:
                 u_perturbated = coeff[None, :] * masks[:, None, None, :]
                 a_perturbated = np.reshape(u_perturbated,
-                                        (-1, coeff.shape[-1])) @ self.factorization.concept_bank_w
+                                           (-1, coeff.shape[-1])) @ self.factorization.concept_bank_w
                 a_perturbated = np.reshape(a_perturbated,
-                                        (len(masks), coeffs_u.shape[1], coeffs_u.shape[2], -1))
+                                           (len(masks), coeffs_u.shape[1], coeffs_u.shape[2], -1))
 
                 # a_perturbated: (N, H, W, C)
                 y_pred = self._logit_predict(a_perturbated)
@@ -382,14 +394,15 @@ class BaseCraft(BaseConceptExtractor, ABC):
         # Save the results of the computation if working on the whole dataset
         if compute_global_importances:
             most_important_concepts = np.argsort(importances)[::-1]
-            self.sensitivity = Sensitivity(importances, most_important_concepts)
+            self.sensitivity = Sensitivity(
+                importances, most_important_concepts, cmaps=cmaps)
 
         return importances
 
     def plot_concepts_importances(self,
                                   importances: np.ndarray = None,
-                                  display_importance_order: DisplayImportancesOrder = \
-                                                    DisplayImportancesOrder.GLOBAL,
+                                  display_importance_order: DisplayImportancesOrder =
+                                  DisplayImportancesOrder.GLOBAL,
                                   nb_most_important_concepts: int = None,
                                   verbose: bool = False):
         """
@@ -439,7 +452,8 @@ class BaseCraft(BaseConceptExtractor, ABC):
             most_important_concepts = most_important_concepts[:nb_most_important_concepts]
 
             # Find the correct color index
-            global_color_index_order = np.argsort(self.sensitivity.importances)[::-1]
+            global_color_index_order = np.argsort(
+                self.sensitivity.importances)[::-1]
             local_color_index_order = [np.where(global_color_index_order == local_c)[0][0]
                                        for local_c in most_important_concepts]
             colors = np.array([colors(1.0)
@@ -458,7 +472,8 @@ class BaseCraft(BaseConceptExtractor, ABC):
 
         if verbose:
             for c_id in most_important_concepts:
-                print(f"Concept {c_id} has an importance value of {importances[c_id]:.2f}")
+                print(
+                    f"Concept {c_id} has an importance value of {importances[c_id]:.2f}")
 
     @staticmethod
     def _show(img, **kwargs):
@@ -475,7 +490,7 @@ class BaseCraft(BaseConceptExtractor, ABC):
     def _gen_best_concepts_crops(self,
                                  nb_crops: int = 10,
                                  nb_most_important_concepts: int = None) \
-                                 -> Tuple[int, float, np.ndarray]:
+            -> Tuple[int, float, np.ndarray]:
         """
         Generate the best concept crops for each concept.
 
@@ -500,7 +515,8 @@ class BaseCraft(BaseConceptExtractor, ABC):
             most_important_concepts = most_important_concepts[:nb_most_important_concepts]
 
         for c_id in most_important_concepts:
-            best_crops_ids = np.argsort(self.factorization.crops_u[:, c_id])[::-1][:nb_crops]
+            best_crops_ids = np.argsort(self.factorization.crops_u[:, c_id])[
+                ::-1][:nb_crops]
             best_crops = np.array(self.factorization.crops)[best_crops_ids]
             c_id_importance = self.sensitivity.importances[c_id]
             yield c_id, c_id_importance, best_crops
@@ -510,6 +526,7 @@ class CraftImageVisualizationMixin():
     """
     Class containing image visualization methods for Craft.
     """
+
     def plot_concepts_crops(self,
                             nb_crops: int = 10,
                             nb_most_important_concepts: int = None,
@@ -530,10 +547,10 @@ class CraftImageVisualizationMixin():
             otherwise no textual output will be printed.
         """
         for c_id, c_id_importance, best_crops in \
-            self._gen_best_concepts_crops(nb_crops, nb_most_important_concepts):
+                self._gen_best_concepts_crops(nb_crops, nb_most_important_concepts):
             if verbose:
-                print(f"Concept {c_id} has an importance value of " \
-                        f"{c_id_importance:.2f}")
+                print(f"Concept {c_id} has an importance value of "
+                      f"{c_id_importance:.2f}")
             plt.figure(figsize=(7, (2.5/2)*ceil(nb_crops/5)))
             for i in range(nb_crops):
                 plt.subplot(ceil(nb_crops/5), 5, i+1)
@@ -542,7 +559,7 @@ class CraftImageVisualizationMixin():
 
     def plot_concept_attribution_legend(self,
                                         nb_most_important_concepts: int = 6,
-                                        border_width: int=5):
+                                        border_width: int = 5):
         """
         Plot a legend for the concepts attribution maps.
 
@@ -560,13 +577,14 @@ class CraftImageVisualizationMixin():
             cmap = self.sensitivity.cmaps[i]
             plt.subplot(1, len(most_important_concepts), i+1)
 
-            best_crops_id = np.argsort(self.factorization.crops_u[:, c_id])[::-1][0]
+            best_crops_id = np.argsort(
+                self.factorization.crops_u[:, c_id])[::-1][0]
             best_crop = self.factorization.crops[best_crops_id]
 
             if best_crop.shape[0] > best_crop.shape[-1]:
-                mask = np.zeros(best_crop.shape[:-1]) # tf
+                mask = np.zeros(best_crop.shape[:-1])  # tf
             else:
-                mask = np.zeros(best_crop.shape[1:]) # torch
+                mask = np.zeros(best_crop.shape[1:])  # torch
             mask[:border_width, :] = 1.0
             mask[:, :border_width] = 1.0
             mask[-border_width:, :] = 1.0
@@ -618,22 +636,23 @@ class CraftImageVisualizationMixin():
         # get width and height of our images
         if images.shape[1] == 3:
             nb_samples = images.shape[0]
-            [l_width, l_height] = images.shape[2:4] # pytorch
+            [l_width, l_height] = images.shape[2:4]  # pytorch
         else:
-            [nb_samples, l_width, l_height] = images.shape[0:3] # tf
+            [nb_samples, l_width, l_height] = images.shape[0:3]  # tf
         rows = ceil(nb_samples / cols)
 
         # define the figure margin, width, height in inch
         figwidth = cols * img_size + (cols-1) * spacing + 2 * margin
-        figheight = rows * img_size * l_height/l_width + (rows-1) * spacing + 2 * margin
+        figheight = rows * img_size * l_height / \
+            l_width + (rows-1) * spacing + 2 * margin
 
         layout_parameters = {
-            'left'      : margin/figwidth,
-            'right'     : 1.-(margin/figwidth),
-            'bottom'    : margin/figheight,
-            'top'       :  1.-(margin/figheight),
-            'wspace'    : spacing/img_size,
-            'hspace'    : spacing/img_size * l_width/l_height
+            'left': margin/figwidth,
+            'right': 1.-(margin/figwidth),
+            'bottom': margin/figheight,
+            'top':  1.-(margin/figheight),
+            'wspace': spacing/img_size,
+            'hspace': spacing/img_size * l_width/l_height
         }
         return layout_parameters, rows, figwidth, figheight
 
@@ -679,7 +698,8 @@ class CraftImageVisualizationMixin():
             Additional parameters passed to `plt.imshow()`.
         """
 
-        self.plot_concept_attribution_legend(nb_most_important_concepts=nb_most_important_concepts)
+        self.plot_concept_attribution_legend(
+            nb_most_important_concepts=nb_most_important_concepts)
 
         # Take into account single vs multiple images array
         if len(images.shape) == 3:
@@ -687,7 +707,8 @@ class CraftImageVisualizationMixin():
 
         # Configure the subplots
         layout_configuration, rows, figwidth, figheight = \
-            self.compute_subplots_layout_parameters(images=images, cols=cols, img_size=img_size)
+            self.compute_subplots_layout_parameters(
+                images=images, cols=cols, img_size=img_size)
 
         fig = plt.figure()
         fig.set_size_inches(figwidth, figheight)
@@ -715,13 +736,13 @@ class CraftImageVisualizationMixin():
                                               **plot_kwargs)
 
     def plot_concept_attribution_map(self,
-                                    image: np.ndarray,
-                                    most_important_concepts: np.ndarray,
-                                    nb_most_important_concepts: int = 5,
-                                    filter_percentile: int = 90,
-                                    clip_percentile: Optional[float] = 10,
-                                    alpha: float = 0.65,
-                                    **plot_kwargs):
+                                     image: np.ndarray,
+                                     most_important_concepts: np.ndarray,
+                                     nb_most_important_concepts: int = 5,
+                                     filter_percentile: int = 90,
+                                     clip_percentile: Optional[float] = 10,
+                                     alpha: float = 0.65,
+                                     **plot_kwargs):
         """
         Display the concepts attribution map for a single image given in argument.
 
@@ -751,15 +772,16 @@ class CraftImageVisualizationMixin():
         most_important_concepts = most_important_concepts[:nb_most_important_concepts]
 
         # Find the colors corresponding to the importances
-        global_color_index_order = np.argsort(self.sensitivity.importances)[::-1]
+        global_color_index_order = np.argsort(
+            self.sensitivity.importances)[::-1]
         local_color_index_order = [np.where(global_color_index_order == local_c)[0][0]
                                    for local_c in most_important_concepts]
         local_cmap = np.array(self.sensitivity.cmaps)[local_color_index_order]
 
         if image.shape[0] == 3:
-            dsize = image.shape[1:3] # pytorch
+            dsize = image.shape[1:3]  # pytorch
         else:
-            dsize = image.shape[0:2] # tf
+            dsize = image.shape[0:2]  # tf
         BaseCraft._show(image, **plot_kwargs)
 
         image_u = self.transform(image)[0]
@@ -767,7 +789,8 @@ class CraftImageVisualizationMixin():
             heatmap = image_u[:, :, c_id]
 
             # only show concept if excess N-th percentile
-            sigma = np.percentile(np.array(heatmap).flatten(), filter_percentile)
+            sigma = np.percentile(
+                np.array(heatmap).flatten(), filter_percentile)
             heatmap = heatmap * np.array(heatmap > sigma, np.float32)
 
             # resize the heatmap before cliping
@@ -776,12 +799,13 @@ class CraftImageVisualizationMixin():
             if clip_percentile:
                 heatmap = _clip_percentile(heatmap, clip_percentile)
 
-            BaseCraft._show(heatmap, cmap=local_cmap[::-1][i], alpha=alpha, **plot_kwargs)
+            BaseCraft._show(
+                heatmap, cmap=local_cmap[::-1][i], alpha=alpha, **plot_kwargs)
 
     def plot_image_concepts(self,
                             img: np.ndarray,
-                            display_importance_order: DisplayImportancesOrder = \
-                                                    DisplayImportancesOrder.GLOBAL,
+                            display_importance_order: DisplayImportancesOrder =
+                            DisplayImportancesOrder.GLOBAL,
                             nb_most_important_concepts: int = 5,
                             filter_percentile: int = 90,
                             clip_percentile: Optional[float] = 10,
@@ -825,7 +849,8 @@ class CraftImageVisualizationMixin():
         if display_importance_order == DisplayImportancesOrder.LOCAL:
             # compute the importances for the sample input in argument
             importances = self.estimate_importance(inputs=img)
-            most_important_concepts = np.argsort(importances)[::-1][:nb_most_important_concepts]
+            most_important_concepts = np.argsort(
+                importances)[::-1][:nb_most_important_concepts]
         else:
             # use the global importances computed on the whole dataset
             importances = self.sensitivity.importances
@@ -836,7 +861,8 @@ class CraftImageVisualizationMixin():
         # the crops, and the central part to display the heatmap
         nb_rows = ceil(len(most_important_concepts) / 2.0)
         nb_cols = 4
-        gs_main = fig.add_gridspec(nb_rows, nb_cols, hspace=0.4, width_ratios=[0.2, 0.4, 0.2, 0.4])
+        gs_main = fig.add_gridspec(
+            nb_rows, nb_cols, hspace=0.4, width_ratios=[0.2, 0.4, 0.2, 0.4])
 
         # Central image
         #
@@ -851,8 +877,8 @@ class CraftImageVisualizationMixin():
 
         # Concepts: creation of the axes on left and right of the image for the concepts
         #
-        gs_concepts_axes  = [gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=gs_main[i, 0])
-                             for i in range(nb_rows)]
+        gs_concepts_axes = [gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=gs_main[i, 0])
+                            for i in range(nb_rows)]
         gs_right = [gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=gs_main[i, 2])
                     for i in range(nb_rows)]
         gs_concepts_axes.extend(gs_right)
@@ -861,7 +887,8 @@ class CraftImageVisualizationMixin():
         nb_crops = 6
 
         # compute the right color to use for the crops
-        global_color_index_order = np.argsort(self.sensitivity.importances)[::-1]
+        global_color_index_order = np.argsort(
+            self.sensitivity.importances)[::-1]
         local_color_index_order = [np.where(global_color_index_order == local_c)[0][0]
                                    for local_c in most_important_concepts]
         local_cmap = np.array(self.sensitivity.cmaps)[local_color_index_order]
@@ -870,22 +897,24 @@ class CraftImageVisualizationMixin():
             cmap = local_cmap[i]
 
             # use a ghost invisible subplot only to have a border around the crops
-            ghost_axe = fig.add_subplot(gs_concepts_axes[i][:,:])
+            ghost_axe = fig.add_subplot(gs_concepts_axes[i][:, :])
             ghost_axe.set_title(f"{c_id}", color=cmap(1.0))
             ghost_axe.axis('off')
 
-            inset_axes = ghost_axe.inset_axes([-0.04, -0.04, 1.08, 1.08]) # outer border
+            inset_axes = ghost_axe.inset_axes(
+                [-0.04, -0.04, 1.08, 1.08])  # outer border
             inset_axes.set_xticks([])
             inset_axes.set_yticks([])
-            for spine in inset_axes.spines.values(): # border color
+            for spine in inset_axes.spines.values():  # border color
                 spine.set_edgecolor(color=cmap(1.0))
                 spine.set_linewidth(3)
 
             # draw each crop for this concept
-            gs_current = gridspec.GridSpecFromSubplotSpec(2, 3, subplot_spec=
-                                                                gs_concepts_axes[i][:,:])
+            gs_current = gridspec.GridSpecFromSubplotSpec(
+                2, 3, subplot_spec=gs_concepts_axes[i][:, :])
 
-            best_crops_ids = np.argsort(self.factorization.crops_u[:, c_id])[::-1][:nb_crops]
+            best_crops_ids = np.argsort(self.factorization.crops_u[:, c_id])[
+                ::-1][:nb_crops]
             best_crops = np.array(self.factorization.crops)[best_crops_ids]
             for i in range(nb_crops):
                 axe = plt.Subplot(fig, gs_current[i // 3, i % 3])
@@ -893,9 +922,10 @@ class CraftImageVisualizationMixin():
                 BaseCraft._show(best_crops[i])
 
         # Right plot: importances
-        importance_axe  = gridspec.GridSpecFromSubplotSpec(3, 2, width_ratios=[0.1, 0.9],
-                                                                 height_ratios=[0.15, 0.6, 0.15],
-                                                                 subplot_spec=gs_main[:, 3])
+        importance_axe = gridspec.GridSpecFromSubplotSpec(3, 2, width_ratios=[0.1, 0.9],
+                                                          height_ratios=[
+                                                              0.15, 0.6, 0.15],
+                                                          subplot_spec=gs_main[:, 3])
         fig.add_subplot(importance_axe[1, 1])
         self.plot_concepts_importances(importances=importances,
                                        display_importance_order=display_importance_order,

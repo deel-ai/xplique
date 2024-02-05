@@ -6,8 +6,9 @@ from abc import ABC, abstractmethod
 
 import numpy as np
 
-from ..types import Callable, Optional
+from ..types import Callable, Optional, Union, Tuple
 from .craft import DisplayImportancesOrder
+
 
 class BaseCraftManager(ABC):
     """
@@ -31,11 +32,11 @@ class BaseCraftManager(ABC):
 
     @abstractmethod
     def __init__(self,
-                input_to_latent_model : Callable,
-                latent_to_logit_model : Callable,
-                inputs : np.ndarray,
-                labels : np.ndarray,
-                list_of_class_of_interest : Optional[list] = None):
+                 input_to_latent_model: Callable,
+                 latent_to_logit_model: Callable,
+                 inputs: np.ndarray,
+                 labels: np.ndarray,
+                 list_of_class_of_interest: Optional[list] = None):
         self.input_to_latent_model = input_to_latent_model
         self.latent_to_logit_model = latent_to_logit_model
         self.inputs = inputs
@@ -45,7 +46,7 @@ class BaseCraftManager(ABC):
             # take all the classes
             list_of_class_of_interest = np.array(list(set(labels)))
         self.list_of_class_of_interest = list_of_class_of_interest
-        self.craft_instances = None
+        self.craft_instances = {}
 
     @abstractmethod
     def compute_predictions(self):
@@ -90,7 +91,8 @@ class BaseCraftManager(ABC):
             if nb_samples_per_class is not None:
                 class_inputs = class_inputs[:nb_samples_per_class]
                 class_labels = class_labels[:nb_samples_per_class]
-            craft_instance.fit(class_inputs, class_id=class_of_interest, alpha_w=alpha_w)
+            craft_instance.fit(
+                class_inputs, class_id=class_of_interest, alpha_w=alpha_w)
 
     def estimate_importance(self, nb_design: int = 32, verbose: bool = False):
         """
@@ -114,6 +116,7 @@ class CraftManagerImageVisualizationMixin():
     """
     Class containing image visualization methods for CraftManager.
     """
+
     def plot_concepts_importances(self,
                                   class_id: int,
                                   nb_most_important_concepts: int = 5,
@@ -131,9 +134,10 @@ class CraftManagerImageVisualizationMixin():
             If True, then print the importance value of each concept, otherwise no textual
             output will be printed.
         """
-        self.craft_instances[class_id].plot_concepts_importances(importances = None,
-                                        nb_most_important_concepts=nb_most_important_concepts,
-                                        verbose=verbose)
+        self.craft_instances[class_id]\
+            .plot_concepts_importances(importances=None,
+                                       nb_most_important_concepts=nb_most_important_concepts,
+                                       verbose=verbose)
 
     def plot_concepts_crops(self,
                             class_id: int, nb_crops: int = 10,
@@ -153,13 +157,13 @@ class CraftManagerImageVisualizationMixin():
             Default is None.
         """
         self.craft_instances[class_id].plot_concepts_crops(nb_crops=nb_crops,
-                        nb_most_important_concepts=nb_most_important_concepts)
+                                                           nb_most_important_concepts=nb_most_important_concepts)
 
     def plot_image_concepts(self,
                             img: np.ndarray,
                             class_id: int,
-                            display_importance_order: DisplayImportancesOrder = \
-                                                    DisplayImportancesOrder.GLOBAL,
+                            display_importance_order: DisplayImportancesOrder =
+                            DisplayImportancesOrder.GLOBAL,
                             nb_most_important_concepts: int = 5,
                             filter_percentile: int = 90,
                             clip_percentile: Optional[float] = 10,
@@ -198,9 +202,9 @@ class CraftManagerImageVisualizationMixin():
             Path the file will be saved at. If None, the function will call plt.show().
         """
         self.craft_instances[class_id].plot_image_concepts(img,
-                                            display_importance_order=display_importance_order,
-                                            nb_most_important_concepts=nb_most_important_concepts,
-                                            filter_percentile=filter_percentile,
-                                            clip_percentile=clip_percentile,
-                                            alpha=alpha,
-                                            filepath=filepath)
+                                                           display_importance_order=display_importance_order,
+                                                           nb_most_important_concepts=nb_most_important_concepts,
+                                                           filter_percentile=filter_percentile,
+                                                           clip_percentile=clip_percentile,
+                                                           alpha=alpha,
+                                                           filepath=filepath)

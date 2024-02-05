@@ -10,6 +10,7 @@ import numpy as np
 from .craft import BaseCraft, CraftImageVisualizationMixin
 from .craft_manager import BaseCraftManager, CraftManagerImageVisualizationMixin
 
+
 class BaseCraftTf(BaseCraft):
     """
     Base class implementing the CRAFT Concept Extraction Mechanism on Tensorflow.
@@ -32,11 +33,12 @@ class BaseCraftTf(BaseCraft):
     patch_size
         The size of the patches to extract from the input data. Default is 64.
     """
-    def __init__(self, input_to_latent_model : Callable,
-                       latent_to_logit_model : Callable,
-                       number_of_concepts: int = 20,
-                       batch_size: int = 64,
-                       patch_size: int = 64):
+
+    def __init__(self, input_to_latent_model: Callable,
+                 latent_to_logit_model: Callable,
+                 number_of_concepts: int = 20,
+                 batch_size: int = 64,
+                 patch_size: int = 64):
         super().__init__(input_to_latent_model,
                          latent_to_logit_model,
                          number_of_concepts,
@@ -47,9 +49,9 @@ class BaseCraftTf(BaseCraft):
         keras_base_layer = tf.keras.Model
 
         is_tf_model = issubclass(type(input_to_latent_model), keras_base_layer) & \
-                      issubclass(type(latent_to_logit_model), keras_base_layer)
+            issubclass(type(latent_to_logit_model), keras_base_layer)
         if not is_tf_model:
-            raise TypeError('input_to_latent_model and latent_to_logit_model are not '\
+            raise TypeError('input_to_latent_model and latent_to_logit_model are not '
                             'Tensorflow models')
 
     def _latent_predict(self, inputs: tf.Tensor):
@@ -109,16 +111,19 @@ class BaseCraftTf(BaseCraft):
 
         strides = int(self.patch_size * 0.80)
         patches = tf.image.extract_patches(images=inputs,
-                                           sizes=[1, self.patch_size, self.patch_size, 1],
+                                           sizes=[1, self.patch_size,
+                                                  self.patch_size, 1],
                                            strides=[1, strides, strides, 1],
                                            rates=[1, 1, 1, 1],
                                            padding='VALID')
-        patches = tf.reshape(patches, (-1, self.patch_size, self.patch_size, inputs.shape[-1]))
+        patches = tf.reshape(
+            patches, (-1, self.patch_size, self.patch_size, inputs.shape[-1]))
 
         # encode the patches and obtain the activations
         input_width, input_height = inputs.shape[1], inputs.shape[2]
         activations = self._latent_predict(tf.image.resize(patches,
-                                                           (input_width, input_height),
+                                                           (input_width,
+                                                            input_height),
                                                            method="bicubic"))
         assert np.min(activations) >= 0.0, "Activations must be positive."
 
@@ -135,6 +140,7 @@ class BaseCraftTf(BaseCraft):
         Converts a Tensorflow tensor into a numpy array.
         """
         return np.array(inputs, dtype)
+
 
 class CraftTf(BaseCraftTf, CraftImageVisualizationMixin):
     """
@@ -190,19 +196,19 @@ class BaseCraftManagerTf(BaseCraftManager):
     patch_size
         The size of the patches (crops) to extract from the input data. Default is 64.
     """
-    def __init__(self, input_to_latent_model : Callable,
-                    latent_to_logit_model : Callable,
-                    inputs : np.ndarray,
-                    labels : np.ndarray,
-                    list_of_class_of_interest : Optional[list] = None,
-                    number_of_concepts: int = 20,
-                    batch_size: int = 64,
-                    patch_size: int = 64):
+
+    def __init__(self, input_to_latent_model: Callable,
+                 latent_to_logit_model: Callable,
+                 inputs: np.ndarray,
+                 labels: np.ndarray,
+                 list_of_class_of_interest: Optional[list] = None,
+                 number_of_concepts: int = 20,
+                 batch_size: int = 64,
+                 patch_size: int = 64):
 
         super().__init__(input_to_latent_model, latent_to_logit_model,
                          inputs, labels, list_of_class_of_interest)
 
-        self.craft_instances = {}
         for class_of_interest in self.list_of_class_of_interest:
             craft = CraftTf(input_to_latent_model, latent_to_logit_model,
                             number_of_concepts, batch_size, patch_size)
@@ -219,8 +225,9 @@ class BaseCraftManagerTf(BaseCraftManager):
             the predictions
         """
         y_preds = np.array(tf.argmax(self.latent_to_logit_model.predict(
-                            self.input_to_latent_model.predict(self.inputs)), 1))
+            self.input_to_latent_model.predict(self.inputs)), 1))
         return y_preds
+
 
 class CraftManagerTf(BaseCraftManagerTf, CraftManagerImageVisualizationMixin):
     """
