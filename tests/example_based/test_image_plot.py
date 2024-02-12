@@ -15,7 +15,7 @@ import tensorflow as tf
 from xplique.attributions import Occlusion, Saliency
 
 from xplique.example_based import Cole, SimilarExamples
-from xplique.example_based.projections import CustomProjection
+from xplique.example_based.projections import Projection
 from xplique.example_based.search_methods import KNN
 from xplique.plots.image import plot_examples
 
@@ -70,7 +70,6 @@ def test_plot_cole_spliting():
         cases_dataset=x_train,
         labels_dataset=tf.argmax(y_train, axis=1),
         targets_dataset=y_train,
-        search_method=KNN,
         k=k,
         case_returns="all",
         model=model,

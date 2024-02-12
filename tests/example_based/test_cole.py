@@ -74,7 +74,6 @@ def test_cole_attribution():
     method_constructor = Cole(
         cases_dataset=x_train,
         targets_dataset=y_train,
-        search_method=KNN,
         k=k,
         batch_size=7,
         distance="euclidean",
@@ -89,7 +88,6 @@ def test_cole_attribution():
     method_call = SimilarExamples(
         cases_dataset=x_train,
         targets_dataset=y_train,
-        search_method=KNN,
         k=k,
         distance=euclidean_dist,
         projection=projection,
@@ -98,7 +96,6 @@ def test_cole_attribution():
     method_different_distance = Cole(
         cases_dataset=x_train,
         targets_dataset=y_train,
-        search_method=KNN,
         k=k,
         batch_size=2,
         distance=np.inf,  # infinity norm based distance
@@ -157,7 +154,6 @@ def test_cole_spliting():
     method = Cole(
         cases_dataset=x_train,
         targets_dataset=y_train,
-        search_method=KNN,
         k=k,
         case_returns=["examples", "weights", "include_inputs"],
         model=model,

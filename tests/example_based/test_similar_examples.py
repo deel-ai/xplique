@@ -148,7 +148,6 @@ def test_similar_examples_basic():
     method = SimilarExamples(
         cases_dataset=x_train,
         projection=identity_projection,
-        search_method=KNN,
         k=k,
         batch_size=3,
         distance="euclidean",
@@ -194,7 +193,6 @@ def test_similar_examples_return_multiple_elements():
         cases_dataset=x_train,
         labels_dataset=y_train,
         projection=identity_projection,
-        search_method=KNN,
         k=1,
         batch_size=3,
         distance="euclidean",
@@ -274,7 +272,6 @@ def test_similar_examples_weighting():
         cases_dataset=x_train,
         labels_dataset=y_train,
         projection=weighting_function,
-        search_method=KNN,
         k=k,
         batch_size=5,
         distance="euclidean",

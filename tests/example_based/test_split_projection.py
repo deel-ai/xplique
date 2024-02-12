@@ -40,7 +40,7 @@ def test_attribution_latent_layer():
     last_conv_layer = model.get_layer("conv2d_2")
     flatten_layer = model.get_layer("flatten")
 
-    # default should not include model spliting
+    # default should not include model splitting
     projection_default = AttributionProjection(model)
     assert projection_default.latent_layer is None
 
