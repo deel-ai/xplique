@@ -45,8 +45,6 @@ class Cole(SimilarExamples):
         Batch size and cardinality of other dataset should match `cases_dataset`.
         Becareful, `tf.data.Dataset` are often reshuffled at each iteration, be sure that it is not
         the case for your dataset, otherwise, examples will not make sense.
-    search_method
-        An algorithm to search the examples in the projected space.
     k
         The number of examples to retrieve. Default value is `1`.
     distance
@@ -87,7 +85,6 @@ class Cole(SimilarExamples):
         model: tf.keras.Model,
         targets_dataset: Union[tf.Tensor, np.ndarray],
         labels_dataset: Optional[Union[tf.Tensor, np.ndarray]] = None,
-        search_method: Type[BaseSearchMethod] = KNN,
         k: int = 1,
         distance: Union[str, Callable] = "euclidean",
         case_returns: Optional[Union[List[str], str]] = "examples",
@@ -110,7 +107,6 @@ class Cole(SimilarExamples):
             cases_dataset,
             labels_dataset,
             targets_dataset,
-            search_method,
             k,
             projection,
             case_returns,
