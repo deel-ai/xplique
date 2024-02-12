@@ -70,7 +70,6 @@ def test_plot_cole_spliting():
         cases_dataset=x_train,
         labels_dataset=tf.argmax(y_train, axis=1),
         targets_dataset=y_train,
-        search_method=KNN,
         k=k,
         case_returns="all",
         model=model,
