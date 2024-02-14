@@ -7,18 +7,13 @@ import sys
 
 sys.path.append(os.getcwd())
 
-from math import prod, sqrt
-
 import numpy as np
-import scipy
 import tensorflow as tf
 
+from xplique.commons.operators_operations import gradients_predictions
 from xplique.attributions import Occlusion, Saliency
-
 from xplique.example_based import Cole, SimilarExamples
-from xplique.example_based.projections import CustomProjection
-from xplique.example_based.search_methods import KNN
-from xplique.types import Union
+from xplique.example_based.projections import Projection
 
 from tests.utils import (
     generate_data,
@@ -38,11 +33,12 @@ def get_setup(input_shape, nb_samples=10, nb_labels=10):
     )
     x_test = x_train[1:-1]
     y_train = tf.one_hot(tf.range(len(x_train)) % nb_labels, depth=nb_labels)
+    y_test = y_train[1:-1]
 
     # Model generation
     model = generate_model(input_shape, nb_labels)
 
-    return model, x_train, x_test, y_train
+    return model, x_train, x_test, y_train, y_test
 
 
 def test_cole_attribution():
@@ -81,8 +77,12 @@ def test_cole_attribution():
         attribution_method=Saliency,
     )
 
-    # Cole with attribution explain
-    projection = CustomProjection(weights=Saliency(model))
+    # Cole with attribution explain batch gradient is overwritten for test purpose, do not copy!
+    explainer = Saliency(model)
+    explainer.batch_gradient = \
+    lambda model, inputs, targets, batch_size:\
+        explainer.gradient(model, inputs, targets)
+    projection = Projection(get_weights=explainer)
 
     euclidean_dist = lambda x, z: tf.sqrt(tf.reduce_sum(tf.square(x - z)))
     method_call = SimilarExamples(
@@ -128,7 +128,57 @@ def test_cole_attribution():
     )
 
 
-def test_cole_spliting():
+def test_cole_hadamard():
+    """
+    Test Cole with Hadamard projection.
+    It should be the same as a manual projection.
+    """
+    # Setup
+    input_shape = (7, 7, 3)
+    nb_samples = 10
+    nb_labels = 2
+    k = 3
+    model, x_train, x_test, y_train, y_test =\
+        get_setup(input_shape, nb_samples=nb_samples, nb_labels=nb_labels)
+
+    # Cole with Hadamard projection constructor
+    method_constructor = Cole(
+        cases_dataset=x_train,
+        targets_dataset=y_train,
+        k=k,
+        batch_size=7,
+        distance="euclidean",
+        model=model,
+        projection_method="gradient",
+    )
+
+    # Cole with Hadamard projection explain batch gradient is overwritten for test purpose, do not copy!
+    weights_extraction = lambda inputs, targets: gradients_predictions(model, inputs, targets)
+    projection = Projection(get_weights=weights_extraction)
+
+    euclidean_dist = lambda x, z: tf.sqrt(tf.reduce_sum(tf.square(x - z)))
+    method_call = SimilarExamples(
+        cases_dataset=x_train,
+        targets_dataset=y_train,
+        k=k,
+        distance=euclidean_dist,
+        projection=projection,
+    )
+
+    # Generate explanation
+    examples_constructor = method_constructor.explain(x_test, y_test)
+    examples_call = method_call.explain(x_test, y_test)
+
+    # Verifications
+    # Shape should be (n, k, h, w, c)
+    assert examples_constructor.shape == (len(x_test), k) + input_shape
+    assert examples_call.shape == (len(x_test), k) + input_shape
+
+    # both methods should be the same
+    assert almost_equal(examples_constructor, examples_call)
+
+
+def test_cole_splitting():
     """
     Test Cole with a `latent_layer` provided.
     It should split the model.
@@ -175,4 +225,4 @@ def test_cole_spliting():
 
 
 # test_cole_attribution()
-# test_cole_spliting()
+# test_cole_splitting()
