@@ -11,8 +11,6 @@ from ...types import Callable, Union, Optional, List
 
 from ...commons import sanitize_dataset
 
-from ..projections.base import Projection
-
 
 def _sanitize_returns(returns: Optional[Union[List[str], str]] = None,
                       possibilities: List[str] = None,
@@ -69,27 +67,8 @@ class BaseSearchMethod(ABC):
     cases_dataset
         The dataset used to train the model, examples are extracted from the dataset.
         For natural example-based methods it is the train dataset.
-    targets_dataset
-        Targets associated to the cases_dataset for dataset projection. See `projection` for detail.
     k
         The number of examples to retrieve.
-    projection
-        Projection or Callable that project samples from the input space to the search space.
-        The search space sould be a space where distance make sense for the model.
-        It should not be `None`, otherwise,
-        all examples could be computed only with the `search_method`.
-
-        Example of Callable:
-        ```
-        def custom_projection(inputs: tf.Tensor, np.ndarray, targets: tf.Tensor, np.ndarray = None):
-            '''
-            Example of projection,
-            inputs are the elements to project.
-            targets are optionnal parameters to orientated the projection.
-            '''
-            projected_inputs = # do some magic on inputs, it should use the model.
-            return projected_inputs
-        ```
     search_returns
         String or list of string with the elements to return in `self.find_examples()`.
         See `self.set_returns()` for detail.
@@ -101,12 +80,11 @@ class BaseSearchMethod(ABC):
     def __init__(
         self,
         cases_dataset: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
-        targets_dataset: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
         k: int = 1,
-        projection: Union[Projection, Callable] = None,
         search_returns: Optional[Union[List[str], str]] = None,
         batch_size: Optional[int] = 32,
     ): # pylint: disable=R0801
+        
         # set batch size
         if hasattr(cases_dataset, "_batch_size"):
             self.batch_size = cases_dataset._batch_size
@@ -114,19 +92,14 @@ class BaseSearchMethod(ABC):
             self.batch_size = batch_size
 
         self.cases_dataset = sanitize_dataset(cases_dataset, self.batch_size)
-        self.targets_dataset = sanitize_dataset(targets_dataset, self.batch_size)
-        if self.targets_dataset is None:
-            # The `find_examples()` method need to be able to iterate on `self.targets_dataset`
-            self.targets_dataset = [None] * self.cases_dataset.cardinality().numpy()
 
         self.set_k(k)
         self.set_returns(search_returns)
-        self.projection = projection
 
     def set_k(self, k: int):
         """
         Change value of k with constructing a new `BaseSearchMethod`.
-        It is useful because the constructor can be computionnaly expensive.
+        It is useful because the constructor can be computationally expensive.
 
         Parameters
         ----------
@@ -170,7 +143,6 @@ class BaseSearchMethod(ABC):
         ----------
         inputs
             Tensor or Array. Input samples to be explained.
-            Assumed to have been already projected.
             Expected shape among (N, W), (N, T, W), (N, W, H, C).
         """
         raise NotImplementedError()
