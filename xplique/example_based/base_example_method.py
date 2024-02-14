@@ -93,19 +93,34 @@ class BaseExampleMethod:
         batch_size = self.__initialize_cases_dataset(
             cases_dataset, labels_dataset, targets_dataset, batch_size
         )
+
         self.k = k
         self.set_returns(case_returns)
-        self.projection = projection
+
+        assert hasattr(projection, "__call__"), "projection should be a callable."
+
+        # check projection type
+        if isinstance(projection, Projection):
+            self.projection = projection
+        elif hasattr(projection, "__call__"):
+            self.projection = Projection(get_weights=None, space_projection=projection)
+        else:
+            raise AttributeError(
+                "projection should be a `Projection` or a `Callable`, not a"
+                + f"{type(projection)}"
+            )
+
+        # project dataset
+        projected_cases_dataset = self.projection.project_dataset(self.cases_dataset,
+                                                                  self.targets_dataset)
 
         # set `search_returns` if not provided and overwrite it otherwise
         search_method_kwargs["search_returns"] = ["indices", "distances"]
 
         # initiate search_method
         self.search_method = search_method(
-            cases_dataset=cases_dataset,
-            targets_dataset=targets_dataset,
+            cases_dataset=projected_cases_dataset,
             k=k,
-            projection=projection,
             batch_size=batch_size,
             **search_method_kwargs,
         )
@@ -266,7 +281,7 @@ class BaseExampleMethod:
         Returns
         -------
         return_dict
-            Dictionnary with listed elements in `self.returns`.
+            Dictionary with listed elements in `self.returns`.
             If only one element is present it returns the element.
             The elements that can be returned are:
             examples, weights, distances, indices, and labels.
@@ -300,7 +315,7 @@ class BaseExampleMethod:
         Parameters
         ----------
         search_output
-            Dictionnary with the required outputs from the `search_method`.
+            Dictionary with the required outputs from the `search_method`.
         inputs
             Tensor or Array. Input samples to be explained.
             Expected shape among (N, W), (N, T, W), (N, W, H, C).
@@ -314,7 +329,7 @@ class BaseExampleMethod:
         Returns
         -------
         return_dict
-            Dictionnary with listed elements in `self.returns`.
+            Dictionary with listed elements in `self.returns`.
             If only one element is present it returns the element.
             The elements that can be returned are:
             examples, weights, distances, indices, and labels.
