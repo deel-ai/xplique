@@ -9,9 +9,10 @@ techniques
 __version__ = '1.3.3'
 
 from . import attributions
-from . import concepts
-from . import features_visualizations
 from . import commons
+from . import concepts
+from . import example_based
+from . import features_visualizations
 from . import plots
 
 from .commons import Tasks
