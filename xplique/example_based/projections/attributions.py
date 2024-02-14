@@ -1,17 +1,18 @@
 """
 Attribution, a projection from example based module
 """
-
+import warnings
 
 import tensorflow as tf
 import numpy as np
+from xplique.types import Optional
 
 from ...attributions.base import BlackBoxExplainer
 from ...attributions import Saliency
-from ...commons import find_layer
 from ...types import Callable, Union, Optional
 
 from .base import Projection
+from .commons import model_splitting
 
 
 class AttributionProjection(Projection):
@@ -19,13 +20,13 @@ class AttributionProjection(Projection):
     Projection build on an attribution function to provide local projections.
     This class is used as the projection of the `Cole` similar examples method.
 
-    Depending on the `latent_layer`, the model will be splited between
+    Depending on the `latent_layer`, the model will be splitted between
     the feature extractor and the predictor.
     The feature extractor will become the `space_projection()` method, then
     the predictor will be used to build the attribution method explain, and
     its `explain()` method will become the `get_weights()` method.
 
-    If no `latent_layer` is provided, the model is not splited,
+    If no `latent_layer` is provided, the model is not splitted,
     the `space_projection()` is the identity function, and
     the attributions (`get_weights()`) are compute on the whole model.
 
@@ -42,7 +43,7 @@ class AttributionProjection(Projection):
         If an `int` is provided it will be interpreted as a layer index.
         If a `string` is provided it will look for the layer name.
 
-        The method as described in the paper apply the separation on the last convolutionnal layer.
+        The method as described in the paper apply the separation on the last convolutional layer.
         To do so, the `"last_conv"` parameter will extract it.
         Otherwise, `-1` could be used for the last layer before softmax.
     attribution_method
@@ -60,52 +61,22 @@ class AttributionProjection(Projection):
         latent_layer: Optional[Union[str, int]] = None,
         **attribution_kwargs
     ):
-        self.model = model
+        self.method = method
 
         if latent_layer is None:
             # no split
             self.latent_layer = None
-            space_projection = lambda inputs: inputs
-            get_weights = method(model, **attribution_kwargs)
+            space_projection = None
+            self.predictor = model
         else:
             # split the model if a latent_layer is provided
-            if latent_layer == "last_conv":
-                self.latent_layer = next(
-                    layer for layer in model.layers[::-1] if hasattr(layer, "filters")
-                )
-            else:
-                self.latent_layer = find_layer(model, latent_layer)
-
-            space_projection = tf.keras.Model(
-                model.input, self.latent_layer.output, name="features_extractor"
-            )
-            self.predictor = tf.keras.Model(
-                self.latent_layer.output, model.output, name="predictor"
-            )
-            get_weights = method(self.predictor, **attribution_kwargs)
+            space_projection, self.predictor = model_splitting(model, latent_layer)
+        
+        # compute attributions
+        get_weights = self.method(self.predictor, **attribution_kwargs)
 
         # set methods
         super().__init__(get_weights, space_projection)
-
-        # attribution methods output do not have channel
-        # we wrap get_weights to expend dimensions if needed
-        self.__wrap_get_weights_to_extend_channels(self.get_weights)
-
-    def __wrap_get_weights_to_extend_channels(self, get_weights: Callable):
-        """
-        Extend channel if miss match between inputs and weights
-        """
-
-        def wrapped_get_weights(inputs, targets):
-            weights = get_weights(inputs, targets)
-            weights = tf.cond(
-                pred=weights.shape == inputs.shape,
-                true_fn=lambda: weights,
-                false_fn=lambda: tf.expand_dims(weights, axis=-1),
-            )
-            return weights
-
-        self.get_weights = wrapped_get_weights
 
     def get_input_weights(
         self,
@@ -154,3 +125,42 @@ class AttributionProjection(Projection):
             false_fn=resize_fn,
         )
         return input_weights
+
+    def project_dataset(
+        self,
+        cases_dataset: tf.data.Dataset,
+        targets_dataset: tf.data.Dataset,
+    ) -> tf.data.Dataset:
+        """
+        Apply the projection to a dataset without `Dataset.map`.
+        Because attribution methods create a `tf.data.Dataset` for batching,
+        however doing so inside a `Dataset.map` is not recommended.
+
+        Parameters
+        ----------
+        cases_dataset
+            Dataset of samples to be projected.
+        targets_dataset
+            Dataset of targets for the samples.
+
+        Returns
+        -------
+        projected_dataset
+            The projected dataset.
+        """
+        # TODO see if a warning is needed
+
+        projected_cases_dataset = []
+        batch_size = None
+
+        # iteratively project the dataset
+        for inputs, targets in tf.data.Dataset.zip((cases_dataset, targets_dataset)):
+            if batch_size is None:
+                batch_size = inputs.shape[0]  # TODO check if there is a smarter way to do this
+            projected_cases_dataset.append(self.project(inputs, targets))
+        
+        projected_cases_dataset = tf.concat(projected_cases_dataset, axis=0)
+        projected_cases_dataset = tf.data.Dataset.from_tensor_slices(projected_cases_dataset)
+        projected_cases_dataset = projected_cases_dataset.batch(batch_size)
+        
+        return projected_cases_dataset
