@@ -8,6 +8,7 @@ from ...commons import find_layer
 from ...types import Callable, Union
 
 from .base import Projection
+from .commons import model_splitting
 
 
 class LatentSpaceProjection(Projection):
@@ -31,18 +32,6 @@ class LatentSpaceProjection(Projection):
     """
 
     def __init__(self, model: Callable, latent_layer: Union[str, int] = -1):
-        self.model = model
-
-        # split the model if a latent_layer is provided
-        if latent_layer == "last_conv":
-            self.latent_layer = next(
-                layer for layer in model.layers[::-1] if hasattr(layer, "filters")
-            )
-        else:
-            self.latent_layer = find_layer(model, latent_layer)
-
-        latent_space_projection = tf.keras.Model(
-            model.input, self.latent_layer.output, name="features_extractor"
-        )
-
-        super().__init__(space_projection=latent_space_projection)
+        features_extractor, _ = model_splitting(model, latent_layer)
+        super().__init__(space_projection=features_extractor)
+        # TODO test if gpu is used for the projection
