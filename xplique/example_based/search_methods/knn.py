@@ -22,27 +22,8 @@ class KNN(BaseSearchMethod):
     cases_dataset
         The dataset used to train the model, examples are extracted from the dataset.
         For natural example-based methods it is the train dataset.
-    targets_dataset
-        Targets associated to the cases_dataset for dataset projection. See `projection` for detail.
     k
         The number of examples to retrieve.
-    projection
-        Projection or Callable that project samples from the input space to the search space.
-        The search space sould be a space where distance make sense for the model.
-        It should not be `None`, otherwise,
-        all examples could be computed only with the `search_method`.
-
-        Example of Callable:
-        ```
-        def custom_projection(inputs: tf.Tensor, np.ndarray, targets: tf.Tensor, np.ndarray = None):
-            '''
-            Example of projection,
-            inputs are the elements to project.
-            targets are optionnal parameters to orientated the projection.
-            '''
-            projected_inputs = # do some magic on inputs, it should use the model.
-            return projected_inputs
-        ```
     search_returns
         String or list of string with the elements to return in `self.find_examples()`.
         See `self.set_returns()` for detail.
@@ -59,15 +40,13 @@ class KNN(BaseSearchMethod):
     def __init__(
         self,
         cases_dataset: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
-        targets_dataset: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
         k: int = 1,
-        projection: Union[Projection, Callable] = None,
         search_returns: Optional[Union[List[str], str]] = None,
         batch_size: Optional[int] = 32,
         distance: Union[int, str, Callable] = "euclidean",
     ): # pylint: disable=R0801
         super().__init__(
-            cases_dataset, targets_dataset, k, projection, search_returns, batch_size
+            cases_dataset, k, search_returns, batch_size
         )
 
         if hasattr(distance, "__call__"):
@@ -131,25 +110,17 @@ class KNN(BaseSearchMethod):
         batch_indices = tf.tile(batch_indices, multiples=(nb_inputs, 1))
 
         # iterate on batches
-        for batch_index, (cases, targets) in enumerate(
-            zip(self.cases_dataset, self.targets_dataset)
-        ):
-            # project batch of dataset cases
-            if self.projection is not None:
-                projected_cases = self.projection.project(cases, targets)
-            else:
-                projected_cases = cases
-
+        for batch_index, cases in enumerate(self.cases_dataset):
             # add new elements
             # (n, current_bs, 2)
-            indices = batch_indices[:, : tf.shape(projected_cases)[0]]
+            indices = batch_indices[:, : tf.shape(cases)[0]]
             new_indices = tf.stack(
                 [tf.fill(indices.shape, tf.cast(batch_index, tf.int32)), indices], axis=-1
             )
 
             # compute distances
             # (n, current_bs)
-            distances = self.crossed_distances_fn(inputs, projected_cases)
+            distances = self.crossed_distances_fn(inputs, cases)
 
             # (n, k+curent_bs, 2)
             concatenated_indices = tf.concat([best_indices, new_indices], axis=1)
