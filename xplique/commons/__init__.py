@@ -11,3 +11,5 @@ from .operators_operations import (Tasks, get_operator, check_operator, operator
                                    get_inference_function, get_gradient_functions)
 from .exceptions import no_gradients_available, raise_invalid_operator
 from .forgrad import forgrad
+from .tf_dataset_operations import are_dataset_first_elems_equal, dataset_gather, sanitize_dataset,\
+                                   is_not_shuffled, batch_size_matches
