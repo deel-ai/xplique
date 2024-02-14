@@ -7,13 +7,13 @@ from abc import ABC
 import tensorflow as tf
 import numpy as np
 
-from ...commons import sanitize_inputs_targets
+from ...commons import sanitize_inputs_targets, get_device
 from ...types import Callable, Union, Optional
 
 
-class Projection(ABC):
+class Projection(ABC):  # TODO See if this should stay as abstract class or if we should remove CustomProjection
     """
-    Base class used by `NaturalExampleBasedExplainer` to projet samples to a meaningfull space
+    Base class used by `NaturalExampleBasedExplainer` to project samples to a meaningful space
     for the model to explain.
 
     Projection have two parts a `space_projection` and `weights`, to apply a projection,
@@ -39,14 +39,14 @@ class Projection(ABC):
                                 targets: Union(tf.Tensor, np.ndarray) = None):
             '''
             Example of function to get weights,
-            projected_inputs are the elements for which weights are comlputed.
-            targets are optionnal additionnal parameters for weights computation.
+            projected_inputs are the elements for which weights are computed.
+            targets are optional additional parameters for weights computation.
             '''
             weights = ...  # do some magic with inputs and targets, it should use the model.
             return weights
         ```
     space_projection
-        Callable that take samples and return a Tensor in the projected sapce.
+        Callable that take samples and return a Tensor in the projected space.
         An example of projected space is the latent space of a model. See `LatentSpaceProjection`
     """
 
@@ -75,6 +75,9 @@ class Projection(ABC):
             )
         self.space_projection = space_projection
 
+        # set device
+        self.device = get_device()
+
     def get_input_weights(
         self,
         inputs: Union[tf.Tensor, np.ndarray],
@@ -83,7 +86,7 @@ class Projection(ABC):
         """
         Depending on the projection, we may not be able to visualize weights
         as they are after the space projection. In this case, this method should be overwritten,
-        as in `AttributionProjection` that applies an upsampling.
+        as in `AttributionProjection` that applies an up-sampling.
 
         Parameters
         ----------
@@ -98,7 +101,7 @@ class Projection(ABC):
         -------
         input_weights
             Tensor with the same dimension as `inputs` modulo the channels.
-            They are an upsampled version of the actual weights used in the projection.
+            They are an up-sampled version of the actual weights used in the projection.
         """
         projected_inputs = self.space_projection(inputs)
         assert tf.reduce_all(tf.equal(projected_inputs, inputs)), (
@@ -137,10 +140,10 @@ class Projection(ABC):
         projected_samples
             The samples projected in the new space.
         """
-        projected_inputs = self.space_projection(inputs)
-        weights = self.get_weights(projected_inputs, targets)
-
-        return tf.multiply(weights, projected_inputs)
+        with tf.device(self.device):
+            projected_inputs = self.space_projection(inputs)
+            weights = self.get_weights(projected_inputs, targets)
+            return tf.multiply(weights, projected_inputs)
 
     def __call__(
         self,
@@ -149,3 +152,36 @@ class Projection(ABC):
     ):
         """project alias"""
         return self.project(inputs, targets)
+
+    def project_dataset(
+        self,
+        cases_dataset: tf.data.Dataset,
+        targets_dataset: Optional[tf.data.Dataset] = None,
+    ) -> Optional[tf.data.Dataset]:
+        """
+        Apply the projection to a dataset through `Dataset.map`
+
+        Parameters
+        ----------
+        cases_dataset
+            Dataset of samples to be projected.
+        targets_dataset
+            Dataset of targets for the samples.
+
+        Returns
+        -------
+        projected_dataset
+            The projected dataset.
+        """
+        # project dataset, note that projection is done at iteration time
+        if targets_dataset is None:
+            projected_cases_dataset = cases_dataset.map(self.project)
+        else:
+            # in case targets are provided, we zip the datasets and project them together
+            projected_cases_dataset = tf.data.Dataset.zip(
+                (cases_dataset, targets_dataset)
+            ).map(
+                lambda x, y: self.project(x, y)
+            )
+        
+        return projected_cases_dataset
