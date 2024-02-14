@@ -16,7 +16,7 @@ from xplique.commons import sanitize_dataset, are_dataset_first_elems_equal
 from xplique.types import Union
 
 from xplique.example_based import SimilarExamples
-from xplique.example_based.projections import CustomProjection
+from xplique.example_based.projections import Projection, LatentSpaceProjection
 from xplique.example_based.search_methods import KNN
 
 from tests.utils import almost_equal
@@ -40,9 +40,9 @@ def test_similar_examples_input_datasets_management():
     """
     Test management of dataset init inputs
     """
-    proj = CustomProjection(space_projection=lambda inputs, targets=None: inputs)
+    proj = Projection(space_projection=lambda inputs, targets=None: inputs)
 
-    tf_tensor = tf.reshape(tf.range(90), (10, 3, 3))
+    tf_tensor = tf.reshape(tf.range(90, dtype=tf.float32), (10, 3, 3))
     np_array = np.array(tf_tensor)
     tf_dataset = tf.data.Dataset.from_tensor_slices(tf_tensor)
     too_short_np_array = np_array[:3]
@@ -140,7 +140,7 @@ def test_similar_examples_basic():
     k = 3
     x_train, x_test, _ = get_setup(input_shape)
 
-    identity_projection = CustomProjection(
+    identity_projection = Projection(
         space_projection=lambda inputs, targets=None: inputs
     )
 
@@ -184,7 +184,7 @@ def test_similar_examples_return_multiple_elements():
     nb_samples_test = len(x_test)
     assert nb_samples_test + 2 == len(y_train)
 
-    identity_projection = CustomProjection(
+    identity_projection = Projection(
         space_projection=lambda inputs, targets=None: inputs
     )
 
@@ -266,7 +266,7 @@ def test_similar_examples_weighting():
     noise = np.random.uniform(size=x_train.shape, low=-100, high=100)
     x_train = np.float32(weights * np.array(x_train) + (1 - weights) * noise)
 
-    weighting_function = CustomProjection(weights=weights)
+    weighting_function = Projection(get_weights=weights)
 
     method = SimilarExamples(
         cases_dataset=x_train,
@@ -286,6 +286,9 @@ def test_similar_examples_weighting():
     assert examples.shape == (nb_samples_test, k) + input_shape
 
     for i in range(nb_samples_test):
+        print(i)
+        print(examples[i, 0])
+        print(x_train[i + 1])
         # test examples:
         assert almost_equal(examples[i, 0], x_train[i + 1])
         assert almost_equal(examples[i, 1], x_train[i + 2]) or almost_equal(
