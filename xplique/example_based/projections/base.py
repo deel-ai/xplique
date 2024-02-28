@@ -11,7 +11,7 @@ from ...commons import sanitize_inputs_targets, get_device
 from ...types import Callable, Union, Optional
 
 
-class Projection(ABC):  # TODO See if this should stay as abstract class or if we should remove CustomProjection
+class Projection(ABC):
     """
     Base class used by `NaturalExampleBasedExplainer` to project samples to a meaningful space
     for the model to explain.
@@ -30,13 +30,17 @@ class Projection(ABC):  # TODO See if this should stay as abstract class or if w
     Parameters
     ----------
     get_weights
-        Callable, a function that return the weights (Tensor) for a given input (Tensor).
+        Either a Tensor or a Callable.
+        - In the case of a Tensor, weights are applied in the projected space.
+        - In the case of a callable, a function is expected.
+        It should take inputs and targets as parameters and return the weights (Tensor).
         Weights should have the same shape as the input (possible difference on channels).
+        The inputs of `get_weights()` correspond to the projected inputs.
 
         Example of `get_weights()` function:
         ```
         def get_weights_example(projected_inputs: Union(tf.Tensor, np.ndarray),
-                                targets: Union(tf.Tensor, np.ndarray) = None):
+                                targets: Optional[Union[tf.Tensor, np.ndarray]] = None):
             '''
             Example of function to get weights,
             projected_inputs are the elements for which weights are computed.
@@ -48,35 +52,53 @@ class Projection(ABC):  # TODO See if this should stay as abstract class or if w
     space_projection
         Callable that take samples and return a Tensor in the projected space.
         An example of projected space is the latent space of a model. See `LatentSpaceProjection`
+    device
+        Device to use for the projection, if None, use the default device.
     """
 
-    def __init__(self, get_weights: Callable = None, space_projection: Callable = None):
+    def __init__(self,
+                 get_weights: Optional[Union[Callable, tf.Tensor, np.ndarray]] = None,
+                 space_projection: Optional[Callable] = None,
+                 device: Optional[str] = None):
         assert get_weights is not None or space_projection is not None, (
             "At least one of `get_weights` and `space_projection`"
             + "should not be `None`."
         )
 
-        # set get weights
+        # set get_weights
         if get_weights is None:
             # no weights
-            get_weights = lambda inputs, _: tf.ones(tf.shape(inputs))
-        if not hasattr(get_weights, "__call__"):
-            raise TypeError(
-                f"`get_weights` should be  `Callable`, not a {type(get_weights)}"
-            )
-        self.get_weights = get_weights
+            self.get_weights = lambda inputs, _: tf.ones(tf.shape(inputs))
+        elif isinstance(get_weights, (tf.Tensor, np.ndarray)):
+            # weights is a tensor
+            if isinstance(get_weights, np.ndarray):
+                weights = tf.convert_to_tensor(get_weights, dtype=tf.float32)
 
+            # define a function that returns the weights
+            def get_weights(inputs, _ = None):
+                nweights = tf.expand_dims(weights, axis=0)
+                return tf.repeat(nweights, tf.shape(inputs)[0], axis=0)
+            self.get_weights = get_weights
+        elif hasattr(get_weights, "__call__"):
+            # weights is a function
+            self.get_weights = get_weights
+        else:
+            raise TypeError(
+                f"`get_weights` should be `Callable` or a Tensor, not a {type(get_weights)}"
+            )
+        
         # set space_projection
         if space_projection is None:
-            space_projection = lambda inputs: inputs
-        if not hasattr(space_projection, "__call__"):
+            self.space_projection = lambda inputs: inputs
+        elif hasattr(space_projection, "__call__"):
+            self.space_projection = space_projection
+        else:
             raise TypeError(
                 f"`space_projection` should be a `Callable`, not a {type(space_projection)}"
             )
-        self.space_projection = space_projection
 
         # set device
-        self.device = get_device()
+        self.device = get_device(device)
 
     def get_input_weights(
         self,
@@ -143,7 +165,8 @@ class Projection(ABC):  # TODO See if this should stay as abstract class or if w
         with tf.device(self.device):
             projected_inputs = self.space_projection(inputs)
             weights = self.get_weights(projected_inputs, targets)
-            return tf.multiply(weights, projected_inputs)
+            weighted_projected_inputs =  tf.multiply(weights, projected_inputs)
+        return weighted_projected_inputs
 
     def __call__(
         self,
