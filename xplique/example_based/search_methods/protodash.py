@@ -12,7 +12,7 @@ from sklearn.metrics.pairwise import rbf_kernel
 from ...commons import dataset_gather
 from ...types import Callable, List, Union, Optional, Tuple
 
-from .protogreedy import Protogreedy, Optimiser
+from .protogreedy import Protogreedy, Optimizer
 
 
 class Protodash(Protogreedy):
@@ -68,7 +68,7 @@ class Protodash(Protogreedy):
     kernel_type : str, optional
         The kernel type. It can be 'local' or 'global', by default 'local'.
         When it is local, the distances are calculated only within the classes.
-    use_optimiser : bool, optional
+    use_optimizer : bool, optional
         Flag indicating whether to use an optimizer for prototype selection, by default False.
     """
 
@@ -165,10 +165,10 @@ class Protodash(Protogreedy):
             u = tf.expand_dims(tf.gather(self.colmean, selected_indices), axis=1)
             K = tf.gather(tf.gather(self.kernel_matrix, selected_indices), selected_indices, axis=1)
 
-            if self.use_optimiser:
+            if self.use_optimizer:
 
                 initial_w = tf.concat([selected_weights, [best_gradient / tf.gather(tf.linalg.diag_part(self.kernel_matrix), best_sample_index)]], axis=0)
-                opt = Optimiser(initial_w)
+                opt = Optimizer(initial_w)
 
                 selected_weights, _ = opt.optimize(u, K)
                 selected_weights = tf.squeeze(selected_weights, axis=0)

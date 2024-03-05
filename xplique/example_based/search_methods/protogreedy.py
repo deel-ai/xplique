@@ -15,7 +15,7 @@ from ...types import Callable, List, Union, Optional, Tuple
 from .base import BaseSearchMethod
 from ..projections import Projection
 
-class Optimiser():
+class Optimizer():
     """
     Class to solve the quadratic problem:
     F(S) ≡ max_{w:supp(w)∈ S, w ≥ 0} l(w), 
@@ -153,7 +153,7 @@ class Protogreedy(BaseSearchMethod):
     kernel_type : str, optional
         The kernel type. It can be 'local' or 'global', by default 'local'.
         When it is local, the distances are calculated only within the classes.
-    use_optimiser : bool, optional
+    use_optimizer : bool, optional
         Flag indicating whether to use an optimizer for prototype selection, by default False.
     """
 
@@ -169,7 +169,7 @@ class Protogreedy(BaseSearchMethod):
         distance: Union[int, str, Callable] = "euclidean",
         kernel: Union[Callable, tf.Tensor, np.ndarray] = rbf_kernel,
         kernel_type: str = 'local',
-        use_optimiser: bool = False,
+        use_optimizer: bool = False,
     ): # pylint: disable=R0801
         super().__init__(
             cases_dataset, labels_dataset, targets_dataset, k, projection, search_returns, batch_size
@@ -215,7 +215,7 @@ class Protogreedy(BaseSearchMethod):
             if distance is None:
                 distance = "euclidean"
 
-        self.use_optimiser = use_optimiser
+        self.use_optimizer = use_optimizer
         self.sample_indices = tf.range(0, self.kernel_matrix.shape[0])
         self.n = self.sample_indices.shape[0]
         self.colsum = tf.reduce_sum(self.kernel_matrix, axis=0)
@@ -248,7 +248,7 @@ class Protogreedy(BaseSearchMethod):
             # only calculate distance within class. across class, distance = 0
             kernel_matrix = tf.Variable(tf.zeros((X.shape[0], X.shape[0])))
             y_unique = tf.unique(y)[0]
-            for i in tf.range(y_unique[-1] + 1):
+            for i in range(y_unique.shape[0]):
                 ind = tf.where(tf.equal(y, y_unique[i]))[:, 0]
                 start = tf.reduce_min(ind)
                 end = tf.reduce_max(ind) + 1
@@ -322,9 +322,9 @@ class Protogreedy(BaseSearchMethod):
         repeated_selected_indices = tf.tile(tf.expand_dims(S, 0), [c.shape[0], 1])
         all_indices = tf.concat([repeated_selected_indices, tf.expand_dims(c, 1)], axis=1)
 
-        if self.use_optimiser:
+        if self.use_optimizer:
 
-            opt = Optimiser(initial_w=tf.concat([Sw, [0]], axis=0))
+            opt = Optimizer(initial_w=tf.concat([Sw, [0]], axis=0))
             
             objective_weights_list = []
             objective_list = []

@@ -64,11 +64,13 @@ def test_protodash_basic():
     prototypes = tf.gather(x_train, prototype_indices)
     prototype_labels = tf.gather(y_train, prototype_indices)
 
-    # sort by label indices
-    sorted_by_y_indices = prototype_labels.numpy().argsort()
-    prototypes = tf.gather(prototypes, sorted_by_y_indices)
-    prototype_labels = tf.gather(prototype_labels, sorted_by_y_indices)
-    prototype_weights = tf.gather(prototype_weights, sorted_by_y_indices)
+    # sort by label
+    prototype_labels_sorted = prototype_labels.numpy().argsort()
+
+    prototypes = tf.gather(prototypes, prototype_labels_sorted)
+    prototype_indices = tf.gather(prototype_indices, prototype_labels_sorted)
+    prototype_labels = tf.gather(prototype_labels, prototype_labels_sorted)
+    prototype_weights = tf.gather(prototype_weights, prototype_labels_sorted)
 
     # Verifications
     # Shape
@@ -138,11 +140,13 @@ def test_protodash_all_are_prototypes():
     prototypes = tf.gather(x_train, prototype_indices)
     prototype_labels = tf.gather(y_train, prototype_indices)
 
-    # sort by label indices
-    sorted_by_y_indices = prototype_labels.numpy().argsort()
-    prototypes = tf.gather(prototypes, sorted_by_y_indices)
-    prototype_labels = tf.gather(prototype_labels, sorted_by_y_indices)
-    prototype_weights = tf.gather(prototype_weights, sorted_by_y_indices)
+    # sort by label
+    prototype_labels_sorted = prototype_labels.numpy().argsort()
+
+    prototypes = tf.gather(prototypes, prototype_labels_sorted)
+    prototype_indices = tf.gather(prototype_indices, prototype_labels_sorted)
+    prototype_labels = tf.gather(prototype_labels, prototype_labels_sorted)
+    prototype_weights = tf.gather(prototype_weights, prototype_labels_sorted)
 
     # Verifications
     # Shape

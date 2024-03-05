@@ -67,3 +67,5 @@ lab/
 
 # mac os
 .DS_Store
+
+tmp/

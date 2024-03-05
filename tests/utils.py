@@ -128,6 +128,7 @@ def generate_linear_model(
 
 
 def get_Gaussian_Data(nb_samples_class=20):
+    tf.random.set_seed(42)
 
     sigma = 0.05
 
@@ -151,7 +152,7 @@ def load_data(fname):
 
 def plot(prototypes_sorted, prototype_weights_sorted, extension):
 
-    output_dir = Path('/home/mohamed-chafik.bakey/xplique/tests/example_based/tmp')
+    output_dir = Path('tests/example_based/tmp')
     k = prototypes_sorted.shape[0]
 
     # Visualize all prototypes

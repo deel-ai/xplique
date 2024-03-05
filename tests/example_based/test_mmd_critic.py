@@ -60,10 +60,12 @@ def test_mmd_critic_basic():
     prototypes = tf.gather(x_train, prototype_indices)
     prototype_labels = tf.gather(y_train, prototype_indices)
 
-    # sort by label indices
-    sorted_by_y_indices = prototype_labels.numpy().argsort()
-    prototypes = tf.gather(prototypes, sorted_by_y_indices)
-    prototype_labels = tf.gather(prototype_labels, sorted_by_y_indices)
+    # sort by label
+    prototype_labels_sorted = prototype_labels.numpy().argsort()
+
+    prototypes = tf.gather(prototypes, prototype_labels_sorted)
+    prototype_indices = tf.gather(prototype_indices, prototype_labels_sorted)
+    prototype_labels = tf.gather(prototype_labels, prototype_labels_sorted)
 
     # Verifications
     # Shape
@@ -80,7 +82,7 @@ def test_mmd_critic_basic():
     assert tf.reduce_all(tf.math.logical_and(prototype_indices >= 0, prototype_indices <= x_train.shape[0]-1))
 
     # # Visualize all prototypes
-    # plot(prototypes, None, 'protogreedy')
+    # plot(prototypes, None, 'mmd_critic')
 
 
 def test_mmd_critic_all_are_prototypes():
@@ -129,10 +131,12 @@ def test_mmd_critic_all_are_prototypes():
     prototypes = tf.gather(x_train, prototype_indices)
     prototype_labels = tf.gather(y_train, prototype_indices)
 
-    # sort by label indices
-    sorted_by_y_indices = prototype_labels.numpy().argsort()
-    prototypes = tf.gather(prototypes, sorted_by_y_indices)
-    prototype_labels = tf.gather(prototype_labels, sorted_by_y_indices)
+    # sort by label
+    prototype_labels_sorted = prototype_labels.numpy().argsort()
+
+    prototypes = tf.gather(prototypes, prototype_labels_sorted)
+    prototype_indices = tf.gather(prototype_indices, prototype_labels_sorted)
+    prototype_labels = tf.gather(prototype_labels, prototype_labels_sorted)
 
     # Verifications
     # Shape
@@ -149,7 +153,7 @@ def test_mmd_critic_all_are_prototypes():
     assert tf.reduce_all(tf.math.logical_and(prototype_indices >= 0, prototype_indices <= x_train.shape[0]-1))
 
     # # Visualize all prototypes
-    # plot(prototypes, None, 'protogreedy')
+    # plot(prototypes, None, 'mmd_critic')
 
 test_mmd_critic_basic()
 test_mmd_critic_all_are_prototypes()

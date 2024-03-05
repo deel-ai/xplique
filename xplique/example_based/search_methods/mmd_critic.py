@@ -71,7 +71,7 @@ class MMDCritic(Protogreedy):
     kernel_type : str, optional
         The kernel type. It can be 'local' or 'global', by default 'local'.
         When it is local, the distances are calculated only within the classes.
-    use_optimiser : bool, optional
+    use_optimizer : bool, optional
         Flag indicating whether to use an optimizer for prototype selection, by default False.
     """
     
