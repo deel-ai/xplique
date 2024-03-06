@@ -290,7 +290,7 @@ class BaseExampleMethod:
         projected_inputs = self.projection(inputs, targets)
 
         # look for closest elements to projected inputs
-        search_output = self.search_method(projected_inputs)
+        search_output = self.search_method(projected_inputs, targets)
 
         # manage returned elements
         return self.format_search_output(search_output, inputs, targets)

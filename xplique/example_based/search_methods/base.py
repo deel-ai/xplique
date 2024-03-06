@@ -1,7 +1,7 @@
 """
 Base search method for example-based module
 """
-
+from enum import Enum
 from abc import ABC, abstractmethod
 
 import tensorflow as tf
@@ -11,6 +11,14 @@ from ...types import Callable, Union, Optional, List
 
 from ...commons import sanitize_dataset
 
+class ORDER(Enum):
+    """
+    Enumeration for the two types of ordering for the sorting function.
+    ASCENDING puts the elements with the smallest value first.
+    DESCENDING puts the elements with the largest value first.
+    """
+    ASCENDING = 1
+    DESCENDING = 2
 
 def _sanitize_returns(returns: Optional[Union[List[str], str]] = None,
                       possibilities: List[str] = None,
@@ -133,7 +141,7 @@ class BaseSearchMethod(ABC):
 
 
     @abstractmethod
-    def find_examples(self, inputs: Union[tf.Tensor, np.ndarray]):
+    def find_examples(self, inputs: Union[tf.Tensor, np.ndarray], targets: Optional[Union[tf.Tensor, np.ndarray]] = None):
         """
         Search the samples to return as examples. Called by the explain methods.
         It may also return the indices corresponding to the samples,
@@ -147,6 +155,6 @@ class BaseSearchMethod(ABC):
         """
         raise NotImplementedError()
 
-    def __call__(self, inputs: Union[tf.Tensor, np.ndarray]):
+    def __call__(self, inputs: Union[tf.Tensor, np.ndarray], targets: Optional[Union[tf.Tensor, np.ndarray]] = None):
         """find_samples alias"""
-        return self.find_examples(inputs)
+        return self.find_examples(inputs, targets)
