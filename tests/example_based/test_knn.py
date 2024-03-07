@@ -368,7 +368,7 @@ def test_filter_knn_kneighbors():
     cases = tf.constant([[1.], [2.], [3.], [4.], [5.]], dtype=tf.float32)
     inputs = tf.constant([[1.5], [2.5], [4.5]], dtype=tf.float32)
     ## default filter and default order
-    knn = KNN(
+    knn = FilterKNN(
         cases,
         k=2,
         batch_size=2,
@@ -393,8 +393,6 @@ def test_filter_knn_kneighbors():
         distance="euclidean",
         filter_fn=same_target_filter
     )
-    mask = same_target_filter(inputs, cases, targets, cases_targets)
-    print(mask)
     distances, indices = knn.kneighbors(inputs, targets)
     assert distances.shape == (3, 2)
     assert indices.shape == (3, 2, 2)

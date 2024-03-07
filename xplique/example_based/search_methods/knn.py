@@ -21,10 +21,11 @@ class BaseKNN(BaseSearchMethod):
         k: int = 1,
         search_returns: Optional[Union[List[str], str]] = None,
         batch_size: Optional[int] = 32,
-        order: ORDER = ORDER.ASCENDING
+        order: ORDER = ORDER.ASCENDING,
+        targets_dataset: Optional[Union[tf.data.Dataset, tf.Tensor, np.ndarray]] = None,
     ):
         super().__init__(
-            cases_dataset, k, search_returns, batch_size
+            cases_dataset, k, search_returns, batch_size, targets_dataset
         )
 
         assert isinstance(order, ORDER), f"order should be an instance of ORDER and not {type(order)}"
@@ -127,10 +128,11 @@ class KNN(BaseKNN):
         search_returns: Optional[Union[List[str], str]] = None,
         batch_size: Optional[int] = 32,
         distance: Union[int, str, Callable] = "euclidean",
-        order: ORDER = ORDER.ASCENDING
+        order: ORDER = ORDER.ASCENDING,
+        targets_dataset: Optional[Union[tf.data.Dataset, tf.Tensor, np.ndarray]] = None,
     ): # pylint: disable=R0801
         super().__init__(
-            cases_dataset, k, search_returns, batch_size, order
+            cases_dataset, k, search_returns, batch_size, order, targets_dataset
         )
 
         if hasattr(distance, "__call__"):
@@ -272,7 +274,7 @@ class FilterKNN(BaseKNN):
         order: ORDER = ORDER.ASCENDING
     ): # pylint: disable=R0801
         super().__init__(
-            cases_dataset, k, search_returns, batch_size, order
+            cases_dataset, k, search_returns, batch_size, order, targets_dataset
         )
         
         if hasattr(distance, "__call__"):
@@ -287,16 +289,6 @@ class FilterKNN(BaseKNN):
                 + " ['fro', 'euclidean', 1, 2, np.inf] "
                 +f"but {type(distance)} was received."
             )
-
-        # set targets_dataset
-        if targets_dataset is not None:
-            batch_size = min(batch_size, len(cases_dataset))
-            cardinality = math.ceil(len(cases_dataset) / batch_size)
-            self.targets_dataset = sanitize_dataset(
-                targets_dataset, batch_size, cardinality
-            )
-        else:
-            self.targets_dataset = [None]*len(cases_dataset)
 
         # TODO: Assertion on the function signature
         if filter_fn is None:
@@ -391,3 +383,4 @@ class FilterKNN(BaseKNN):
             )
 
         return best_distances, best_indices
+    

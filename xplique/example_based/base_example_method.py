@@ -122,6 +122,7 @@ class BaseExampleMethod:
             cases_dataset=projected_cases_dataset,
             k=k,
             batch_size=batch_size,
+            targets_dataset=self.targets_dataset,
             **search_method_kwargs,
         )
 
@@ -381,6 +382,8 @@ class BaseExampleMethod:
                 # )
 
         # add indices, distances, and labels
+        if "indices" in self.returns:
+            return_dict["indices"] = search_output["indices"]
         if "distances" in self.returns:
             return_dict["distances"] = search_output["distances"]
         if "labels" in self.returns:
