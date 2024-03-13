@@ -122,5 +122,51 @@ class PredictedLabelAwareSemiFactuals(BaseExampleMethod):
         return super().__call__(inputs, targets)
 
 class NaiveCounterFactuals(BaseExampleMethod):
-    def __init__():
-        raise NotImplementedError
+    """
+    
+    """
+    def __init__(
+        self,
+        cases_dataset: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
+        targets_dataset: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
+        labels_dataset: Optional[Union[tf.data.Dataset, tf.Tensor, np.ndarray]] = None,
+        k: int = 1,
+        projection: Union[Projection, Callable] = None,
+        case_returns: Union[List[str], str] = "examples",
+        batch_size: Optional[int] = 32,
+        distance: Union[int, str, Callable] = "euclidean",
+    ):
+        search_method = FilterKNN
+
+        if projection is None:
+            projection = Projection(space_projection=lambda inputs: inputs)
+
+        super().__init__(
+            cases_dataset=cases_dataset,
+            labels_dataset=labels_dataset,
+            targets_dataset=targets_dataset,
+            search_method=search_method,
+            k=k,
+            projection=projection,
+            case_returns=case_returns,
+            batch_size=batch_size,
+            distance=distance,
+            filter_fn=self.filter_fn,
+            order = ORDER.ASCENDING
+        )
+
+
+    def filter_fn(self, _, __, targets, cases_targets) -> tf.Tensor:
+        """
+        Filter function to mask the cases for which the label is different from the predicted
+        label on the inputs.
+        """
+        # get the labels predicted by the model
+        # (n, )
+        predicted_labels = tf.argmax(targets, axis=-1)
+
+        # for each input, if the target label is the same as the predicted label
+        # the mask as a True value and False otherwise
+        label_targets = tf.argmax(cases_targets, axis=-1) # (bs,)
+        mask = tf.not_equal(tf.expand_dims(predicted_labels, axis=1), label_targets) #(n, bs)
+        return mask
