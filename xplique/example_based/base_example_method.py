@@ -161,6 +161,15 @@ class BaseExampleMethod:
         if isinstance(cases_dataset, tf.data.Dataset):
             # set batch size (ignore provided argument) and cardinality
             if isinstance(cases_dataset.element_spec, tuple):
+                input_batch = next(iter(cases_dataset))[0]
+                if isinstance(input_batch, dict): # for the case where input is a dict (HF)
+                    assert ("input_ids" in input_batch.keys()), f"As the input batch is a dictionnary we expect it to \
+                          be a dictionnary as expected by Hugging Face model thus containing 'input_ids'. The dict \
+                            keys are {input_batch.keys()}."
+                    inp = input_batch['input_ids']
+                    batch_size = tf.shape(inp)[0].numpy()
+                else:
+                    batch_size = tf.shape(input_batch)[0].numpy()
                 batch_size = tf.shape(next(iter(cases_dataset))[0])[0].numpy()
             else:
                 batch_size = tf.shape(next(iter(cases_dataset)))[0].numpy()
