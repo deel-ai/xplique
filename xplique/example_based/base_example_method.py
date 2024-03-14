@@ -170,7 +170,6 @@ class BaseExampleMethod:
                     batch_size = tf.shape(inp)[0].numpy()
                 else:
                     batch_size = tf.shape(input_batch)[0].numpy()
-                batch_size = tf.shape(next(iter(cases_dataset))[0])[0].numpy()
             else:
                 batch_size = tf.shape(next(iter(cases_dataset)))[0].numpy()
 
