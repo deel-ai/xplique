@@ -42,8 +42,18 @@ def are_dataset_first_elems_equal(
     next1 = next(iter(dataset1))
     next2 = next(iter(dataset2))
     if isinstance(next1, tuple):
+        if isinstance(next1, dict): # for the case where input is a dict (HF)
+            assert ("input_ids" in next1.keys()), f"As the input batch is a dictionnary we expect it to \
+                    be a dictionnary as expected by Hugging Face model thus containing 'input_ids'. The dict \
+                    keys are {next1.keys()}."
+            next1 = next1['input_ids']
         next1 = next1[0]
         if isinstance(next2, tuple):
+            if isinstance(next2, dict): # for the case where input is a dict (HF)
+                assert ("input_ids" in next2.keys()), f"As the input batch is a dictionnary we expect it to \
+                        be a dictionnary as expected by Hugging Face model thus containing 'input_ids'. The dict \
+                        keys are {next2.keys()}."
+                next2 = next2['input_ids']
             next2 = next2[0]
         else:
             return False

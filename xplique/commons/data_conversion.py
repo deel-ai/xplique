@@ -79,6 +79,9 @@ def sanitize_inputs_targets(explanation_method: Callable):
     def sanitize(self, inputs: Union[tf.Tensor, np.array],
                  targets: Optional[Union[tf.Tensor, np.array]] = None,
                  ):
+        # TODO: only a quickfix
+        if isinstance(inputs, dict):
+            return explanation_method(self, inputs, targets)
         # ensure we have tf.tensor
         inputs = tf.cast(inputs, tf.float32)
         if targets is not None:
