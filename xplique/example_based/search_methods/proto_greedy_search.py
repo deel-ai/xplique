@@ -50,21 +50,6 @@ class ProtoGreedySearch(PrototypesSearch):
     # zero, then the nominator will also be zero).
     EPSILON = tf.constant(1e-6)
 
-    def __init__(
-        self,
-        cases_dataset: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
-        labels_dataset: Optional[Union[tf.data.Dataset, tf.Tensor, np.ndarray]] = None,
-        k: int = 1,
-        search_returns: Optional[Union[List[str], str]] = None,
-        batch_size: Optional[int] = 32,
-        distance: Union[int, str, Callable] = "euclidean",
-        nb_prototypes: int = 1,
-        **find_prototypes_kwargs
-    ): # pylint: disable=R0801
-        super().__init__(
-            cases_dataset, labels_dataset, k, search_returns, batch_size, distance, nb_prototypes, **find_prototypes_kwargs
-        )
-
     def compute_objectives(self, selection_indices, selection_cases, selection_labels, selection_weights, selection_selection_kernel, candidates_indices, candidates_cases, candidates_labels, candidates_selection_kernel):
         """
         Compute the objective and its weights for each candidate.

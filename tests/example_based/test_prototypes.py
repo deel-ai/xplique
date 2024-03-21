@@ -243,6 +243,6 @@ def test_mmd_critic_basic():
     # # Visualize all prototypes
     # plot(prototypes, prototype_weights, 'mmd_critic')
 
-test_proto_greedy_basic()
+# test_proto_greedy_basic()
 # test_proto_dash_basic()
 # test_mmd_critic_basic()
