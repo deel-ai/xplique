@@ -14,14 +14,20 @@ from ..projections import Projection
 
 class MMDCriticSearch(ProtoGreedySearch):
     """
-    KNN method to search examples. Based on `sklearn.neighbors.NearestNeighbors`.
-    Basically a wrapper of `NearestNeighbors` to match the `BaseSearchMethod` API.
+    MMDCritic method to search prototypes.
+
+    References:
+    .. [#] `Been Kim, Rajiv Khanna, Oluwasanmi Koyejo, 
+        "Examples are not enough, learn to criticize! criticism for interpretability"
+        <https://proceedings.neurips.cc/paper_files/paper/2016/file/5680522b8e2bb01943234bce7bf84534-Paper.pdf>`_
 
     Parameters
     ----------
     cases_dataset
         The dataset used to train the model, examples are extracted from the dataset.
         For natural example-based methods it is the train dataset.
+    labels_dataset
+        Labels associated to the examples in the dataset. Indices should match with cases_dataset.
     k
         The number of examples to retrieve.
     search_returns
@@ -35,6 +41,13 @@ class MMDCriticSearch(ProtoGreedySearch):
         Their documentation (https://www.tensorflow.org/api_docs/python/tf/norm) say:
         "Supported values are 'fro', 'euclidean', 1, 2, np.inf and any positive real number
         yielding the corresponding p-norm." We also added 'cosine'.
+    nb_prototypes : int
+            Number of prototypes to find.    
+    kernel_type : str, optional
+        The kernel type. It can be 'local' or 'global', by default 'local'.
+        When it is local, the distances are calculated only within the classes.
+    kernel_fn : Callable, optional
+        Kernel function or kernel matrix, by default rbf_kernel.
     """
 
     def compute_objectives(self, selection_indices, selection_cases, selection_labels, selection_weights, selection_selection_kernel, candidates_indices, candidates_cases, candidates_labels, candidates_selection_kernel):

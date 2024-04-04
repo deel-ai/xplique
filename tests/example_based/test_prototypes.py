@@ -17,11 +17,10 @@ import tensorflow as tf
 from xplique.commons import sanitize_dataset, are_dataset_first_elems_equal
 from xplique.types import Union
 
-from xplique.example_based import Prototypes
+from xplique.example_based import Prototypes, ProtoGreedy, ProtoDash, MMDCritic
 from xplique.example_based.projections import Projection, LatentSpaceProjection
-from xplique.example_based.search_methods import ProtoGreedySearch, ProtoDashSearch, MMDCriticSearch
 
-from tests.utils import almost_equal, get_Gaussian_Data, load_data, plot
+from tests.utils import almost_equal, get_Gaussian_Data, load_data, plot, plot_local_explanation
 
 
 def test_proto_greedy_basic():
@@ -52,10 +51,9 @@ def test_proto_greedy_basic():
     kernel_type = "global"
 
     # Method initialization
-    method = Prototypes(
+    method = ProtoGreedy(
         cases_dataset=x_train,
         labels_dataset=y_train,
-        search_method=ProtoGreedySearch,
         k=k,
         projection=identity_projection,
         batch_size=32,
@@ -65,8 +63,8 @@ def test_proto_greedy_basic():
         kernel_fn=kernel_fn,
     )
 
-    # Generate explanation
-    prototype_indices, prototype_weights = method.get_prototypes()
+    # Generate global explanation
+    prototype_indices, prototype_weights = method.get_global_prototypes()
 
     prototypes = tf.gather(x_train, prototype_indices)
     prototype_labels = tf.gather(y_train, prototype_indices)
@@ -97,6 +95,12 @@ def test_proto_greedy_basic():
     # # Visualize all prototypes
     # plot(prototypes, prototype_weights, 'proto_greedy')
 
+    # # Generate local explanation
+    # examples = method.explain(x_test)
+
+    # # Visualize local explanation
+    # plot_local_explanation(examples, x_test, 'proto_greedy')
+
 def test_proto_dash_basic():
     """
     Test the SimilarExamples with an identity projection.
@@ -125,10 +129,9 @@ def test_proto_dash_basic():
     kernel_type = "global"
 
     # Method initialization
-    method = Prototypes(
+    method = ProtoDash(
         cases_dataset=x_train,
         labels_dataset=y_train,
-        search_method=ProtoDashSearch,
         k=k,
         projection=identity_projection,
         batch_size=32,
@@ -138,8 +141,8 @@ def test_proto_dash_basic():
         kernel_fn=kernel_fn,
     )
 
-    # Generate explanation
-    prototype_indices, prototype_weights = method.get_prototypes()
+    # Generate global explanation
+    prototype_indices, prototype_weights = method.get_global_prototypes()
 
     prototypes = tf.gather(x_train, prototype_indices)
     prototype_labels = tf.gather(y_train, prototype_indices)
@@ -170,6 +173,12 @@ def test_proto_dash_basic():
     # # Visualize all prototypes
     # plot(prototypes, prototype_weights, 'proto_dash')
 
+    # # Generate local explanation
+    # examples = method.explain(x_test)
+
+    # # Visualize local explanation
+    # plot_local_explanation(examples, x_test, 'proto_dash')
+
 def test_mmd_critic_basic():
     """
     Test the SimilarExamples with an identity projection.
@@ -198,10 +207,9 @@ def test_mmd_critic_basic():
     kernel_type = "global"
 
     # Method initialization
-    method = Prototypes(
+    method = MMDCritic(
         cases_dataset=x_train,
         labels_dataset=y_train,
-        search_method=MMDCriticSearch,
         k=k,
         projection=identity_projection,
         batch_size=32,
@@ -211,8 +219,8 @@ def test_mmd_critic_basic():
         kernel_fn=kernel_fn,
     )
 
-    # Generate explanation
-    prototype_indices, prototype_weights = method.get_prototypes()
+    # Generate global explanation
+    prototype_indices, prototype_weights = method.get_global_prototypes()
 
     prototypes = tf.gather(x_train, prototype_indices)
     prototype_labels = tf.gather(y_train, prototype_indices)
@@ -243,6 +251,12 @@ def test_mmd_critic_basic():
     # # Visualize all prototypes
     # plot(prototypes, prototype_weights, 'mmd_critic')
 
-# test_proto_greedy_basic()
-# test_proto_dash_basic()
-# test_mmd_critic_basic()
+    #  # Generate local explanation
+    # examples = method.explain(x_test)
+
+    # # Visualize local explanation
+    # plot_local_explanation(examples, x_test, 'mmd_critic')
+
+test_proto_greedy_basic()
+test_proto_dash_basic()
+test_mmd_critic_basic()

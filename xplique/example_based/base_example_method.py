@@ -120,7 +120,6 @@ class BaseExampleMethod:
         # initiate search_method
         self.search_method = search_method(
             cases_dataset=projected_cases_dataset,
-            labels_dataset=labels_dataset,
             k=k,
             batch_size=batch_size,
             **search_method_kwargs,

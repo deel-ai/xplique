@@ -93,6 +93,8 @@ class ProtoDashSearch(ProtoGreedySearch):
     cases_dataset
         The dataset used to train the model, examples are extracted from the dataset.
         For natural example-based methods it is the train dataset.
+    labels_dataset
+        Labels associated to the examples in the dataset. Indices should match with cases_dataset.
     k
         The number of examples to retrieve.
     search_returns
@@ -108,39 +110,42 @@ class ProtoDashSearch(ProtoGreedySearch):
         yielding the corresponding p-norm." We also added 'cosine'.
     nb_prototypes : int
             Number of prototypes to find.    
-    find_prototypes_kwargs
-        Additional parameters passed to `find_prototypes` function.
+    kernel_type : str, optional
+        The kernel type. It can be 'local' or 'global', by default 'local'.
+        When it is local, the distances are calculated only within the classes.
+    kernel_fn : Callable, optional
+        Kernel function or kernel matrix, by default rbf_kernel.
+    use_optimizer : bool, optional
+        Flag indicating whether to use an optimizer for prototype selection, by default False.
     """
 
-    def find_prototypes(self, nb_prototypes, kernel_type: str = 'local', kernel_fn: callable = rbf_kernel, use_optimizer: bool = False):
-        """
-        Search for prototypes and their corresponding weights.
-
-        Parameters
-        ----------
-        nb_prototypes : int
-            Number of prototypes to find.
-        nb_prototypes : int
-            Number of prototypes to find.
-        kernel_type : str, optional
-            The kernel type. It can be 'local' or 'global', by default 'local'.
-            When it is local, the distances are calculated only within the classes.
-        kernel_fn : Callable, optional
-            Kernel function or kernel matrix, by default rbf_kernel.
-        use_optimizer : bool, optional
-            Flag indicating whether to use an optimizer for prototype selection, by default False.
-
-        Returns
-        -------
-        prototype_indices : Tensor
-            The indices of the selected prototypes.
-        prototype_weights : 
-            The normalized weights of the selected prototypes.
-        """
-
+    def __init__(
+        self,
+        cases_dataset: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
+        labels_dataset: Optional[Union[tf.data.Dataset, tf.Tensor, np.ndarray]] = None,
+        k: int = 1,
+        search_returns: Optional[Union[List[str], str]] = None,
+        batch_size: Optional[int] = 32,
+        distance: Union[int, str, Callable] = None,
+        nb_prototypes: int = 1,
+        kernel_type: str = 'local', 
+        kernel_fn: callable = rbf_kernel,
+        use_optimizer: bool = False,
+    ): # pylint: disable=R0801
+        
         self.use_optimizer = use_optimizer
 
-        return super().find_prototypes(nb_prototypes, kernel_type, kernel_fn)
+        super().__init__(
+            cases_dataset=cases_dataset, 
+            labels_dataset=labels_dataset, 
+            k=k, 
+            search_returns=search_returns, 
+            batch_size=batch_size, 
+            distance=distance, 
+            nb_prototypes=nb_prototypes, 
+            kernel_type=kernel_type, 
+            kernel_fn=kernel_fn
+        )
 
     def update_selection_weights(self, selection_indices, selection_weights, selection_selection_kernel, best_indice, best_weights, best_objective):
         """

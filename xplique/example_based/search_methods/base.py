@@ -80,7 +80,6 @@ class BaseSearchMethod(ABC):
     def __init__(
         self,
         cases_dataset: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
-        labels_dataset: Optional[Union[tf.data.Dataset, tf.Tensor, np.ndarray]] = None,
         k: int = 1,
         search_returns: Optional[Union[List[str], str]] = None,
         batch_size: Optional[int] = 32,
@@ -93,7 +92,6 @@ class BaseSearchMethod(ABC):
             self.batch_size = batch_size
 
         self.cases_dataset = sanitize_dataset(cases_dataset, self.batch_size)
-        self.labels_dataset = sanitize_dataset(labels_dataset, self.batch_size)
 
         self.set_k(k)
         self.set_returns(search_returns)

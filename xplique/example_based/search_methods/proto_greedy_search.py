@@ -9,11 +9,12 @@ import tensorflow as tf
 from ...commons import dataset_gather, sanitize_dataset
 from ...types import Callable, List, Union, Optional, Tuple
 
-from .prototypes_search import PrototypesSearch
+from .base import BaseSearchMethod
+from .knn import KNN
 from ..projections import Projection
 
 
-class ProtoGreedySearch(PrototypesSearch):
+class ProtoGreedySearch(BaseSearchMethod):
     """
     ProtoGreedy method for searching prototypes.
 
@@ -27,6 +28,8 @@ class ProtoGreedySearch(PrototypesSearch):
     cases_dataset
         The dataset used to train the model, examples are extracted from the dataset.
         For natural example-based methods it is the train dataset.
+    labels_dataset
+        Labels associated to the examples in the dataset. Indices should match with cases_dataset.
     k
         The number of examples to retrieve.
     search_returns
@@ -42,13 +45,143 @@ class ProtoGreedySearch(PrototypesSearch):
         yielding the corresponding p-norm." We also added 'cosine'.
     nb_prototypes : int
             Number of prototypes to find.    
-    find_prototypes_kwargs
-        Additional parameters passed to `find_prototypes` function.
+    kernel_type : str, optional
+        The kernel type. It can be 'local' or 'global', by default 'local'.
+        When it is local, the distances are calculated only within the classes.
+    kernel_fn : Callable, optional
+        Kernel function or kernel matrix, by default rbf_kernel.
     """
 
     # Avoid zero division during procedure. (the value is not important, as if the denominator is
     # zero, then the nominator will also be zero).
     EPSILON = tf.constant(1e-6)
+
+    def __init__(
+        self,
+        cases_dataset: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
+        labels_dataset: Optional[Union[tf.data.Dataset, tf.Tensor, np.ndarray]] = None,
+        k: int = 1,
+        search_returns: Optional[Union[List[str], str]] = None,
+        batch_size: Optional[int] = 32,
+        distance: Union[int, str, Callable] = None,
+        nb_prototypes: int = 1,
+        kernel_type: str = 'local', 
+        kernel_fn: callable = rbf_kernel,
+    ): # pylint: disable=R0801
+        super().__init__(
+            cases_dataset, k, search_returns, batch_size
+        )
+
+        self.labels_dataset = sanitize_dataset(labels_dataset, self.batch_size)
+
+        if kernel_type in ['local', 'global']:
+            self.kernel_type = kernel_type
+        else:
+            raise AttributeError(
+                "The kernel_type parameter is expected to be in"
+                + " ['local', 'global'] ",
+                +f"but {kernel_type} was received.",
+            )
+        
+        if hasattr(kernel_fn, "__call__"):
+            def custom_kernel_fn(x1, x2, y1=None, y2=None):
+                if self.kernel_type == 'global':
+                    kernel_matrix = kernel_fn(x1,x2)
+                    if isinstance(kernel_matrix, np.ndarray):
+                        kernel_matrix = tf.convert_to_tensor(kernel_matrix)
+                else:
+                    # In the case of a local kernel, calculations are limited to within the class. 
+                    # Across different classes, the kernel values are set to 0.
+                    kernel_matrix = np.zeros((x1.shape[0], x2.shape[0]), dtype=np.float32)
+                    y_intersect = np.intersect1d(y1, y2)
+                    for i in range(y_intersect.shape[0]):
+                        y1_indices = tf.where(tf.equal(y1, y_intersect[i]))[:, 0]
+                        y2_indices = tf.where(tf.equal(y2, y_intersect[i]))[:, 0] 
+                        sub_matrix = kernel_fn(tf.gather(x1, y1_indices), tf.gather(x2, y2_indices))             
+                        kernel_matrix[tf.reshape(y1_indices, (-1, 1)), tf.reshape(y2_indices, (1, -1))] = sub_matrix
+                    kernel_matrix = tf.convert_to_tensor(kernel_matrix)
+                return kernel_matrix
+
+            self.kernel_fn = custom_kernel_fn
+        else:
+            raise AttributeError(
+                "The kernel parameter is expected to be a Callable",
+                +f"but {kernel_fn} was received.",
+            ) 
+
+        # Compute the sum of the columns and the diagonal values of the kernel matrix of the dataset.
+        # We take advantage of the symmetry of this matrix to traverse only its lower triangle.
+        col_sums = []
+        diag = []
+        row_sums = []
+        
+        for batch_col_index, (batch_col_cases, batch_col_labels) in enumerate(
+            zip(self.cases_dataset, self.labels_dataset)
+        ):
+            batch_col_sums = tf.zeros((batch_col_cases.shape[0]))
+
+            for batch_row_index, (batch_row_cases, batch_row_labels) in enumerate(
+                zip(self.cases_dataset, self.labels_dataset)
+            ):
+                if batch_row_index < batch_col_index:
+                    continue
+                
+                batch_kernel = self.kernel_fn(batch_row_cases, batch_col_cases, batch_row_labels, batch_col_labels)
+
+                batch_col_sums = batch_col_sums + tf.reduce_sum(batch_kernel, axis=0)
+
+                if batch_col_index == batch_row_index:        
+                    if batch_col_index != 0:
+                        batch_col_sums = batch_col_sums + row_sums[batch_row_index]                   
+                
+                    diag.append(tf.linalg.diag_part(batch_kernel))
+
+                if batch_col_index == 0:
+                    if batch_row_index == 0:
+                        row_sums.append(None)
+                    else:
+                        row_sums.append(tf.reduce_sum(batch_kernel, axis=1))
+                else:
+                    row_sums[batch_row_index] += tf.reduce_sum(batch_kernel, axis=1)
+                      
+            col_sums.append(batch_col_sums)
+
+        self.col_sums = tf.concat(col_sums, axis=0)
+        self.n = self.col_sums.shape[0]
+        self.col_means = self.col_sums / self.n
+        self.diag = tf.concat(diag, axis=0)
+        self.nb_features = batch_col_cases.shape[1]
+
+        # compute the prototypes in the latent space
+        self.prototype_indices, self.prototype_cases, self.prototype_labels, self.prototype_weights = self.find_prototypes(nb_prototypes)
+
+        if distance is None:
+            def custom_distance(x1,x2):
+                x1 = tf.expand_dims(x1, axis=0)
+                x2 = tf.expand_dims(x2, axis=0)
+                distance = tf.sqrt(kernel_fn(x1,x1) - 2 * kernel_fn(x1,x2) + kernel_fn(x2,x2))
+                return distance
+            self.distance_fn = custom_distance
+        elif hasattr(distance, "__call__"):
+            self.distance_fn = distance
+        elif distance in ["fro", "euclidean", 1, 2, np.inf] or isinstance(
+            distance, int
+        ):
+            self.distance_fn = lambda x1, x2: tf.norm(x1 - x2, ord=distance)
+        else:
+            raise AttributeError(
+                "The distance parameter is expected to be either a Callable or in"
+                + " ['fro', 'euclidean', 'cosine', 1, 2, np.inf] ",
+                +f"but {distance} was received.",
+            )
+
+        self.knn = KNN(
+            cases_dataset=self.prototype_cases,
+            k=k,
+            search_returns=search_returns,
+            batch_size=batch_size,
+            distance=self.distance_fn
+        )
 
     def compute_objectives(self, selection_indices, selection_cases, selection_labels, selection_weights, selection_selection_kernel, candidates_indices, candidates_cases, candidates_labels, candidates_selection_kernel):
         """
@@ -144,104 +277,7 @@ class ProtoGreedySearch(PrototypesSearch):
 
         return selection_weights
     
-    def compute_kernel_attributes(self, kernel_type: str = 'local', kernel_fn: callable = rbf_kernel):
-        """
-        Compute the attributes of the class that are related to the kernel.
-
-        Parameters
-        ----------
-        kernel_type : str, optional
-            The kernel type. It can be 'local' or 'global', by default 'local'.
-            When it is local, the distances are calculated only within the classes.
-        kernel_fn : Callable, optional
-            Kernel function or kernel matrix, by default rbf_kernel.
-
-        Returns
-        -------
-        selection_weights : Tensor
-            Updated weights corresponding to the selected prototypes.
-        """
-        if kernel_type in ['local', 'global']:
-            self.kernel_type = kernel_type
-        else:
-            raise AttributeError(
-                "The kernel_type parameter is expected to be in"
-                + " ['local', 'global'] ",
-                +f"but {kernel_type} was received.",
-            )
-        
-        if hasattr(kernel_fn, "__call__"):
-            def custom_kernel_fn(x1, x2, y1, y2):
-                if self.kernel_type == 'global':
-                    kernel_matrix = kernel_fn(x1,x2)
-                    if isinstance(kernel_matrix, np.ndarray):
-                        kernel_matrix = tf.convert_to_tensor(kernel_matrix)
-                else:
-                    # In the case of a local kernel, calculations are limited to within the class. 
-                    # Across different classes, the kernel values are set to 0.
-                    kernel_matrix = np.zeros((x1.shape[0], x2.shape[0]), dtype=np.float32)
-                    y_intersect = np.intersect1d(y1, y2)
-                    for i in range(y_intersect.shape[0]):
-                        y1_indices = tf.where(tf.equal(y1, y_intersect[i]))[:, 0]
-                        y2_indices = tf.where(tf.equal(y2, y_intersect[i]))[:, 0] 
-                        sub_matrix = kernel_fn(tf.gather(x1, y1_indices), tf.gather(x2, y2_indices))             
-                        kernel_matrix[tf.reshape(y1_indices, (-1, 1)), tf.reshape(y2_indices, (1, -1))] = sub_matrix
-                    kernel_matrix = tf.convert_to_tensor(kernel_matrix)
-                return kernel_matrix
-
-            self.kernel_fn = custom_kernel_fn
-        else:
-            raise AttributeError(
-                "The kernel parameter is expected to be a Callable",
-                +f"but {kernel_fn} was received.",
-            ) 
-
-        # TODO: for local explanation add the ability to compute distance_fn based on the kernel  
-
-        # Compute the sum of the columns and the diagonal values of the kernel matrix of the dataset.
-        # We take advantage of the symmetry of this matrix to traverse only its lower triangle.
-        col_sums = []
-        diag = []
-        row_sums = []
-        
-        for batch_col_index, (batch_col_cases, batch_col_labels) in enumerate(
-            zip(self.cases_dataset, self.labels_dataset)
-        ):
-            batch_col_sums = tf.zeros((batch_col_cases.shape[0]))
-
-            for batch_row_index, (batch_row_cases, batch_row_labels) in enumerate(
-                zip(self.cases_dataset, self.labels_dataset)
-            ):
-                if batch_row_index < batch_col_index:
-                    continue
-                
-                batch_kernel = self.kernel_fn(batch_row_cases, batch_col_cases, batch_row_labels, batch_col_labels)
-
-                batch_col_sums = batch_col_sums + tf.reduce_sum(batch_kernel, axis=0)
-
-                if batch_col_index == batch_row_index:        
-                    if batch_col_index != 0:
-                        batch_col_sums = batch_col_sums + row_sums[batch_row_index]                   
-                
-                    diag.append(tf.linalg.diag_part(batch_kernel))
-
-                if batch_col_index == 0:
-                    if batch_row_index == 0:
-                        row_sums.append(None)
-                    else:
-                        row_sums.append(tf.reduce_sum(batch_kernel, axis=1))
-                else:
-                    row_sums[batch_row_index] += tf.reduce_sum(batch_kernel, axis=1)
-                      
-            col_sums.append(batch_col_sums)
-
-        self.col_sums = tf.concat(col_sums, axis=0)
-        self.n = self.col_sums.shape[0]
-        self.col_means = self.col_sums / self.n
-        self.diag = tf.concat(diag, axis=0)
-        self.nb_features = batch_col_cases.shape[1]
-
-    def find_prototypes(self, nb_prototypes, kernel_type: str = 'local', kernel_fn: callable = rbf_kernel):
+    def find_prototypes(self, nb_prototypes):
         """
         Search for prototypes and their corresponding weights.
 
@@ -249,21 +285,18 @@ class ProtoGreedySearch(PrototypesSearch):
         ----------
         nb_prototypes : int
             Number of prototypes to find.
-        kernel_type : str, optional
-            The kernel type. It can be 'local' or 'global', by default 'local'.
-            When it is local, the distances are calculated only within the classes.
-        kernel_fn : Callable, optional
-            Kernel function or kernel matrix, by default rbf_kernel.
 
         Returns
         -------
         prototype_indices : Tensor
             The indices of the selected prototypes.
+        prototype_cases : Tensor
+            The cases of the selected prototypes.
+        prototype_labels : Tensor
+            The labels of the selected prototypes.
         prototype_weights : 
             The normalized weights of the selected prototypes.
         """
-
-        self.compute_kernel_attributes(kernel_type, kernel_fn)
 
         # Tensors to store selected indices and their corresponding cases, labels and weights.
         selection_indices = tf.constant([], dtype=tf.int32)
@@ -362,9 +395,45 @@ class ProtoGreedySearch(PrototypesSearch):
             k += 1
 
         prototype_indices = selection_indices
+        prototype_cases = selection_cases
+        prototype_labels = selection_labels
         prototype_weights = selection_weights
 
         # Normalize the weights
         prototype_weights = prototype_weights / tf.reduce_sum(prototype_weights)
 
-        return prototype_indices, prototype_weights
+        return prototype_indices, prototype_cases, prototype_labels, prototype_weights
+    
+    def find_examples(self, inputs: Union[tf.Tensor, np.ndarray]):
+        """
+        Search the samples to return as examples. Called by the explain methods.
+        It may also return the indices corresponding to the samples,
+        based on `return_indices` value.
+
+        Parameters
+        ----------
+        inputs
+            Tensor or Array. Input samples to be explained.
+            Assumed to have been already projected.
+            Expected shape among (N, W), (N, T, W), (N, W, H, C).
+        """
+
+        # look for closest prototypes to projected inputs
+        knn_output = self.knn(inputs)
+
+        # obtain closest prototypes indices with respect to the prototypes
+        indices_wrt_prototypes = knn_output["indices"]
+
+        # convert to unique indices 
+        indices_wrt_prototypes = indices_wrt_prototypes[:, :, 0] * self.batch_size + indices_wrt_prototypes[:, :, 1]
+
+        # get prototypes indices with respect to the dataset
+        indices = tf.gather(self.prototype_indices, indices_wrt_prototypes)
+
+        # convert back to batch-element indices
+        batch_indices, elem_indices = indices // self.batch_size, indices % self.batch_size
+        indices = tf.stack([batch_indices, elem_indices], axis=-1)
+
+        knn_output["indices"] = indices
+
+        return knn_output

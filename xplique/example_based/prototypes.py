@@ -13,7 +13,7 @@ from ..types import Callable, Dict, List, Optional, Type, Union
 
 from ..commons import sanitize_inputs_targets
 from ..commons import sanitize_dataset, dataset_gather
-from .search_methods import ProtoGreedySearch, PrototypesSearch
+from .search_methods import ProtoGreedySearch
 from .projections import Projection
 from .base_example_method import BaseExampleMethod
 
@@ -68,12 +68,8 @@ class Prototypes(BaseExampleMethod):
     batch_size
         Number of sample treated simultaneously for projection and search.
         Ignored if `tf.data.Dataset` are provided (those are supposed to be batched).
-    distance
-        Distance for the knn search method.
-        Either a Callable, or a value supported by `tf.norm` `ord` parameter.
-        Their documentation (https://www.tensorflow.org/api_docs/python/tf/norm) say:
-        "Supported values are 'fro', 'euclidean', 1, 2, np.inf and any positive real number
-        yielding the corresponding p-norm." We also added 'cosine'.
+    search_method_kwargs
+        Parameters to be passed at the construction of the `search_method`.
     """
 
     def __init__(
@@ -81,28 +77,58 @@ class Prototypes(BaseExampleMethod):
         cases_dataset: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
         labels_dataset: Optional[Union[tf.data.Dataset, tf.Tensor, np.ndarray]] = None,
         targets_dataset: Optional[Union[tf.data.Dataset, tf.Tensor, np.ndarray]] = None,
-        search_method: Type[PrototypesSearch] = ProtoGreedySearch,
+        search_method: Type[ProtoGreedySearch] = ProtoGreedySearch,
         k: int = 1,
         projection: Union[Projection, Callable] = None,
         case_returns: Union[List[str], str] = "examples",
         batch_size: Optional[int] = 32,
         **search_method_kwargs,
     ):
-        super().__init__(
-            cases_dataset=cases_dataset,
+        assert (
+            projection is not None
+        ), "`BaseExampleMethod` without `projection` is a `BaseSearchMethod`."
+
+        # set attributes
+        batch_size = self.__initialize_cases_dataset(
+            cases_dataset, labels_dataset, targets_dataset, batch_size
+        )
+
+        self.k = k
+        self.set_returns(case_returns)
+
+        assert hasattr(projection, "__call__"), "projection should be a callable."
+
+        # check projection type
+        if isinstance(projection, Projection):
+            self.projection = projection
+        elif hasattr(projection, "__call__"):
+            self.projection = Projection(get_weights=None, space_projection=projection)
+        else:
+            raise AttributeError(
+                "projection should be a `Projection` or a `Callable`, not a"
+                + f"{type(projection)}"
+            )
+
+        # project dataset
+        projected_cases_dataset = self.projection.project_dataset(self.cases_dataset,
+                                                                  self.targets_dataset)
+
+        # set `search_returns` if not provided and overwrite it otherwise
+        search_method_kwargs["search_returns"] = ["indices", "distances"]
+
+        # initiate search_method
+        self.search_method = search_method(
+            cases_dataset=projected_cases_dataset,
             labels_dataset=labels_dataset,
-            targets_dataset=targets_dataset,
-            search_method=search_method,
             k=k,
-            projection=projection,
-            case_returns=case_returns,
             batch_size=batch_size,
             **search_method_kwargs,
         )
   
-    def get_prototypes(self):
+    def get_global_prototypes(self):
         """
-        Return the prototypes computed by the search method.
+        Return all the prototypes computed by the search method, 
+        which consist of a global explanation of the dataset.
 
         Returns:
             prototype_indices : Tensor
@@ -111,4 +137,100 @@ class Prototypes(BaseExampleMethod):
                 prototype weights.
         """
         return self.search_method.prototype_indices, self.search_method.prototype_weights
+    
+    def __initialize_cases_dataset(
+        self,
+        cases_dataset: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
+        labels_dataset: Optional[Union[tf.data.Dataset, tf.Tensor, np.ndarray]],
+        targets_dataset: Optional[Union[tf.data.Dataset, tf.Tensor, np.ndarray]],
+        batch_size: Optional[int],
+    ) -> int:
+        """
+        Factorization of `__init__()` method for dataset related attributes.
+
+        Parameters
+        ----------
+        cases_dataset
+            The dataset used to train the model, examples are extracted from the dataset.
+        labels_dataset
+            Labels associated to the examples in the dataset.
+            Indices should match with cases_dataset.
+        targets_dataset
+            Targets associated to the cases_dataset for dataset projection.
+            See `projection` for detail.
+        batch_size
+            Number of sample treated simultaneously when using the datasets.
+            Ignored if `tf.data.Dataset` are provided (those are supposed to be batched).
+
+        Returns
+        -------
+        batch_size
+            Number of sample treated simultaneously when using the datasets.
+            Extracted from the datasets in case they are `tf.data.Dataset`.
+            Otherwise, the input value.
+        """
+        # at least one dataset provided
+        if isinstance(cases_dataset, tf.data.Dataset):
+            # set batch size (ignore provided argument) and cardinality
+            if isinstance(cases_dataset.element_spec, tuple):
+                batch_size = tf.shape(next(iter(cases_dataset))[0])[0].numpy()
+            else:
+                batch_size = tf.shape(next(iter(cases_dataset)))[0].numpy()
+
+            cardinality = cases_dataset.cardinality().numpy()
+        else:
+            # if case_dataset is not a `tf.data.Dataset`, then neither should the other.
+            assert not isinstance(labels_dataset, tf.data.Dataset)
+            assert not isinstance(targets_dataset, tf.data.Dataset)
+            # set batch size and cardinality
+            batch_size = min(batch_size, len(cases_dataset))
+            cardinality = math.ceil(len(cases_dataset) / batch_size)
+
+        # verify cardinality and create datasets from the tensors
+        self.cases_dataset = sanitize_dataset(
+            cases_dataset, batch_size, cardinality
+        )
+        self.labels_dataset = sanitize_dataset(
+            labels_dataset, batch_size, cardinality
+        )
+        self.targets_dataset = sanitize_dataset(
+            targets_dataset, batch_size, cardinality
+        )
+
+        # if the provided `cases_dataset` has several columns
+        if isinstance(self.cases_dataset.element_spec, tuple):
+            # switch case on the number of columns of `cases_dataset`
+            if len(self.cases_dataset.element_spec) == 2:
+                assert self.labels_dataset is None, (
+                    "The second column of `cases_dataset` is assumed to be the labels."
+                    + "Hence, `labels_dataset` should be empty."
+                )
+                self.labels_dataset = self.cases_dataset.map(lambda x, y: y)
+                self.cases_dataset = self.cases_dataset.map(lambda x, y: x)
+
+            elif len(self.cases_dataset.element_spec) == 3:
+                assert self.labels_dataset is None, (
+                    "The second column of `cases_dataset` is assumed to be the labels."
+                    + "Hence, `labels_dataset` should be empty."
+                )
+                assert self.targets_dataset is None, (
+                    "The second column of `cases_dataset` is assumed to be the labels."
+                    + "Hence, `labels_dataset` should be empty."
+                )
+                self.targets_dataset = self.cases_dataset.map(lambda x, y, t: t)
+                self.labels_dataset = self.cases_dataset.map(lambda x, y, t: y)
+                self.cases_dataset = self.cases_dataset.map(lambda x, y, t: x)
+            else:
+                raise AttributeError(
+                    "`cases_dataset` cannot possess more than 3 columns,"
+                    + f"{len(self.cases_dataset.element_spec)} were detected."
+                )
+
+        self.cases_dataset = self.cases_dataset.prefetch(tf.data.AUTOTUNE)
+        if self.labels_dataset is not None:
+            self.labels_dataset = self.labels_dataset.prefetch(tf.data.AUTOTUNE)
+        if self.targets_dataset is not None:
+            self.targets_dataset = self.targets_dataset.prefetch(tf.data.AUTOTUNE)
+
+        return batch_size
 

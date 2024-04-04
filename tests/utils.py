@@ -299,3 +299,29 @@ def plot(prototypes_sorted, prototype_weights_sorted, extension):
         axis.axis('off')
     # fig.suptitle(f'{k} Prototypes')
     plt.savefig(output_dir / f'{k}_prototypes_{extension}.png')
+
+def plot_local_explanation(examples, x_test, extension):
+
+    output_dir = Path('tests/example_based/tmp')
+    k = examples.shape[1]
+
+    # Visualize  
+    num_cols = k+1
+    num_rows = x_test.shape[0]
+    fig, axes = plt.subplots(num_rows, num_cols, figsize=(6, num_rows * 0.75))
+    # Adjust the spacing between lines
+    plt.subplots_adjust(hspace=1)
+    axes[0,0].set_title("x_test")
+    for i in range(examples.shape[0]):
+        axes[i,0].imshow(x_test[i].numpy().reshape(16, 16), cmap='gray')
+        axes[i,0].axis('off')
+        for j in range(examples.shape[1]):
+            axe = axes[i,j+1]
+            axe.imshow(examples[i,j].numpy().reshape(16, 16), cmap='gray')
+            # axe.set_title("{:.2f}".format(prototype_distances[i,j]))
+            if i == 0:
+                axe.set_title("prototype_{}".format(j + 1))
+            axe.axis('off')
+
+    fig.suptitle(f'{k}-nearst prototypes')
+    plt.savefig(output_dir / f'{k}_nearest_prototypes_{extension}.png')
