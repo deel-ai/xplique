@@ -28,7 +28,10 @@ def tensor_sanitize(inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
     targets_tensors
         Targets as tf.Tensor
     """
-
+    # deal with HF data
+    # TODO: Only a quickfix
+    if isinstance(inputs, dict):
+        return inputs, targets
     # deal with tf.data.Dataset
     if isinstance(inputs, tf.data.Dataset):
         # try to know if the dataset is batched, if it is the case we unbatch

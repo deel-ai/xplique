@@ -11,6 +11,17 @@ from ..types import Optional, Union
 
 def _almost_equal(arr1, arr2, epsilon=1e-6):
     """Ensure two array are almost equal at an epsilon"""
+    if isinstance(arr1, dict):
+        assert ("input_ids" in arr1.keys()), f"As the input batch is a dictionnary we expect it to \
+                be a dictionnary as expected by Hugging Face model thus containing 'input_ids'. The dict \
+                keys are {arr1.keys()}."
+        arr1 = arr1['input_ids']
+        if isinstance(arr2, dict):
+            assert ("input_ids" in arr2.keys()), f"As the input batch is a dictionnary we expect it to \
+                    be a dictionnary as expected by Hugging Face model thus containing 'input_ids'. The dict \
+                    keys are {arr2.keys()}."
+            arr2 = arr2['input_ids']
+            return np.shape(arr1) == np.shape(arr2) and np.sum(np.abs(arr1 - arr2)) < epsilon
     return np.shape(arr1) == np.shape(arr2) and np.sum(np.abs(arr1 - arr2)) < epsilon
 
 
@@ -106,9 +117,17 @@ def batch_size_matches(dataset: Optional[tf.data.Dataset], batch_size: int) -> b
 
     first_item = next(iter(dataset))
     if isinstance(first_item, tuple):
-        return tf.reduce_all(
-            [tf.shape(item)[0].numpy() == batch_size for item in first_item]
-        )
+        if isinstance(first_item[0], dict): # for the case where input is a dict (HF)
+            assert ("input_ids" in first_item[0].keys()), f"As the input batch is a dictionnary we expect it to \
+                    be a dictionnary as expected by Hugging Face model thus containing 'input_ids'. The dict \
+                    keys are {first_item[0].keys()}."
+            first_item_inp = first_item[0]['input_ids']
+            first_item_lab = first_item[1]
+            return tf.shape(first_item_inp)[0].numpy() == batch_size and tf.shape(first_item_lab)[0].numpy() == batch_size
+        else:
+            return tf.reduce_all(
+                [tf.shape(item)[0].numpy() == batch_size for item in first_item]
+            )
     return tf.shape(first_item)[0].numpy() == batch_size
 
 
@@ -214,12 +233,31 @@ def dataset_gather(dataset: tf.data.Dataset, indices: tf.Tensor) -> tf.Tensor:
         return None
 
     example = next(iter(dataset))
-    # (n, bs, ...)
-    results = tf.Variable(
-        tf.zeros(
-            indices.shape[:-1] + example[0].shape, dtype=dataset.element_spec.dtype
+    if isinstance(example, dict):
+        assert ("input_ids" in example.keys()), f"As the input batch is a dictionnary we expect it to \
+                be a dictionnary as expected by Hugging Face model thus containing 'input_ids'. The dict \
+                keys are {example.keys()}."
+        results = {
+            "input_ids": tf.Variable(
+                tf.zeros(
+                    indices.shape[:-1] + example["input_ids"][0].shape,
+                    dtype=dataset.element_spec["input_ids"].dtype,
+                )
+            ),
+            "attention_mask": tf.Variable(
+                tf.zeros(
+                    indices.shape[:-1] + example["attention_mask"][0].shape,
+                    dtype=dataset.element_spec["attention_mask"].dtype,
+                )
+            ),
+        }
+    else:
+        # (n, bs, ...)
+        results = tf.Variable(
+            tf.zeros(
+                indices.shape[:-1] + example[0].shape, dtype=dataset.element_spec.dtype
+            )
         )
-    )
 
     nb_results = product(indices.shape[:-1])
     current_nb_results = 0
@@ -232,12 +270,24 @@ def dataset_gather(dataset: tf.data.Dataset, indices: tf.Tensor) -> tf.Tensor:
         # extract pertinent elements
         pertinent_indices_location = tf.where(indices[..., 0] == i)
         samples_index = tf.gather_nd(indices[..., 1], pertinent_indices_location)
-        samples = tf.gather(batch, samples_index)
-
-        # put them at the right place in results
-        for location, sample in zip(pertinent_indices_location, samples):
-            results[location[0], location[1]].assign(sample)
-            current_nb_results += 1
+        if isinstance(example, dict):
+            samples = {
+                "input_ids": tf.gather(batch["input_ids"], samples_index),
+                "attention_mask": tf.gather(batch["attention_mask"], samples_index),
+            }
+            # put them at the right place in results
+            for location, sample_id, sample_mask in zip(pertinent_indices_location, samples["input_ids"], samples["attention_mask"]):
+                results["input_ids"][location[0], location[1]].assign(sample_id)
+                results["attention_mask"][location[0], location[1]].assign(
+                    sample_mask
+                )
+                current_nb_results += 1
+        else:
+            samples = tf.gather(batch, samples_index)
+            # put them at the right place in results
+            for location, sample in zip(pertinent_indices_location, samples):
+                results[location[0], location[1]].assign(sample)
+                current_nb_results += 1
 
         # test if results are filled to break the loop
         if current_nb_results == nb_results:

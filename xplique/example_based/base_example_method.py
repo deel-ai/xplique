@@ -355,8 +355,18 @@ class BaseExampleMethod:
         if "examples" in self.returns or "weights" in self.returns:
             if "include_inputs" in self.returns:
                 # include inputs
-                inputs = tf.expand_dims(inputs, axis=1)
-                examples = tf.concat([inputs, examples], axis=1)
+                if isinstance(inputs, dict):
+                    assert "input_ids" in inputs.keys(), f"Expected inputs to be a dictionnary with 'input_ids' as key. \
+                        The keys are {inputs.keys()}."
+                    input_ids = inputs["input_ids"]
+                    attention_mask = inputs["attention_mask"]
+                    input_ids = tf.expand_dims(input_ids, axis=1)
+                    attention_mask = tf.expand_dims(attention_mask, axis=1)
+                    examples["input_ids"] = tf.concat([tf.cast(input_ids, dtype=examples["input_ids"].dtype), examples["input_ids"]], axis=1)
+                    examples["attention_mask"] = tf.concat([tf.cast(attention_mask, dtype= examples["attention_mask"].dtype), examples["attention_mask"]], axis=1)
+                else:
+                    inputs = tf.expand_dims(inputs, axis=1)
+                    examples = tf.concat([inputs, examples], axis=1)
                 if targets is not None:
                     targets = tf.expand_dims(targets, axis=1)
                     examples_targets = tf.concat([targets, examples_targets], axis=1)
