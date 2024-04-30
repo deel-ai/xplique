@@ -3,7 +3,6 @@ ProtoGreedy search method in example-based module
 """
 
 import numpy as np
-from sklearn.metrics.pairwise import rbf_kernel
 import tensorflow as tf
 
 from ...commons import dataset_gather, sanitize_dataset
@@ -49,7 +48,10 @@ class ProtoGreedySearch(BaseSearchMethod):
         The kernel type. It can be 'local' or 'global', by default 'local'.
         When it is local, the distances are calculated only within the classes.
     kernel_fn : Callable, optional
-        Kernel function or kernel matrix, by default rbf_kernel.
+        Kernel function, by default the rbf kernel.
+        This function must only use TensorFlow operations.
+    gamma : float, optional
+        Parameter that determines the spread of the rbf kernel, defaults to 1.0 / n_features.
     """
 
     # Avoid zero division during procedure. (the value is not important, as if the denominator is
@@ -66,7 +68,8 @@ class ProtoGreedySearch(BaseSearchMethod):
         distance: Union[int, str, Callable] = None,
         nb_prototypes: int = 1,
         kernel_type: str = 'local', 
-        kernel_fn: callable = rbf_kernel,
+        kernel_fn: callable = None,
+        gamma: float = None
     ): # pylint: disable=R0801
         super().__init__(
             cases_dataset, k, search_returns, batch_size
@@ -82,7 +85,27 @@ class ProtoGreedySearch(BaseSearchMethod):
                 + " ['local', 'global'] ",
                 +f"but {kernel_type} was received.",
             )
+
+        if kernel_fn is None:
+            # define rbf kernel function
+            def rbf_kernel(X, Y=None, gamma=None):
+                if Y is None:
+                    Y = X
+
+                if gamma is None:
+                    gamma = 1.0 / tf.cast(tf.shape(X)[1], dtype=X.dtype)
+
+                X = tf.expand_dims(X, axis=1)
+                Y = tf.expand_dims(Y, axis=0)
+
+                pairwise_diff = X - Y
+                pairwise_sq_dist = tf.reduce_sum(tf.square(pairwise_diff), axis=-1)
+                kernel_matrix = tf.exp(-gamma * pairwise_sq_dist)
+
+                return kernel_matrix
         
+            kernel_fn = lambda x, y: rbf_kernel(x,y,gamma)        
+
         if hasattr(kernel_fn, "__call__"):
             def custom_kernel_fn(x1, x2, y1=None, y2=None):
                 if self.kernel_type == 'global':
@@ -105,10 +128,32 @@ class ProtoGreedySearch(BaseSearchMethod):
             self.kernel_fn = custom_kernel_fn
         else:
             raise AttributeError(
-                "The kernel parameter is expected to be a Callable",
+                "The kernel_fn parameter is expected to be a Callable",
                 +f"but {kernel_fn} was received.",
-            ) 
+            )
+        
+        if distance is None:
+            def kernel_induced_distance(x1,x2):
+                x1 = tf.expand_dims(x1, axis=0)
+                x2 = tf.expand_dims(x2, axis=0)
+                distance = tf.squeeze(tf.sqrt(kernel_fn(x1,x1) - 2 * kernel_fn(x1,x2) + kernel_fn(x2,x2)))
+                return distance
+        
+            self.distance_fn = lambda x1, x2: kernel_induced_distance(x1,x2)
 
+        elif hasattr(distance, "__call__"):
+            self.distance_fn = distance
+        elif distance in ["fro", "euclidean", 1, 2, np.inf] or isinstance(
+            distance, int
+        ):
+            self.distance_fn = lambda x1, x2: tf.norm(x1 - x2, ord=distance)
+        else:
+            raise AttributeError(
+                "The distance parameter is expected to be either a Callable or in"
+                + " ['fro', 'euclidean', 'cosine', 1, 2, np.inf] ",
+                +f"but {distance} was received.",
+            )
+        
         # Compute the sum of the columns and the diagonal values of the kernel matrix of the dataset.
         # We take advantage of the symmetry of this matrix to traverse only its lower triangle.
         col_sums = []
@@ -155,26 +200,6 @@ class ProtoGreedySearch(BaseSearchMethod):
         # compute the prototypes in the latent space
         self.prototype_indices, self.prototype_cases, self.prototype_labels, self.prototype_weights = self.find_prototypes(nb_prototypes)
 
-        if distance is None:
-            def custom_distance(x1,x2):
-                x1 = tf.expand_dims(x1, axis=0)
-                x2 = tf.expand_dims(x2, axis=0)
-                distance = tf.sqrt(kernel_fn(x1,x1) - 2 * kernel_fn(x1,x2) + kernel_fn(x2,x2))
-                return distance
-            self.distance_fn = custom_distance
-        elif hasattr(distance, "__call__"):
-            self.distance_fn = distance
-        elif distance in ["fro", "euclidean", 1, 2, np.inf] or isinstance(
-            distance, int
-        ):
-            self.distance_fn = lambda x1, x2: tf.norm(x1 - x2, ord=distance)
-        else:
-            raise AttributeError(
-                "The distance parameter is expected to be either a Callable or in"
-                + " ['fro', 'euclidean', 'cosine', 1, 2, np.inf] ",
-                +f"but {distance} was received.",
-            )
-
         self.knn = KNN(
             cases_dataset=self.prototype_cases,
             k=k,
@@ -183,7 +208,7 @@ class ProtoGreedySearch(BaseSearchMethod):
             distance=self.distance_fn
         )
 
-    def compute_objectives(self, selection_indices, selection_cases, selection_labels, selection_weights, selection_selection_kernel, candidates_indices, candidates_cases, candidates_labels, candidates_selection_kernel):
+    def compute_objectives(self, selection_indices, selection_cases, selection_weights, selection_selection_kernel, candidates_indices, candidates_selection_kernel):
         """
         Compute the objective and its weights for each candidate.
 
@@ -193,18 +218,12 @@ class ProtoGreedySearch(BaseSearchMethod):
             Indices corresponding to the selected prototypes.
         selection_cases : Tensor
             Cases corresponding to the selected prototypes.
-        selection_labels : Tensor
-            Labels corresponding to the selected prototypes.
         selection_weights : Tensor
             Weights corresponding to the selected prototypes.
         selection_selection_kernel : Tensor
             Kernel matrix computed from the selected prototypes.
         candidates_indices : Tensor
             Indices corresponding to the candidate prototypes.
-        candidates_cases : Tensor
-            Cases corresponding to the candidate prototypes.
-        candidates_labels : Tensor
-            Labels corresponding to the candidate prototypes.
         candidates_selection_kernel : Tensor
             Kernel matrix between the candidates and the selected prototypes.
 
@@ -353,7 +372,7 @@ class ProtoGreedySearch(BaseSearchMethod):
                     all_candidates_last_selected_kernel = tf.tensor_scatter_nd_update(all_candidates_last_selected_kernel, tf.expand_dims(candidates_indices, axis=1), tf.squeeze(candidates_last_selected_kernel, axis=1))
                  
                 # Compute the objectives for the batch
-                objectives, objectives_weights = self.compute_objectives(selection_indices, selection_cases, selection_labels, selection_weights, selection_selection_kernel, candidates_indices, candidates_cases, candidates_labels, candidates_selection_kernel)
+                objectives, objectives_weights = self.compute_objectives(selection_indices, selection_cases, selection_weights, selection_selection_kernel, candidates_indices, candidates_selection_kernel)
     
                 # Select the best objective in the batch           
                 objectives_argmax = tf.argmax(objectives)

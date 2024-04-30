@@ -11,7 +11,6 @@ import unittest
 import time
 
 import numpy as np
-from sklearn.metrics.pairwise import rbf_kernel
 import tensorflow as tf
 
 from xplique.commons import sanitize_dataset, are_dataset_first_elems_equal
@@ -25,13 +24,14 @@ from tests.utils import almost_equal, get_Gaussian_Data, load_data, plot, plot_l
 
 def test_proto_greedy_basic():
     """
-    Test the SimilarExamples with an identity projection.
+    Test the Prototypes with an identity projection.
     """
     # Setup
     k = 3
     nb_prototypes = 3
     gamma = 0.026
     x_train, y_train = get_Gaussian_Data(nb_samples_class=20)
+    x_test, y_test = get_Gaussian_Data(nb_samples_class=10)
     # x_train, y_train = load_data('usps')
     # x_test, y_test = load_data('usps.t')
     # x_test = tf.random.shuffle(x_test)
@@ -40,13 +40,6 @@ def test_proto_greedy_basic():
     identity_projection = Projection(
         space_projection=lambda inputs, targets=None: inputs
     )
-
-    def custom_kernel_wrapper(gamma):
-        def custom_kernel(x,y=None):
-            return rbf_kernel(x,y,gamma)
-        return custom_kernel
-    
-    kernel_fn = custom_kernel_wrapper(gamma)
 
     kernel_type = "global"
 
@@ -57,10 +50,10 @@ def test_proto_greedy_basic():
         k=k,
         projection=identity_projection,
         batch_size=32,
-        distance="euclidean",
+        distance=None, #"euclidean",
         nb_prototypes=nb_prototypes,
         kernel_type=kernel_type,
-        kernel_fn=kernel_fn,
+        gamma=gamma,
     )
 
     # Generate global explanation
@@ -92,24 +85,25 @@ def test_proto_greedy_basic():
     # Check if all indices are between 0 and x_train.shape[0]-1
     assert tf.reduce_all(tf.math.logical_and(prototype_indices >= 0, prototype_indices <= x_train.shape[0]-1))
 
+    # Generate local explanation
+    examples = method.explain(x_test)
+
     # # Visualize all prototypes
     # plot(prototypes, prototype_weights, 'proto_greedy')
-
-    # # Generate local explanation
-    # examples = method.explain(x_test)
 
     # # Visualize local explanation
     # plot_local_explanation(examples, x_test, 'proto_greedy')
 
 def test_proto_dash_basic():
     """
-    Test the SimilarExamples with an identity projection.
+    Test the Prototypes with an identity projection.
     """
     # Setup
     k = 3
     nb_prototypes = 3
     gamma = 0.026
     x_train, y_train = get_Gaussian_Data(nb_samples_class=20)
+    x_test, y_test = get_Gaussian_Data(nb_samples_class=10)
     # x_train, y_train = load_data('usps')
     # x_test, y_test = load_data('usps.t')
     # x_test = tf.random.shuffle(x_test)
@@ -118,13 +112,6 @@ def test_proto_dash_basic():
     identity_projection = Projection(
         space_projection=lambda inputs, targets=None: inputs
     )
-
-    def custom_kernel_wrapper(gamma):
-        def custom_kernel(x,y=None):
-            return rbf_kernel(x,y,gamma)
-        return custom_kernel
-    
-    kernel_fn = custom_kernel_wrapper(gamma)
 
     kernel_type = "global"
 
@@ -138,7 +125,7 @@ def test_proto_dash_basic():
         distance="euclidean",
         nb_prototypes=nb_prototypes,
         kernel_type=kernel_type,
-        kernel_fn=kernel_fn,
+        gamma=gamma,
     )
 
     # Generate global explanation
@@ -170,24 +157,25 @@ def test_proto_dash_basic():
     # Check if all indices are between 0 and x_train.shape[0]-1
     assert tf.reduce_all(tf.math.logical_and(prototype_indices >= 0, prototype_indices <= x_train.shape[0]-1))
 
+    # Generate local explanation
+    examples = method.explain(x_test)
+
     # # Visualize all prototypes
     # plot(prototypes, prototype_weights, 'proto_dash')
-
-    # # Generate local explanation
-    # examples = method.explain(x_test)
 
     # # Visualize local explanation
     # plot_local_explanation(examples, x_test, 'proto_dash')
 
 def test_mmd_critic_basic():
     """
-    Test the SimilarExamples with an identity projection.
+    Test the Prototypes with an identity projection.
     """
     # Setup
     k = 3
     nb_prototypes = 3
     gamma = 0.026
     x_train, y_train = get_Gaussian_Data(nb_samples_class=20)
+    x_test, y_test = get_Gaussian_Data(nb_samples_class=10)
     # x_train, y_train = load_data('usps')
     # x_test, y_test = load_data('usps.t')
     # x_test = tf.random.shuffle(x_test)
@@ -196,13 +184,6 @@ def test_mmd_critic_basic():
     identity_projection = Projection(
         space_projection=lambda inputs, targets=None: inputs
     )
-
-    def custom_kernel_wrapper(gamma):
-        def custom_kernel(x,y=None):
-            return rbf_kernel(x,y,gamma)
-        return custom_kernel
-    
-    kernel_fn = custom_kernel_wrapper(gamma)
 
     kernel_type = "global"
 
@@ -216,7 +197,7 @@ def test_mmd_critic_basic():
         distance="euclidean",
         nb_prototypes=nb_prototypes,
         kernel_type=kernel_type,
-        kernel_fn=kernel_fn,
+        gamma=gamma,
     )
 
     # Generate global explanation
@@ -248,15 +229,15 @@ def test_mmd_critic_basic():
     # Check if all indices are between 0 and x_train.shape[0]-1
     assert tf.reduce_all(tf.math.logical_and(prototype_indices >= 0, prototype_indices <= x_train.shape[0]-1))
 
+    # Generate local explanation
+    examples = method.explain(x_test)
+
     # # Visualize all prototypes
     # plot(prototypes, prototype_weights, 'mmd_critic')
-
-    #  # Generate local explanation
-    # examples = method.explain(x_test)
 
     # # Visualize local explanation
     # plot_local_explanation(examples, x_test, 'mmd_critic')
 
-test_proto_greedy_basic()
-test_proto_dash_basic()
-test_mmd_critic_basic()
+# test_proto_greedy_basic()
+# test_proto_dash_basic()
+# test_mmd_critic_basic()

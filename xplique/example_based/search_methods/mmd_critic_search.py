@@ -47,10 +47,13 @@ class MMDCriticSearch(ProtoGreedySearch):
         The kernel type. It can be 'local' or 'global', by default 'local'.
         When it is local, the distances are calculated only within the classes.
     kernel_fn : Callable, optional
-        Kernel function or kernel matrix, by default rbf_kernel.
+        Kernel function, by default the rbf kernel.
+        This function must only use TensorFlow operations.
+    gamma : float, optional
+        Parameter that determines the spread of the rbf kernel, defaults to 1.0 / n_features.
     """
 
-    def compute_objectives(self, selection_indices, selection_cases, selection_labels, selection_weights, selection_selection_kernel, candidates_indices, candidates_cases, candidates_labels, candidates_selection_kernel):
+    def compute_objectives(self, selection_indices, selection_cases, selection_weights, selection_selection_kernel, candidates_indices, candidates_selection_kernel):
         """
         Compute the objective function and corresponding weights for a given set of selected prototypes and a candidate.
 
@@ -70,18 +73,12 @@ class MMDCriticSearch(ProtoGreedySearch):
             Indices corresponding to the selected prototypes.
         selection_cases : Tensor
             Cases corresponding to the selected prototypes.
-        selection_labels : Tensor
-            Labels corresponding to the selected prototypes.
         selection_weights : Tensor
             Weights corresponding to the selected prototypes.
         selection_selection_kernel : Tensor
             Kernel matrix computed from the selected prototypes.
         candidates_indices : Tensor
             Indices corresponding to the candidate prototypes.
-        candidates_cases : Tensor
-            Cases corresponding to the candidate prototypes.
-        candidates_labels : Tensor
-            Labels corresponding to the candidate prototypes.
         candidates_selection_kernel : Tensor
             Kernel matrix between the candidates and the selected prototypes.
 

@@ -3,7 +3,6 @@ ProtoDash search method in example-based module
 """
 
 import numpy as np
-from sklearn.metrics.pairwise import rbf_kernel
 from scipy.optimize import minimize
 import tensorflow as tf
 
@@ -114,7 +113,10 @@ class ProtoDashSearch(ProtoGreedySearch):
         The kernel type. It can be 'local' or 'global', by default 'local'.
         When it is local, the distances are calculated only within the classes.
     kernel_fn : Callable, optional
-        Kernel function or kernel matrix, by default rbf_kernel.
+        Kernel function, by default the rbf kernel.
+        This function must only use TensorFlow operations.
+    gamma : float, optional
+        Parameter that determines the spread of the rbf kernel, defaults to 1.0 / n_features.
     use_optimizer : bool, optional
         Flag indicating whether to use an optimizer for prototype selection, by default False.
     """
@@ -129,7 +131,8 @@ class ProtoDashSearch(ProtoGreedySearch):
         distance: Union[int, str, Callable] = None,
         nb_prototypes: int = 1,
         kernel_type: str = 'local', 
-        kernel_fn: callable = rbf_kernel,
+        kernel_fn: callable = None,
+        gamma: float = None,
         use_optimizer: bool = False,
     ): # pylint: disable=R0801
         
@@ -144,7 +147,8 @@ class ProtoDashSearch(ProtoGreedySearch):
             distance=distance, 
             nb_prototypes=nb_prototypes, 
             kernel_type=kernel_type, 
-            kernel_fn=kernel_fn
+            kernel_fn=kernel_fn,
+            gamma=gamma
         )
 
     def update_selection_weights(self, selection_indices, selection_weights, selection_selection_kernel, best_indice, best_weights, best_objective):
@@ -197,7 +201,7 @@ class ProtoDashSearch(ProtoGreedySearch):
 
         return selection_weights
 
-    def compute_objectives(self, selection_indices, selection_cases, selection_labels, selection_weights, selection_selection_kernel, candidates_indices, candidates_cases, candidates_labels, candidates_selection_kernel):
+    def compute_objectives(self, selection_indices, selection_cases, selection_weights, selection_selection_kernel, candidates_indices, candidates_selection_kernel):
         """
         Compute the objective function and corresponding weights for a given set of selected prototypes and a candidate.
         Calculate the gradient of l(w) = w^T * μ_p - 1/2 * w^T * K * w 
@@ -211,18 +215,12 @@ class ProtoDashSearch(ProtoGreedySearch):
             Indices corresponding to the selected prototypes.
         selection_cases : Tensor
             Cases corresponding to the selected prototypes.
-        selection_labels : Tensor
-            Labels corresponding to the selected prototypes.
         selection_weights : Tensor
             Weights corresponding to the selected prototypes.
         selection_selection_kernel : Tensor
             Kernel matrix computed from the selected prototypes.
         candidates_indices : Tensor
             Indices corresponding to the candidate prototypes.
-        candidates_cases : Tensor
-            Cases corresponding to the candidate prototypes.
-        candidates_labels : Tensor
-            Labels corresponding to the candidate prototypes.
         candidates_selection_kernel : Tensor
             Kernel matrix between the candidates and the selected prototypes.
 
