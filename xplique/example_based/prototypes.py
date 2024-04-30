@@ -133,7 +133,7 @@ class Prototypes(BaseExampleMethod):
         Returns:
             prototype_indices : Tensor
                 prototype indices. 
-            prototype_indices : Tensor    
+            prototype_weights : Tensor    
                 prototype weights.
         """
         return self.search_method.prototype_indices, self.search_method.prototype_weights
