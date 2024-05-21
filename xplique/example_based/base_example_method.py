@@ -90,7 +90,7 @@ class BaseExampleMethod:
         ), "`BaseExampleMethod` without `projection` is a `BaseSearchMethod`."
 
         # set attributes
-        batch_size = self.__initialize_cases_dataset(
+        batch_size = self._initialize_cases_dataset(
             cases_dataset, labels_dataset, targets_dataset, batch_size
         )
 
@@ -126,7 +126,7 @@ class BaseExampleMethod:
             **search_method_kwargs,
         )
 
-    def __initialize_cases_dataset(
+    def _initialize_cases_dataset(
         self,
         cases_dataset: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
         labels_dataset: Optional[Union[tf.data.Dataset, tf.Tensor, np.ndarray]],
