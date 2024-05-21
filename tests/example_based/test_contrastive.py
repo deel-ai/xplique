@@ -1,158 +1,10 @@
 """
 Tests for the contrastive methods.
 """
-import pytest
-
 import tensorflow as tf
 import numpy as np
 
-from xplique.example_based import NaiveSemiFactuals, PredictedLabelAwareSemiFactuals, NaiveCounterFactuals
-
-def test_naive_semi_factuals():
-    """
-    """
-    cases = tf.constant([[1., 2.], [2., 3.], [3., 4.], [4., 5.], [5., 6.]], dtype=tf.float32)
-    cases_targets = tf.constant([[0, 1], [1, 0], [1, 0], [0, 1], [1, 0]], dtype=tf.float32)
-
-    cases_dataset = tf.data.Dataset.from_tensor_slices(cases).batch(2)
-    cases_targets_dataset = tf.data.Dataset.from_tensor_slices(cases_targets).batch(2)
-    semi_factuals = NaiveSemiFactuals(cases_dataset, cases_targets_dataset, k=2, case_returns=["examples", "indices", "distances", "include_inputs"], batch_size=2)
-
-    inputs = tf.constant([[1.5, 2.5], [2.5, 3.5], [4.5, 5.5]], dtype=tf.float32)
-    targets = tf.constant([[0, 1], [1, 0], [1, 0]], dtype=tf.float32)
-
-    mask = semi_factuals.filter_fn(inputs, cases, targets, cases_targets)
-    assert mask.shape == (inputs.shape[0], cases.shape[0])
-
-    expected_mask = tf.constant([
-        [True, False, False, True, False],
-        [False, True, True, False, True],
-        [False, True, True, False, True]], dtype=tf.bool)
-    assert tf.reduce_all(tf.equal(mask, expected_mask))
-
-    return_dict = semi_factuals(inputs, targets)
-    assert set(return_dict.keys()) == set(["examples", "indices", "distances"])
-
-    examples = return_dict["examples"]
-    distances = return_dict["distances"]
-    indices = return_dict["indices"]
-
-    assert examples.shape == (3, 3, 2) # (n, k+1, W)
-    assert distances.shape == (3, 2) # (n, k)
-    assert indices.shape == (3, 2, 2) # (n, k, 2)
-
-    expected_examples = tf.constant([
-        [[1.5, 2.5], [4., 5.], [1., 2.]],
-        [[2.5, 3.5], [5., 6.], [2., 3.]],
-        [[4.5, 5.5], [2., 3.], [3., 4.]]], dtype=tf.float32)
-    assert tf.reduce_all(tf.equal(examples, expected_examples))
-
-    expected_distances = tf.constant([[np.sqrt(2*2.5**2), np.sqrt(0.5)], [np.sqrt(2*2.5**2), np.sqrt(0.5)], [np.sqrt(2*2.5**2), np.sqrt(2*1.5**2)]], dtype=tf.float32)
-    assert tf.reduce_all(tf.abs(distances - expected_distances) < 1e-5)
-
-    expected_indices = tf.constant([[[1, 1], [0, 0]],[[2, 0], [0, 1]],[[0, 1], [1, 0]]], dtype=tf.int32)
-    assert tf.reduce_all(tf.equal(indices, expected_indices))
-
-def test_labelaware_semifactuals():
-    """
-    """
-    cases = tf.constant([[1., 2.], [2., 3.], [3., 4.], [4., 5.], [5., 6.]], dtype=tf.float32)
-    cases_targets = tf.constant([[0, 1], [1, 0], [1, 0], [0, 1], [1, 0]], dtype=tf.float32)
-
-    cases_dataset = tf.data.Dataset.from_tensor_slices(cases).batch(2)
-    cases_targets_dataset = tf.data.Dataset.from_tensor_slices(cases_targets).batch(2)
-
-    inputs = tf.constant([[1.5, 2.5], [2.5, 3.5], [4.5, 5.5]], dtype=tf.float32)
-    targets = tf.constant([[0, 1], [1, 0], [1, 0]], dtype=tf.float32)
-
-    semi_factuals = PredictedLabelAwareSemiFactuals(cases_dataset, cases_targets_dataset, target_label=0, k=2, batch_size=2, case_returns=["examples", "distances", "include_inputs"])
-    # assert the filtering on the right label went right
-
-    combined_dataset = tf.data.Dataset.zip((cases_dataset.unbatch(), cases_targets_dataset.unbatch()))
-    combined_dataset = combined_dataset.filter(lambda x, y: tf.equal(tf.argmax(y, axis=-1),0))
-
-    filter_cases = semi_factuals.cases_dataset
-    filter_targets = semi_factuals.targets_dataset
-
-    expected_filter_cases = tf.constant([[2., 3.], [3., 4.], [5., 6.]], dtype=tf.float32)
-    expected_filter_targets = tf.constant([[1, 0], [1, 0], [1, 0]], dtype=tf.float32)
-
-    tensor_filter_cases = []
-    for elem in filter_cases.unbatch():
-        tensor_filter_cases.append(elem)
-    tensor_filter_cases = tf.stack(tensor_filter_cases)
-    assert tf.reduce_all(tf.equal(tensor_filter_cases, expected_filter_cases))
-
-    tensor_filter_targets = []
-    for elem in filter_targets.unbatch():
-        tensor_filter_targets.append(elem)
-    tensor_filter_targets = tf.stack(tensor_filter_targets)
-    assert tf.reduce_all(tf.equal(tensor_filter_targets, expected_filter_targets))
-
-    # check the call method
-    filter_inputs = tf.constant([[2.5, 3.5], [4.5, 5.5]], dtype=tf.float32)
-    filter_targets = tf.constant([[1, 0], [1, 0]], dtype=tf.float32)
-
-    return_dict = semi_factuals(filter_inputs, filter_targets)
-    assert set(return_dict.keys()) == set(["examples", "distances"])
-
-    examples = return_dict["examples"]
-    distances = return_dict["distances"]
-
-    assert examples.shape == (2, 3, 2) # (n_label0, k+1, W)
-    assert distances.shape == (2, 2) # (n_label0, k)
-
-    expected_examples = tf.constant([
-        [[2.5, 3.5], [5., 6.], [2., 3.]],
-        [[4.5, 5.5], [2., 3.], [3., 4.]]], dtype=tf.float32)
-    assert tf.reduce_all(tf.equal(examples, expected_examples))
-
-    expected_distances = tf.constant([[np.sqrt(2*2.5**2), np.sqrt(0.5)], [np.sqrt(2*2.5**2), np.sqrt(2*1.5**2)]], dtype=tf.float32)
-    assert tf.reduce_all(tf.abs(distances - expected_distances) < 1e-5)
-
-    # check an error is raised when a target does not match the target label
-    with pytest.raises(AssertionError):
-        semi_factuals(inputs, targets)
-
-    # same but with the other label
-    semi_factuals = PredictedLabelAwareSemiFactuals(cases_dataset, cases_targets_dataset, target_label=1, k=2, batch_size=2, case_returns=["examples", "distances", "include_inputs"])
-    filter_cases = semi_factuals.cases_dataset
-    filter_targets = semi_factuals.targets_dataset
-
-    expected_filter_cases = tf.constant([[1., 2.], [4., 5.]], dtype=tf.float32)
-    expected_filter_targets = tf.constant([[0, 1], [0, 1]], dtype=tf.float32)
-
-    tensor_filter_cases = []
-    for elem in filter_cases.unbatch():
-        tensor_filter_cases.append(elem)
-    tensor_filter_cases = tf.stack(tensor_filter_cases)
-    assert tf.reduce_all(tf.equal(tensor_filter_cases, expected_filter_cases))
-
-    tensor_filter_targets = []
-    for elem in filter_targets.unbatch():
-        tensor_filter_targets.append(elem)
-    tensor_filter_targets = tf.stack(tensor_filter_targets)
-    assert tf.reduce_all(tf.equal(tensor_filter_targets, expected_filter_targets))
-
-    # check the call method
-    filter_inputs = tf.constant([[1.5, 2.5]], dtype=tf.float32)
-    filter_targets = tf.constant([[0, 1]], dtype=tf.float32)
-
-    return_dict = semi_factuals(filter_inputs, filter_targets)
-    assert set(return_dict.keys()) == set(["examples", "distances"])
-
-    examples = return_dict["examples"]
-    distances = return_dict["distances"]
-
-    assert examples.shape == (1, 3, 2) # (n_label1, k+1, W)
-    assert distances.shape == (1, 2) # (n_label1, k)
-
-    expected_examples = tf.constant([
-        [[1.5, 2.5], [4., 5.], [1., 2.]]], dtype=tf.float32)
-    assert tf.reduce_all(tf.equal(examples, expected_examples))
-
-    expected_distances = tf.constant([[np.sqrt(2*2.5**2), np.sqrt(0.5)]], dtype=tf.float32)
-    assert tf.reduce_all(tf.abs(distances - expected_distances) < 1e-5)
+from xplique.example_based import NaiveCounterFactuals, LabelAwareCounterFactuals, KLEOR
 
 def test_naive_counter_factuals():
     """
@@ -198,3 +50,249 @@ def test_naive_counter_factuals():
 
     expected_indices = tf.constant([[[0, 1], [1, 0]],[[0, 0], [1, 1]],[[1, 1], [0, 0]]], dtype=tf.int32)
     assert tf.reduce_all(tf.equal(indices, expected_indices))
+
+def test_label_aware_cf():
+    """
+    Test suite for the LabelAwareCounterFactuals class
+    """
+    # Same tests as the previous one but with the LabelAwareCounterFactuals class
+    # thus we only needs to use cf_targets = 1 - targets of the previous tests
+    cases = tf.constant([[1., 2.], [2., 3.], [3., 4.], [4., 5.], [5., 6.]], dtype=tf.float32)
+    cases_targets = tf.constant([[0, 1], [1, 0], [1, 0], [0, 1], [1, 0]], dtype=tf.float32)
+
+    cases_dataset = tf.data.Dataset.from_tensor_slices(cases).batch(2)
+    cases_targets_dataset = tf.data.Dataset.from_tensor_slices(cases_targets).batch(2)
+    counter_factuals = LabelAwareCounterFactuals(cases_dataset, cases_targets_dataset, k=1, case_returns=["examples", "indices", "distances", "include_inputs"], batch_size=2)
+
+    inputs = tf.constant([[1.5, 2.5], [2.5, 3.5], [4.5, 5.5]], dtype=tf.float32)
+    cf_targets = tf.constant([[1, 0], [0, 1], [0, 1]], dtype=tf.float32)
+
+    mask = counter_factuals.filter_fn(inputs, cases, cf_targets, cases_targets)
+    assert mask.shape == (inputs.shape[0], cases.shape[0])
+
+    expected_mask = tf.constant([
+        [False, True, True, False, True],
+        [True, False, False, True, False],
+        [True, False, False, True, False]], dtype=tf.bool)
+    assert tf.reduce_all(tf.equal(mask, expected_mask))
+
+    return_dict = counter_factuals(inputs, cf_targets)
+    assert set(return_dict.keys()) == set(["examples", "indices", "distances"])
+
+    examples = return_dict["examples"]
+    distances = return_dict["distances"]
+    indices = return_dict["indices"]
+
+    assert examples.shape == (3, 2, 2) # (n, k+1, W)
+    assert distances.shape == (3, 1) # (n, k)
+    assert indices.shape == (3, 1, 2) # (n, k, 2)
+
+    expected_examples = tf.constant([
+        [[1.5, 2.5], [2., 3.]],
+        [[2.5, 3.5], [1., 2.]],
+        [[4.5, 5.5], [4., 5.]]], dtype=tf.float32)
+    assert tf.reduce_all(tf.equal(examples, expected_examples))
+
+    expected_distances = tf.constant([[np.sqrt(2*0.5**2)], [np.sqrt(2*1.5**2)], [np.sqrt(2*0.5**2)]], dtype=tf.float32)
+    assert tf.reduce_all(tf.abs(distances - expected_distances) < 1e-5)
+
+    expected_indices = tf.constant([[[0, 1]],[[0, 0]],[[1, 1]]], dtype=tf.int32)
+    assert tf.reduce_all(tf.equal(indices, expected_indices))
+
+    # Now let's dive when multiple classes are available in 1D
+    cases = tf.constant([[1.], [2.], [3.], [4.], [5.], [6.], [7.], [8.], [9.], [10.]], dtype=tf.float32)
+    cases_targets = tf.constant([[0, 1, 0], [1, 0, 0], [0, 0, 1], [1, 0, 0], [1, 0, 0], [0, 0, 1], [0, 1, 0], [0, 0, 1], [0, 1, 0], [1, 0, 0]], dtype=tf.float32)
+
+    cases_dataset = tf.data.Dataset.from_tensor_slices(cases).batch(2)
+    cases_targets_dataset = tf.data.Dataset.from_tensor_slices(cases_targets).batch(2)
+
+    counter_factuals = LabelAwareCounterFactuals(cases_dataset, cases_targets_dataset, k=1, case_returns=["examples", "indices", "distances", "include_inputs"], batch_size=2)
+
+    inputs = tf.constant([[1.5], [2.5], [4.5], [6.5], [8.5]], dtype=tf.float32)
+    cf_targets = tf.constant([[1, 0, 0], [0, 1, 0], [0, 0, 1], [0, 0, 1], [0, 1, 0]], dtype=tf.float32)
+
+    mask = counter_factuals.filter_fn(inputs, cases, cf_targets, cases_targets)
+    assert mask.shape == (inputs.shape[0], cases.shape[0])
+
+    expected_mask = tf.constant([
+        [False, True, False, True, True, False, False, False, False, True],
+        [True, False, False, False, False, False, True, False, True, False],
+        [False, False, True, False, False, True, False, True, False, False],
+        [False, False, True, False, False, True, False, True, False, False],
+        [True, False, False, False, False, False, True, False, True, False]], dtype=tf.bool)
+    assert tf.reduce_all(tf.equal(mask, expected_mask))
+
+    return_dict = counter_factuals(inputs, cf_targets)
+    assert set(return_dict.keys()) == set(["examples", "indices", "distances"])
+
+    examples = return_dict["examples"]
+    distances = return_dict["distances"]
+    indices = return_dict["indices"]
+
+    assert examples.shape == (5, 2, 1) # (n, k+1, W)
+    assert distances.shape == (5, 1) # (n, k)
+    assert indices.shape == (5, 1, 2) # (n, k, 2)
+
+    expected_examples = tf.constant([
+        [[1.5], [2.]],
+        [[2.5], [1.]],
+        [[4.5], [3.]],
+        [[6.5], [6.]],
+        [[8.5], [9.]]], dtype=tf.float32)
+    assert tf.reduce_all(tf.equal(examples, expected_examples))
+
+    expected_distances = tf.constant([[np.sqrt(0.5**2)], [np.sqrt(1.5**2)], [np.sqrt(1.5**2)], [np.sqrt(0.5**2)], [np.sqrt(0.5**2)]], dtype=tf.float32)
+    assert tf.reduce_all(tf.abs(distances - expected_distances) < 1e-5)
+
+    expected_indices = tf.constant([[[0, 1]],[[0, 0]],[[1, 0]],[[2, 1]],[[4, 0]]], dtype=tf.int32)
+    assert tf.reduce_all(tf.equal(indices, expected_indices))
+
+def test_kleor():
+    """
+    Test suite for the Kleor class
+    """
+    # setup the tests
+    cases = tf.constant([[1., 2.], [2., 3.], [3., 4.], [4., 5.], [5., 6.]], dtype=tf.float32)
+    cases_targets = tf.constant([[0, 1], [1, 0], [1, 0], [0, 1], [1, 0]], dtype=tf.float32)
+
+    cases_dataset = tf.data.Dataset.from_tensor_slices(cases).batch(2)
+    cases_targets_dataset = tf.data.Dataset.from_tensor_slices(cases_targets).batch(2)
+
+    inputs = tf.constant([[1.5, 2.5], [2.5, 3.5], [4.5, 5.5]], dtype=tf.float32)
+    targets = tf.constant([[0, 1], [1, 0], [1, 0]], dtype=tf.float32)
+
+    # start when strategy is sim_miss
+    kleor_sim_miss = KLEOR(
+        cases_dataset,
+        cases_targets_dataset,
+        k=1,
+        case_returns=["examples", "indices", "distances", "include_inputs", "nuns"],
+        batch_size=2,
+        strategy="sim_miss"
+    )
+
+    return_dict = kleor_sim_miss(inputs, targets)
+    assert set(return_dict.keys()) == set(["examples", "indices", "distances", "nuns"])
+
+    examples = return_dict["examples"]
+    distances = return_dict["distances"]
+    indices = return_dict["indices"]
+    nuns = return_dict["nuns"]
+
+    expected_nuns = tf.constant([
+        [[2., 3.]],
+        [[1., 2.]],
+        [[4., 5.]]], dtype=tf.float32)
+    assert tf.reduce_all(tf.equal(nuns, expected_nuns))
+
+    assert examples.shape == (3, 2, 2) # (n, k+1, W)
+    assert distances.shape == (3, 1) # (n, k)
+    assert indices.shape == (3, 1, 2) # (n, k, 2)
+
+    expected_examples = tf.constant([
+        [[1.5, 2.5], [1., 2.]],
+        [[2.5, 3.5], [2., 3.]],
+        [[4.5, 5.5], [3., 4.]]], dtype=tf.float32)
+    assert tf.reduce_all(tf.equal(examples, expected_examples))
+
+    expected_distances = tf.constant([[np.sqrt(2*0.5**2)], [np.sqrt(2*0.5**2)], [np.sqrt(2*1.5**2)]], dtype=tf.float32)
+    assert tf.reduce_all(tf.abs(distances - expected_distances) < 1e-5)
+
+    expected_indices = tf.constant([[[0, 0]],[[0, 1]],[[1, 0]]], dtype=tf.int32)
+    assert tf.reduce_all(tf.equal(indices, expected_indices))
+
+    # now strategy is global_sim
+    kleor_global_sim = KLEOR(
+        cases_dataset,
+        cases_targets_dataset,
+        k=1,
+        case_returns=["examples", "indices", "distances", "include_inputs", "nuns"],
+        batch_size=2,
+        strategy="global_sim"
+    )
+
+    return_dict = kleor_global_sim(inputs, targets)
+    assert set(return_dict.keys()) == set(["examples", "indices", "distances", "nuns"])
+
+    nuns = return_dict["nuns"]
+    assert tf.reduce_all(tf.equal(nuns, expected_nuns))
+
+    examples = return_dict["examples"]
+    distances = return_dict["distances"]
+    indices = return_dict["indices"]
+
+    assert examples.shape == (3, 2, 2) # (n, k+1, W)
+    assert distances.shape == (3, 1) # (n, k)
+    assert indices.shape == (3, 1, 2) # (n, k, 2)
+
+    expected_indices = tf.constant([[[-1, -1]],[[0, 1]],[[-1, -1]]], dtype=tf.int32)
+    assert tf.reduce_all(tf.equal(indices, expected_indices))
+
+    expected_distances = tf.constant([[np.inf], [np.sqrt(2*0.5**2)], [np.inf]], dtype=tf.float32)
+    # create masks for inf values
+    inf_mask_dist = tf.math.is_inf(distances)
+    inf_mask_expected_distances = tf.math.is_inf(expected_distances)
+    assert tf.reduce_all(tf.equal(inf_mask_dist, inf_mask_expected_distances))
+    assert tf.reduce_all(
+        tf.abs(tf.where(inf_mask_dist, 0.0, distances) - tf.where(inf_mask_expected_distances, 0.0, expected_distances)
+               ) < 1e-5)
+
+    expected_examples = tf.constant([
+        [[1.5, 2.5], [np.inf, np.inf]],
+        [[2.5, 3.5], [2., 3.]],
+        [[4.5, 5.5], [np.inf, np.inf]]], dtype=tf.float32)
+    # mask for inf values
+    inf_mask_examples = tf.math.is_inf(examples)
+    inf_mask_expected_examples = tf.math.is_inf(expected_examples)
+    assert tf.reduce_all(tf.equal(inf_mask_examples, inf_mask_expected_examples))
+    assert tf.reduce_all(
+        tf.abs(tf.where(inf_mask_examples, 0.0, examples) - tf.where(inf_mask_expected_examples, 0.0, expected_examples)
+               ) < 1e-5)
+
+# def test_kleor_global_sim():
+#     """
+#     Test suite for the KleorSimMiss class
+#     """
+#     cases = tf.constant([[1., 2.], [2., 3.], [3., 4.], [4., 5.], [5., 6.]], dtype=tf.float32)
+#     cases_targets = tf.constant([[0, 1], [1, 0], [1, 0], [0, 1], [1, 0]], dtype=tf.float32)
+
+#     cases_dataset = tf.data.Dataset.from_tensor_slices(cases).batch(2)
+#     cases_targets_dataset = tf.data.Dataset.from_tensor_slices(cases_targets).batch(2)
+#     semi_factuals = KLEOR(
+#         cases_dataset,
+#         cases_targets_dataset,
+#         k=1,
+#         case_returns=["examples", "indices", "distances", "include_inputs", "nuns"],
+#         batch_size=2,
+#         strategy="global_sim"
+#     )
+
+#     return_dict = semi_factuals(inputs, targets)
+#     assert set(return_dict.keys()) == set(["examples", "indices", "distances", "nuns"])
+
+#     examples = return_dict["examples"]
+#     distances = return_dict["distances"]
+#     indices = return_dict["indices"]
+#     nuns = return_dict["nuns"]
+
+#     expected_nuns = tf.constant([
+#         [[2., 3.]],
+#         [[1., 2.]],
+#         [[4., 5.]]], dtype=tf.float32)
+#     assert tf.reduce_all(tf.equal(nuns, expected_nuns))
+
+#     assert examples.shape == (3, 2, 2) # (n, k+1, W)
+#     assert distances.shape == (3, 1) # (n, k)
+#     assert indices.shape == (3, 1, 2) # (n, k, 2)
+
+#     expected_examples = tf.constant([
+#         [[1.5, 2.5], [1., 2.]],
+#         [[2.5, 3.5], [2., 3.]],
+#         [[4.5, 5.5], [3., 4.]]], dtype=tf.float32)
+#     assert tf.reduce_all(tf.equal(examples, expected_examples))
+
+#     expected_distances = tf.constant([[np.sqrt(2*0.5**2)], [np.sqrt(2*0.5**2)], [np.sqrt(2*1.5**2)]], dtype=tf.float32)
+#     assert tf.reduce_all(tf.abs(distances - expected_distances) < 1e-5)
+
+#     expected_indices = tf.constant([[[0, 0]],[[0, 1]],[[1, 0]]], dtype=tf.int32)
+#     assert tf.reduce_all(tf.equal(indices, expected_indices))
