@@ -72,6 +72,7 @@ class BaseExampleMethod:
     search_method_kwargs
         Parameters to be passed at the construction of the `search_method`.
     """
+    _returns_possibilities = ["examples", "weights", "distances", "labels", "include_inputs"]
 
     def __init__(
         self,
@@ -94,9 +95,7 @@ class BaseExampleMethod:
             cases_dataset, labels_dataset, targets_dataset, batch_size
         )
 
-        self.k = k
-        self.set_returns(case_returns)
-
+        self._search_returns = ["indices", "distances"]
         assert hasattr(projection, "__call__"), "projection should be a callable."
 
         # check projection type
@@ -115,7 +114,7 @@ class BaseExampleMethod:
                                                                   self.targets_dataset)
 
         # set `search_returns` if not provided and overwrite it otherwise
-        search_method_kwargs["search_returns"] = ["indices", "distances"]
+        search_method_kwargs["search_returns"] = self._search_returns
 
         # initiate search_method
         self.search_method = search_method(
@@ -125,6 +124,49 @@ class BaseExampleMethod:
             targets_dataset=self.targets_dataset,
             **search_method_kwargs,
         )
+        self.k = k
+        self.returns = case_returns
+
+    @property
+    def k(self) -> int:
+        """Getter for the k parameter."""
+        return self._k
+
+    @k.setter
+    def k(self, k: int):
+        """Setter for the k parameter."""
+        assert isinstance(k, int) and k >= 1, f"k should be an int >= 1 and not {k}"
+        self._k = k
+        self.search_method.k = k
+
+    @property
+    def returns(self) -> Union[List[str], str]:
+        """Getter for the returns parameter."""
+        return self._returns
+
+    @returns.setter
+    def returns(self, returns: Union[List[str], str]):
+        """
+        Setter for the returns parameter used to define returned elements in `self.explain()`.
+
+        Parameters
+        ----------
+        returns
+            Most elements are useful in `xplique.plots.plot_examples()`.
+            `returns` can be set to 'all' for all possible elements to be returned.
+                - 'examples' correspond to the expected examples,
+                the inputs may be included in first position. (n, k(+1), ...)
+                - 'weights' the weights in the input space used in the projection.
+                They are associated to the input and the examples. (n, k(+1), ...)
+                - 'distances' the distances between the inputs and the corresponding examples.
+                They are associated to the examples. (n, k, ...)
+                - 'labels' if provided through `dataset_labels`,
+                they are the labels associated with the examples. (n, k, ...)
+                - 'include_inputs' specify if inputs should be included in the returned elements.
+                Note that it changes the number of returned elements from k to k+1.
+        """
+        default = "examples"
+        self._returns = _sanitize_returns(returns, self._returns_possibilities, default)
 
     def _initialize_cases_dataset(
         self,
@@ -221,43 +263,6 @@ class BaseExampleMethod:
             self.targets_dataset = self.targets_dataset.prefetch(tf.data.AUTOTUNE)
 
         return batch_size
-
-    def set_k(self, k: int):
-        """
-        Setter for the k parameter.
-
-        Parameters
-        ----------
-        k
-            Number of examples to return, it should be a positive integer.
-        """
-        assert isinstance(k, int) and k >= 1, f"k should be an int >= 1 and not {k}"
-        self.k = k
-        self.search_method.set_k(k)
-
-    def set_returns(self, returns: Union[List[str], str]):
-        """
-        Set `self.returns` used to define returned elements in `self.explain()`.
-
-        Parameters
-        ----------
-        returns
-            Most elements are useful in `xplique.plots.plot_examples()`.
-            `returns` can be set to 'all' for all possible elements to be returned.
-                - 'examples' correspond to the expected examples,
-                the inputs may be included in first position. (n, k(+1), ...)
-                - 'weights' the weights in the input space used in the projection.
-                They are associated to the input and the examples. (n, k(+1), ...)
-                - 'distances' the distances between the inputs and the corresponding examples.
-                They are associated to the examples. (n, k, ...)
-                - 'labels' if provided through `dataset_labels`,
-                they are the labels associated with the examples. (n, k, ...)
-                - 'include_inputs' specify if inputs should be included in the returned elements.
-                Note that it changes the number of returned elements from k to k+1.
-        """
-        possibilities = ["examples", "weights", "distances", "labels", "include_inputs"]
-        default = "examples"
-        self.returns = _sanitize_returns(returns, possibilities, default)
 
     @sanitize_inputs_targets
     def explain(
@@ -392,7 +397,4 @@ class BaseExampleMethod:
             ), "The method cannot return labels without a label dataset."
             return_dict["labels"] = examples_labels
 
-        # return a dict only different variables are returned
-        if len(return_dict) == 1:
-            return list(return_dict.values())[0]
         return return_dict

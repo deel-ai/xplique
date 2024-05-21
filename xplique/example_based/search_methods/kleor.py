@@ -25,7 +25,6 @@ class BaseKLEOR(FilterKNN, ABC):
         batch_size: Optional[int] = 32,
         distance: Union[int, str, Callable] = "euclidean",
     ): # pylint: disable=R0801
-        possibilities = ["examples", "indices", "distances", "include_inputs", "nuns"]
         super().__init__(
             cases_dataset = cases_dataset,
             targets_dataset=targets_dataset,
@@ -35,7 +34,6 @@ class BaseKLEOR(FilterKNN, ABC):
             batch_size=batch_size,
             distance=distance,
             order=ORDER.ASCENDING,
-            possibilities=possibilities
         )
 
         self.search_nuns = FilterKNN(
@@ -65,32 +63,13 @@ class BaseKLEOR(FilterKNN, ABC):
         # compute neighbors
         examples_distances, examples_indices, nuns = self.kneighbors(inputs, targets)
 
-        # Set values in return dict
-        return_dict = {}
-        if "examples" in self.returns:
-            return_dict["examples"] = dataset_gather(self.cases_dataset, examples_indices)
-            # replace examples for which indices is -1, -1 by an inf value
-            # mask = tf.reduce_all(tf.equal(examples_indices, -1), axis=-1)
-            # return_dict["examples"] = tf.where(
-            #     tf.expand_dims(mask, axis=-1),
-            #     tf.fill(return_dict["examples"].shape, tf.constant(np.inf, dtype=tf.float32)),
-            #     return_dict["examples"],
-            # )
-            if "include_inputs" in self.returns:
-                inputs = tf.expand_dims(inputs, axis=1)
-                return_dict["examples"] = tf.concat(
-                    [inputs, return_dict["examples"]], axis=1
-                )
+        # build return dict
+        return_dict = self._build_return_dict(inputs,  examples_distances, examples_indices)
+
+        # add the nuns if needed
         if "nuns" in self.returns:
             return_dict["nuns"] = nuns
-        if "indices" in self.returns:
-            return_dict["indices"] = examples_indices
-        if "distances" in self.returns:
-            return_dict["distances"] = examples_distances
 
-        # Return a dict only different variables are returned
-        if len(return_dict) == 1:
-            return list(return_dict.values())[0]
         return return_dict
 
     def _filter_fn(self, _, __, targets, cases_targets) -> tf.Tensor:

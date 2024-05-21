@@ -106,14 +106,14 @@ def test_base_find_examples():
         search_returns = returns,
     )
     return_dict = mock_knn.find_examples(inputs)
-    assert return_dict.shape == (5, 3, 3) 
+    assert return_dict["examples"].shape == (5, 3, 3) 
 
     mock_knn = MockKNN(
         tf.constant([[1., 2., 3.], [4., 5., 6.], [7., 8., 9.], [10., 11., 12.]], dtype=tf.float32),
         k = 2,
     )
     return_dict = mock_knn.find_examples(inputs)
-    assert return_dict.shape == (5, 2, 3) 
+    assert return_dict["examples"].shape == (5, 2, 3) 
 
 def test_knn_init():
     """

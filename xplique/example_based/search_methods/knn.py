@@ -1,13 +1,12 @@
 """
 KNN online search method in example-based module
 """
-import math
 from abc import abstractmethod
 
 import numpy as np
 import tensorflow as tf
 
-from ...commons import dataset_gather, sanitize_dataset
+from ...commons import dataset_gather
 from ...types import Callable, List, Union, Optional, Tuple
 
 from .base import BaseSearchMethod, ORDER
@@ -23,10 +22,9 @@ class BaseKNN(BaseSearchMethod):
         batch_size: Optional[int] = 32,
         order: ORDER = ORDER.ASCENDING,
         targets_dataset: Optional[Union[tf.data.Dataset, tf.Tensor, np.ndarray]] = None,
-        possibilities: Optional[List[str]] = None,
     ):
         super().__init__(
-            cases_dataset, k, search_returns, batch_size, targets_dataset, possibilities
+            cases_dataset, k, search_returns, batch_size, targets_dataset
         )
 
         assert isinstance(order, ORDER), f"order should be an instance of ORDER and not {type(order)}"
@@ -79,6 +77,15 @@ class BaseKNN(BaseSearchMethod):
         # compute neighbors
         examples_distances, examples_indices = self.kneighbors(inputs, targets)
 
+        # build the return dict
+        return_dict = self._build_return_dict(inputs, examples_distances, examples_indices)
+
+        return return_dict
+
+    def _build_return_dict(self, inputs, examples_distances, examples_indices):
+        """
+        TODO: Change the description
+        """
         # Set values in return dict
         return_dict = {}
         if "examples" in self.returns:
@@ -93,9 +100,6 @@ class BaseKNN(BaseSearchMethod):
         if "distances" in self.returns:
             return_dict["distances"] = examples_distances
 
-        # Return a dict only different variables are returned
-        if len(return_dict) == 1:
-            return list(return_dict.values())[0]
         return return_dict
 
 class KNN(BaseKNN):
@@ -131,10 +135,9 @@ class KNN(BaseKNN):
         distance: Union[int, str, Callable] = "euclidean",
         order: ORDER = ORDER.ASCENDING,
         targets_dataset: Optional[Union[tf.data.Dataset, tf.Tensor, np.ndarray]] = None,
-        possibilities: Optional[List[str]] = None,
     ): # pylint: disable=R0801
         super().__init__(
-            cases_dataset, k, search_returns, batch_size, order, targets_dataset, possibilities
+            cases_dataset, k, search_returns, batch_size, order, targets_dataset
         )
 
         if hasattr(distance, "__call__"):
@@ -275,10 +278,9 @@ class FilterKNN(BaseKNN):
         batch_size: Optional[int] = 32,
         distance: Union[int, str, Callable] = "euclidean",
         order: ORDER = ORDER.ASCENDING,
-        possibilities: Optional[List[str]] = None,
     ): # pylint: disable=R0801
         super().__init__(
-            cases_dataset, k, search_returns, batch_size, order, targets_dataset, possibilities
+            cases_dataset, k, search_returns, batch_size, order, targets_dataset
         )
         
         if hasattr(distance, "__call__"):

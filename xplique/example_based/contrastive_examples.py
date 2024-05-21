@@ -154,6 +154,8 @@ class LabelAwareCounterFactuals(BaseExampleMethod):
 class KLEOR(BaseExampleMethod):
     """
     """
+    _returns_possibilities = ["examples", "weights", "distances", "labels", "include_inputs", "nuns"]
+
     def __init__(
         self,
         cases_dataset: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
@@ -166,9 +168,6 @@ class KLEOR(BaseExampleMethod):
         distance: Union[int, str, Callable] = "euclidean",
         strategy: str = "sim_miss",
     ):
-        
-        self.k = k
-        self.set_returns(case_returns)
 
         if strategy == "global_sim":
             search_method = KLEORGlobalSim
@@ -180,67 +179,34 @@ class KLEOR(BaseExampleMethod):
         if projection is None:
             projection = Projection(space_projection=lambda inputs: inputs)
 
-        # set attributes
-        batch_size = super()._initialize_cases_dataset(
-            cases_dataset, labels_dataset, targets_dataset, batch_size
-        )
-
-        assert hasattr(projection, "__call__"), "projection should be a callable."
-
-        # check projection type
-        if isinstance(projection, Projection):
-            self.projection = projection
-        elif hasattr(projection, "__call__"):
-            self.projection = Projection(get_weights=None, space_projection=projection)
-        else:
-            raise AttributeError(
-                "projection should be a `Projection` or a `Callable`, not a"
-                + f"{type(projection)}"
-            )
-
-        # project dataset
-        projected_cases_dataset = self.projection.project_dataset(self.cases_dataset,
-                                                                  self.targets_dataset)
-
-        # set `search_returns` if not provided and overwrite it otherwise
-        if isinstance(case_returns, list) and ("nuns" in case_returns):
-            search_method_returns = ["indices", "distances", "nuns"]
-        else:
-            search_method_returns = ["indices", "distances"]
-
-        # initiate search_method
-        self.search_method = search_method(
-            cases_dataset=projected_cases_dataset,
-            targets_dataset=self.targets_dataset,
+        super().__init__(
+            cases_dataset=cases_dataset,
+            labels_dataset=labels_dataset,
+            targets_dataset=targets_dataset,
+            search_method=search_method,
             k=k,
-            search_returns=search_method_returns,
+            projection=projection,
+            case_returns=case_returns,
             batch_size=batch_size,
             distance=distance,
         )
 
-    def set_returns(self, returns: Union[List[str], str]):
-        """
-        Set `self.returns` used to define returned elements in `self.explain()`.
+    @property
+    def returns(self) -> Union[List[str], str]:
+        """Getter for the returns parameter."""
+        return self._returns
 
-        Parameters
-        ----------
-        returns
-            Most elements are useful in `xplique.plots.plot_examples()`.
-            `returns` can be set to 'all' for all possible elements to be returned.
-                - 'examples' correspond to the expected examples,
-                the inputs may be included in first position. (n, k(+1), ...)
-                - 'weights' the weights in the input space used in the projection.
-                They are associated to the input and the examples. (n, k(+1), ...)
-                - 'distances' the distances between the inputs and the corresponding examples.
-                They are associated to the examples. (n, k, ...)
-                - 'labels' if provided through `dataset_labels`,
-                they are the labels associated with the examples. (n, k, ...)
-                - 'include_inputs' specify if inputs should be included in the returned elements.
-                Note that it changes the number of returned elements from k to k+1.
+    @returns.setter
+    def returns(self, returns: Union[List[str], str]):
         """
-        possibilities = ["examples", "weights", "distances", "labels", "include_inputs", "nuns"]
+        """
         default = "examples"
-        self.returns = _sanitize_returns(returns, possibilities, default)
+        self._returns = _sanitize_returns(returns, self._returns_possibilities, default)
+        if isinstance(self._returns, list) and ("nuns" in self._returns):
+            self._search_returns = ["indices", "distances", "nuns"]
+        else:
+            self._search_returns = ["indices", "distances"]
+        self.search_method.returns = self._search_returns
 
     def format_search_output(
         self,
@@ -252,13 +218,5 @@ class KLEOR(BaseExampleMethod):
         """
         return_dict = super().format_search_output(search_output, inputs, targets)
         if "nuns" in self.returns:
-            if isinstance(return_dict, dict):
-                return_dict["nuns"] = search_output["nuns"]
-            else:
-                # find the other only key
-                other_key = [k for k in self.returns if k != "nuns"][0]
-                return_dict = {
-                    other_key: return_dict,
-                    "nuns": search_output["nuns"]
-                }
+            return_dict["nuns"] = search_output["nuns"]
         return return_dict
