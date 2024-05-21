@@ -92,6 +92,7 @@ class BaseSearchMethod(ABC):
         search_returns: Optional[Union[List[str], str]] = None,
         batch_size: Optional[int] = 32,
         targets_dataset: Optional[Union[tf.data.Dataset, tf.Tensor, np.ndarray]] = None,
+        possibilities: Optional[List[str]] = None,
     ): # pylint: disable=R0801
         
         # set batch size
@@ -103,7 +104,7 @@ class BaseSearchMethod(ABC):
         self.cases_dataset = sanitize_dataset(cases_dataset, self.batch_size)
 
         self.set_k(k)
-        self.set_returns(search_returns)
+        self.set_returns(search_returns, possibilities)
 
         # set targets_dataset
         if targets_dataset is not None:
@@ -125,7 +126,7 @@ class BaseSearchMethod(ABC):
         assert isinstance(k, int) and k >= 1, f"k should be an int >= 1 and not {k}"
         self.k = k
 
-    def set_returns(self, returns: Optional[Union[List[str], str]] = None):
+    def set_returns(self, returns: Optional[Union[List[str], str]] = None, possibilities: Optional[List[str]] = None):
         """
         Set `self.returns` used to define returned elements in `self.find_examples()`.
 
@@ -143,7 +144,8 @@ class BaseSearchMethod(ABC):
                 - 'include_inputs' specify if inputs should be included in the returned elements.
                 Note that it changes the number of returned elements from k to k+1.
         """
-        possibilities = ["examples", "indices", "distances", "include_inputs"]
+        if possibilities is None:
+            possibilities = ["examples", "indices", "distances", "include_inputs"]
         default = "examples"
         self.returns = _sanitize_returns(returns, possibilities, default)
 

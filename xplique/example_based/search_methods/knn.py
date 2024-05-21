@@ -23,9 +23,10 @@ class BaseKNN(BaseSearchMethod):
         batch_size: Optional[int] = 32,
         order: ORDER = ORDER.ASCENDING,
         targets_dataset: Optional[Union[tf.data.Dataset, tf.Tensor, np.ndarray]] = None,
+        possibilities: Optional[List[str]] = None,
     ):
         super().__init__(
-            cases_dataset, k, search_returns, batch_size, targets_dataset
+            cases_dataset, k, search_returns, batch_size, targets_dataset, possibilities
         )
 
         assert isinstance(order, ORDER), f"order should be an instance of ORDER and not {type(order)}"
@@ -130,9 +131,10 @@ class KNN(BaseKNN):
         distance: Union[int, str, Callable] = "euclidean",
         order: ORDER = ORDER.ASCENDING,
         targets_dataset: Optional[Union[tf.data.Dataset, tf.Tensor, np.ndarray]] = None,
+        possibilities: Optional[List[str]] = None,
     ): # pylint: disable=R0801
         super().__init__(
-            cases_dataset, k, search_returns, batch_size, order, targets_dataset
+            cases_dataset, k, search_returns, batch_size, order, targets_dataset, possibilities
         )
 
         if hasattr(distance, "__call__"):
@@ -236,6 +238,7 @@ class KNN(BaseKNN):
 
 class FilterKNN(BaseKNN):
     """
+    TODO: Change the class description
     KNN method to search examples. Based on `sklearn.neighbors.NearestNeighbors`.
     Basically a wrapper of `NearestNeighbors` to match the `BaseSearchMethod` API.
 
@@ -271,10 +274,11 @@ class FilterKNN(BaseKNN):
         search_returns: Optional[Union[List[str], str]] = None,
         batch_size: Optional[int] = 32,
         distance: Union[int, str, Callable] = "euclidean",
-        order: ORDER = ORDER.ASCENDING
+        order: ORDER = ORDER.ASCENDING,
+        possibilities: Optional[List[str]] = None,
     ): # pylint: disable=R0801
         super().__init__(
-            cases_dataset, k, search_returns, batch_size, order, targets_dataset
+            cases_dataset, k, search_returns, batch_size, order, targets_dataset, possibilities
         )
         
         if hasattr(distance, "__call__"):
