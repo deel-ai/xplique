@@ -205,9 +205,14 @@ def dataset_gather(dataset: tf.data.Dataset, indices: tf.Tensor) -> tf.Tensor:
 
     example = next(iter(dataset))
     # (n, bs, ...)
-    results = tf.Variable(
-        tf.fill(indices.shape[:-1] + example[0].shape, tf.constant(np.inf, dtype=dataset.element_spec.dtype)),
-    )
+    if dataset.element_spec.dtype in ['uint8', 'int8', 'int16', 'int32', 'int64']:
+        results = tf.Variable(
+            tf.fill(indices.shape[:-1] + example[0].shape, tf.constant(-1, dtype=dataset.element_spec.dtype)),
+        )
+    else:
+        results = tf.Variable(
+            tf.fill(indices.shape[:-1] + example[0].shape, tf.constant(np.inf, dtype=dataset.element_spec.dtype)),
+        )
 
     nb_results = product(indices.shape[:-1])
     current_nb_results = 0
