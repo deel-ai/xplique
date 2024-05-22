@@ -92,7 +92,6 @@ class BaseSearchMethod(ABC):
         k: int = 1,
         search_returns: Optional[Union[List[str], str]] = None,
         batch_size: Optional[int] = 32,
-        targets_dataset: Optional[Union[tf.data.Dataset, tf.Tensor, np.ndarray]] = None,
     ): # pylint: disable=R0801
         
         # set batch size
@@ -105,13 +104,6 @@ class BaseSearchMethod(ABC):
 
         self.k = k
         self.returns = search_returns
-
-        # set targets_dataset
-        if targets_dataset is not None:
-            self.targets_dataset = sanitize_dataset(targets_dataset, self.batch_size)
-        else:
-            # make an iterable of None
-            self.targets_dataset = [None]*len(cases_dataset)
 
     @property
     def k(self) -> int:

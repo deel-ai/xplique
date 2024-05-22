@@ -29,22 +29,22 @@ class BaseKLEOR(FilterKNN, ABC):
             cases_dataset = cases_dataset,
             targets_dataset=targets_dataset,
             k=k,
-            filter_fn=self._filter_fn,
             search_returns=search_returns,
             batch_size=batch_size,
             distance=distance,
             order=ORDER.ASCENDING,
+            filter_fn=self._filter_fn,
         )
 
         self.search_nuns = FilterKNN(
             cases_dataset=cases_dataset,
             targets_dataset=targets_dataset,
             k=1,
-            filter_fn=self._filter_fn_nun,
             search_returns=["indices", "distances"],
             batch_size=batch_size,
             distance=distance,
             order = ORDER.ASCENDING,
+            filter_fn=self._filter_fn_nun,
         )
 
     def find_examples(self, inputs: Union[tf.Tensor, np.ndarray], targets: Optional[Union[tf.Tensor, np.ndarray]] = None):

@@ -32,7 +32,6 @@ class NaiveCounterFactuals(BaseExampleMethod):
         batch_size: Optional[int] = 32,
         distance: Union[int, str, Callable] = "euclidean",
     ):
-        search_method = FilterKNN
 
         if projection is None:
             projection = Projection(space_projection=lambda inputs: inputs)
@@ -41,15 +40,29 @@ class NaiveCounterFactuals(BaseExampleMethod):
             cases_dataset=cases_dataset,
             labels_dataset=labels_dataset,
             targets_dataset=targets_dataset,
-            search_method=search_method,
             k=k,
             projection=projection,
             case_returns=case_returns,
             batch_size=batch_size,
+        )
+        
+        self.distance = distance
+        self.order = ORDER.ASCENDING
+
+        self.search_method = self.search_method_class(
+            cases_dataset=self.cases_dataset,
+            targets_dataset=self.targets_dataset,
+            k=self.k,
+            search_returns=self._search_returns,
+            batch_size=self.batch_size,
             distance=distance,
             filter_fn=self.filter_fn,
-            order = ORDER.ASCENDING
+            order=self.order
         )
+    
+    @property
+    def search_method_class(self):
+        return FilterKNN
 
 
     def filter_fn(self, _, __, targets, cases_targets) -> tf.Tensor:
@@ -83,8 +96,6 @@ class LabelAwareCounterFactuals(BaseExampleMethod):
         batch_size: Optional[int] = 32,
         distance: Union[int, str, Callable] = "euclidean",
     ):
-        search_method = FilterKNN
-
         if projection is None:
             projection = Projection(space_projection=lambda inputs: inputs)
         # TODO: add a warning here if it is a custom projection that requires using targets as it might mismatch with the explain
@@ -93,15 +104,30 @@ class LabelAwareCounterFactuals(BaseExampleMethod):
             cases_dataset=cases_dataset,
             labels_dataset=labels_dataset,
             targets_dataset=targets_dataset,
-            search_method=search_method,
             k=k,
             projection=projection,
             case_returns=case_returns,
             batch_size=batch_size,
+        )
+        
+        self.distance = distance
+        self.order = ORDER.ASCENDING
+
+        self.search_method = self.search_method_class(
+            cases_dataset=self.cases_dataset,
+            targets_dataset=self.targets_dataset,
+            k=self.k,
+            search_returns=self._search_returns,
+            batch_size=self.batch_size,
             distance=distance,
             filter_fn=self.filter_fn,
-            order = ORDER.ASCENDING
+            order=self.order
         )
+    
+    @property
+    def search_method_class(self):
+        return FilterKNN
+
 
     def filter_fn(self, _, __, cf_targets, cases_targets) -> tf.Tensor:
         """
@@ -183,13 +209,30 @@ class KLEOR(BaseExampleMethod):
             cases_dataset=cases_dataset,
             labels_dataset=labels_dataset,
             targets_dataset=targets_dataset,
-            search_method=search_method,
             k=k,
             projection=projection,
             case_returns=case_returns,
             batch_size=batch_size,
-            distance=distance,
         )
+        
+        self.distance = distance
+        self.order = ORDER.ASCENDING
+
+        self.search_method = self.search_method_class(
+            cases_dataset=self.cases_dataset,
+            targets_dataset=self.targets_dataset,
+            k=self.k,
+            search_returns=self._search_returns,
+            batch_size=self.batch_size,
+            distance=distance,
+            filter_fn=self.filter_fn,
+            order=self.order
+        )
+    
+    @property
+    def search_method_class(self):
+        return FilterKNN
+
 
     @property
     def returns(self) -> Union[List[str], str]:
@@ -206,7 +249,11 @@ class KLEOR(BaseExampleMethod):
             self._search_returns = ["indices", "distances", "nuns"]
         else:
             self._search_returns = ["indices", "distances"]
-        self.search_method.returns = self._search_returns
+        
+        try:
+            self.search_method.returns = self._search_returns
+        except AttributeError:
+            pass
 
     def format_search_output(
         self,

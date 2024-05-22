@@ -146,7 +146,7 @@ class ProtoGreedySearch(BaseSearchMethod):
         elif distance in ["fro", "euclidean", 1, 2, np.inf] or isinstance(
             distance, int
         ):
-            self.distance_fn = lambda x1, x2: tf.norm(x1 - x2, ord=distance)
+            self.distance_fn = lambda x1, x2: tf.norm(x1 - x2, ord=distance, axis=-1)
         else:
             raise AttributeError(
                 "The distance parameter is expected to be either a Callable or in"
@@ -423,7 +423,7 @@ class ProtoGreedySearch(BaseSearchMethod):
 
         return prototype_indices, prototype_cases, prototype_labels, prototype_weights
     
-    def find_examples(self, inputs: Union[tf.Tensor, np.ndarray]):
+    def find_examples(self, inputs: Union[tf.Tensor, np.ndarray], _):
         """
         Search the samples to return as examples. Called by the explain methods.
         It may also return the indices corresponding to the samples,
@@ -438,7 +438,7 @@ class ProtoGreedySearch(BaseSearchMethod):
         """
 
         # look for closest prototypes to projected inputs
-        knn_output = self.knn(inputs)
+        knn_output = self.knn(inputs, _)
 
         # obtain closest prototypes indices with respect to the prototypes
         indices_wrt_prototypes = knn_output["indices"]

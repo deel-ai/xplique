@@ -88,7 +88,7 @@ class Cole(SimilarExamples):
         distance: Union[str, Callable] = "euclidean",
         case_returns: Optional[Union[List[str], str]] = "examples",
         batch_size: Optional[int] = 32,
-        device: Optional[str] = None,
+        # device: Optional[str] = None,
         latent_layer: Optional[Union[str, int]] = None,
         attribution_method: Union[str, Type[BlackBoxExplainer]] = "gradient",
         **attribution_kwargs,
@@ -104,7 +104,7 @@ class Cole(SimilarExamples):
                 model=model,
                 latent_layer=latent_layer,
                 operator=operator,
-                device=device,
+                # device=device,
             )
         elif issubclass(attribution_method, BlackBoxExplainer):
             # build attribution projection
@@ -112,7 +112,7 @@ class Cole(SimilarExamples):
                 model=model,
                 method=attribution_method,
                 latent_layer=latent_layer,
-                device=device,
+                # device=device,
                 **attribution_kwargs,
             )
         else:
@@ -122,12 +122,12 @@ class Cole(SimilarExamples):
             )
 
         super().__init__(
-            cases_dataset,
-            labels_dataset,
-            targets_dataset,
-            k,
-            projection,
-            case_returns,
-            batch_size,
+            cases_dataset=cases_dataset,
+            targets_dataset=targets_dataset,
+            labels_dataset=labels_dataset,
+            projection=projection,
+            k=k,
+            case_returns=case_returns,
+            batch_size=batch_size,
             distance=distance,
         )

@@ -2,6 +2,8 @@
 Base model for example-based
 """
 
+from abc import ABC, abstractmethod
+
 import math
 
 import tensorflow as tf
@@ -17,7 +19,7 @@ from .projections import Projection
 from .search_methods.base import _sanitize_returns
 
 
-class BaseExampleMethod:
+class BaseExampleMethod(ABC):
     """
     Base class for natural example-based methods explaining models,
     they project the cases_dataset into a pertinent space for the with a `Projection`,
@@ -79,19 +81,17 @@ class BaseExampleMethod:
         cases_dataset: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
         labels_dataset: Optional[Union[tf.data.Dataset, tf.Tensor, np.ndarray]] = None,
         targets_dataset: Optional[Union[tf.data.Dataset, tf.Tensor, np.ndarray]] = None,
-        search_method: Type[BaseSearchMethod] = KNN,
         k: int = 1,
         projection: Union[Projection, Callable] = None,
         case_returns: Union[List[str], str] = "examples",
         batch_size: Optional[int] = 32,
-        **search_method_kwargs,
     ):
         assert (
             projection is not None
         ), "`BaseExampleMethod` without `projection` is a `BaseSearchMethod`."
 
         # set attributes
-        batch_size = self._initialize_cases_dataset(
+        self.batch_size = self._initialize_cases_dataset(
             cases_dataset, labels_dataset, targets_dataset, batch_size
         )
 
@@ -110,22 +110,16 @@ class BaseExampleMethod:
             )
 
         # project dataset
-        projected_cases_dataset = self.projection.project_dataset(self.cases_dataset,
-                                                                  self.targets_dataset)
-
-        # set `search_returns` if not provided and overwrite it otherwise
-        search_method_kwargs["search_returns"] = self._search_returns
-
-        # initiate search_method
-        self.search_method = search_method(
-            cases_dataset=projected_cases_dataset,
-            k=k,
-            batch_size=batch_size,
-            targets_dataset=self.targets_dataset,
-            **search_method_kwargs,
-        )
+        self.projected_cases_dataset = self.projection.project_dataset(self.cases_dataset,
+                                                                       self.targets_dataset)
+    
         self.k = k
         self.returns = case_returns
+    
+    @property
+    @abstractmethod
+    def search_method_class(self) -> Type[BaseSearchMethod]:
+        raise NotImplementedError
 
     @property
     def k(self) -> int:
@@ -137,7 +131,11 @@ class BaseExampleMethod:
         """Setter for the k parameter."""
         assert isinstance(k, int) and k >= 1, f"k should be an int >= 1 and not {k}"
         self._k = k
-        self.search_method.k = k
+
+        try:
+            self.search_method.k = k
+        except AttributeError:
+            pass
 
     @property
     def returns(self) -> Union[List[str], str]:

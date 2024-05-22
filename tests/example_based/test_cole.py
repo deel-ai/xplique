@@ -104,9 +104,9 @@ def test_cole_attribution():
     )
 
     # Generate explanation
-    examples_constructor = method_constructor.explain(x_test, y_test)
-    examples_call = method_call.explain(x_test, y_test)
-    examples_different_distance = method_different_distance(x_test, y_test)
+    examples_constructor = method_constructor.explain(x_test, y_test)["examples"]
+    examples_call = method_call.explain(x_test, y_test)["examples"]
+    examples_different_distance = method_different_distance(x_test, y_test)["examples"]
 
     # Verifications
     # Shape should be (n, k, h, w, c)
@@ -166,8 +166,8 @@ def test_cole_hadamard():
     )
 
     # Generate explanation
-    examples_constructor = method_constructor.explain(x_test, y_test)
-    examples_call = method_call.explain(x_test, y_test)
+    examples_constructor = method_constructor.explain(x_test, y_test)["examples"]
+    examples_call = method_call.explain(x_test, y_test)["examples"]
 
     # Verifications
     # Shape should be (n, k, h, w, c)

@@ -6,7 +6,7 @@ from abc import abstractmethod
 import numpy as np
 import tensorflow as tf
 
-from ...commons import dataset_gather
+from ...commons import dataset_gather, sanitize_dataset
 from ...types import Callable, List, Union, Optional, Tuple
 
 from .base import BaseSearchMethod, ORDER
@@ -21,10 +21,12 @@ class BaseKNN(BaseSearchMethod):
         search_returns: Optional[Union[List[str], str]] = None,
         batch_size: Optional[int] = 32,
         order: ORDER = ORDER.ASCENDING,
-        targets_dataset: Optional[Union[tf.data.Dataset, tf.Tensor, np.ndarray]] = None,
     ):
         super().__init__(
-            cases_dataset, k, search_returns, batch_size, targets_dataset
+            cases_dataset=cases_dataset,
+            k=k,
+            search_returns=search_returns,
+            batch_size=batch_size,
         )
 
         assert isinstance(order, ORDER), f"order should be an instance of ORDER and not {type(order)}"
@@ -134,10 +136,13 @@ class KNN(BaseKNN):
         batch_size: Optional[int] = 32,
         distance: Union[int, str, Callable] = "euclidean",
         order: ORDER = ORDER.ASCENDING,
-        targets_dataset: Optional[Union[tf.data.Dataset, tf.Tensor, np.ndarray]] = None,
     ): # pylint: disable=R0801
         super().__init__(
-            cases_dataset, k, search_returns, batch_size, order, targets_dataset
+            cases_dataset=cases_dataset,
+            k=k,
+            search_returns=search_returns,
+            batch_size=batch_size,
+            order=order,
         )
 
         if hasattr(distance, "__call__"):
@@ -273,14 +278,18 @@ class FilterKNN(BaseKNN):
         cases_dataset: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
         targets_dataset: Optional[Union[tf.data.Dataset, tf.Tensor, np.ndarray]] = None,
         k: int = 1,
-        filter_fn: Optional[Callable] = None,
         search_returns: Optional[Union[List[str], str]] = None,
         batch_size: Optional[int] = 32,
         distance: Union[int, str, Callable] = "euclidean",
         order: ORDER = ORDER.ASCENDING,
+        filter_fn: Optional[Callable] = None,
     ): # pylint: disable=R0801
         super().__init__(
-            cases_dataset, k, search_returns, batch_size, order, targets_dataset
+            cases_dataset=cases_dataset,
+            k=k,
+            search_returns=search_returns,
+            batch_size=batch_size,
+            order=order,
         )
         
         if hasattr(distance, "__call__"):
@@ -300,6 +309,13 @@ class FilterKNN(BaseKNN):
         if filter_fn is None:
             filter_fn = lambda x, z, y, t: tf.ones((tf.shape(x)[0], tf.shape(z)[0]), dtype=tf.bool)
         self.filter_fn = filter_fn
+
+        # set targets_dataset
+        if targets_dataset is not None:
+            self.targets_dataset = sanitize_dataset(targets_dataset, self.batch_size)
+        else:
+            # make an iterable of None
+            self.targets_dataset = [None]*len(cases_dataset)
 
     @tf.function
     def _crossed_distances_fn(self, x1, x2, mask):

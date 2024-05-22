@@ -84,18 +84,27 @@ class SimilarExamples(BaseExampleMethod):
         case_returns: Union[List[str], str] = "examples",
         batch_size: Optional[int] = 32,
         distance: Union[int, str, Callable] = "euclidean",
-    ):
-        # the only difference with parent is that the search method is always KNN
-        search_method = KNN
-        
+    ):        
         super().__init__(
             cases_dataset=cases_dataset,
             labels_dataset=labels_dataset,
             targets_dataset=targets_dataset,
-            search_method=search_method,
             k=k,
             projection=projection,
             case_returns=case_returns,
             batch_size=batch_size,
-            distance=distance
         )
+
+        self.distance = distance
+
+        # initiate search_method
+        self.search_method = self.search_method_class(
+            cases_dataset=self.projected_cases_dataset,
+            search_returns=self._search_returns,
+            k=self.k,
+            batch_size=self.batch_size,
+        )
+
+    @property
+    def search_method_class(self) -> Type[BaseSearchMethod]:
+        return KNN
