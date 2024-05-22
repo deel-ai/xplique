@@ -61,7 +61,7 @@ class BaseKLEOR(FilterKNN, ABC):
             Expected shape among (N, W), (N, T, W), (N, W, H, C).
         """
         # compute neighbors
-        examples_distances, examples_indices, nuns = self.kneighbors(inputs, targets)
+        examples_distances, examples_indices, nuns, nuns_indices, nuns_sf_distances = self.kneighbors(inputs, targets)
 
         # build return dict
         return_dict = self._build_return_dict(inputs,  examples_distances, examples_indices)
@@ -69,6 +69,12 @@ class BaseKLEOR(FilterKNN, ABC):
         # add the nuns if needed
         if "nuns" in self.returns:
             return_dict["nuns"] = nuns
+
+        if "dist_to_nuns" in self.returns:
+            return_dict["dist_to_nuns"] = nuns_sf_distances
+
+        if "nuns_indices" in self.returns:
+            return_dict["nuns_indices"] = nuns_indices
 
         return return_dict
 
@@ -104,13 +110,13 @@ class BaseKLEOR(FilterKNN, ABC):
         nuns_dict = self.search_nuns(inputs, targets)
         nuns_indices, nuns_distances = nuns_dict["indices"], nuns_dict["distances"]
         nuns = dataset_gather(self.cases_dataset, nuns_indices)
-        return nuns, nuns_distances
+        return nuns, nuns_indices, nuns_distances
 
     def kneighbors(self, inputs: Union[tf.Tensor, np.ndarray], targets: Union[tf.Tensor, np.ndarray]) -> Tuple[tf.Tensor, tf.Tensor]:
         """
         """
         # get the Nearest Unlike Neighbors and their distance to the related input
-        nuns, nuns_input_distances = self._get_nuns(inputs, targets)
+        nuns, nuns_indices, nuns_input_distances = self._get_nuns(inputs, targets)
         
         # initialize the search for the KLEOR semi-factual methods
         sf_indices, input_sf_distances, nun_sf_distances, batch_indices = self._initialize_search(inputs)
@@ -160,7 +166,7 @@ class BaseKLEOR(FilterKNN, ABC):
                 tf.gather(concatenated_input_sf_distances, sort_order, axis=1, batch_dims=1)
             )
 
-        return input_sf_distances, sf_indices, nuns
+        return input_sf_distances, sf_indices, nuns, nuns_indices, nun_sf_distances
 
     def _initialize_search(self, inputs: Union[tf.Tensor, np.ndarray]) -> Tuple[tf.Variable, tf.Variable, tf.Variable, tf.Tensor]:
         """

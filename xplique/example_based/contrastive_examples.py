@@ -8,7 +8,7 @@ import numpy as np
 import tensorflow as tf
 
 from ..types import Callable, List, Optional, Union, Dict
-from ..commons import sanitize_inputs_targets
+from ..commons import sanitize_inputs_targets, dataset_gather
 
 from .base_example_method import BaseExampleMethod
 from .search_methods import ORDER, FilterKNN, KLEORSimMiss, KLEORGlobalSim
@@ -154,7 +154,7 @@ class LabelAwareCounterFactuals(BaseExampleMethod):
 class KLEOR(BaseExampleMethod):
     """
     """
-    _returns_possibilities = ["examples", "weights", "distances", "labels", "include_inputs", "nuns"]
+    _returns_possibilities = ["examples", "weights", "distances", "labels", "include_inputs", "nuns", "nuns_indices", "dist_to_nuns"]
 
     def __init__(
         self,
@@ -202,10 +202,16 @@ class KLEOR(BaseExampleMethod):
         """
         default = "examples"
         self._returns = _sanitize_returns(returns, self._returns_possibilities, default)
+        self._search_returns = ["indices", "distances"]
+
         if isinstance(self._returns, list) and ("nuns" in self._returns):
-            self._search_returns = ["indices", "distances", "nuns"]
-        else:
-            self._search_returns = ["indices", "distances"]
+            self._search_returns.append("nuns_indices")
+        elif isinstance(self._returns, list) and ("nuns_indices" in self._returns):
+            self._search_returns.append("nuns_indices")
+
+        if isinstance(self._returns, list) and ("dist_to_nuns" in self._returns):
+            self._search_returns.append("dist_to_nuns")
+
         self.search_method.returns = self._search_returns
 
     def format_search_output(
@@ -218,5 +224,9 @@ class KLEOR(BaseExampleMethod):
         """
         return_dict = super().format_search_output(search_output, inputs, targets)
         if "nuns" in self.returns:
-            return_dict["nuns"] = search_output["nuns"]
+            return_dict["nuns"] = dataset_gather(self.cases_dataset, search_output["nuns_indices"])
+        if "nuns_indices" in self.returns:
+            return_dict["nuns_indices"] = search_output["nuns_indices"]
+        if "dist_to_nuns" in self.returns:
+            return_dict["dist_to_nuns"] = search_output["dist_to_nuns"]
         return return_dict
