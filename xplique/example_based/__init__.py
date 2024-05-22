@@ -8,3 +8,4 @@ from .prototypes import Prototypes
 from .proto_greedy import ProtoGreedy
 from .proto_dash import ProtoDash
 from .mmd_critic import MMDCritic
+from .contrastive_examples import NaiveCounterFactuals, LabelAwareCounterFactuals, KLEOR

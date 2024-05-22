@@ -206,9 +206,7 @@ def dataset_gather(dataset: tf.data.Dataset, indices: tf.Tensor) -> tf.Tensor:
     example = next(iter(dataset))
     # (n, bs, ...)
     results = tf.Variable(
-        tf.zeros(
-            indices.shape[:-1] + example[0].shape, dtype=dataset.element_spec.dtype
-        )
+        tf.fill(indices.shape[:-1] + example[0].shape, tf.constant(np.inf, dtype=dataset.element_spec.dtype)),
     )
 
     nb_results = product(indices.shape[:-1])

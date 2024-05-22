@@ -12,12 +12,10 @@ import unittest
 import numpy as np
 import tensorflow as tf
 
-from xplique.commons import sanitize_dataset, are_dataset_first_elems_equal
-from xplique.types import Union
+from xplique.commons import are_dataset_first_elems_equal
 
 from xplique.example_based import SimilarExamples
-from xplique.example_based.projections import Projection, LatentSpaceProjection
-from xplique.example_based.search_methods import KNN
+from xplique.example_based.projections import Projection
 
 from tests.utils import almost_equal
 
@@ -154,7 +152,7 @@ def test_similar_examples_basic():
     )
 
     # Generate explanation
-    examples = method.explain(x_test)
+    examples = method.explain(x_test)["examples"]
 
     # Verifications
     # Shape should be (n, k, h, w, c)
@@ -198,9 +196,8 @@ def test_similar_examples_return_multiple_elements():
         distance="euclidean",
     )
 
-    method.set_returns("all")
-
-    method.set_k(k)
+    method.returns = "all"
+    method.k = k
 
     # Generate explanation
     method_output = method.explain(x_test)
@@ -278,7 +275,7 @@ def test_similar_examples_weighting():
     )
 
     # Generate explanation
-    examples = method.explain(x_test)
+    examples = method.explain(x_test)["examples"]
 
     # Verifications
     # Shape should be (n, k, h, w, c)
