@@ -4,7 +4,7 @@ Tests for the contrastive methods.
 import tensorflow as tf
 import numpy as np
 
-from xplique.example_based import NaiveCounterFactuals, LabelAwareCounterFactuals, KLEOR
+from xplique.example_based import NaiveCounterFactuals, LabelAwareCounterFactuals, KLEORGlobalSim, KLEORSimMiss
 
 def test_naive_counter_factuals():
     """
@@ -162,13 +162,12 @@ def test_kleor():
     targets = tf.constant([[0, 1], [1, 0], [1, 0]], dtype=tf.float32)
 
     # start when strategy is sim_miss
-    kleor_sim_miss = KLEOR(
+    kleor_sim_miss = KLEORSimMiss(
         cases_dataset,
         cases_targets_dataset,
         k=1,
         case_returns=["examples", "indices", "distances", "include_inputs", "nuns"],
         batch_size=2,
-        strategy="sim_miss"
     )
 
     return_dict = kleor_sim_miss(inputs, targets)
@@ -202,13 +201,12 @@ def test_kleor():
     assert tf.reduce_all(tf.equal(indices, expected_indices))
 
     # now strategy is global_sim
-    kleor_global_sim = KLEOR(
+    kleor_global_sim = KLEORGlobalSim(
         cases_dataset,
         cases_targets_dataset,
         k=1,
         case_returns=["examples", "indices", "distances", "include_inputs", "nuns"],
         batch_size=2,
-        strategy="global_sim"
     )
 
     return_dict = kleor_global_sim(inputs, targets)

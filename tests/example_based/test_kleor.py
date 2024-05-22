@@ -4,7 +4,7 @@ Tests for the contrastive methods.
 import tensorflow as tf
 import numpy as np
 
-from xplique.example_based.search_methods import KLEORSimMiss, KLEORGlobalSim
+from xplique.example_based.search_methods import KLEORSimMissSearch, KLEORGlobalSimSearch
 
 def test_kleor_base_and_sim_miss():
     """
@@ -22,7 +22,7 @@ def test_kleor_base_and_sim_miss():
     targets = tf.constant([[0, 1], [1, 0], [1, 0]], dtype=tf.float32)
 
     # build the kleor object
-    kleor = KLEORSimMiss(cases_dataset, cases_targets_dataset, k=1, search_returns=["examples", "indices", "distances", "include_inputs", "nuns"], batch_size=2)
+    kleor = KLEORSimMissSearch(cases_dataset, cases_targets_dataset, k=1, search_returns=["examples", "indices", "distances", "include_inputs", "nuns"], batch_size=2)
 
     # test the _filter_fn method
     fake_targets = tf.constant([[0, 1], [1, 0], [1, 0], [0, 1], [1, 0]], dtype=tf.float32)
@@ -46,7 +46,7 @@ def test_kleor_base_and_sim_miss():
     assert tf.reduce_all(tf.equal(mask, expected_mask))
 
     # test the _get_nuns method
-    nuns, nuns_distances = kleor._get_nuns(inputs, targets)
+    nuns, _, nuns_distances = kleor._get_nuns(inputs, targets)
     expected_nuns = tf.constant([
         [[2., 3.]],
         [[1., 2.]],
@@ -72,7 +72,7 @@ def test_kleor_base_and_sim_miss():
     assert tf.reduce_all(tf.equal(batch_indices, expected_batch_indices))
 
     # test the kneighbors method
-    input_sf_distances, sf_indices, nuns = kleor.kneighbors(inputs, targets)
+    input_sf_distances, sf_indices, nuns, _, __ = kleor.kneighbors(inputs, targets)
 
     assert input_sf_distances.shape == (3, 1) # (n, k)
     assert sf_indices.shape == (3, 1, 2) # (n, k, 2)
@@ -121,7 +121,7 @@ def test_kleor_global_sim():
     targets = tf.constant([[0, 1], [1, 0], [1, 0]], dtype=tf.float32)
 
     # build the kleor object
-    kleor = KLEORGlobalSim(cases_dataset, cases_targets_dataset, k=1, search_returns=["examples", "indices", "distances", "include_inputs", "nuns"], batch_size=2)
+    kleor = KLEORGlobalSimSearch(cases_dataset, cases_targets_dataset, k=1, search_returns=["examples", "indices", "distances", "include_inputs", "nuns"], batch_size=2)
 
     # test the _additionnal_filtering method
     # (n, bs)
@@ -154,7 +154,7 @@ def test_kleor_global_sim():
                ) < 1e-5)
 
     # test the kneighbors method
-    input_sf_distances, sf_indices, nuns = kleor.kneighbors(inputs, targets)
+    input_sf_distances, sf_indices, nuns, _, __ = kleor.kneighbors(inputs, targets)
 
     expected_nuns = tf.constant([
         [[2., 3.]],
