@@ -177,6 +177,7 @@ class LabelAwareCounterFactuals(BaseExampleMethod):
         # TODO make an assert on the cf_targets
         return super().explain(inputs, cf_targets)
 
+
 class KLEORBase(BaseExampleMethod):
     """
     """
@@ -211,6 +212,15 @@ class KLEORBase(BaseExampleMethod):
         
         self.distance = distance
         self.order = ORDER.ASCENDING
+
+        self.search_method = self.search_method_class(
+            cases_dataset=self.cases_dataset,
+            targets_dataset=self.targets_dataset,
+            k=self.k,
+            search_returns=self._search_returns,
+            batch_size=self.batch_size,
+            distance=self.distance,
+        )
 
     @property
     def returns(self) -> Union[List[str], str]:
@@ -255,82 +265,14 @@ class KLEORBase(BaseExampleMethod):
             return_dict["dist_to_nuns"] = search_output["dist_to_nuns"]
         return return_dict
 
+
 class KLEORGlobalSim(KLEORBase):
-    """
-    """
-
-    def __init__(
-        self,
-        cases_dataset: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
-        targets_dataset: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
-        labels_dataset: Optional[Union[tf.data.Dataset, tf.Tensor, np.ndarray]] = None,
-        k: int = 1,
-        projection: Union[Projection, Callable] = None,
-        case_returns: Union[List[str], str] = "examples",
-        batch_size: Optional[int] = 32,
-        distance: Union[int, str, Callable] = "euclidean",
-    ):
-
-        super().__init__(
-            cases_dataset=cases_dataset,
-            labels_dataset=labels_dataset,
-            targets_dataset=targets_dataset,
-            k=k,
-            projection=projection,
-            case_returns=case_returns,
-            batch_size=batch_size,
-            distance=distance,
-        )
-
-        self.search_method = self.search_method_class(
-            cases_dataset=self.cases_dataset,
-            targets_dataset=self.targets_dataset,
-            k=self.k,
-            search_returns=self._search_returns,
-            batch_size=self.batch_size,
-            distance=self.distance,
-        )
-
     @property
     def search_method_class(self):
         return KLEORGlobalSimSearch
 
+
 class KLEORSimMiss(KLEORBase):
-    """
-    """
-
-    def __init__(
-        self,
-        cases_dataset: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
-        targets_dataset: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
-        labels_dataset: Optional[Union[tf.data.Dataset, tf.Tensor, np.ndarray]] = None,
-        k: int = 1,
-        projection: Union[Projection, Callable] = None,
-        case_returns: Union[List[str], str] = "examples",
-        batch_size: Optional[int] = 32,
-        distance: Union[int, str, Callable] = "euclidean",
-    ):
-
-        super().__init__(
-            cases_dataset=cases_dataset,
-            labels_dataset=labels_dataset,
-            targets_dataset=targets_dataset,
-            k=k,
-            projection=projection,
-            case_returns=case_returns,
-            batch_size=batch_size,
-            distance=distance,
-        )
-
-        self.search_method = self.search_method_class(
-            cases_dataset=self.cases_dataset,
-            targets_dataset=self.targets_dataset,
-            k=self.k,
-            search_returns=self._search_returns,
-            batch_size=self.batch_size,
-            distance=self.distance,
-        )
-
     @property
     def search_method_class(self):
         return KLEORSimMissSearch

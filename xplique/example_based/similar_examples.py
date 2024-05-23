@@ -11,7 +11,7 @@ from ..types import Callable, Dict, List, Optional, Type, Union
 
 from ..commons import sanitize_inputs_targets
 from ..commons import sanitize_dataset, dataset_gather
-from .search_methods import KNN, BaseSearchMethod
+from .search_methods import KNN, BaseSearchMethod, ORDER
 from .projections import Projection
 from .base_example_method import BaseExampleMethod
 
@@ -103,6 +103,8 @@ class SimilarExamples(BaseExampleMethod):
             search_returns=self._search_returns,
             k=self.k,
             batch_size=self.batch_size,
+            distance=self.distance,
+            order=ORDER.ASCENDING,
         )
 
     @property

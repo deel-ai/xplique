@@ -73,6 +73,8 @@ class Projection(ABC):
             # weights is a tensor
             if isinstance(get_weights, np.ndarray):
                 weights = tf.convert_to_tensor(get_weights, dtype=tf.float32)
+            else:
+                weights = get_weights
 
             # define a function that returns the weights
             def get_weights(inputs, _ = None):

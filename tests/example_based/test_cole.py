@@ -48,7 +48,7 @@ def test_cole_attribution():
     Test that the distance has an impact.
     """
     # Setup
-    nb_samples = 20
+    nb_samples = 50
     input_shape = (5, 5)
     nb_labels = 10
     k = 3
@@ -84,7 +84,7 @@ def test_cole_attribution():
         explainer.gradient(model, inputs, targets)
     projection = Projection(get_weights=explainer)
 
-    euclidean_dist = lambda x, z: tf.sqrt(tf.reduce_sum(tf.square(x - z)))
+    euclidean_dist = lambda x, z: tf.sqrt(tf.reduce_sum(tf.square(x - z), axis=-1))
     method_call = SimilarExamples(
         cases_dataset=x_train,
         targets_dataset=y_train,
@@ -121,9 +121,9 @@ def test_cole_attribution():
     assert not almost_equal(examples_constructor, examples_different_distance)
 
     # check weights are equal to the attribution directly on the input
-    method_constructor.set_returns(["weights", "include_inputs"])
+    method_constructor.returns = ["weights", "include_inputs"]
     assert almost_equal(
-        method_constructor.explain(x_test, y_test)[:, 0],
+        method_constructor.explain(x_test, y_test)["weights"][:, 0],
         Saliency(model)(x_test, y_test),
     )
 
@@ -156,7 +156,7 @@ def test_cole_hadamard():
     weights_extraction = lambda inputs, targets: gradients_predictions(model, inputs, targets)
     projection = Projection(get_weights=weights_extraction)
 
-    euclidean_dist = lambda x, z: tf.sqrt(tf.reduce_sum(tf.square(x - z)))
+    euclidean_dist = lambda x, z: tf.sqrt(tf.reduce_sum(tf.square(x - z), axis=-1))
     method_call = SimilarExamples(
         cases_dataset=x_train,
         targets_dataset=y_train,
