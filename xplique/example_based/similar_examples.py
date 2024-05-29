@@ -1,53 +1,48 @@
 """
 Base model for example-based
 """
-
-import math
-
 import tensorflow as tf
 import numpy as np
 
-from ..types import Callable, Dict, List, Optional, Type, Union
+from ..types import Callable, List, Optional, Type, Union
 
-from ..commons import sanitize_inputs_targets
-from ..commons import sanitize_dataset, dataset_gather
 from .search_methods import KNN, BaseSearchMethod, ORDER
 from .projections import Projection
 from .base_example_method import BaseExampleMethod
 
-from .search_methods.base import _sanitize_returns
-
 
 class SimilarExamples(BaseExampleMethod):
     """
-    Base class for similar examples.
+    Class for similar example-based method. This class allows to search the k Nearest Neighbor of an input in the
+    projected space (defined by the projection method) using the distance defined by the distance method provided.
 
     Parameters
     ----------
     cases_dataset
-        The dataset used to train the model, examples are extracted from the dataset.
+        The dataset used to train the model, examples are extracted from this dataset.
         `tf.data.Dataset` are assumed to be batched as tensorflow provide no method to verify it.
         Be careful, `tf.data.Dataset` are often reshuffled at each iteration, be sure that it is not
         the case for your dataset, otherwise, examples will not make sense.
     labels_dataset
         Labels associated to the examples in the dataset. Indices should match with cases_dataset.
         `tf.data.Dataset` are assumed to be batched as tensorflow provide no method to verify it.
-        Batch size and cardinality of other dataset should match `cases_dataset`.
+        Batch size and cardinality of other datasets should match `cases_dataset`.
         Be careful, `tf.data.Dataset` are often reshuffled at each iteration, be sure that it is not
         the case for your dataset, otherwise, examples will not make sense.
     targets_dataset
-        Targets associated to the cases_dataset for dataset projection. See `projection` for detail.
+        Targets associated to the cases_dataset for dataset projection, oftentimes the one-hot encoding of a model's
+        predictions. See `projection` for detail.
         `tf.data.Dataset` are assumed to be batched as tensorflow provide no method to verify it.
-        Batch size and cardinality of other dataset should match `cases_dataset`.
+        Batch size and cardinality of other datasets should match `cases_dataset`.
         Be careful, `tf.data.Dataset` are often reshuffled at each iteration, be sure that it is not
         the case for your dataset, otherwise, examples will not make sense.
     k
-        The number of examples to retrieve.
+        The number of examples to retrieve per input.
     projection
         Projection or Callable that project samples from the input space to the search space.
-        The search space should be a space where distance make sense for the model.
-        It should not be `None`, otherwise,
-        all examples could be computed only with the `search_method`.
+        The search space should be a space where distances are relevant for the model.
+        It should not be `None`, otherwise, the model is not involved thus not explained. If you are interested in
+        searching the input space, you should use a `BaseSearchMethod` instead. 
 
         Example of Callable:
         ```
@@ -62,7 +57,7 @@ class SimilarExamples(BaseExampleMethod):
         ```
     case_returns
         String or list of string with the elements to return in `self.explain()`.
-        See `self.set_returns()` for detail.
+        See the base class returns property for more details.
     batch_size
         Number of sample treated simultaneously for projection and search.
         Ignored if `tf.data.Dataset` are provided (those are supposed to be batched).
@@ -73,7 +68,6 @@ class SimilarExamples(BaseExampleMethod):
         "Supported values are 'fro', 'euclidean', 1, 2, np.inf and any positive real number
         yielding the corresponding p-norm." We also added 'cosine'.
     """
-
     def __init__(
         self,
         cases_dataset: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
@@ -95,6 +89,7 @@ class SimilarExamples(BaseExampleMethod):
             batch_size=batch_size,
         )
 
+        # set distance function
         self.distance = distance
 
         # initiate search_method

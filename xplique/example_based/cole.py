@@ -1,7 +1,6 @@
 """
 Implementation of Cole method a simlilar examples method from example based module
 """
-
 import numpy as np
 import tensorflow as tf
 
@@ -14,10 +13,10 @@ from .projections import AttributionProjection, HadamardProjection
 
 class Cole(SimilarExamples):
     """
-    Cole is a similar examples methods that gives the most similar examples to a query.
-    Cole use the model to build a search space so that distances are meaningful for the model.
-    It uses attribution methods to weights inputs.
-    Those attributions may be computed in the latent space for complex data types like images.
+    Cole is a similar examples method that gives the most similar examples to a query in some specific projection space.
+    Cole use the model (to be explained) to build a search space so that distances are meaningful for the model.
+    It uses attribution methods to weight inputs.
+    Those attributions may be computed in the latent space for high-dimensional data like images.
 
     It is an implementation of a method proposed by Kenny et Keane in 2019,
     Twin-Systems to Explain Artificial Neural Networks using Case-Based Reasoning:
@@ -26,24 +25,25 @@ class Cole(SimilarExamples):
     Parameters
     ----------
     cases_dataset
-        The dataset used to train the model, examples are extracted from the dataset.
+        The dataset used to train the model, examples are extracted from this dataset.
         `tf.data.Dataset` are assumed to be batched as tensorflow provide no method to verify it.
         Be careful, `tf.data.Dataset` are often reshuffled at each iteration, be sure that it is not
         the case for your dataset, otherwise, examples will not make sense.
     labels_dataset
         Labels associated to the examples in the dataset. Indices should match with cases_dataset.
         `tf.data.Dataset` are assumed to be batched as tensorflow provide no method to verify it.
-        Batch size and cardinality of other dataset should match `cases_dataset`.
+        Batch size and cardinality of other datasets should match `cases_dataset`.
         Be careful, `tf.data.Dataset` are often reshuffled at each iteration, be sure that it is not
         the case for your dataset, otherwise, examples will not make sense.
     targets_dataset
-        Targets associated to the cases_dataset for dataset projection. See `projection` for detail.
+        Targets associated to the cases_dataset for dataset projection, oftentimes the one-hot encoding of a model's
+        predictions. See `projection` for detail.
         `tf.data.Dataset` are assumed to be batched as tensorflow provide no method to verify it.
-        Batch size and cardinality of other dataset should match `cases_dataset`.
+        Batch size and cardinality of other datasets should match `cases_dataset`.
         Be careful, `tf.data.Dataset` are often reshuffled at each iteration, be sure that it is not
         the case for your dataset, otherwise, examples will not make sense.
     k
-        The number of examples to retrieve. Default value is `1`.
+        The number of examples to retrieve per input.
     distance
         Either a Callable, or a value supported by `tf.norm` `ord` parameter.
         Their documentation (https://www.tensorflow.org/api_docs/python/tf/norm) say:
@@ -51,13 +51,10 @@ class Cole(SimilarExamples):
         yielding the corresponding p-norm."
     case_returns
         String or list of string with the elements to return in `self.explain()`.
-        See `self.set_returns()` from parent class `SimilarExamples` for detail.
-        By default, the `explain()` method will only return the examples.
+        See the base class returns property for details.
     batch_size
         Number of sample treated simultaneously for projection and search.
         Ignored if `tf.data.Dataset` are provided (those are supposed to be batched).
-    device
-        Device to use for the projection, if None, use the default device.
     latent_layer
         Layer used to split the model, the first part will be used for projection and
         the second to compute the attributions. By default, the model is not split.
@@ -75,9 +72,8 @@ class Cole(SimilarExamples):
         It should inherit from `xplique.attributions.base.BlackBoxExplainer`.
         By default, it computes the gradient to make the Hadamard product in the latent space.
     attribution_kwargs
-        Parameters to be passed at the construction of the `attribution_method`.
+        Parameters to be passed for the construction of the `attribution_method`.
     """
-
     def __init__(
         self,
         cases_dataset: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
@@ -88,7 +84,6 @@ class Cole(SimilarExamples):
         distance: Union[str, Callable] = "euclidean",
         case_returns: Optional[Union[List[str], str]] = "examples",
         batch_size: Optional[int] = 32,
-        # device: Optional[str] = None,
         latent_layer: Optional[Union[str, int]] = None,
         attribution_method: Union[str, Type[BlackBoxExplainer]] = "gradient",
         **attribution_kwargs,
@@ -104,7 +99,6 @@ class Cole(SimilarExamples):
                 model=model,
                 latent_layer=latent_layer,
                 operator=operator,
-                # device=device,
             )
         elif issubclass(attribution_method, BlackBoxExplainer):
             # build attribution projection
@@ -112,7 +106,6 @@ class Cole(SimilarExamples):
                 model=model,
                 method=attribution_method,
                 latent_layer=latent_layer,
-                # device=device,
                 **attribution_kwargs,
             )
         else:

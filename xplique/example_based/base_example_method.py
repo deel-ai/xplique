@@ -13,7 +13,7 @@ from ..types import Callable, Dict, List, Optional, Type, Union
 
 from ..commons import sanitize_inputs_targets
 from ..commons import sanitize_dataset, dataset_gather
-from .search_methods import KNN, BaseSearchMethod
+from .search_methods import BaseSearchMethod
 from .projections import Projection
 
 from .search_methods.base import _sanitize_returns
@@ -21,38 +21,39 @@ from .search_methods.base import _sanitize_returns
 
 class BaseExampleMethod(ABC):
     """
-    Base class for natural example-based methods explaining models,
-    they project the cases_dataset into a pertinent space for the with a `Projection`,
-    then they call the `BaseSearchMethod` on it.
+    Base class for natural example-based methods explaining classification models.
+    An example-based method is a method that explains a model's predictions by providing examples from the cases_dataset
+    (usually the training dataset). The examples are selected with the help of a search method that performs a search in
+    the search space. The search space is defined with the help of a projection function that projects the cases_dataset
+    and the (inputs, targets) to explain into a space where the search method is relevant.
 
     Parameters
     ----------
     cases_dataset
-        The dataset used to train the model, examples are extracted from the dataset.
+        The dataset used to train the model, examples are extracted from this dataset.
         `tf.data.Dataset` are assumed to be batched as tensorflow provide no method to verify it.
         Be careful, `tf.data.Dataset` are often reshuffled at each iteration, be sure that it is not
         the case for your dataset, otherwise, examples will not make sense.
     labels_dataset
         Labels associated to the examples in the dataset. Indices should match with cases_dataset.
         `tf.data.Dataset` are assumed to be batched as tensorflow provide no method to verify it.
-        Batch size and cardinality of other dataset should match `cases_dataset`.
+        Batch size and cardinality of other datasets should match `cases_dataset`.
         Be careful, `tf.data.Dataset` are often reshuffled at each iteration, be sure that it is not
         the case for your dataset, otherwise, examples will not make sense.
     targets_dataset
-        Targets associated to the cases_dataset for dataset projection. See `projection` for detail.
+        Targets associated to the cases_dataset for dataset projection, oftentimes the one-hot encoding of a model's
+        predictions. See `projection` for detail.
         `tf.data.Dataset` are assumed to be batched as tensorflow provide no method to verify it.
-        Batch size and cardinality of other dataset should match `cases_dataset`.
+        Batch size and cardinality of other datasets should match `cases_dataset`.
         Be careful, `tf.data.Dataset` are often reshuffled at each iteration, be sure that it is not
         the case for your dataset, otherwise, examples will not make sense.
-    search_method
-        An algorithm to search the examples in the projected space.
     k
-        The number of examples to retrieve.
+        The number of examples to retrieve per input.
     projection
         Projection or Callable that project samples from the input space to the search space.
-        The search space should be a space where distance make sense for the model.
-        It should not be `None`, otherwise,
-        all examples could be computed only with the `search_method`.
+        The search space should be a space where distances are relevant for the model.
+        It should not be `None`, otherwise, the model is not involved thus not explained. If you are interested in
+        searching the input space, you should use a `BaseSearchMethod` instead. 
 
         Example of Callable:
         ```
@@ -67,12 +68,10 @@ class BaseExampleMethod(ABC):
         ```
     case_returns
         String or list of string with the elements to return in `self.explain()`.
-        See `self.set_returns()` for detail.
+        See the returns property for details.
     batch_size
         Number of sample treated simultaneously for projection and search.
         Ignored if `tf.data.Dataset` are provided (those are supposed to be batched).
-    search_method_kwargs
-        Parameters to be passed at the construction of the `search_method`.
     """
     _returns_possibilities = ["examples", "weights", "distances", "labels", "include_inputs"]
 
@@ -88,7 +87,7 @@ class BaseExampleMethod(ABC):
     ):
         assert (
             projection is not None
-        ), "`BaseExampleMethod` without `projection` is a `BaseSearchMethod`."
+        ), "`BaseExampleMethod` without Projection method should be a `BaseSearchMethod`."
 
         # set attributes
         self.batch_size = self._initialize_cases_dataset(
@@ -96,9 +95,9 @@ class BaseExampleMethod(ABC):
         )
 
         self._search_returns = ["indices", "distances"]
-        assert hasattr(projection, "__call__"), "projection should be a callable."
 
-        # check projection type
+        # check projection
+        assert hasattr(projection, "__call__"), "projection should be a callable."
         if isinstance(projection, Projection):
             self.projection = projection
         elif hasattr(projection, "__call__"):
@@ -112,13 +111,17 @@ class BaseExampleMethod(ABC):
         # project dataset
         self.projected_cases_dataset = self.projection.project_dataset(self.cases_dataset,
                                                                        self.targets_dataset)
-    
+
+        # set properties
         self.k = k
         self.returns = case_returns
     
     @property
     @abstractmethod
     def search_method_class(self) -> Type[BaseSearchMethod]:
+        """
+        When inheriting from `BaseExampleMethod`, one should define the search method class to use.
+        """
         raise NotImplementedError
 
     @property
@@ -179,13 +182,13 @@ class BaseExampleMethod(ABC):
         Parameters
         ----------
         cases_dataset
-            The dataset used to train the model, examples are extracted from the dataset.
+            The dataset used to train the model, examples are extracted from this dataset.
         labels_dataset
-            Labels associated to the examples in the dataset.
+            Labels associated to the examples in the cases_dataset.
             Indices should match with cases_dataset.
         targets_dataset
             Targets associated to the cases_dataset for dataset projection.
-            See `projection` for detail.
+            See `projection` for details.
         batch_size
             Number of sample treated simultaneously when using the datasets.
             Ignored if `tf.data.Dataset` are provided (those are supposed to be batched).
@@ -254,6 +257,7 @@ class BaseExampleMethod(ABC):
                     + f"{len(self.cases_dataset.element_spec)} were detected."
                 )
 
+        # prefetch datasets
         self.cases_dataset = self.cases_dataset.prefetch(tf.data.AUTOTUNE)
         if self.labels_dataset is not None:
             self.labels_dataset = self.labels_dataset.prefetch(tf.data.AUTOTUNE)
@@ -269,9 +273,9 @@ class BaseExampleMethod(ABC):
         targets: Optional[Union[tf.Tensor, np.ndarray]] = None,
     ):
         """
-        Compute examples to explain the inputs.
-        It project inputs with `self.projection` in the search space
-        and find examples with `self.search_method`.
+        Return the relevant examples to explain the (inputs, targets).
+        It projects inputs with `self.projection` in the search space
+        and find examples with the `self.search_method`.
 
         Parameters
         ----------
@@ -280,20 +284,19 @@ class BaseExampleMethod(ABC):
             Expected shape among (N, W), (N, T, W), (N, W, H, C).
             More information in the documentation.
         targets
-            Tensor or Array passed to the projection function.
+            Targets associated to the cases_dataset for dataset projection.
+            See `projection` for details.
 
         Returns
         -------
         return_dict
             Dictionary with listed elements in `self.returns`.
-            If only one element is present it returns the element.
-            The elements that can be returned are:
-            examples, weights, distances, indices, and labels.
+            The elements that can be returned are defined with _returns_possibilities static attribute of the class.
         """
-        # project inputs
+        # project inputs into the search space
         projected_inputs = self.projection(inputs, targets)
 
-        # look for closest elements to projected inputs
+        # look for relevant elements in the search space
         search_output = self.search_method(projected_inputs, targets)
 
         # manage returned elements
@@ -304,7 +307,7 @@ class BaseExampleMethod(ABC):
         inputs: Union[tf.Tensor, np.ndarray],
         targets: Optional[Union[tf.Tensor, np.ndarray]] = None,
     ):
-        """explain alias"""
+        """explain() alias"""
         return self.explain(inputs, targets)
 
     def format_search_output(
@@ -323,23 +326,20 @@ class BaseExampleMethod(ABC):
         inputs
             Tensor or Array. Input samples to be explained.
             Expected shape among (N, W), (N, T, W), (N, W, H, C).
-            More information in the documentation.
         targets
-            Tensor or Array passed to the projection function.
-            Here it is used by the explain function of attribution methods.
-            Refer to the corresponding method documentation for more detail.
-            Note that the default method is `Saliency`.
+            Targets associated to the cases_dataset for dataset projection.
+            See `projection` for details.
 
         Returns
         -------
         return_dict
             Dictionary with listed elements in `self.returns`.
-            If only one element is present it returns the element.
-            The elements that can be returned are:
-            examples, weights, distances, indices, and labels.
+            The elements that can be returned are defined with _returns_possibilities static attribute of the class.
         """
+        # initialize return dictionary
         return_dict = {}
 
+        # gather examples, labels, and targets from the example's indices of the search output
         examples = dataset_gather(self.cases_dataset, search_output["indices"])
         examples_labels = dataset_gather(self.labels_dataset, search_output["indices"])
         examples_targets = dataset_gather(
@@ -376,13 +376,6 @@ class BaseExampleMethod(ABC):
                         )
 
                 return_dict["weights"] = tf.stack(weights, axis=0)
-
-                # optimization test TODO
-                # return_dict["weights"] = tf.vectorized_map(
-                #     fn=lambda x: self.projection.get_input_weights(x[0], x[1]),
-                #     elems=(examples, examples_targets),
-                #     # fn_output_signature=tf.float32,
-                # )
 
         # add indices, distances, and labels
         if "indices" in self.returns:

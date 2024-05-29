@@ -14,7 +14,39 @@ from .knn import FilterKNN
 
 class BaseKLEORSearch(FilterKNN, ABC):
     """
-    Base class for the KLEOR search methods.
+    Base class for the KLEOR search methods. In those methods, one should first retrieve the Nearest Unlike Neighbor
+    (NUN) which is the closest example to the query that has a different prediction than the query.
+    Then, the method search for the K-Nearest Neighbors (KNN) of the NUN that have the same prediction as the query.
+
+    Depending on the KLEOR method some additional condition for the search are added. See the specific KLEOR method for
+    more details. 
+
+    Parameters
+    ----------
+    cases_dataset
+        The dataset used to search the examples.
+        `tf.data.Dataset` are assumed to be batched as tensorflow provide no method to verify it.
+        Be careful, `tf.data.Dataset` are often reshuffled at each iteration, be sure that it is not
+        the case for your dataset, otherwise, examples will not make sense.
+    targets_dataset
+        Targets are expected to be the one-hot encoding of the model's predictions for the samples in cases_dataset.
+        `tf.data.Dataset` are assumed to be batched as tensorflow provide no method to verify it.
+        Batch size and cardinality of other datasets should match `cases_dataset`.
+        Be careful, `tf.data.Dataset` are often reshuffled at each iteration, be sure that it is not
+        the case for your dataset, otherwise, examples will not make sense.
+    k
+        The number of examples to retrieve per input.
+    search_returns
+        String or list of string with the elements to return in `self.find_examples()`.
+        It should be a subset of `self._returns_possibilities`.
+    batch_size
+        Number of sample treated simultaneously.
+    distance
+        Distance function to use to measure similarity.
+        Either a Callable, or a value supported by `tf.norm` `ord` parameter.
+        Their documentation (https://www.tensorflow.org/api_docs/python/tf/norm) say:
+        "Supported values are 'fro', 'euclidean', 1, 2, np.inf and any positive real number
+        yielding the corresponding p-norm." We also added 'cosine'.
     """
     def __init__(
         self,
@@ -36,6 +68,7 @@ class BaseKLEORSearch(FilterKNN, ABC):
             filter_fn=self._filter_fn,
         )
 
+        # search method for the Nearest Unlike Neighbors
         self.search_nuns = FilterKNN(
             cases_dataset=cases_dataset,
             targets_dataset=targets_dataset,
@@ -47,7 +80,7 @@ class BaseKLEORSearch(FilterKNN, ABC):
             filter_fn=self._filter_fn_nun,
         )
 
-    def find_examples(self, inputs: Union[tf.Tensor, np.ndarray], targets: Optional[Union[tf.Tensor, np.ndarray]] = None):
+    def find_examples(self, inputs: Union[tf.Tensor, np.ndarray], targets: Optional[Union[tf.Tensor, np.ndarray]] = None) -> dict:
         """
         Search the samples to return as examples. Called by the explain methods.
         It may also return the indices corresponding to the samples,
@@ -59,6 +92,13 @@ class BaseKLEORSearch(FilterKNN, ABC):
             Tensor or Array. Input samples to be explained.
             Assumed to have been already projected.
             Expected shape among (N, W), (N, T, W), (N, W, H, C).
+        targets
+            Tensor or Array. Target of the samples to be explained.
+
+        Returns
+        -------
+        return_dict
+            Dictionary containing the elements to return which are specified in `self.returns`.
         """
         # compute neighbors
         examples_distances, examples_indices, nuns, nuns_indices, nuns_sf_distances = self.kneighbors(inputs, targets)
@@ -80,6 +120,7 @@ class BaseKLEORSearch(FilterKNN, ABC):
 
     def _filter_fn(self, _, __, targets, cases_targets) -> tf.Tensor:
         """
+        Filter function to mask the cases for which the prediction is the same as the predicted label on the inputs.
         """
         # get the labels predicted by the model
         # (n, )
@@ -106,6 +147,7 @@ class BaseKLEORSearch(FilterKNN, ABC):
 
     def _get_nuns(self, inputs: Union[tf.Tensor, np.ndarray], targets: Union[tf.Tensor, np.ndarray]) -> Tuple[tf.Tensor, tf.Tensor]:
         """
+        Get the Nearest Unlike Neighbors and their distance to the related input.
         """
         nuns_dict = self.search_nuns(inputs, targets)
         nuns_indices, nuns_distances = nuns_dict["indices"], nuns_dict["distances"]
@@ -114,6 +156,41 @@ class BaseKLEORSearch(FilterKNN, ABC):
 
     def kneighbors(self, inputs: Union[tf.Tensor, np.ndarray], targets: Union[tf.Tensor, np.ndarray]) -> Tuple[tf.Tensor, tf.Tensor]:
         """
+        Compute the k SF to each tensor of `inputs` in `self.cases_dataset`.
+        Here `self.cases_dataset` is a `tf.data.Dataset`, hence, computations are done by batches.
+
+        Parameters
+        ----------
+        inputs
+            Tensor or Array. Input samples on which knn are computed.
+            Expected shape among (N, W), (N, T, W), (N, W, H, C).
+            More information in the documentation.
+        targets
+            Tensor or Array. Target of the samples to be explained.
+
+        Returns
+        -------
+        input_sf_distances
+            Tensor of distances between the SFs and the inputs with dimension (n, k).
+            The n inputs times their k-SF.
+        sf_indices
+            Tensor of indices of the SFs in `self.cases_dataset` with dimension (n, k, 2).
+            Where, n represent the number of inputs and k the number of corresponding SFs.
+            The index of each element is encoded by two values,
+            the batch index and the index of the element in the batch.
+            Those indices can be used through `xplique.commons.tf_dataset_operation.dataset_gather`.
+        nuns
+            Tensor of Nearest Unlike Neighbors with dimension (n, 1, ...).
+            The n inputs times their NUN.
+        nuns_indices
+            Tensor of indices of the NUN in `self.cases_dataset` with dimension (n, 1, 2).
+            Where, n represent the number of inputs.
+            The index of each element is encoded by two values,
+            the batch index and the index of the element in the batch.
+            Those indices can be used through `xplique.commons.tf_dataset_operation.dataset_gather`.
+        nun_sf_distances
+            Tensor of distances between the SFs and the NUN with dimension (n, k).
+            The n NUNs times the k-SF.
         """
         # get the Nearest Unlike Neighbors and their distance to the related input
         nuns, nuns_indices, nuns_input_distances = self._get_nuns(inputs, targets)
@@ -193,30 +270,29 @@ class BaseKLEORSearch(FilterKNN, ABC):
      
 class KLEORSimMissSearch(BaseKLEORSearch):
     """
-    KLEOR search method.
-
-    Parameters
-    ----------
-    cases_dataset
-        Dataset of cases.
-    targets_dataset
-        Dataset of targets. Should be a one-hot encoded of the predicted class
+    The KLEORSimMiss method search for Semi-Factuals examples by searching for the Nearest Unlike Neighbor (NUN) of
+    the query. The NUN is the closest example to the query that has a different prediction than the query. Then, the
+    method search for the K-Nearest Neighbors (KNN) of the NUN that have the same prediction as the query.
     """
     def _additional_filtering(self, nun_sf_distances: tf.Tensor, input_sf_distances: tf.Tensor, nuns_input_distances: tf.Tensor) -> Tuple:
+        """
+        No additional filtering for the KLEORSimMiss method.
+        """
         return nun_sf_distances, input_sf_distances
 
 class KLEORGlobalSimSearch(BaseKLEORSearch):
     """
-    KLEOR search method.
+    The KLEORGlobalSim method search for Semi-Factuals examples by searching for the Nearest Unlike Neighbor (NUN) of
+    the query. The NUN is the closest example to the query that has a different prediction than the query. Then, the
+    method search for the K-Nearest Neighbors (KNN) of the NUN that have the same prediction as the query.
 
-    Parameters
-    ----------
-    cases_dataset
-        Dataset of cases.
-    targets_dataset
-        Dataset of targets. Should be a one-hot encoded of the predicted class
+    In addition, for a SF candidate to be considered, the SF should be closer to the query than the NUN 
+    (i.e. the SF should be 'between' the input and its NUN). This condition is added to the search.
     """
     def _additional_filtering(self, nun_sf_distances: tf.Tensor, input_sf_distances: tf.Tensor, nuns_input_distances: tf.Tensor) -> Tuple:
+        """
+        Filter the distances to keep only the SF that are 'between' the input and its NUN.
+        """
         # filter non acceptable cases, i.e. cases for which the distance to the input is greater
         # than the distance between the input and its nun
         # (n, current_bs)

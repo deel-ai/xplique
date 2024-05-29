@@ -8,7 +8,6 @@ import tensorflow as tf
 import numpy as np
 
 from ...types import Union, Optional, List
-
 from ...commons import sanitize_dataset
 
 class ORDER(Enum):
@@ -24,7 +23,6 @@ def _sanitize_returns(returns: Optional[Union[List[str], str]] = None,
                       possibilities: List[str] = None,
                       default: Union[List[str], str] = None):
     """
-    Factorization of `set_returns` for `BaseSearchMethod` and `SimilarExamples`.
     It cleans the `returns` parameter.
     Results is either a sublist of possibilities or a value among possibilities.
 
@@ -66,20 +64,22 @@ def _sanitize_returns(returns: Optional[Union[List[str], str]] = None,
 
 class BaseSearchMethod(ABC):
     """
-    Base class used by `NaturalExampleBasedExplainer` search examples in
-    a meaningful space for the model. It can also be used alone but will not provided
-    model explanations.
+    Base class for the example-based search methods. This class is abstract. It should be inherited by
+    the search methods that are used to find examples in a dataset. It also defines the interface for the
+    search methods.
 
     Parameters
     ----------
     cases_dataset
-        The dataset used to train the model, examples are extracted from the dataset.
-        For natural example-based methods it is the train dataset.
+        The dataset containing the examples to search in.
+        `tf.data.Dataset` are assumed to be batched as tensorflow provide no method to verify it.
+        Be careful, `tf.data.Dataset` are often reshuffled at each iteration, be sure that it is not
+        the case for your dataset, otherwise, examples will not make sense.
     k
         The number of examples to retrieve.
     search_returns
         String or list of string with the elements to return in `self.find_examples()`.
-        See `self.set_returns()` for detail.
+        It should be a subset of `self._returns_possibilities`.
     batch_size
         Number of sample treated simultaneously.
         It should match the batch size of the `search_set` in the case of a `tf.data.Dataset`.
@@ -133,8 +133,6 @@ class BaseSearchMethod(ABC):
             `returns` can be set to 'all' for all possible elements to be returned.
                 - 'examples' correspond to the expected examples,
                 the inputs may be included in first position. (n, k(+1), ...)
-                - 'weights' the weights in the input space used in the projection.
-                They are associated to the input and the examples. (n, k(+1), ...)
                 - 'distances' the distances between the inputs and the corresponding examples.
                 They are associated to the examples. (n, k, ...)
                 - 'labels' if provided through `dataset_labels`,
@@ -146,7 +144,7 @@ class BaseSearchMethod(ABC):
         self._returns = _sanitize_returns(returns, self._returns_possibilities, default)
 
     @abstractmethod
-    def find_examples(self, inputs: Union[tf.Tensor, np.ndarray], targets: Optional[Union[tf.Tensor, np.ndarray]] = None):
+    def find_examples(self, inputs: Union[tf.Tensor, np.ndarray], targets: Optional[Union[tf.Tensor, np.ndarray]] = None) -> dict:
         """
         Search the samples to return as examples. Called by the explain methods.
         It may also return the indices corresponding to the samples,
@@ -157,9 +155,16 @@ class BaseSearchMethod(ABC):
         inputs
             Tensor or Array. Input samples to be explained.
             Expected shape among (N, W), (N, T, W), (N, W, H, C).
+        targets
+            Tensor or Array. Target of the samples to be explained.
+
+        Returns
+        -------
+        return_dict
+            Dictionary containing the elements to return which are specified in `self.returns`.
         """
         raise NotImplementedError()
 
-    def __call__(self, inputs: Union[tf.Tensor, np.ndarray], targets: Optional[Union[tf.Tensor, np.ndarray]] = None):
-        """find_samples alias"""
+    def __call__(self, inputs: Union[tf.Tensor, np.ndarray], targets: Optional[Union[tf.Tensor, np.ndarray]] = None) -> dict:
+        """find_samples() alias"""
         return self.find_examples(inputs, targets)

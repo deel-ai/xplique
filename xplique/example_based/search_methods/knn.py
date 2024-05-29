@@ -13,6 +13,27 @@ from .base import BaseSearchMethod, ORDER
 
 class BaseKNN(BaseSearchMethod):
     """
+    Base class for the KNN search methods. It is an abstract class that should be inherited by a specific KNN method.
+
+    Parameters
+    ----------
+    cases_dataset
+        The dataset containing the examples to search in.
+        `tf.data.Dataset` are assumed to be batched as tensorflow provide no method to verify it.
+        Be careful, `tf.data.Dataset` are often reshuffled at each iteration, be sure that it is not
+        the case for your dataset, otherwise, examples will not make sense.
+    k
+        The number of examples to retrieve.
+    search_returns
+        String or list of string with the elements to return in `self.find_examples()`.
+        It should be a subset of `self._returns_possibilities`.
+    batch_size
+        Number of sample treated simultaneously.
+        It should match the batch size of the `search_set` in the case of a `tf.data.Dataset`.
+    order
+        The order of the distances, either `ORDER.ASCENDING` or `ORDER.DESCENDING`. Default is `ORDER.ASCENDING`.
+        ASCENDING means that the smallest distances are the best, DESCENDING means that the biggest distances are
+        the best.
     """
     def __init__(
         self,
@@ -28,7 +49,7 @@ class BaseKNN(BaseSearchMethod):
             search_returns=search_returns,
             batch_size=batch_size,
         )
-
+        # set order
         assert isinstance(order, ORDER), f"order should be an instance of ORDER and not {type(order)}"
         self.order = order
         # fill value
@@ -47,7 +68,7 @@ class BaseKNN(BaseSearchMethod):
             Expected shape among (N, W), (N, T, W), (N, W, H, C).
             More information in the documentation.
         targets
-            Tensor or Array. Target samples to be explained.
+            Tensor or Array. Target of the samples to be explained.
 
         Returns
         -------
@@ -63,7 +84,7 @@ class BaseKNN(BaseSearchMethod):
         """
         raise NotImplementedError
 
-    def find_examples(self, inputs: Union[tf.Tensor, np.ndarray], targets: Optional[Union[tf.Tensor, np.ndarray]] = None):
+    def find_examples(self, inputs: Union[tf.Tensor, np.ndarray], targets: Optional[Union[tf.Tensor, np.ndarray]] = None) -> dict:
         """
         Search the samples to return as examples. Called by the explain methods.
         It may also return the indices corresponding to the samples,
@@ -75,6 +96,13 @@ class BaseKNN(BaseSearchMethod):
             Tensor or Array. Input samples to be explained.
             Assumed to have been already projected.
             Expected shape among (N, W), (N, T, W), (N, W, H, C).
+        targets
+            Tensor or Array. Target of the samples to be explained.
+
+        Returns
+        -------
+        return_dict
+            Dictionary containing the elements to return which are specified in `self.returns`.
         """
         # compute neighbors
         examples_distances, examples_indices = self.kneighbors(inputs, targets)
@@ -84,9 +112,10 @@ class BaseKNN(BaseSearchMethod):
 
         return return_dict
 
-    def _build_return_dict(self, inputs, examples_distances, examples_indices):
+    def _build_return_dict(self, inputs, examples_distances, examples_indices) -> dict:
         """
-        TODO: Change the description
+        Build the return dict based on the `self.returns` values. It builds the return dict with the value in the
+        subset of ['examples', 'include_inputs', 'indices', 'distances'] which is commonly shared.
         """
         # Set values in return dict
         return_dict = {}
@@ -107,22 +136,29 @@ class BaseKNN(BaseSearchMethod):
 class KNN(BaseKNN):
     """
     KNN method to search examples. Based on `sklearn.neighbors.NearestNeighbors`.
-    Basically a wrapper of `NearestNeighbors` to match the `BaseSearchMethod` API.
+    The kneighbors method is implemented in a batched way to handle large datasets.
 
     Parameters
     ----------
     cases_dataset
-        The dataset used to train the model, examples are extracted from the dataset.
-        For natural example-based methods it is the train dataset.
+        The dataset containing the examples to search in.
+        `tf.data.Dataset` are assumed to be batched as tensorflow provide no method to verify it.
+        Be careful, `tf.data.Dataset` are often reshuffled at each iteration, be sure that it is not
+        the case for your dataset, otherwise, examples will not make sense.
     k
         The number of examples to retrieve.
     search_returns
         String or list of string with the elements to return in `self.find_examples()`.
-        See `self.set_returns()` for detail.
+        It should be a subset of `self._returns_possibilities`.
     batch_size
         Number of sample treated simultaneously.
         It should match the batch size of the `search_set` in the case of a `tf.data.Dataset`.
+    order
+        The order of the distances, either `ORDER.ASCENDING` or `ORDER.DESCENDING`. Default is `ORDER.ASCENDING`.
+        ASCENDING means that the smallest distances are the best, DESCENDING means that the biggest distances are
+        the best.
     distance
+        Distance function to use to measure similarity.
         Either a Callable, or a value supported by `tf.norm` `ord` parameter.
         Their documentation (https://www.tensorflow.org/api_docs/python/tf/norm) say:
         "Supported values are 'fro', 'euclidean', 1, 2, np.inf and any positive real number
@@ -145,6 +181,7 @@ class KNN(BaseKNN):
             order=order,
         )
 
+        # set distance function
         if hasattr(distance, "__call__"):
             self.distance_fn = distance
         elif distance in ["fro", "euclidean", 1, 2, np.inf] or isinstance(
@@ -159,7 +196,23 @@ class KNN(BaseKNN):
             )
 
     @tf.function
-    def _crossed_distances_fn(self, x1, x2):
+    def _crossed_distances_fn(self, x1, x2) -> tf.Tensor:
+        """
+        Element-wise distance computation between two tensors.
+        It has been vectorized to handle batches of inputs and cases.
+
+        Parameters
+        ----------
+        x1
+            Tensor. Input samples of shape (n, ...).
+        x2
+            Tensor. Cases samples of shape (m, ...).
+
+        Returns
+        -------
+        distances
+            Tensor of distances between the inputs and the cases with dimension (n, m).
+        """
         n = x1.shape[0]
         m = x2.shape[0]
         x2 = tf.expand_dims(x2, axis=0)
@@ -186,6 +239,8 @@ class KNN(BaseKNN):
             Tensor or Array. Input samples on which knn are computed.
             Expected shape among (N, W), (N, T, W), (N, W, H, C).
             More information in the documentation.
+        targets
+            Tensor or Array. Target of the samples to be explained.
 
         Returns
         -------
@@ -246,24 +301,33 @@ class KNN(BaseKNN):
 
 class FilterKNN(BaseKNN):
     """
-    TODO: Change the class description
     KNN method to search examples. Based on `sklearn.neighbors.NearestNeighbors`.
-    Basically a wrapper of `NearestNeighbors` to match the `BaseSearchMethod` API.
+    The kneighbors method is implemented in a batched way to handle large datasets.
+    In addition, a filter function is used to select the elements to compute the distances, thus reducing the
+    computational cost of the distance computation (worth if the computation of the filter is low and the matrix
+    of distances is sparse).
 
     Parameters
     ----------
     cases_dataset
-        The dataset used to train the model, examples are extracted from the dataset.
-        For natural example-based methods it is the train dataset.
+        The dataset containing the examples to search in.
+        `tf.data.Dataset` are assumed to be batched as tensorflow provide no method to verify it.
+        Be careful, `tf.data.Dataset` are often reshuffled at each iteration, be sure that it is not
+        the case for your dataset, otherwise, examples will not make sense.
     k
         The number of examples to retrieve.
     search_returns
         String or list of string with the elements to return in `self.find_examples()`.
-        See `self.set_returns()` for detail.
+        It should be a subset of `self._returns_possibilities`.
     batch_size
         Number of sample treated simultaneously.
         It should match the batch size of the `search_set` in the case of a `tf.data.Dataset`.
+    order
+        The order of the distances, either `ORDER.ASCENDING` or `ORDER.DESCENDING`. Default is `ORDER.ASCENDING`.
+        ASCENDING means that the smallest distances are the best, DESCENDING means that the biggest distances are
+        the best.
     distance
+        Distance function to use to measure similarity.
         Either a Callable, or a value supported by `tf.norm` `ord` parameter.
         Their documentation (https://www.tensorflow.org/api_docs/python/tf/norm) say:
         "Supported values are 'fro', 'euclidean', 1, 2, np.inf and any positive real number
@@ -291,7 +355,8 @@ class FilterKNN(BaseKNN):
             batch_size=batch_size,
             order=order,
         )
-        
+
+        # set distance function
         if hasattr(distance, "__call__"):
             self.distance_fn = distance
         elif distance in ["fro", "euclidean", 1, 2, np.inf] or isinstance(
@@ -319,6 +384,24 @@ class FilterKNN(BaseKNN):
 
     @tf.function
     def _crossed_distances_fn(self, x1, x2, mask):
+        """
+        Element-wise distance computation between two tensors with a mask.
+        It has been vectorized to handle batches of inputs and cases.
+
+        Parameters
+        ----------
+        x1
+            Tensor. Input samples of shape (n, ...).
+        x2
+            Tensor. Cases samples of shape (m, ...).
+        mask
+            Tensor. Boolean mask of shape (n, m). It is used to filter the elements for which the distance is computed.
+
+        Returns
+        -------
+        distances
+            Tensor of distances between the inputs and the cases with dimension (n, m).
+        """
         n = x1.shape[0]
         m = x2.shape[0]
         x2 = tf.expand_dims(x2, axis=0)
@@ -338,6 +421,9 @@ class FilterKNN(BaseKNN):
         """
         Compute the k-neareast neighbors to each tensor of `inputs` in `self.cases_dataset`.
         Here `self.cases_dataset` is a `tf.data.Dataset`, hence, computations are done by batches.
+        In addition, a filter function is used to select the elements to compute the distances, thus reducing the
+        computational cost of the distance computation (worth if the computation of the filter is low and the matrix
+        of distances is sparse).
 
         Parameters
         ----------
@@ -345,6 +431,8 @@ class FilterKNN(BaseKNN):
             Tensor or Array. Input samples on which knn are computed.
             Expected shape among (N, W), (N, T, W), (N, W, H, C).
             More information in the documentation.
+        targets
+            Tensor or Array. Target of the samples to be explained.
 
         Returns
         -------
