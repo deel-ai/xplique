@@ -10,7 +10,7 @@ from ...types import Callable, List, Union, Optional, Tuple
 
 from .base import BaseSearchMethod
 from .knn import KNN
-from ..projections import Projection
+# from ..projections import Projection
 
 
 class ProtoGreedySearch(BaseSearchMethod):
@@ -163,6 +163,13 @@ class ProtoGreedySearch(BaseSearchMethod):
         for batch_col_index, (batch_col_cases, batch_col_labels) in enumerate(
             zip(self.cases_dataset, self.labels_dataset)
         ):
+            # elements should be tabular data
+            assert len(batch_col_cases.shape) == 2,\
+                "Expected prototypes' searches expects 2D data, (nb_samples, nb_features),"+\
+                f"but got {batch_col_cases.shape}"+\
+                "Please verify your projection if you provided a custom one."+\
+                "If you use a splitted model, make sure the output of the first part of the model is flattened."
+
             batch_col_sums = tf.zeros((batch_col_cases.shape[0]))
 
             for batch_row_index, (batch_row_cases, batch_row_labels) in enumerate(

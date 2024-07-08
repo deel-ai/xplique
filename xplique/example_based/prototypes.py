@@ -101,7 +101,7 @@ class Prototypes(BaseExampleMethod, ABC):
 
         # initiate search_method
         self.search_method = self.search_method_class(
-            cases_dataset=self.cases_dataset,
+            cases_dataset=self.projected_cases_dataset,
             labels_dataset=self.labels_dataset,
             k=self.k,
             search_returns=self._search_returns,
