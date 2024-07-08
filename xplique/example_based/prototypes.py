@@ -70,6 +70,7 @@ class Prototypes(BaseExampleMethod, ABC):
         self,
         cases_dataset: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
         labels_dataset: Optional[Union[tf.data.Dataset, tf.Tensor, np.ndarray]] = None,
+        targets_dataset: Optional[Union[tf.data.Dataset, tf.Tensor, np.ndarray]] = None,
         k: int = 1,
         projection: Union[Projection, Callable] = None,
         case_returns: Union[List[str], str] = "examples",
@@ -84,6 +85,7 @@ class Prototypes(BaseExampleMethod, ABC):
         super().__init__(
             cases_dataset=cases_dataset,
             labels_dataset=labels_dataset,
+            targets_dataset=targets_dataset,
             k=k,
             projection=projection,
             case_returns=case_returns,

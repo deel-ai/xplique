@@ -43,6 +43,7 @@ coverage.xml
 .pytest_cache/
 cover/
 *test*.sh
+tests/concepts/checkpoints/
 
 # Environments
 .env
