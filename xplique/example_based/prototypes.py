@@ -157,9 +157,21 @@ class ProtoDash(Prototypes):
     ----------
     cases_dataset
         The dataset used to train the model, examples are extracted from the dataset.
-        For natural example-based methods it is the train dataset.
+        `tf.data.Dataset` are assumed to be batched as tensorflow provide no method to verify it.
+        Be careful, `tf.data.Dataset` are often reshuffled at each iteration, be sure that it is not
+        the case for your dataset, otherwise, examples will not make sense.
     labels_dataset
         Labels associated to the examples in the dataset. Indices should match with cases_dataset.
+        `tf.data.Dataset` are assumed to be batched as tensorflow provide no method to verify it.
+        Batch size and cardinality of other dataset should match `cases_dataset`.
+        Be careful, `tf.data.Dataset` are often reshuffled at each iteration, be sure that it is not
+        the case for your dataset, otherwise, examples will not make sense.
+    targets_dataset
+        Targets associated to the cases_dataset for dataset projection. See `projection` for detail.
+        `tf.data.Dataset` are assumed to be batched as tensorflow provide no method to verify it.
+        Batch size and cardinality of other dataset should match `cases_dataset`.
+        Be careful, `tf.data.Dataset` are often reshuffled at each iteration, be sure that it is not
+        the case for your dataset, otherwise, examples will not make sense.
     k
         The number of examples to retrieve.
     search_returns
@@ -191,6 +203,7 @@ class ProtoDash(Prototypes):
         self,
         cases_dataset: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
         labels_dataset: Optional[Union[tf.data.Dataset, tf.Tensor, np.ndarray]] = None,
+        targets_dataset: Optional[Union[tf.data.Dataset, tf.Tensor, np.ndarray]] = None,
         k: int = 1,
         projection: Union[Projection, Callable] = None,
         case_returns: Union[List[str], str] = "examples",
@@ -206,7 +219,8 @@ class ProtoDash(Prototypes):
 
         super().__init__(
             cases_dataset=cases_dataset, 
-            labels_dataset=labels_dataset, 
+            labels_dataset=labels_dataset,
+            targets_dataset=targets_dataset,
             k=k,
             projection=projection,
             case_returns=case_returns, 
