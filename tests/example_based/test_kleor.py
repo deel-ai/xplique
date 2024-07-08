@@ -56,7 +56,7 @@ def test_kleor_base_and_sim_miss():
         [np.sqrt(2*1.5**2)],
         [np.sqrt(2*0.5**2)]], dtype=tf.float32)
     assert tf.reduce_all(tf.equal(nuns, expected_nuns))
-    assert tf.reduce_all(tf.equal(nuns_distances, expected_nuns_distances))
+    assert tf.reduce_all(tf.abs(nuns_distances - expected_nuns_distances) < 1e-5)
 
     # test the _initialize_search method
     sf_indices, input_sf_distances, nun_sf_distances, batch_indices = kleor._initialize_search(inputs)

@@ -13,7 +13,7 @@ from tensorflow.keras.layers import (
 from xplique.attributions import Saliency
 from xplique.example_based.projections import Projection, AttributionProjection, LatentSpaceProjection
 from xplique.example_based.projections.commons import model_splitting
-from ..utils import generate_data, almost_equal
+
 
 def get_setup(input_shape, nb_samples=10, nb_labels=2):
     """

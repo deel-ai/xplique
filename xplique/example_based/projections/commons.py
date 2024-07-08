@@ -51,8 +51,25 @@ def model_splitting(model: tf.keras.Model,
     features_extractor = tf.keras.Model(
         model.input, latent_layer.output, name="features_extractor"
     )
+    # predictor = tf.keras.Model(
+    #     latent_layer.output, model.output, name="predictor"
+    # )
+    second_input = tf.keras.Input(shape=latent_layer.output_shape[1:])
+    
+    # Reconstruct the second part of the model
+    x = second_input
+    layer_found = False
+    for layer in model.layers:
+        if layer_found:
+            x = layer(x)
+        if layer == latent_layer:
+            layer_found = True
+    
+    # Create the second part of the model (predictor)
     predictor = tf.keras.Model(
-        latent_layer.output, model.output, name="predictor"
+        inputs=second_input,
+        outputs=x,
+        name="predictor"
     )
 
     if return_layer:

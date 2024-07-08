@@ -5,6 +5,8 @@ import pytest
 import numpy as np
 import tensorflow as tf
 
+from ..utils import almost_equal
+
 from xplique.example_based.search_methods import BaseKNN, KNN, FilterKNN, ORDER
 
 def get_setup(input_shape, nb_samples=10, nb_labels=10):
@@ -180,7 +182,7 @@ def test_knn_compute_distances():
 
     distances = knn._crossed_distances_fn(x1, x2)
     assert distances.shape == (x1.shape[0], x2.shape[0])
-    assert tf.reduce_all(tf.equal(distances, expected_distance))
+    assert almost_equal(distances, expected_distance, epsilon=1e-5)
 
     # Test with higher dimensions
     data = np.array([
@@ -217,7 +219,7 @@ def test_knn_compute_distances():
     
     distances = knn._crossed_distances_fn(x1, x2)
     assert distances.shape == (x1.shape[0], x2.shape[0])
-    assert tf.reduce_all(tf.equal(distances, expected_distance))
+    assert almost_equal(distances, expected_distance)
     
 
 def test_knn_kneighbors():
@@ -237,8 +239,8 @@ def test_knn_kneighbors():
     distances, indices = knn.kneighbors(inputs)
     assert distances.shape == (3, 2)
     assert indices.shape == (3, 2, 2)
-    assert tf.reduce_all(tf.equal(distances, tf.constant([[0.5, 0.5], [0.5, 0.5], [0.5, 0.5]], dtype=tf.float32)))
-    assert tf.reduce_all(tf.equal(indices, tf.constant([[[0, 0], [0, 1]],[[0, 1], [1, 0]],[[1, 1], [2, 0]]], dtype=tf.int32)))
+    assert almost_equal(distances, tf.constant([[0.5, 0.5], [0.5, 0.5], [0.5, 0.5]], dtype=tf.float32))
+    assert almost_equal(indices, tf.constant([[[0, 0], [0, 1]],[[0, 1], [1, 0]],[[1, 1], [2, 0]]], dtype=tf.int32))
 
     # Test with reverse order
     knn = KNN(
@@ -252,8 +254,8 @@ def test_knn_kneighbors():
     distances, indices = knn.kneighbors(inputs)
     assert distances.shape == (3, 2)
     assert indices.shape == (3, 2, 2)
-    assert tf.reduce_all(tf.equal(distances, tf.constant([[3.5, 2.5], [2.5, 1.5], [3.5, 2.5]], dtype=tf.float32)))
-    assert tf.reduce_all(tf.equal(indices, tf.constant([[[2, 0], [1, 1]],[[2, 0], [0, 0]],[[0, 0], [0, 1]]], dtype=tf.int32)))
+    assert almost_equal(distances, tf.constant([[3.5, 2.5], [2.5, 1.5], [3.5, 2.5]], dtype=tf.float32))
+    assert almost_equal(indices, tf.constant([[[2, 0], [1, 1]],[[2, 0], [0, 0]],[[0, 0], [0, 1]]], dtype=tf.int32))
 
     # Test with input and cases being 2D
     cases = tf.constant([[1., 2.], [2., 3.], [3., 4.], [4., 5.], [5., 6.]], dtype=tf.float32)
@@ -268,8 +270,8 @@ def test_knn_kneighbors():
     distances, indices = knn.kneighbors(inputs)
     assert distances.shape == (3, 2)
     assert indices.shape == (3, 2, 2)
-    assert tf.reduce_all(tf.equal(distances, tf.constant([[np.sqrt(0.5), np.sqrt(0.5)], [np.sqrt(0.5), np.sqrt(0.5)], [np.sqrt(0.5), np.sqrt(0.5)]], dtype=tf.float32)))
-    assert tf.reduce_all(tf.equal(indices, tf.constant([[[0, 0], [0, 1]],[[0, 1], [1, 0]],[[1, 1], [2, 0]]], dtype=tf.int32)))
+    assert almost_equal(distances, tf.constant([[np.sqrt(0.5), np.sqrt(0.5)], [np.sqrt(0.5), np.sqrt(0.5)], [np.sqrt(0.5), np.sqrt(0.5)]], dtype=tf.float32))
+    assert almost_equal(indices, tf.constant([[[0, 0], [0, 1]],[[0, 1], [1, 0]],[[1, 1], [2, 0]]], dtype=tf.int32))
 
     # Test with reverse order
     knn = KNN(
@@ -285,7 +287,7 @@ def test_knn_kneighbors():
     assert indices.shape == (3, 2, 2)
     expected_distances = tf.constant([[np.sqrt(2*3.5**2), np.sqrt(2*2.5**2)], [np.sqrt(2*2.5**2), np.sqrt(2*1.5**2)], [np.sqrt(2*3.5**2), np.sqrt(2*2.5**2)]], dtype=tf.float32)
     assert tf.reduce_all(tf.abs(distances - expected_distances) < 1e-5)
-    assert tf.reduce_all(tf.equal(indices, tf.constant([[[2, 0], [1, 1]],[[2, 0], [0, 0]],[[0, 0], [0, 1]]], dtype=tf.int32)))
+    assert almost_equal(indices, tf.constant([[[2, 0], [1, 1]],[[2, 0], [0, 0]],[[0, 0], [0, 1]]], dtype=tf.int32))
 
 def test_filter_knn_compute_distances():
     """
@@ -310,12 +312,14 @@ def test_filter_knn_compute_distances():
     mask = tf.ones((x1.shape[0], x2.shape[0]), dtype=tf.bool)
     distances = knn._crossed_distances_fn(x1, x2, mask)
     assert distances.shape == (x1.shape[0], x2.shape[0])
-    assert tf.reduce_all(tf.equal(distances, expected_distance))
+    assert almost_equal(distances, expected_distance, epsilon=1e-5)
 
     mask = tf.constant([[True, False], [False, True], [True, True]], dtype=tf.bool)
     expected_distance = tf.constant([[np.sqrt(72), np.inf], [np.inf, np.sqrt(72)], [np.sqrt(8), np.sqrt(32)]], dtype=tf.float32)
     distances = knn._crossed_distances_fn(x1, x2, mask)
-    assert tf.reduce_all(tf.equal(distances, expected_distance))
+    assert np.allclose(distances, expected_distance, equal_nan=True)
+    assert np.array_equal(distances == np.inf, expected_distance == np.inf)
+    assert np.array_equal(distances == -np.inf, expected_distance == -np.inf)
 
     # Test with higher dimensions
     data = np.array([
@@ -353,13 +357,15 @@ def test_filter_knn_compute_distances():
     mask = tf.ones((x1.shape[0], x2.shape[0]), dtype=tf.bool)
     distances = knn._crossed_distances_fn(x1, x2, mask)
     assert distances.shape == (x1.shape[0], x2.shape[0])
-    assert tf.reduce_all(tf.equal(distances, expected_distance))
+    assert almost_equal(distances, expected_distance)
 
     mask = tf.constant([[True, False], [False, True], [True, True]], dtype=tf.bool)
     expected_distance = tf.constant([[np.sqrt(9)*27, np.inf], [np.inf, np.sqrt(9)*27], [np.sqrt(9)*9, np.sqrt(9)*18]], dtype=tf.float32)
     distances = knn._crossed_distances_fn(x1, x2, mask)
     assert distances.shape == (x1.shape[0], x2.shape[0])
-    assert tf.reduce_all(tf.equal(distances, expected_distance))
+    assert np.allclose(distances, expected_distance, equal_nan=True)
+    assert np.array_equal(distances == np.inf, expected_distance == np.inf)
+    assert np.array_equal(distances == -np.inf, expected_distance == -np.inf)
 
 def test_filter_knn_kneighbors():
     """
@@ -378,8 +384,8 @@ def test_filter_knn_kneighbors():
     distances, indices = knn.kneighbors(inputs)
     assert distances.shape == (3, 2)
     assert indices.shape == (3, 2, 2)
-    assert tf.reduce_all(tf.equal(distances, tf.constant([[0.5, 0.5], [0.5, 0.5], [0.5, 0.5]], dtype=tf.float32)))
-    assert tf.reduce_all(tf.equal(indices, tf.constant([[[0, 0], [0, 1]],[[0, 1], [1, 0]],[[1, 1], [2, 0]]], dtype=tf.int32)))
+    assert almost_equal(distances, tf.constant([[0.5, 0.5], [0.5, 0.5], [0.5, 0.5]], dtype=tf.float32))
+    assert almost_equal(indices, tf.constant([[[0, 0], [0, 1]],[[0, 1], [1, 0]],[[1, 1], [2, 0]]], dtype=tf.int32))
 
     cases_targets = tf.constant([[0, 1], [1, 0], [1, 0], [0, 1], [1, 0]], dtype=tf.float32)
     targets = tf.constant([[0, 1], [1, 0], [1, 0]], dtype=tf.float32)
@@ -396,8 +402,8 @@ def test_filter_knn_kneighbors():
     distances, indices = knn.kneighbors(inputs, targets)
     assert distances.shape == (3, 2)
     assert indices.shape == (3, 2, 2)
-    assert tf.reduce_all(tf.equal(distances, tf.constant([[0.5, 2.5], [0.5, 0.5], [0.5, 1.5]], dtype=tf.float32)))
-    assert tf.reduce_all(tf.equal(indices, tf.constant([[[0, 0], [1, 1]],[[0, 1], [1, 0]],[[2, 0], [1, 0]]], dtype=tf.int32)))
+    assert almost_equal(distances, tf.constant([[0.5, 2.5], [0.5, 0.5], [0.5, 1.5]], dtype=tf.float32))
+    assert almost_equal(indices, tf.constant([[[0, 0], [1, 1]],[[0, 1], [1, 0]],[[2, 0], [1, 0]]], dtype=tf.int32))
 
     ## test with reverse order
     knn = FilterKNN(
@@ -412,8 +418,8 @@ def test_filter_knn_kneighbors():
     assert distances.shape == (3, 2)
     assert indices.shape == (3, 2, 2)
     expected_distances = tf.constant([[3.5, 2.5], [2.5, 1.5], [3.5, 2.5]], dtype=tf.float32)
-    assert tf.reduce_all(tf.equal(distances, expected_distances))
-    assert tf.reduce_all(tf.equal(indices, tf.constant([[[2, 0], [1, 1]],[[2, 0], [0, 0]],[[0, 0], [0, 1]]], dtype=tf.int32)))
+    assert almost_equal(distances, expected_distances)
+    assert almost_equal(indices, tf.constant([[[2, 0], [1, 1]],[[2, 0], [0, 0]],[[0, 0], [0, 1]]], dtype=tf.int32))
   
     ## add a filter that is not the default one and reverse order
     knn = FilterKNN(
@@ -429,8 +435,8 @@ def test_filter_knn_kneighbors():
     distances, indices = knn.kneighbors(inputs, targets)
     assert distances.shape == (3, 2)
     assert indices.shape == (3, 2, 2)
-    assert tf.reduce_all(tf.equal(distances, tf.constant([[2.5, 0.5], [2.5, 0.5], [2.5, 1.5]], dtype=tf.float32)))
-    assert tf.reduce_all(tf.equal(indices, tf.constant([[[1, 1], [0, 0]],[[2, 0], [0, 1]],[[0, 1], [1, 0]]], dtype=tf.int32)))
+    assert almost_equal(distances, tf.constant([[2.5, 0.5], [2.5, 0.5], [2.5, 1.5]], dtype=tf.float32))
+    assert almost_equal(indices, tf.constant([[[1, 1], [0, 0]],[[2, 0], [0, 1]],[[0, 1], [1, 0]]], dtype=tf.int32))
 
     # Test with input and cases being 2D
     cases = tf.constant([[1., 2.], [2., 3.], [3., 4.], [4., 5.], [5., 6.]], dtype=tf.float32)
@@ -446,8 +452,8 @@ def test_filter_knn_kneighbors():
     distances, indices = knn.kneighbors(inputs)
     assert distances.shape == (3, 2)
     assert indices.shape == (3, 2, 2)
-    assert tf.reduce_all(tf.equal(distances, tf.constant([[np.sqrt(0.5), np.sqrt(0.5)], [np.sqrt(0.5), np.sqrt(0.5)], [np.sqrt(0.5), np.sqrt(0.5)]], dtype=tf.float32)))
-    assert tf.reduce_all(tf.equal(indices, tf.constant([[[0, 0], [0, 1]],[[0, 1], [1, 0]],[[1, 1], [2, 0]]], dtype=tf.int32)))
+    assert almost_equal(distances, tf.constant([[np.sqrt(0.5), np.sqrt(0.5)], [np.sqrt(0.5), np.sqrt(0.5)], [np.sqrt(0.5), np.sqrt(0.5)]], dtype=tf.float32))
+    assert almost_equal(indices, tf.constant([[[0, 0], [0, 1]],[[0, 1], [1, 0]],[[1, 1], [2, 0]]], dtype=tf.int32))
 
     cases_targets = tf.constant([[0, 1], [1, 0], [1, 0], [0, 1], [1, 0]], dtype=tf.float32)
     targets = tf.constant([[0, 1], [1, 0], [1, 0]], dtype=tf.float32)
@@ -466,7 +472,7 @@ def test_filter_knn_kneighbors():
     assert indices.shape == (3, 2, 2)
     expected_distances = tf.constant([[np.sqrt(0.5), np.sqrt(2*2.5**2)], [np.sqrt(0.5), np.sqrt(0.5)], [np.sqrt(0.5), np.sqrt(2*1.5**2)],], dtype=tf.float32)
     assert tf.reduce_all(tf.abs(distances - expected_distances) < 1e-5)
-    assert tf.reduce_all(tf.equal(indices, tf.constant([[[0, 0], [1, 1]],[[0, 1], [1, 0]],[[2, 0], [1, 0]]], dtype=tf.int32)))
+    assert almost_equal(indices, tf.constant([[[0, 0], [1, 1]],[[0, 1], [1, 0]],[[2, 0], [1, 0]]], dtype=tf.int32))
     
     ## test with reverse order and default filter
     knn = FilterKNN(
@@ -482,7 +488,7 @@ def test_filter_knn_kneighbors():
     assert indices.shape == (3, 2, 2)
     expected_distances = tf.constant([[np.sqrt(2*3.5**2), np.sqrt(2*2.5**2)], [np.sqrt(2*2.5**2), np.sqrt(2*1.5**2)], [np.sqrt(2*3.5**2), np.sqrt(2*2.5**2)]], dtype=tf.float32)
     assert tf.reduce_all(tf.abs(distances - expected_distances) < 1e-5)
-    assert tf.reduce_all(tf.equal(indices, tf.constant([[[2, 0], [1, 1]],[[2, 0], [0, 0]],[[0, 0], [0, 1]]], dtype=tf.int32)))
+    assert almost_equal(indices, tf.constant([[[2, 0], [1, 1]],[[2, 0], [0, 0]],[[0, 0], [0, 1]]], dtype=tf.int32))
 
     ## add a filter that is not the default one and reverse order
     knn = FilterKNN(
@@ -500,4 +506,4 @@ def test_filter_knn_kneighbors():
     assert indices.shape == (3, 2, 2)
     expected_distances = tf.constant([[np.sqrt(2*2.5**2), np.sqrt(0.5)], [np.sqrt(2*2.5**2), np.sqrt(0.5)], [np.sqrt(2*2.5**2), np.sqrt(2*1.5**2)]], dtype=tf.float32)
     assert tf.reduce_all(tf.abs(distances - expected_distances) < 1e-5)
-    assert tf.reduce_all(tf.equal(indices, tf.constant([[[1, 1], [0, 0]],[[2, 0], [0, 1]],[[0, 1], [1, 0]]], dtype=tf.int32)))
+    assert almost_equal(indices, tf.constant([[[1, 1], [0, 0]],[[2, 0], [0, 1]],[[0, 1], [1, 0]]], dtype=tf.int32))
