@@ -96,7 +96,7 @@ class BaseSearchMethod(ABC):
         
         # set batch size
         if hasattr(cases_dataset, "_batch_size"):
-            self.batch_size = cases_dataset._batch_size
+            self.batch_size = tf.cast(cases_dataset._batch_size, tf.int32)
         else:
             self.batch_size = batch_size
 
