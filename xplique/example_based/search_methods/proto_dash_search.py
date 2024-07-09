@@ -117,8 +117,10 @@ class ProtoDashSearch(ProtoGreedySearch):
         This function must only use TensorFlow operations.
     gamma : float, optional
         Parameter that determines the spread of the rbf kernel, defaults to 1.0 / n_features.
-    use_optimizer : bool, optional
-        Flag indicating whether to use an optimizer for prototype selection, by default False.
+    exact_selection_weights_update : bool, optional
+        Wether to use an exact method to update selection weights, by default False.
+        Exact method is based on a scipy optimization,
+        while the other is based on a tensorflow inverse operation.
     """
 
     def __init__(
@@ -133,10 +135,10 @@ class ProtoDashSearch(ProtoGreedySearch):
         kernel_type: str = 'local', 
         kernel_fn: callable = None,
         gamma: float = None,
-        use_optimizer: bool = False,
+        exact_selection_weights_update: bool = False,
     ): # pylint: disable=R0801
         
-        self.use_optimizer = use_optimizer
+        self.exact_selection_weights_update = exact_selection_weights_update
 
         super().__init__(
             cases_dataset=cases_dataset, 
@@ -187,7 +189,7 @@ class ProtoDashSearch(ProtoGreedySearch):
             u = tf.expand_dims(tf.gather(self.col_means, selection_indices), axis=1)
             K = selection_selection_kernel
 
-            if self.use_optimizer:
+            if self.exact_selection_weights_update:
                 initial_weights = tf.concat([selection_weights, [best_objective / tf.gather(self.diag, best_indice)]], axis=0)
                 opt = Optimizer(initial_weights)
                 selection_weights, _ = opt.optimize(u, K)

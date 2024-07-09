@@ -19,225 +19,317 @@ from xplique.types import Union
 from xplique.example_based import Prototypes, ProtoGreedy, ProtoDash, MMDCritic
 from xplique.example_based.projections import Projection, LatentSpaceProjection
 
-from tests.utils import almost_equal, get_Gaussian_Data, load_data, plot, plot_local_explanation
+from tests.utils import almost_equal, get_gaussian_data, load_data, plot, plot_local_explanation
 
 
-def test_proto_greedy_basic():
+def test_prototypes_global_explanations_basic():
     """
-    Test the Prototypes with an identity projection.
+    Test prototypes shapes and uniqueness.
     """
     # Setup
     k = 3
-    nb_prototypes = 3
+    nb_prototypes = 5
+    nb_classes =  3
+
     gamma = 0.026
-    x_train, y_train = get_Gaussian_Data(nb_samples_class=20)
-    x_test, y_test = get_Gaussian_Data(nb_samples_class=10)
-    # x_train, y_train = load_data('usps')
-    # x_test, y_test = load_data('usps.t')
-    # x_test = tf.random.shuffle(x_test)
-    # x_test = x_test[0:8]
+    x_train, y_train = get_gaussian_data(nb_classes=nb_classes, nb_samples_class=20)
+    x_test, y_test = get_gaussian_data(nb_classes=nb_classes, nb_samples_class=10)
 
     identity_projection = Projection(
         space_projection=lambda inputs, targets=None: inputs
     )
 
-    kernel_type = "global"
+    for kernel_type in ["local", "global"]:
+        for method_class in [ProtoGreedy, ProtoDash, MMDCritic]:
+            # compute general prototypes
+            method = method_class(
+                cases_dataset=x_train,
+                labels_dataset=y_train,
+                k=k,
+                projection=identity_projection,
+                batch_size=8,
+                distance="euclidean",
+                nb_prototypes=nb_prototypes,
+                kernel_type=kernel_type,
+                gamma=gamma,
+            )
+            # extract prototypes
+            prototypes_dict = method.get_global_prototypes()
+            prototypes = prototypes_dict["prototypes"]
+            prototypes_indices = prototypes_dict["prototypes_indices"]
+            prototypes_labels = prototypes_dict["prototypes_labels"]
+            prototypes_weights = prototypes_dict["prototypes_weights"]
 
-    # Method initialization
-    method = ProtoGreedy(
-        cases_dataset=x_train,
-        labels_dataset=y_train,
-        k=k,
-        projection=identity_projection,
-        batch_size=32,
-        distance=None, #"euclidean",
-        nb_prototypes=nb_prototypes,
-        kernel_type=kernel_type,
-        gamma=gamma,
-    )
+            # check shapes
+            assert prototypes.shape == (nb_prototypes,) + x_train.shape[1:]
+            assert prototypes_indices.shape == (nb_prototypes,)
+            assert prototypes_labels.shape == (nb_prototypes,)
+            assert prototypes_weights.shape == (nb_prototypes,)
 
-    # Generate global explanation
-    prototype_indices, prototype_weights = method.get_global_prototypes()
+            # check uniqueness
+            assert len(prototypes_indices) == len(tf.unique(prototypes_indices)[0])
 
-    prototypes = tf.gather(x_train, prototype_indices)
-    prototype_labels = tf.gather(y_train, prototype_indices)
+            # for each prototype
+            for i in range(nb_prototypes):
+                # check prototypes are in the dataset and correspond to the index
+                assert tf.reduce_all(tf.equal(prototypes[i], x_train[prototypes_indices[i]]))
 
-    # sort by label
-    prototype_labels_sorted = prototype_labels.numpy().argsort()
+                # same for labels
+                assert tf.reduce_all(tf.equal(prototypes_labels[i], y_train[prototypes_indices[i]]))
 
-    prototypes = tf.gather(prototypes, prototype_labels_sorted)
-    prototype_indices = tf.gather(prototype_indices, prototype_labels_sorted)
-    prototype_labels = tf.gather(prototype_labels, prototype_labels_sorted)
-    prototype_weights = tf.gather(prototype_weights, prototype_labels_sorted)
+                # check indices are in the dataset
+                assert prototypes_indices[i] >= 0 and prototypes_indices[i] < x_train.shape[0]
 
-    # Verifications
-    # Shape
-    assert prototype_indices.shape == (nb_prototypes,)
-    assert prototypes.shape == (nb_prototypes, x_train.shape[1])
-    assert prototype_weights.shape == (nb_prototypes,)
 
-    # at least 1 prototype per class is selected
-    assert tf.unique(prototype_labels)[0].shape == tf.unique(y_train)[0].shape
-
-    # uniqueness test of prototypes
-    assert prototype_indices.shape == tf.unique(prototype_indices)[0].shape
-
-    # Check if all indices are between 0 and x_train.shape[0]-1
-    assert tf.reduce_all(tf.math.logical_and(prototype_indices >= 0, prototype_indices <= x_train.shape[0]-1))
-
-    # Generate local explanation
-    examples = method.explain(x_test)
-
-    # # Visualize all prototypes
-    # plot(prototypes, prototype_weights, 'proto_greedy')
-
-    # # Visualize local explanation
-    # plot_local_explanation(examples, x_test, 'proto_greedy')
-
-def test_proto_dash_basic():
+def test_prototypes_local_explanations_basic():
     """
-    Test the Prototypes with an identity projection.
+    Test prototypes local explanations.
     """
     # Setup
     k = 3
-    nb_prototypes = 3
+    nb_prototypes = 5
+    nb_classes =  3
+    batch_size = 8
+
     gamma = 0.026
-    x_train, y_train = get_Gaussian_Data(nb_samples_class=20)
-    x_test, y_test = get_Gaussian_Data(nb_samples_class=10)
-    # x_train, y_train = load_data('usps')
-    # x_test, y_test = load_data('usps.t')
-    # x_test = tf.random.shuffle(x_test)
-    # x_test = x_test[0:8]
+    x_train, y_train = get_gaussian_data(nb_classes=nb_classes, nb_samples_class=20)
+    x_test, y_test = get_gaussian_data(nb_classes=nb_classes, nb_samples_class=10)
 
     identity_projection = Projection(
         space_projection=lambda inputs, targets=None: inputs
     )
 
-    kernel_type = "global"
+    for kernel_type in ["local", "global"]:
+        for method_class in [ProtoGreedy, ProtoDash, MMDCritic]:
+            # compute general prototypes
+            method = method_class(
+                cases_dataset=x_train,
+                labels_dataset=y_train,
+                k=k,
+                projection=identity_projection,
+                case_returns=["examples", "distances", "labels", "indices"],
+                batch_size=batch_size,
+                distance="euclidean",
+                nb_prototypes=nb_prototypes,
+                kernel_type=kernel_type,
+                gamma=gamma,
+            )
+            # extract prototypes
+            prototypes_dict = method.get_global_prototypes()
+            prototypes = prototypes_dict["prototypes"]
+            prototypes_indices = prototypes_dict["prototypes_indices"]
+            prototypes_labels = prototypes_dict["prototypes_labels"]
+            prototypes_weights = prototypes_dict["prototypes_weights"]
 
-    # Method initialization
-    method = ProtoDash(
-        cases_dataset=x_train,
-        labels_dataset=y_train,
-        k=k,
-        projection=identity_projection,
-        batch_size=32,
-        distance="euclidean",
-        nb_prototypes=nb_prototypes,
-        kernel_type=kernel_type,
-        gamma=gamma,
-    )
+            # compute local explanations
+            outputs = method.explain(x_test)
+            examples = outputs["examples"]
+            distances = outputs["distances"]
+            labels = outputs["labels"]
+            indices = outputs["indices"]
 
-    # Generate global explanation
-    prototype_indices, prototype_weights = method.get_global_prototypes()
+            # check shapes
+            assert examples.shape == (x_test.shape[0], k) + x_train.shape[1:]
+            assert distances.shape == (x_test.shape[0], k)
+            assert labels.shape == (x_test.shape[0], k)
+            assert indices.shape == (x_test.shape[0], k, 2)
 
-    prototypes = tf.gather(x_train, prototype_indices)
-    prototype_labels = tf.gather(y_train, prototype_indices)
+            # for each sample
+            for i in range(x_test.shape[0]):
+                # check first closest prototype label is the same as the sample label
+                assert tf.reduce_all(tf.equal(labels[i, 0], y_test[i]))
 
-    # sort by label
-    prototype_labels_sorted = prototype_labels.numpy().argsort()
+                for j in range(k):
+                    # check indices in prototypes' indices
+                    index = indices[i, j, 0] * batch_size + indices[i, j, 1]
+                    assert index in prototypes_indices
 
-    prototypes = tf.gather(prototypes, prototype_labels_sorted)
-    prototype_indices = tf.gather(prototype_indices, prototype_labels_sorted)
-    prototype_labels = tf.gather(prototype_labels, prototype_labels_sorted)
-    prototype_weights = tf.gather(prototype_weights, prototype_labels_sorted)
+                    # check examples are in prototypes
+                    assert tf.reduce_all(tf.equal(prototypes[prototypes_indices == index], examples[i, j]))
 
-    # Verifications
-    # Shape
-    assert prototype_indices.shape == (nb_prototypes,)
-    assert prototypes.shape == (nb_prototypes, x_train.shape[1])
-    assert prototype_weights.shape == (nb_prototypes,)
+                    # check indices are in the dataset
+                    assert tf.reduce_all(tf.equal(x_train[index], examples[i, j]))
 
-    # at least 1 prototype per class is selected
-    assert tf.unique(prototype_labels)[0].shape == tf.unique(y_train)[0].shape
+                    # check distances
+                    assert almost_equal(distances[i, j], tf.norm(x_test[i] - x_train[index]), epsilon=1e-5)
 
-    # uniqueness test of prototypes
-    assert prototype_indices.shape == tf.unique(prototype_indices)[0].shape
+                    # check labels
+                    assert tf.reduce_all(tf.equal(labels[i, j], y_train[index]))
 
-    # Check if all indices are between 0 and x_train.shape[0]-1
-    assert tf.reduce_all(tf.math.logical_and(prototype_indices >= 0, prototype_indices <= x_train.shape[0]-1))
 
-    # Generate local explanation
-    examples = method.explain(x_test)
-
-    # # Visualize all prototypes
-    # plot(prototypes, prototype_weights, 'proto_dash')
-
-    # # Visualize local explanation
-    # plot_local_explanation(examples, x_test, 'proto_dash')
-
-def test_mmd_critic_basic():
+def test_prototypes_global_sanity_checks_1():
     """
-    Test the Prototypes with an identity projection.
+    Test prototypes global explanations sanity checks.
+    
+    Check 1: For n separated gaussians, for n requested prototypes, there should be 1 prototype per gaussian.
     """
+
     # Setup
     k = 3
     nb_prototypes = 3
+
     gamma = 0.026
-    x_train, y_train = get_Gaussian_Data(nb_samples_class=20)
-    x_test, y_test = get_Gaussian_Data(nb_samples_class=10)
-    # x_train, y_train = load_data('usps')
-    # x_test, y_test = load_data('usps.t')
-    # x_test = tf.random.shuffle(x_test)
-    # x_test = x_test[0:8]
+    x_train, y_train = get_gaussian_data(nb_classes=nb_prototypes, nb_samples_class=20)
 
     identity_projection = Projection(
         space_projection=lambda inputs, targets=None: inputs
     )
 
-    kernel_type = "global"
+    for kernel_type in ["local", "global"]:
+        for method_class in [ProtoGreedy, ProtoDash, MMDCritic]:
+            # compute general prototypes
+            method = method_class(
+                cases_dataset=x_train,
+                labels_dataset=y_train,
+                k=k,
+                projection=identity_projection,
+                batch_size=8,
+                distance="euclidean",
+                nb_prototypes=nb_prototypes,
+                kernel_type=kernel_type,
+                gamma=gamma,
+            )
+            # extract prototypes
+            prototypes_dict = method.get_global_prototypes()
+            prototypes = prototypes_dict["prototypes"]
+            prototypes_indices = prototypes_dict["prototypes_indices"]
+            prototypes_labels = prototypes_dict["prototypes_labels"]
+            prototypes_weights = prototypes_dict["prototypes_weights"]
 
-    # Method initialization
-    method = MMDCritic(
-        cases_dataset=x_train,
-        labels_dataset=y_train,
-        k=k,
-        projection=identity_projection,
-        batch_size=32,
-        distance="euclidean",
-        nb_prototypes=nb_prototypes,
-        kernel_type=kernel_type,
-        gamma=gamma,
+            # check 1
+            assert len(tf.unique(prototypes_labels)[0]) == nb_prototypes
+            
+
+def test_prototypes_global_sanity_checks_2():
+    """
+    Test prototypes global explanations sanity checks.
+
+    Check 2: With local kernel_type, if there are more requested prototypes than classes, there should be at least 1 prototype per class.    
+    """
+    
+    # Setup
+    k = 3
+    nb_prototypes = 5
+    nb_classes = 3
+
+    gamma = 0.026
+    x_train, y_train = get_gaussian_data(nb_classes=nb_classes, nb_samples_class=20)
+
+    # randomize y_train
+    y_train = tf.random.shuffle(y_train)
+
+    identity_projection = Projection(
+        space_projection=lambda inputs, targets=None: inputs
     )
 
-    # Generate global explanation
-    prototype_indices, prototype_weights = method.get_global_prototypes()
+    for method_class in [ProtoGreedy, ProtoDash, MMDCritic]:
+        # compute general prototypes
+        method = method_class(
+            cases_dataset=x_train,
+            labels_dataset=y_train,
+            k=k,
+            projection=identity_projection,
+            batch_size=8,
+            distance="euclidean",
+            nb_prototypes=nb_prototypes,
+            kernel_type="local",
+            gamma=gamma,
+        )
+        # extract prototypes
+        prototypes_dict = method.get_global_prototypes()
+        prototypes = prototypes_dict["prototypes"]
+        prototypes_indices = prototypes_dict["prototypes_indices"]
+        prototypes_labels = prototypes_dict["prototypes_labels"]
+        prototypes_weights = prototypes_dict["prototypes_weights"]
 
-    prototypes = tf.gather(x_train, prototype_indices)
-    prototype_labels = tf.gather(y_train, prototype_indices)
+        # check 2
+        assert len(tf.unique(prototypes_labels)[0]) == nb_classes
 
-    # sort by label
-    prototype_labels_sorted = prototype_labels.numpy().argsort()
 
-    prototypes = tf.gather(prototypes, prototype_labels_sorted)
-    prototype_indices = tf.gather(prototype_indices, prototype_labels_sorted)
-    prototype_labels = tf.gather(prototype_labels, prototype_labels_sorted)
-    prototype_weights = tf.gather(prototype_weights, prototype_labels_sorted)
+def test_prototypes_local_explanations_with_projection():
+    """
+    Test prototypes local explanations with a projection.
+    """
+    # Setup
+    k = 3
+    nb_prototypes = 5
+    nb_classes = 3
+    batch_size = 8
 
-    # Verifications
-    # Shape
-    assert prototype_indices.shape == (nb_prototypes,)
-    assert prototypes.shape == (nb_prototypes, x_train.shape[1])
-    assert prototype_weights.shape == (nb_prototypes,)
+    gamma = 0.026
+    x_train, y_train = get_gaussian_data(nb_classes=nb_classes, nb_samples_class=20)
+    x_train_bis, _ = get_gaussian_data(nb_classes=nb_classes, nb_samples_class=20)
+    x_train = tf.concat([x_train, x_train_bis], axis=1)  # make a dataset with two dimensions
 
-    # at least 1 prototype per class is selected
-    assert tf.unique(prototype_labels)[0].shape == tf.unique(y_train)[0].shape
+    x_test, y_test = get_gaussian_data(nb_classes=nb_classes, nb_samples_class=10)
 
-    # uniqueness test of prototypes
-    assert prototype_indices.shape == tf.unique(prototype_indices)[0].shape
+    projection = Projection(
+        space_projection=lambda inputs, targets=None: tf.reduce_mean(inputs, axis=1, keepdims=True)
+    )
 
-    # Check if all indices are between 0 and x_train.shape[0]-1
-    assert tf.reduce_all(tf.math.logical_and(prototype_indices >= 0, prototype_indices <= x_train.shape[0]-1))
+    for kernel_type in ["local", "global"]:
+        for method_class in [ProtoGreedy, ProtoDash, MMDCritic]:
+            # compute general prototypes
+            method = method_class(
+                cases_dataset=x_train,
+                labels_dataset=y_train,
+                k=k,
+                projection=projection,
+                case_returns=["examples", "distances", "labels", "indices"],
+                batch_size=batch_size,
+                distance="euclidean",
+                nb_prototypes=nb_prototypes,
+                kernel_type=kernel_type,
+                gamma=gamma,
+            )
+            # extract prototypes
+            prototypes_dict = method.get_global_prototypes()
+            prototypes = prototypes_dict["prototypes"]
+            prototypes_indices = prototypes_dict["prototypes_indices"]
+            prototypes_labels = prototypes_dict["prototypes_labels"]
+            prototypes_weights = prototypes_dict["prototypes_weights"]
 
-    # Generate local explanation
-    examples = method.explain(x_test)
+            # check shapes
+            assert prototypes.shape == (nb_prototypes,) + x_train.shape[1:]
+            assert prototypes_indices.shape == (nb_prototypes,)
+            assert prototypes_labels.shape == (nb_prototypes,)
+            assert prototypes_weights.shape == (nb_prototypes,)
 
-    # # Visualize all prototypes
-    # plot(prototypes, prototype_weights, 'mmd_critic')
+            # compute local explanations
+            outputs = method.explain(x_test)
+            examples = outputs["examples"]
+            distances = outputs["distances"]
+            labels = outputs["labels"]
+            indices = outputs["indices"]
 
-    # # Visualize local explanation
-    # plot_local_explanation(examples, x_test, 'mmd_critic')
+            # check shapes
+            assert examples.shape == (x_test.shape[0], k) + x_train.shape[1:]
+            assert distances.shape == (x_test.shape[0], k)
+            assert labels.shape == (x_test.shape[0], k)
+            assert indices.shape == (x_test.shape[0], k, 2)
 
-# test_proto_greedy_basic()
-# test_proto_dash_basic()
-# test_mmd_critic_basic()
+            # for each sample
+            for i in range(x_test.shape[0]):
+                # check first closest prototype label is the same as the sample label
+                assert tf.reduce_all(tf.equal(labels[i, 0], y_test[i]))
+
+                for j in range(k):
+                    # check indices in prototypes' indices
+                    index = indices[i, j, 0] * batch_size + indices[i, j, 1]
+                    assert index in prototypes_indices
+
+                    # check examples are in prototypes
+                    assert tf.reduce_all(tf.equal(prototypes[prototypes_indices == index], examples[i, j]))
+
+                    # check indices are in the dataset
+                    assert tf.reduce_all(tf.equal(x_train[index], examples[i, j]))
+
+                    # check labels
+                    assert tf.reduce_all(tf.equal(labels[i, j], y_train[index]))
+
+                    # check distances
+                    assert almost_equal(
+                        distances[i, j], 
+                        tf.norm(tf.reduce_mean(x_train[index]) - tf.reduce_mean(x_test[i])),
+                        epsilon=1e-5
+                    )

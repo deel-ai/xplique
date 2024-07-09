@@ -197,11 +197,20 @@ def dataset_gather(dataset: tf.data.Dataset, indices: tf.Tensor) -> tf.Tensor:
     Returns
     -------
     results
-
-    indices should be (n, k, 2)
+        A tensor with the extracted elements from the `dataset`.
+        The shape of the tensor is (n, k, ...), where ... is the shape of the elements in the `dataset`.
     """
     if dataset is None:
         return None
+    
+    if len(indices.shape) != 3 or indices.shape[-1] != 2:
+        raise ValueError(
+            "Indices should have dimensions (n, k, 2), "
+            + "where n represent the number of inputs and k the number of corresponding examples. "
+            + "The index of each element is encoded by two values, "
+            + "the batch index and the index of the element in the batch. "
+            + f"Received {indices.shape}."
+        )
 
     example = next(iter(dataset))
     # (n, bs, ...)

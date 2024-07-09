@@ -9,6 +9,8 @@ import numpy as np
 
 from ..types import Callable, Dict, List, Optional, Type, Union
 
+from ..commons.tf_dataset_operations import dataset_gather
+
 from .search_methods import BaseSearchMethod, ProtoGreedySearch, MMDCriticSearch, ProtoDashSearch
 from .projections import Projection
 from .base_example_method import BaseExampleMethod
@@ -38,11 +40,13 @@ class Prototypes(BaseExampleMethod, ABC):
         Be careful, `tf.data.Dataset` are often reshuffled at each iteration, be sure that it is not
         the case for your dataset, otherwise, examples will not make sense.
     k
-        The number of examples to retrieve.
+        For decision explanations, the number of closest prototypes to return. Used in `explain`.
+        Default is 1, which means that only the closest prototype is returned.
     projection
         Projection or Callable that project samples from the input space to the search space.
         The search space should be a space where distance make sense for the model.
-        It should not be `None`, otherwise,
+        The output of the projection should be a two dimensional tensor. (nb_samples, nb_features).
+        `projection` should not be `None`, otherwise,
         all examples could be computed only with the `search_method`.
 
         Example of Callable:
@@ -61,9 +65,23 @@ class Prototypes(BaseExampleMethod, ABC):
         See `self.set_returns()` for detail.
     batch_size
         Number of sample treated simultaneously for projection and search.
-        Ignored if `tf.data.Dataset` are provided (those are supposed to be batched).
-    search_method_kwargs
-        Parameters to be passed at the construction of the `search_method`.
+        Ignored if `tf.data.Dataset` are provided (these are supposed to be batched).
+    distance
+        Either a Callable, or a value supported by `tf.norm` `ord` parameter.
+        Their documentation (https://www.tensorflow.org/api_docs/python/tf/norm) say:
+        "Supported values are 'fro', 'euclidean', 1, 2, np.inf and any positive real number
+        yielding the corresponding p-norm." We also added 'cosine'.
+    nb_prototypes : int
+        For general explanations, the number of prototypes to select.
+        If `class_wise` is True, it will correspond to the number of prototypes per class.    
+    kernel_type : str, optional
+        The kernel type. It can be 'local' or 'global', by default 'local'.
+        When it is local, the distances are calculated only within the classes.
+    kernel_fn : Callable, optional
+        Kernel function, by default the rbf kernel.
+        This function must only use TensorFlow operations.
+    gamma : float, optional
+        Parameter that determines the spread of the rbf kernel, defaults to 1.0 / n_features.
     """
 
     def __init__(
@@ -77,7 +95,7 @@ class Prototypes(BaseExampleMethod, ABC):
         batch_size: Optional[int] = 32,
         distance: Union[int, str, Callable] = None,
         nb_prototypes: int = 1,
-        kernel_type: str = 'local', 
+        kernel_type: str = 'local',
         kernel_fn: callable = None,
         gamma: float = None
     ):     
@@ -118,18 +136,47 @@ class Prototypes(BaseExampleMethod, ABC):
     def search_method_class(self) -> Type[ProtoGreedySearch]:
         raise NotImplementedError
   
-    def get_global_prototypes(self):
+    def get_global_prototypes(self) -> Dict[str, tf.Tensor]:
         """
-        Return all the prototypes computed by the search method, 
-        which consist of a global explanation of the dataset.
+        Provide the global prototypes computed at the initialization.
+        Prototypes and their labels are extracted from the indices.
+        The weights of the prototypes and their indices are also returned. 
 
-        Returns:
-            prototype_indices : Tensor
-                prototype indices. 
-            prototype_weights : Tensor    
-                prototype weights.
+        Returns
+        -------
+        prototypes_dict : Dict[str, tf.Tensor]
+            A dictionary with the following
+            - 'prototypes': The prototypes found by the method.
+            - 'prototype_labels': The labels of the prototypes.
+            - 'prototype_weights': The weights of the prototypes.
+            - 'prototype_indices': The indices of the prototypes.
         """
-        return self.search_method.prototype_indices, self.search_method.prototype_weights
+        # (nb_prototypes,)
+        indices = self.search_method.prototypes_indices
+        batch_indices = indices // self.batch_size
+        elem_indices = indices % self.batch_size
+
+        # (nb_prototypes, 2)
+        batch_elem_indices = tf.stack([batch_indices, elem_indices], axis=1)
+
+        # (1, nb_prototypes, 2)
+        batch_elem_indices = tf.expand_dims(batch_elem_indices, axis=0)
+
+        # (nb_prototypes, ...)
+        prototypes = dataset_gather(self.cases_dataset, batch_elem_indices)[0]
+
+        # (nb_prototypes,)
+        labels = dataset_gather(self.labels_dataset, batch_elem_indices)[0]
+
+        # (nb_prototypes,)
+        weights = self.search_method.prototypes_weights
+
+        return {
+            "prototypes": prototypes,
+            "prototypes_labels": labels,
+            "prototypes_weights": weights,
+            "prototypes_indices": indices,
+        }
 
 
 class ProtoGreedy(Prototypes):
@@ -145,93 +192,6 @@ class MMDCritic(Prototypes):
 
 
 class ProtoDash(Prototypes):
-    """
-    Protodash method for searching prototypes.
-
-    References:
-    .. [#] `Karthik S. Gurumoorthy, Amit Dhurandhar, Guillermo Cecchi,
-        "ProtoDash: Fast Interpretable Prototype Selection"
-        <https://arxiv.org/abs/1707.01212>`_
-
-    Parameters
-    ----------
-    cases_dataset
-        The dataset used to train the model, examples are extracted from the dataset.
-        `tf.data.Dataset` are assumed to be batched as tensorflow provide no method to verify it.
-        Be careful, `tf.data.Dataset` are often reshuffled at each iteration, be sure that it is not
-        the case for your dataset, otherwise, examples will not make sense.
-    labels_dataset
-        Labels associated to the examples in the dataset. Indices should match with cases_dataset.
-        `tf.data.Dataset` are assumed to be batched as tensorflow provide no method to verify it.
-        Batch size and cardinality of other dataset should match `cases_dataset`.
-        Be careful, `tf.data.Dataset` are often reshuffled at each iteration, be sure that it is not
-        the case for your dataset, otherwise, examples will not make sense.
-    targets_dataset
-        Targets associated to the cases_dataset for dataset projection. See `projection` for detail.
-        `tf.data.Dataset` are assumed to be batched as tensorflow provide no method to verify it.
-        Batch size and cardinality of other dataset should match `cases_dataset`.
-        Be careful, `tf.data.Dataset` are often reshuffled at each iteration, be sure that it is not
-        the case for your dataset, otherwise, examples will not make sense.
-    k
-        The number of examples to retrieve.
-    search_returns
-        String or list of string with the elements to return in `self.find_examples()`.
-        See `self.set_returns()` for detail.
-    batch_size
-        Number of sample treated simultaneously.
-        It should match the batch size of the `search_set` in the case of a `tf.data.Dataset`.
-    distance
-        Either a Callable, or a value supported by `tf.norm` `ord` parameter.
-        Their documentation (https://www.tensorflow.org/api_docs/python/tf/norm) say:
-        "Supported values are 'fro', 'euclidean', 1, 2, np.inf and any positive real number
-        yielding the corresponding p-norm." We also added 'cosine'.
-    nb_prototypes : int
-            Number of prototypes to find.    
-    kernel_type : str, optional
-        The kernel type. It can be 'local' or 'global', by default 'local'.
-        When it is local, the distances are calculated only within the classes.
-    kernel_fn : Callable, optional
-        Kernel function, by default the rbf kernel.
-        This function must only use TensorFlow operations.
-    gamma : float, optional
-        Parameter that determines the spread of the rbf kernel, defaults to 1.0 / n_features.
-    use_optimizer : bool, optional
-        Flag indicating whether to use an optimizer for prototype selection, by default False.
-    """
-
-    def __init__(
-        self,
-        cases_dataset: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
-        labels_dataset: Optional[Union[tf.data.Dataset, tf.Tensor, np.ndarray]] = None,
-        targets_dataset: Optional[Union[tf.data.Dataset, tf.Tensor, np.ndarray]] = None,
-        k: int = 1,
-        projection: Union[Projection, Callable] = None,
-        case_returns: Union[List[str], str] = "examples",
-        batch_size: Optional[int] = 32,
-        distance: Union[int, str, Callable] = None,
-        nb_prototypes: int = 1,
-        kernel_type: str = 'local', 
-        kernel_fn: callable = None,
-        gamma: float = None,
-        use_optimizer: bool = False,
-    ): # pylint: disable=R0801
-        self.use_optimizer = use_optimizer
-
-        super().__init__(
-            cases_dataset=cases_dataset, 
-            labels_dataset=labels_dataset,
-            targets_dataset=targets_dataset,
-            k=k,
-            projection=projection,
-            case_returns=case_returns, 
-            batch_size=batch_size, 
-            distance=distance, 
-            nb_prototypes=nb_prototypes, 
-            kernel_type=kernel_type, 
-            kernel_fn=kernel_fn,
-            gamma=gamma
-        )
-
     @property
     def search_method_class(self) -> Type[ProtoGreedySearch]:
         return ProtoDashSearch

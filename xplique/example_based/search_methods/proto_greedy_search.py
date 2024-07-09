@@ -13,6 +13,23 @@ from .knn import KNN
 # from ..projections import Projection
 
 
+def rbf_kernel(X, Y=None, gamma=None):
+    if Y is None:
+        Y = X
+
+    if gamma is None:
+        gamma = 1.0 / tf.cast(tf.shape(X)[1], dtype=X.dtype)
+
+    X = tf.expand_dims(X, axis=1)
+    Y = tf.expand_dims(Y, axis=0)
+
+    pairwise_diff = X - Y
+    pairwise_sq_dist = tf.reduce_sum(tf.square(pairwise_diff), axis=-1)
+    kernel_matrix = tf.exp(-gamma * pairwise_sq_dist)
+
+    return kernel_matrix
+
+
 class ProtoGreedySearch(BaseSearchMethod):
     """
     ProtoGreedy method for searching prototypes.
@@ -77,75 +94,57 @@ class ProtoGreedySearch(BaseSearchMethod):
 
         self.labels_dataset = sanitize_dataset(labels_dataset, self.batch_size)
 
-        if kernel_type in ['local', 'global']:
-            self.kernel_type = kernel_type
-        else:
+        if kernel_type not in ['local', 'global']:
             raise AttributeError(
                 "The kernel_type parameter is expected to be in"
                 + " ['local', 'global'] ",
                 +f"but {kernel_type} was received.",
             )
+        
+        self.kernel_type = kernel_type
 
+        # set default kernel function (rbf_kernel) or raise error if kernel_fn is not callable
         if kernel_fn is None:
             # define rbf kernel function
-            def rbf_kernel(X, Y=None, gamma=None):
-                if Y is None:
-                    Y = X
-
-                if gamma is None:
-                    gamma = 1.0 / tf.cast(tf.shape(X)[1], dtype=X.dtype)
-
-                X = tf.expand_dims(X, axis=1)
-                Y = tf.expand_dims(Y, axis=0)
-
-                pairwise_diff = X - Y
-                pairwise_sq_dist = tf.reduce_sum(tf.square(pairwise_diff), axis=-1)
-                kernel_matrix = tf.exp(-gamma * pairwise_sq_dist)
-
-                return kernel_matrix
-        
             kernel_fn = lambda x, y: rbf_kernel(x,y,gamma)        
-
-        if hasattr(kernel_fn, "__call__"):
-            def custom_kernel_fn(x1, x2, y1=None, y2=None):
-                if self.kernel_type == 'global':
-                    kernel_matrix = kernel_fn(x1,x2)
-                    if isinstance(kernel_matrix, np.ndarray):
-                        kernel_matrix = tf.convert_to_tensor(kernel_matrix)
-                else:
-                    # In the case of a local kernel, calculations are limited to within the class. 
-                    # Across different classes, the kernel values are set to 0.
-                    kernel_matrix = np.zeros((x1.shape[0], x2.shape[0]), dtype=np.float32)
-                    y_intersect = np.intersect1d(y1, y2)
-                    for i in range(y_intersect.shape[0]):
-                        y1_indices = tf.where(tf.equal(y1, y_intersect[i]))[:, 0]
-                        y2_indices = tf.where(tf.equal(y2, y_intersect[i]))[:, 0] 
-                        sub_matrix = kernel_fn(tf.gather(x1, y1_indices), tf.gather(x2, y2_indices))             
-                        kernel_matrix[tf.reshape(y1_indices, (-1, 1)), tf.reshape(y2_indices, (1, -1))] = sub_matrix
-                    kernel_matrix = tf.convert_to_tensor(kernel_matrix)
-                return kernel_matrix
-
-            self.kernel_fn = custom_kernel_fn
-        else:
+        elif not hasattr(kernel_fn, "__call__"):
             raise AttributeError(
                 "The kernel_fn parameter is expected to be a Callable",
                 +f"but {kernel_fn} was received.",
             )
         
+        # define custom kernel function depending on the kernel type
+        def custom_kernel_fn(x1, x2, y1=None, y2=None):
+            if self.kernel_type == 'global':
+                kernel_matrix = kernel_fn(x1,x2)
+                if isinstance(kernel_matrix, np.ndarray):
+                    kernel_matrix = tf.convert_to_tensor(kernel_matrix)
+            else:
+                # In the case of a local kernel, calculations are limited to within the class. 
+                # Across different classes, the kernel values are set to 0.
+                kernel_matrix = np.zeros((x1.shape[0], x2.shape[0]), dtype=np.float32)
+                y_intersect = np.intersect1d(y1, y2)
+                for i in range(y_intersect.shape[0]):
+                    y1_indices = tf.where(tf.equal(y1, y_intersect[i]))[:, 0]
+                    y2_indices = tf.where(tf.equal(y2, y_intersect[i]))[:, 0] 
+                    sub_matrix = kernel_fn(tf.gather(x1, y1_indices), tf.gather(x2, y2_indices))             
+                    kernel_matrix[tf.reshape(y1_indices, (-1, 1)), tf.reshape(y2_indices, (1, -1))] = sub_matrix
+                kernel_matrix = tf.convert_to_tensor(kernel_matrix)
+            return kernel_matrix
+
+        self.kernel_fn = custom_kernel_fn
+            
+        
         if distance is None:
-            def kernel_induced_distance(x1,x2):
+            def kernel_induced_distance(x1, x2):
                 x1 = tf.expand_dims(x1, axis=0)
                 x2 = tf.expand_dims(x2, axis=0)
                 distance = tf.squeeze(tf.sqrt(kernel_fn(x1,x1) - 2 * kernel_fn(x1,x2) + kernel_fn(x2,x2)))
                 return distance
-        
-            self.distance_fn = lambda x1, x2: kernel_induced_distance(x1,x2)
-
+            self.distance_fn = kernel_induced_distance
         elif hasattr(distance, "__call__"):
             self.distance_fn = distance
-        elif distance in ["fro", "euclidean", 1, 2, np.inf] or isinstance(
-            distance, int
-        ):
+        elif distance in ["fro", "euclidean", 1, 2, np.inf] or isinstance(distance, int):
             self.distance_fn = lambda x1, x2: tf.norm(x1 - x2, ord=distance, axis=-1)
         else:
             raise AttributeError(
@@ -165,7 +164,7 @@ class ProtoGreedySearch(BaseSearchMethod):
         ):
             # elements should be tabular data
             assert len(batch_col_cases.shape) == 2,\
-                "Expected prototypes' searches expects 2D data, (nb_samples, nb_features),"+\
+                "Prototypes' searches expects 2D data, (nb_samples, nb_features),"+\
                 f"but got {batch_col_cases.shape}"+\
                 "Please verify your projection if you provided a custom one."+\
                 "If you use a splitted model, make sure the output of the first part of the model is flattened."
@@ -205,10 +204,10 @@ class ProtoGreedySearch(BaseSearchMethod):
         self.nb_features = batch_col_cases.shape[1]
 
         # compute the prototypes in the latent space
-        self.prototype_indices, self.prototype_cases, self.prototype_labels, self.prototype_weights = self.find_prototypes(nb_prototypes)
+        self.prototypes_indices, self.prototypes, self.prototypes_labels, self.prototypes_weights = self.find_prototypes(nb_prototypes)
 
         self.knn = KNN(
-            cases_dataset=self.prototype_cases,
+            cases_dataset=self.prototypes,
             k=k,
             search_returns=search_returns,
             batch_size=batch_size,
@@ -314,13 +313,13 @@ class ProtoGreedySearch(BaseSearchMethod):
 
         Returns
         -------
-        prototype_indices : Tensor
+        prototypes_indices : Tensor
             The indices of the selected prototypes.
-        prototype_cases : Tensor
+        prototypes : Tensor
             The cases of the selected prototypes.
-        prototype_labels : Tensor
+        prototypes_labels : Tensor
             The labels of the selected prototypes.
-        prototype_weights : 
+        prototypes_weights : 
             The normalized weights of the selected prototypes.
         """
 
@@ -420,15 +419,15 @@ class ProtoGreedySearch(BaseSearchMethod):
                
             k += 1
 
-        prototype_indices = selection_indices
-        prototype_cases = selection_cases
-        prototype_labels = selection_labels
-        prototype_weights = selection_weights
+        prototypes_indices = selection_indices
+        prototypes = selection_cases
+        prototypes_labels = selection_labels
+        prototypes_weights = selection_weights
 
         # Normalize the weights
-        prototype_weights = prototype_weights / tf.reduce_sum(prototype_weights)
+        prototypes_weights = prototypes_weights / tf.reduce_sum(prototypes_weights)
 
-        return prototype_indices, prototype_cases, prototype_labels, prototype_weights
+        return prototypes_indices, prototypes, prototypes_labels, prototypes_weights
     
     def find_examples(self, inputs: Union[tf.Tensor, np.ndarray], _):
         """
@@ -454,7 +453,7 @@ class ProtoGreedySearch(BaseSearchMethod):
         indices_wrt_prototypes = indices_wrt_prototypes[:, :, 0] * self.batch_size + indices_wrt_prototypes[:, :, 1]
 
         # get prototypes indices with respect to the dataset
-        indices = tf.gather(self.prototype_indices, indices_wrt_prototypes)
+        indices = tf.gather(self.prototypes_indices, indices_wrt_prototypes)
 
         # convert back to batch-element indices
         batch_indices, elem_indices = indices // self.batch_size, indices % self.batch_size
