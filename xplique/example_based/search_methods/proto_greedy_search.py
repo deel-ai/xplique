@@ -73,7 +73,7 @@ class ProtoGreedySearch(BaseSearchMethod):
 
     # Avoid zero division during procedure. (the value is not important, as if the denominator is
     # zero, then the nominator will also be zero).
-    EPSILON = tf.constant(1e-6)
+    EPSILON = 1e-6
 
     def __init__(
         self,
