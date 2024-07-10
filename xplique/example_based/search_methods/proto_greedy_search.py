@@ -126,15 +126,14 @@ class ProtoGreedySearch(BaseSearchMethod):
                 y_intersect = np.intersect1d(y1, y2)
                 for i in range(y_intersect.shape[0]):
                     y1_indices = tf.where(tf.equal(y1, y_intersect[i]))[:, 0]
-                    y2_indices = tf.where(tf.equal(y2, y_intersect[i]))[:, 0] 
-                    sub_matrix = kernel_fn(tf.gather(x1, y1_indices), tf.gather(x2, y2_indices))             
+                    y2_indices = tf.where(tf.equal(y2, y_intersect[i]))[:, 0]
+                    sub_matrix = kernel_fn(tf.gather(x1, y1_indices), tf.gather(x2, y2_indices))
                     kernel_matrix[tf.reshape(y1_indices, (-1, 1)), tf.reshape(y2_indices, (1, -1))] = sub_matrix
                 kernel_matrix = tf.convert_to_tensor(kernel_matrix)
             return kernel_matrix
 
         self.kernel_fn = custom_kernel_fn
-            
-        
+
         if distance is None:
             def kernel_induced_distance(x1, x2):
                 x1 = tf.expand_dims(x1, axis=0)

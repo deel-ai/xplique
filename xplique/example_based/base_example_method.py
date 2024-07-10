@@ -210,9 +210,15 @@ class BaseExampleMethod(ABC):
 
             cardinality = cases_dataset.cardinality().numpy()
         else:
-            # if case_dataset is not a `tf.data.Dataset`, then neither should the other.
-            assert not isinstance(labels_dataset, tf.data.Dataset)
-            assert not isinstance(targets_dataset, tf.data.Dataset)
+            # if cases_dataset is not a `tf.data.Dataset`, then neither should the other.
+            assert not isinstance(labels_dataset, tf.data.Dataset), (
+                "if the cases_dataset is not a `tf.data.Dataset`, "
+                + "then neither should the labels_dataset."
+            )
+            assert not isinstance(targets_dataset, tf.data.Dataset), (
+                "if the cases_dataset is not a `tf.data.Dataset`, "
+                + "then neither should the targets_dataset."
+            )
             # set batch size and cardinality
             batch_size = min(batch_size, len(cases_dataset))
             cardinality = math.ceil(len(cases_dataset) / batch_size)
@@ -233,7 +239,7 @@ class BaseExampleMethod(ABC):
             # switch case on the number of columns of `cases_dataset`
             if len(self.cases_dataset.element_spec) == 2:
                 assert self.labels_dataset is None, (
-                    "The second column of `cases_dataset` is assumed to be the labels."
+                    "The second column of `cases_dataset` is assumed to be the labels. "
                     + "Hence, `labels_dataset` should be empty."
                 )
                 self.labels_dataset = self.cases_dataset.map(lambda x, y: y)
@@ -241,11 +247,11 @@ class BaseExampleMethod(ABC):
 
             elif len(self.cases_dataset.element_spec) == 3:
                 assert self.labels_dataset is None, (
-                    "The second column of `cases_dataset` is assumed to be the labels."
+                    "The second column of `cases_dataset` is assumed to be the labels. "
                     + "Hence, `labels_dataset` should be empty."
                 )
                 assert self.targets_dataset is None, (
-                    "The second column of `cases_dataset` is assumed to be the labels."
+                    "The second column of `cases_dataset` is assumed to be the labels. "
                     + "Hence, `labels_dataset` should be empty."
                 )
                 self.targets_dataset = self.cases_dataset.map(lambda x, y, t: t)
@@ -253,7 +259,7 @@ class BaseExampleMethod(ABC):
                 self.cases_dataset = self.cases_dataset.map(lambda x, y, t: x)
             else:
                 raise AttributeError(
-                    "`cases_dataset` cannot possess more than 3 columns,"
+                    "`cases_dataset` cannot possess more than 3 columns, "
                     + f"{len(self.cases_dataset.element_spec)} were detected."
                 )
 
