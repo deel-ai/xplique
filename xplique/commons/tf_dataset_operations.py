@@ -156,10 +156,101 @@ def sanitize_dataset(
     return dataset
 
 
+# def dataset_gather(dataset: tf.data.Dataset, indices: tf.Tensor) -> tf.Tensor:
+#     """
+#     Imitation of `tf.gather` for `tf.data.Dataset`,
+#     it extract elements from `dataset` at the given indices.
+#     We could see it as returning the `indices` tensor
+#     where each index was replaced by the corresponding element in `dataset`.
+#     The aim is to use it in the `example_based` module to extract examples form the cases dataset.
+#     Hence, `indices` expect dimensions of (n, k, 2),
+#     where n represent the number of inputs and k the number of corresponding examples.
+#     Here indices for each element are encoded by two values,
+#     the batch index and the index of the element in the batch.
+
+#     Example of application
+#     ```
+#     >>> dataset = tf.data.Dataset.from_tensor_slices(
+#     ...     tf.reshape(tf.range(20), (-1, 2, 2))
+#     ... ).batch(3)  # shape=(None, 2, 2)
+#     >>> indices = tf.constant([[[0, 0]], [[1, 0]]])  # shape=(2, 1, 2)
+#     >>> dataset_gather(dataset, indices)
+#     <tf.Variable 'Variable:0' shape=(2, 1, 2, 2) dtype=int32, numpy=
+#     array([[[[ 0,  1],
+#             [ 2,  3]]],
+#         [[[12, 13],
+#             [14, 15]]]])>
+#     ```
+
+#     Parameters
+#     ----------
+#     dataset
+#         Tensorflow dataset to verify or tensor to transform in `tf.data.Dataset` and verify.
+#     indices
+#         Tensor of indices of elements to extract from the `dataset`.
+#         `indices` should be of dimensions (n, k, 2),
+#         this is to match the format of indices in the `example_based` module.
+#         Indeed, n represent the number of inputs and k the number of corresponding examples.
+#         The index of each element is encoded by two values,
+#         the batch index and the index of the element in the batch.
+
+#     Returns
+#     -------
+#     results
+#         A tensor with the extracted elements from the `dataset`.
+#         The shape of the tensor is (n, k, ...), where ... is the shape of the elements in the `dataset`.
+#     """
+#     if dataset is None:
+#         return None
+    
+#     if len(indices.shape) != 3 or indices.shape[-1] != 2:
+#         raise ValueError(
+#             "Indices should have dimensions (n, k, 2), "
+#             + "where n represent the number of inputs and k the number of corresponding examples. "
+#             + "The index of each element is encoded by two values, "
+#             + "the batch index and the index of the element in the batch. "
+#             + f"Received {indices.shape}."
+#         )
+
+#     example = next(iter(dataset))
+#     # (n, bs, ...)
+#     with tf.device('/CPU:0'):
+#         if dataset.element_spec.dtype in ['uint8', 'int8', 'int16', 'int32', 'int64']:
+#             results = tf.Variable(
+#                 tf.fill(indices.shape[:-1] + example[0].shape, tf.constant(-1, dtype=dataset.element_spec.dtype)),
+#             )
+#         else:
+#             results = tf.Variable(
+#                 tf.fill(indices.shape[:-1] + example[0].shape, tf.constant(np.inf, dtype=dataset.element_spec.dtype)),
+#             )
+
+#     nb_results = product(indices.shape[:-1])
+#     current_nb_results = 0
+
+#     for i, batch in enumerate(dataset):
+#         # check if the batch is interesting
+#         if not tf.reduce_any(indices[..., 0] == i):
+#             continue
+
+#         # extract pertinent elements
+#         pertinent_indices_location = tf.where(indices[..., 0] == i)
+#         samples_index = tf.gather_nd(indices[..., 1], pertinent_indices_location)
+#         samples = tf.gather(batch, samples_index)
+
+#         # put them at the right place in results
+#         for location, sample in zip(pertinent_indices_location, samples):
+#             results[location[0], location[1]].assign(sample)
+#             current_nb_results += 1
+
+#         # test if results are filled to break the loop
+#         if current_nb_results == nb_results:
+#             break
+#     return results
+
 def dataset_gather(dataset: tf.data.Dataset, indices: tf.Tensor) -> tf.Tensor:
     """
     Imitation of `tf.gather` for `tf.data.Dataset`,
-    it extract elements from `dataset` at the given indices.
+    it extracts elements from `dataset` at the given indices.
     We could see it as returning the `indices` tensor
     where each index was replaced by the corresponding element in `dataset`.
     The aim is to use it in the `example_based` module to extract examples form the cases dataset.
@@ -175,7 +266,7 @@ def dataset_gather(dataset: tf.data.Dataset, indices: tf.Tensor) -> tf.Tensor:
     ... ).batch(3)  # shape=(None, 2, 2)
     >>> indices = tf.constant([[[0, 0]], [[1, 0]]])  # shape=(2, 1, 2)
     >>> dataset_gather(dataset, indices)
-    <tf.Variable 'Variable:0' shape=(2, 1, 2, 2) dtype=int32, numpy=
+    <tf.Tensor: shape=(2, 1, 2, 2), dtype=int32, numpy=
     array([[[[ 0,  1],
             [ 2,  3]]],
         [[[12, 13],
@@ -213,15 +304,11 @@ def dataset_gather(dataset: tf.data.Dataset, indices: tf.Tensor) -> tf.Tensor:
         )
 
     example = next(iter(dataset))
-    # (n, bs, ...)
+    
     if dataset.element_spec.dtype in ['uint8', 'int8', 'int16', 'int32', 'int64']:
-        results = tf.Variable(
-            tf.fill(indices.shape[:-1] + example[0].shape, tf.constant(-1, dtype=dataset.element_spec.dtype)),
-        )
+        results = tf.fill(indices.shape[:-1] + example[0].shape, tf.constant(-1, dtype=dataset.element_spec.dtype))
     else:
-        results = tf.Variable(
-            tf.fill(indices.shape[:-1] + example[0].shape, tf.constant(np.inf, dtype=dataset.element_spec.dtype)),
-        )
+        results = tf.fill(indices.shape[:-1] + example[0].shape, tf.constant(np.inf, dtype=dataset.element_spec.dtype))
 
     nb_results = product(indices.shape[:-1])
     current_nb_results = 0
@@ -238,10 +325,11 @@ def dataset_gather(dataset: tf.data.Dataset, indices: tf.Tensor) -> tf.Tensor:
 
         # put them at the right place in results
         for location, sample in zip(pertinent_indices_location, samples):
-            results[location[0], location[1]].assign(sample)
+            results = tf.tensor_scatter_nd_update(results, [location], [sample])
             current_nb_results += 1
 
         # test if results are filled to break the loop
         if current_nb_results == nb_results:
             break
+
     return results
