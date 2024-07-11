@@ -59,7 +59,7 @@ class BaseKNN(BaseSearchMethod):
     @abstractmethod
     def kneighbors(self, inputs: Union[tf.Tensor, np.ndarray], targets: Optional[Union[tf.Tensor, np.ndarray]] = None) -> Tuple[tf.Tensor, tf.Tensor]:
         """
-        Compute the k-neareast neighbors to each tensor of `inputs` in `self.cases_dataset`.
+        Compute the k-nearest neighbors to each tensor of `inputs` in `self.cases_dataset`.
         Here `self.cases_dataset` is a `tf.data.Dataset`, hence, computations are done by batches.
 
         Parameters
@@ -244,7 +244,7 @@ class KNN(BaseKNN):
         """
         nb_inputs = tf.shape(inputs)[0]
 
-        # initialiaze
+        # initialize
         # (n, k, 2)
         best_indices = tf.Variable(tf.fill((nb_inputs, self.k, 2), -1))
         # (n, k)
@@ -343,7 +343,11 @@ class FilterKNN(BaseKNN):
         )
 
         # set distance function
-        self.distance_fn = get_distance_function(distance)
+        if hasattr(distance, "__call__"):
+            self.distance_fn = distance
+        else:
+            self.distance_fn = lambda x1, x2, m:\
+                tf.where(m, get_distance_function(distance)(x1, x2), self.fill_value)
 
         # TODO: Assertion on the function signature
         if filter_fn is None:
