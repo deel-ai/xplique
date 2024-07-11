@@ -5,7 +5,10 @@ import tensorflow as tf
 import numpy as np
 
 from xplique.example_based import NaiveCounterFactuals, LabelAwareCounterFactuals, KLEORGlobalSim, KLEORSimMiss
-from xplique.example_based.projections import Projection
+from xplique.example_based.projections import Projection, LatentSpaceProjection
+
+from ..utils import generate_data, generate_model
+
 
 def test_naive_counter_factuals():
     """
@@ -281,3 +284,28 @@ def test_kleor():
     assert tf.reduce_all(
         tf.abs(tf.where(inf_mask_examples, 0.0, examples) - tf.where(inf_mask_expected_examples, 0.0, expected_examples)
                ) < 1e-5)
+
+
+def test_contrastive_with_projection():
+    input_shapes = [(28, 28, 1), (32, 32, 3)]
+    nb_labels = 10
+    nb_samples = 50
+
+    for input_shape in input_shapes:
+        features, labels = generate_data(input_shape, nb_labels, nb_samples)
+        model = generate_model(input_shape, nb_labels)
+
+        projection = LatentSpaceProjection(model, latent_layer=-1)
+
+        for contrastive_method_class in [NaiveCounterFactuals, LabelAwareCounterFactuals,
+                                         KLEORGlobalSim, KLEORSimMiss]:
+            contrastive_method = contrastive_method_class(
+                features,
+                labels,
+                k=1,
+                projection=projection,
+                case_returns=["examples", "indices", "distances", "include_inputs"],
+                batch_size=7
+            )
+
+            contrastive_method(features, labels)
