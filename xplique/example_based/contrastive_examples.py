@@ -99,7 +99,7 @@ class NaiveCounterFactuals(BaseExampleMethod):
 
         # initiate search_method
         self.search_method = self.search_method_class(
-            cases_dataset=self.cases_dataset,
+            cases_dataset=self.projected_cases_dataset,
             targets_dataset=self.targets_dataset,
             k=self.k,
             search_returns=self._search_returns,
@@ -223,7 +223,7 @@ class LabelAwareCounterFactuals(BaseExampleMethod):
 
         # initiate search_method
         self.search_method = self.search_method_class(
-            cases_dataset=self.cases_dataset,
+            cases_dataset=self.projected_cases_dataset,
             targets_dataset=self.targets_dataset,
             k=self.k,
             search_returns=self._search_returns,
@@ -250,7 +250,7 @@ class LabelAwareCounterFactuals(BaseExampleMethod):
         Parameters
         ----------
         cf_targets
-            The one-hot enoding of the target class for the counterfactuals.
+            The one-hot encoding of the target class for the counterfactuals.
         cases_targets
             The one-hot encoding of the target class for the cases.
         """
@@ -384,7 +384,7 @@ class KLEORBase(BaseExampleMethod):
 
         # initiate search_method
         self.search_method = self.search_method_class(
-            cases_dataset=self.cases_dataset,
+            cases_dataset=self.projected_cases_dataset,
             targets_dataset=self.targets_dataset,
             k=self.k,
             search_returns=self._search_returns,
