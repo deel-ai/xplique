@@ -411,6 +411,8 @@ class KLEORBase(BaseExampleMethod):
             self._search_returns.append("nuns_indices")
         elif isinstance(self._returns, list) and ("nuns_indices" in self._returns):
             self._search_returns.append("nuns_indices")
+        elif isinstance(self._returns, list) and ("nuns_labels" in self._returns):
+            self._search_returns.append("nuns_indices")
 
         if isinstance(self._returns, list) and ("dist_to_nuns" in self._returns):
             self._search_returns.append("dist_to_nuns")
@@ -449,6 +451,8 @@ class KLEORBase(BaseExampleMethod):
         return_dict = super().format_search_output(search_output, inputs, targets)
         if "nuns" in self.returns:
             return_dict["nuns"] = dataset_gather(self.cases_dataset, search_output["nuns_indices"])
+        if "nuns_labels" in self.returns:
+            return_dict["nuns_labels"] = dataset_gather(self.labels_dataset, search_output["nuns_indices"])
         if "nuns_indices" in self.returns:
             return_dict["nuns_indices"] = search_output["nuns_indices"]
         if "dist_to_nuns" in self.returns:
