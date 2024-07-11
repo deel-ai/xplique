@@ -343,18 +343,7 @@ class FilterKNN(BaseKNN):
         )
 
         # set distance function
-        if hasattr(distance, "__call__"):
-            self.distance_fn = distance
-        elif distance in ["fro", "euclidean", 1, 2, np.inf] or isinstance(
-            distance, int
-        ):
-            self.distance_fn = lambda x1, x2, m: tf.where(m, tf.norm(x1 - x2, ord=distance, axis=-1), self.fill_value)
-        else:
-            raise AttributeError(
-                "The distance parameter is expected to be either a Callable or in"
-                + " ['fro', 'euclidean', 1, 2, np.inf] "
-                +f"but {type(distance)} was received."
-            )
+        self.distance_fn = get_distance_function(distance)
 
         # TODO: Assertion on the function signature
         if filter_fn is None:
