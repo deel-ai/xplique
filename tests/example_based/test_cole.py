@@ -98,7 +98,7 @@ def test_cole_attribution():
         targets_dataset=y_train,
         k=k,
         batch_size=2,
-        distance=np.inf,  # infinity norm based distance
+        distance="cosine",  # infinity norm based distance
         model=model,
         attribution_method=Saliency,
     )

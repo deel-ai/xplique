@@ -10,6 +10,7 @@ from ...commons import dataset_gather, sanitize_dataset
 from ...types import Callable, List, Union, Optional, Tuple
 
 from .base import BaseSearchMethod, ORDER
+from .common import get_distance_function
 
 class BaseKNN(BaseSearchMethod):
     """
@@ -158,11 +159,9 @@ class KNN(BaseKNN):
         ASCENDING means that the smallest distances are the best, DESCENDING means that the biggest distances are
         the best.
     distance
-        Distance function to use to measure similarity.
-        Either a Callable, or a value supported by `tf.norm` `ord` parameter.
-        Their documentation (https://www.tensorflow.org/api_docs/python/tf/norm) say:
-        "Supported values are 'fro', 'euclidean', 1, 2, np.inf and any positive real number
-        yielding the corresponding p-norm." We also added 'cosine'.
+        Distance function for examples search. It can be an integer, a string in
+        {"manhattan", "euclidean", "cosine", "chebyshev"}, or a Callable,
+        by default "euclidean".
     """
     def __init__(
         self,
@@ -182,18 +181,7 @@ class KNN(BaseKNN):
         )
 
         # set distance function
-        if hasattr(distance, "__call__"):
-            self.distance_fn = distance
-        elif distance in ["fro", "euclidean", 1, 2, np.inf] or isinstance(
-            distance, int
-        ):
-            self.distance_fn = lambda x1, x2: tf.norm(x1 - x2, ord=distance, axis=-1)
-        else:
-            raise AttributeError(
-                "The distance parameter is expected to be either a Callable or in"
-                + " ['fro', 'euclidean', 1, 2, np.inf] "
-                +f"but {type(distance)} was received."
-            )
+        self.distance_fn = get_distance_function(distance)
 
     @tf.function
     def _crossed_distances_fn(self, x1, x2) -> tf.Tensor:
@@ -327,11 +315,9 @@ class FilterKNN(BaseKNN):
         ASCENDING means that the smallest distances are the best, DESCENDING means that the biggest distances are
         the best.
     distance
-        Distance function to use to measure similarity.
-        Either a Callable, or a value supported by `tf.norm` `ord` parameter.
-        Their documentation (https://www.tensorflow.org/api_docs/python/tf/norm) say:
-        "Supported values are 'fro', 'euclidean', 1, 2, np.inf and any positive real number
-        yielding the corresponding p-norm." We also added 'cosine'.
+        Distance function for examples search. It can be an integer, a string in
+        {"manhattan", "euclidean", "cosine", "chebyshev"}, or a Callable,
+        by default "euclidean".
     filter_fn
         A Callable that takes as inputs the inputs, their targets, the cases and their targets and
         returns a boolean mask of shape (n, m) where n is the number of inputs and m the number of cases.

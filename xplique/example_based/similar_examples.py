@@ -62,11 +62,9 @@ class SimilarExamples(BaseExampleMethod):
         Number of sample treated simultaneously for projection and search.
         Ignored if `tf.data.Dataset` are provided (those are supposed to be batched).
     distance
-        Distance for the knn search method.
-        Either a Callable, or a value supported by `tf.norm` `ord` parameter.
-        Their documentation (https://www.tensorflow.org/api_docs/python/tf/norm) say:
-        "Supported values are 'fro', 'euclidean', 1, 2, np.inf and any positive real number
-        yielding the corresponding p-norm." We also added 'cosine'.
+        Distance for the knn search method. It can be an integer, a string in
+        {"manhattan", "euclidean", "cosine", "chebyshev"}, or a Callable,
+        by default "euclidean".
     """
     def __init__(
         self,

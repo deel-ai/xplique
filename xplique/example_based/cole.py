@@ -45,10 +45,9 @@ class Cole(SimilarExamples):
     k
         The number of examples to retrieve per input.
     distance
-        Either a Callable, or a value supported by `tf.norm` `ord` parameter.
-        Their documentation (https://www.tensorflow.org/api_docs/python/tf/norm) say:
-        "Supported values are 'fro', 'euclidean', 1, 2, np.inf and any positive real number
-        yielding the corresponding p-norm."
+        Distance function for examples search. It can be an integer, a string in
+        {"manhattan", "euclidean", "cosine", "chebyshev"}, or a Callable,
+        by default "euclidean".
     case_returns
         String or list of string with the elements to return in `self.explain()`.
         See the base class returns property for details.

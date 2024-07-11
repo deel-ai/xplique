@@ -9,6 +9,7 @@ from ...commons import dataset_gather, sanitize_dataset
 from ...types import Callable, List, Union, Optional, Tuple
 
 from .base import BaseSearchMethod
+from .common import get_distance_function
 from .knn import KNN
 # from ..projections import Projection
 
@@ -55,10 +56,9 @@ class ProtoGreedySearch(BaseSearchMethod):
         Number of sample treated simultaneously.
         It should match the batch size of the `search_set` in the case of a `tf.data.Dataset`.
     distance
-        Either a Callable, or a value supported by `tf.norm` `ord` parameter.
-        Their documentation (https://www.tensorflow.org/api_docs/python/tf/norm) say:
-        "Supported values are 'fro', 'euclidean', 1, 2, np.inf and any positive real number
-        yielding the corresponding p-norm." We also added 'cosine'.
+        Distance function for examples search. It can be an integer, a string in
+        {"manhattan", "euclidean", "cosine", "chebyshev"}, or a Callable,
+        by default "euclidean".
     nb_prototypes : int
             Number of prototypes to find.    
     kernel_type : str, optional
@@ -134,6 +134,7 @@ class ProtoGreedySearch(BaseSearchMethod):
 
         self.kernel_fn = custom_kernel_fn
 
+        # set distance function
         if distance is None:
             def kernel_induced_distance(x1, x2):
                 x1 = tf.expand_dims(x1, axis=0)
@@ -141,16 +142,8 @@ class ProtoGreedySearch(BaseSearchMethod):
                 distance = tf.squeeze(tf.sqrt(kernel_fn(x1,x1) - 2 * kernel_fn(x1,x2) + kernel_fn(x2,x2)))
                 return distance
             self.distance_fn = kernel_induced_distance
-        elif hasattr(distance, "__call__"):
-            self.distance_fn = distance
-        elif distance in ["fro", "euclidean", 1, 2, np.inf] or isinstance(distance, int):
-            self.distance_fn = lambda x1, x2: tf.norm(x1 - x2, ord=distance, axis=-1)
         else:
-            raise AttributeError(
-                "The distance parameter is expected to be either a Callable or in"
-                + " ['fro', 'euclidean', 'cosine', 1, 2, np.inf] ",
-                +f"but {distance} was received.",
-            )
+            self.distance_fn = get_distance_function(distance)
         
         # Compute the sum of the columns and the diagonal values of the kernel matrix of the dataset.
         # We take advantage of the symmetry of this matrix to traverse only its lower triangle.
