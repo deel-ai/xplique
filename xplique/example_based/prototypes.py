@@ -195,4 +195,3 @@ class ProtoDash(Prototypes):
     @property
     def search_method_class(self) -> Type[ProtoGreedySearch]:
         return ProtoDashSearch
-    
