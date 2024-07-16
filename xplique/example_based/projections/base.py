@@ -54,16 +54,22 @@ class Projection(ABC):
         An example of projected space is the latent space of a model. See `LatentSpaceProjection`
     device
         Device to use for the projection, if None, use the default device.
+    mappable
+        If True, the projection can be applied to a dataset through `Dataset.map`.
+        Otherwise, the dataset projection will be done through a loop.
     """
 
     def __init__(self,
                  get_weights: Optional[Union[Callable, tf.Tensor, np.ndarray]] = None,
                  space_projection: Optional[Callable] = None,
-                 device: Optional[str] = None):
+                 device: Optional[str] = None,
+                 mappable: bool = True,):
         assert get_weights is not None or space_projection is not None, (
             "At least one of `get_weights` and `space_projection`"
             + "should not be `None`."
         )
+
+        self.mappable = mappable
 
         # set get_weights
         if get_weights is None:
@@ -198,6 +204,31 @@ class Projection(ABC):
         projected_dataset
             The projected dataset.
         """
+        if self.mappable:
+            return self._map_project_dataset(cases_dataset, targets_dataset)
+        else:
+            return self._loop_project_dataset(cases_dataset, targets_dataset)
+
+    def _map_project_dataset(
+        self,
+        cases_dataset: tf.data.Dataset,
+        targets_dataset: Optional[tf.data.Dataset] = None,
+    ) -> Optional[tf.data.Dataset]:
+        """
+        Apply the projection to a dataset through `Dataset.map`
+
+        Parameters
+        ----------
+        cases_dataset
+            Dataset of samples to be projected.
+        targets_dataset
+            Dataset of targets for the samples.
+
+        Returns
+        -------
+        projected_dataset
+            The projected dataset.
+        """
         # project dataset, note that projection is done at iteration time
         if targets_dataset is None:
             projected_cases_dataset = cases_dataset.map(self.project)
@@ -208,5 +239,44 @@ class Projection(ABC):
             ).map(
                 lambda x, y: self.project(x, y)
             )
+        
+        return projected_cases_dataset
+
+    def _loop_project_dataset(
+        self,
+        cases_dataset: tf.data.Dataset,
+        targets_dataset: tf.data.Dataset,
+    ) -> tf.data.Dataset:
+        """
+        Apply the projection to a dataset without `Dataset.map`.
+        Because attribution methods create a `tf.data.Dataset` for batching,
+        however doing so inside a `Dataset.map` is not recommended.
+
+        Parameters
+        ----------
+        cases_dataset
+            Dataset of samples to be projected.
+        targets_dataset
+            Dataset of targets for the samples.
+
+        Returns
+        -------
+        projected_dataset
+            The projected dataset.
+        """
+        # TODO see if a warning is needed
+
+        projected_cases_dataset = []
+        batch_size = None
+
+        # iteratively project the dataset
+        for inputs, targets in tf.data.Dataset.zip((cases_dataset, targets_dataset)):
+            if batch_size is None:
+                batch_size = inputs.shape[0]  # TODO check if there is a smarter way to do this
+            projected_cases_dataset.append(self.project(inputs, targets))
+        
+        projected_cases_dataset = tf.concat(projected_cases_dataset, axis=0)
+        projected_cases_dataset = tf.data.Dataset.from_tensor_slices(projected_cases_dataset)
+        projected_cases_dataset = projected_cases_dataset.batch(batch_size)
         
         return projected_cases_dataset

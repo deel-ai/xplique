@@ -76,7 +76,7 @@ class AttributionProjection(Projection):
         get_weights = self.method(self.predictor, **attribution_kwargs)
 
         # set methods
-        super().__init__(get_weights, space_projection)
+        super().__init__(get_weights, space_projection, mappable=False)
 
     def get_input_weights(
         self,
@@ -125,42 +125,3 @@ class AttributionProjection(Projection):
             false_fn=resize_fn,
         )
         return input_weights
-
-    def project_dataset(
-        self,
-        cases_dataset: tf.data.Dataset,
-        targets_dataset: tf.data.Dataset,
-    ) -> tf.data.Dataset:
-        """
-        Apply the projection to a dataset without `Dataset.map`.
-        Because attribution methods create a `tf.data.Dataset` for batching,
-        however doing so inside a `Dataset.map` is not recommended.
-
-        Parameters
-        ----------
-        cases_dataset
-            Dataset of samples to be projected.
-        targets_dataset
-            Dataset of targets for the samples.
-
-        Returns
-        -------
-        projected_dataset
-            The projected dataset.
-        """
-        # TODO see if a warning is needed
-
-        projected_cases_dataset = []
-        batch_size = None
-
-        # iteratively project the dataset
-        for inputs, targets in tf.data.Dataset.zip((cases_dataset, targets_dataset)):
-            if batch_size is None:
-                batch_size = inputs.shape[0]  # TODO check if there is a smarter way to do this
-            projected_cases_dataset.append(self.project(inputs, targets))
-        
-        projected_cases_dataset = tf.concat(projected_cases_dataset, axis=0)
-        projected_cases_dataset = tf.data.Dataset.from_tensor_slices(projected_cases_dataset)
-        projected_cases_dataset = projected_cases_dataset.batch(batch_size)
-        
-        return projected_cases_dataset

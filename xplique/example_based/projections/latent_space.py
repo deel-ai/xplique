@@ -29,9 +29,17 @@ class LatentSpaceProjection(Projection):
 
         To separate after the last convolution, `"last_conv"` can be used.
         Otherwise, `-1` could be used for the last layer before softmax.
+    device
+        Device to use for the projection, if None, use the default device.
+        Only used for PyTorch models. Ignored for TensorFlow models.
     """
 
-    def __init__(self, model: Callable, latent_layer: Union[str, int] = -1):
-        features_extractor, _ = model_splitting(model, latent_layer)
-        super().__init__(space_projection=features_extractor)
-        # TODO test if gpu is used for the projection
+    def __init__(self,
+                 model: Union[tf.keras.Model, 'torch.nn.Module'],
+                 latent_layer: Union[str, int] = -1,
+                 device: Union["torch.device", str] = None,
+                 ):
+        features_extractor, _ = model_splitting(model, latent_layer=latent_layer, device=device)
+
+        mappable = isinstance(model, tf.keras.Model)
+        super().__init__(space_projection=features_extractor, mappable=mappable)

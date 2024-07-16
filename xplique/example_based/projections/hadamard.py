@@ -47,6 +47,9 @@ class HadamardProjection(Projection):
         Otherwise, `-1` could be used for the last layer before softmax.
     operator
         Operator to use to compute the explanation, if None use standard predictions.
+    device
+        Device to use for the projection, if None, use the default device.
+        Only used for PyTorch models. Ignored for TensorFlow models.
     """
 
     def __init__(
@@ -54,6 +57,7 @@ class HadamardProjection(Projection):
         model: Callable,
         latent_layer: Optional[Union[str, int]] = None,
         operator: Optional[OperatorSignature] = None,
+        device: Union["torch.device", str] = None,
     ):
         if latent_layer is None:
             # no split
@@ -62,14 +66,18 @@ class HadamardProjection(Projection):
             self.predictor = model
         else:
             # split the model if a latent_layer is provided
-            space_projection, self.predictor = model_splitting(model, latent_layer)
+            space_projection, self.predictor = model_splitting(model,
+                                                               latent_layer=latent_layer,
+                                                               device=device)
         
         # the weights are given be the gradient of the operator
         gradients, _ = get_gradient_functions(self.predictor, operator)
         get_weights = lambda inputs, targets: gradients(self.predictor, inputs, targets)  # TODO check usage of gpu
 
+        mappable = isinstance(model, tf.keras.Model)
+
         # set methods
-        super().__init__(get_weights, space_projection)
+        super().__init__(get_weights, space_projection, mappable=mappable)
 
     def get_input_weights(
         self,
