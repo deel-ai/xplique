@@ -14,6 +14,43 @@ from .base import Projection
 from .commons import model_splitting
 
 
+def _target_free_classification_operator(model: Callable,
+                                         inputs: tf.Tensor,
+                                         targets: Optional[tf.Tensor]) -> tf.Tensor:  # TODO: test
+    """
+    Compute predictions scores, only for the label class, for a batch of samples.
+    It has the same behavior as `Tasks.CLASSIFICATION` operator
+    but computes targets at the same time if not provided.
+    Targets are a mask with 1 on the predicted class and 0 elsewhere.
+    This operator should only be used for classification tasks.
+
+
+    Parameters
+    ----------
+    model
+        Model used for computing predictions.
+    inputs
+        Input samples to be explained.
+    targets
+        One-hot encoded labels or regression target (e.g {+1, -1}), one for each sample.
+
+    Returns
+    -------
+    scores
+        Predictions scores computed, only for the label class.
+    """
+    predictions = model(inputs)
+
+    targets = tf.cond(
+        pred=tf.constant(targets is None, dtype=tf.bool),
+        true_fn=lambda: tf.one_hot(tf.argmax(predictions, axis=-1), predictions.shape[-1]),
+        false_fn=lambda: targets,
+    )
+
+    scores = tf.reduce_sum(predictions * targets, axis=-1)
+    return scores
+
+
 class HadamardProjection(Projection):
     """
     Projection build on an the latent space and the gradient.
@@ -45,7 +82,7 @@ class HadamardProjection(Projection):
         The method as described in the paper apply the separation on the last convolutional layer.
         To do so, the `"last_conv"` parameter will extract it.
         Otherwise, `-1` could be used for the last layer before softmax.
-    operator
+    operator  # TODO: make a larger description.
         Operator to use to compute the explanation, if None use standard predictions.
     device
         Device to use for the projection, if None, use the default device.
@@ -70,7 +107,12 @@ class HadamardProjection(Projection):
                                                                latent_layer=latent_layer,
                                                                device=device)
         
-        # the weights are given be the gradient of the operator
+        if operator is None:
+            warnings.warn("No operator provided, using standard classification operator."\
+                          + "For non-classification tasks, please specify an operator.")
+            operator = _target_free_classification_operator
+        
+        # the weights are given by the gradient of the operator based on the predictor
         gradients, _ = get_gradient_functions(self.predictor, operator)
         get_weights = lambda inputs, targets: gradients(self.predictor, inputs, targets)  # TODO check usage of gpu
 
@@ -78,6 +120,45 @@ class HadamardProjection(Projection):
 
         # set methods
         super().__init__(get_weights, space_projection, mappable=mappable)
+
+    @classmethod
+    def from_splitted_model(cls,
+                            features_extractor: tf.keras.Model,
+                            predictor: tf.keras.Model,
+                            operator: Optional[OperatorSignature] = None,
+                            mappable=True):  # TODO: test
+        """
+        Create LatentSpaceProjection from a splitted model.
+        The projection will project the inputs in the latent space,
+        which corresponds to the output of the `features_extractor`.
+
+        Parameters
+        ----------
+        features_extractor
+            The feature extraction part of the model. Mapping inputs to the latent space.
+        predictor
+            The prediction part of the model. Mapping the latent space to the outputs.
+        operator
+            Operator to use to compute the explanation, if None use standard predictions.
+        mappable
+            If the model can be placed in a `tf.data.Dataset` mapping function.
+            It is not the case for wrapped PyTorch models.
+            If you encounter errors in the `project_dataset` method, you can set it to `False`.
+        """
+        assert isinstance(features_extractor, tf.keras.Model),\
+            f"features_extractor should be a tf.keras.Model, got {type(features_extractor)}"\
+            f" instead. If you have a PyTorch model, you can use the `TorchWrapper`."
+        assert isinstance(predictor, tf.keras.Model),\
+            f"predictor should be a tf.keras.Model, got {type(predictor)}"\
+            f" instead. If you have a PyTorch model, you can use the `TorchWrapper`."
+        
+        # the weights are given by the gradient of the operator based on the predictor
+        gradients, _ = get_gradient_functions(predictor, operator)
+        get_weights = lambda inputs, targets: gradients(predictor, inputs, targets)  # TODO check usage of gpu
+
+        super().__init__(get_weights=get_weights,
+                         space_projection=features_extractor,
+                         mappable=mappable)
 
     def get_input_weights(
         self,

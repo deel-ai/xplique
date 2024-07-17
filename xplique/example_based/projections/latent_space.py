@@ -43,3 +43,27 @@ class LatentSpaceProjection(Projection):
 
         mappable = isinstance(model, tf.keras.Model)
         super().__init__(space_projection=features_extractor, mappable=mappable)
+
+    @classmethod
+    def from_splitted_model(cls,
+                            features_extractor: tf.keras.Model,
+                            mappable=True):  # TODO: test
+        """
+        Create LatentSpaceProjection from a splitted model.
+        The projection will project the inputs in the latent space,
+        which corresponds to the output of the `features_extractor`.
+
+        Parameters
+        ----------
+        features_extractor
+            The feature extraction part of the model. Mapping inputs to the latent space.
+        mappable
+            If the model can be placed in a `tf.data.Dataset` mapping function.
+            It is not the case for wrapped PyTorch models.
+            If you encounter errors in the `project_dataset` method, you can set it to `False`.
+        """
+        assert isinstance(features_extractor, tf.keras.Model),\
+            f"features_extractor should be a tf.keras.Model, got {type(features_extractor)}"\
+            f" instead. If you have a PyTorch model, you can use the `TorchWrapper`."
+        super().__init__(space_projection=features_extractor, mappable=mappable)
+
