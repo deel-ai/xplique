@@ -43,12 +43,11 @@ nav:
       - Tcav: api/concepts/tcav.md
       - Craft: api/concepts/craft.md
   - Example based:
-      - Search Methods:
-        - Prototypes Search Methods: 
-          - Prototypes: api/example_based/search_methods/prototypes_search_methods/prototypes.md
-          - ProtoGreedySearch: api/example_based/search_methods/prototypes_search_methods/proto_greedy_search.md 
-          - ProtoDashSearch: api/example_based/search_methods/prototypes_search_methods/proto_dash_search.md 
-          - MMDCriticSearch: api/example_based/search_methods/prototypes_search_methods/mmd_critic_search.md
+      - Prototypes: 
+        - API Description: api/example_based/prototypes/api_prototypes.md
+        - ProtoGreedy: api/example_based/prototypes/proto_greedy.md 
+        - ProtoDash: api/example_based/prototypes/proto_dash.md
+        - MMDCritic: api/example_based/prototypes/mmd_critic.md
   - Feature visualization:
       - Modern Feature Visualization (MaCo): api/feature_viz/maco.md
       - Feature visualization: api/feature_viz/feature_viz.md
