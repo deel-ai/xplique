@@ -123,7 +123,7 @@ def get_distance_function(distance: Union[int, str, Callable] = "euclidean",) ->
     ----------
     distance : Union[int, str, Callable], optional
         Distance function to use. It can be an integer, a string in
-        {"manhattan", "euclidean", "cosine", "chebyshev"}, or a Callable,
+        {"manhattan", "euclidean", "cosine", "chebyshev", "inf"}, or a Callable,
         by default "euclidean".
     """
     # set distance function
@@ -133,12 +133,12 @@ def get_distance_function(distance: Union[int, str, Callable] = "euclidean",) ->
         return _distances[distance]
     elif isinstance(distance, int):
         return lambda x1, x2: _minkowski_distance(x1, x2, p=distance)
-    elif distance == np.inf:
+    elif distance == np.inf or (isinstance(distance, str) and distance == "inf"):
         return lambda x1, x2: _chebyshev_distance(x1, x2)
     else:
         raise AttributeError(
             "The distance parameter is expected to be either a Callable, "
-            + f" an integer, or a string in {_distances.keys()}. "
-            +f"But {type(distance)} was received."
+            + f" an integer, 'inf', or a string in {_distances.keys()}. "
+            +f"But a {type(distance)} was received, with value {distance}."
         )
 

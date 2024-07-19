@@ -43,7 +43,7 @@ class BaseKLEORSearch(FilterKNN, ABC):
         Number of sample treated simultaneously.
     distance
         Distance function for examples search. It can be an integer, a string in
-        {"manhattan", "euclidean", "cosine", "chebyshev"}, or a Callable,
+        {"manhattan", "euclidean", "cosine", "chebyshev", "inf"}, or a Callable,
         by default "euclidean".
     """
     def __init__(

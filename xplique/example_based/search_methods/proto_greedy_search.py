@@ -57,7 +57,7 @@ class ProtoGreedySearch(BaseSearchMethod):
         It should match the batch size of the `search_set` in the case of a `tf.data.Dataset`.
     distance
         Distance function for examples search. It can be an integer, a string in
-        {"manhattan", "euclidean", "cosine", "chebyshev"}, or a Callable,
+        {"manhattan", "euclidean", "cosine", "chebyshev", "inf"}, or a Callable,
         by default "euclidean".
     nb_prototypes : int
             Number of prototypes to find.    
