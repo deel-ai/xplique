@@ -46,7 +46,7 @@ class Cole(SimilarExamples):
         The number of examples to retrieve per input.
     distance
         Distance function for examples search. It can be an integer, a string in
-        {"manhattan", "euclidean", "cosine", "chebyshev"}, or a Callable,
+        {"manhattan", "euclidean", "cosine", "chebyshev", "inf"}, or a Callable,
         by default "euclidean".
     case_returns
         String or list of string with the elements to return in `self.explain()`.

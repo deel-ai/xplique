@@ -120,13 +120,6 @@ def test_cole_attribution():
     # a different distance should give different results
     assert not almost_equal(examples_constructor, examples_different_distance)
 
-    # check weights are equal to the attribution directly on the input
-    method_constructor.returns = ["weights", "include_inputs"]
-    assert almost_equal(
-        method_constructor.explain(x_test, y_test)["weights"][:, 0],
-        Saliency(model)(x_test, y_test),
-    )
-
 
 def test_cole_hadamard():
     """
@@ -205,7 +198,7 @@ def test_cole_splitting():
         cases_dataset=x_train,
         targets_dataset=y_train,
         k=k,
-        case_returns=["examples", "weights", "include_inputs"],
+        case_returns=["examples", "include_inputs"],
         model=model,
         latent_layer="last_conv",
         attribution_method=Occlusion,
@@ -215,14 +208,9 @@ def test_cole_splitting():
 
     # Generate explanation
     outputs = method.explain(x_test, y_test)
-    examples, weights = outputs["examples"], outputs["weights"]
+    examples = outputs["examples"]
 
     # Verifications
     # Shape should be (n, k, h, w, c)
     nb_samples_test = x_test.shape[0]
     assert examples.shape == (nb_samples_test, k + 1) + input_shape
-    assert weights.shape[:-1] == (nb_samples_test, k + 1) + input_shape[:-1]
-
-
-# test_cole_attribution()
-# test_cole_splitting()

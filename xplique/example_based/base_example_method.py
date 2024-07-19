@@ -73,7 +73,7 @@ class BaseExampleMethod(ABC):
         Number of sample treated simultaneously for projection and search.
         Ignored if `tf.data.Dataset` are provided (those are supposed to be batched).
     """
-    _returns_possibilities = ["examples", "weights", "distances", "labels", "include_inputs"]
+    _returns_possibilities = ["examples", "distances", "labels", "include_inputs"]
 
     def __init__(
         self,
@@ -157,8 +157,6 @@ class BaseExampleMethod(ABC):
             `returns` can be set to 'all' for all possible elements to be returned.
                 - 'examples' correspond to the expected examples,
                 the inputs may be included in first position. (n, k(+1), ...)
-                - 'weights' the weights in the input space used in the projection.
-                They are associated to the input and the examples. (n, k(+1), ...)
                 - 'distances' the distances between the inputs and the corresponding examples.
                 They are associated to the examples. (n, k, ...)
                 - 'labels' if provided through `dataset_labels`,
@@ -306,7 +304,7 @@ class BaseExampleMethod(ABC):
         search_output = self.search_method(projected_inputs, targets)
 
         # manage returned elements
-        return self.format_search_output(search_output, inputs, targets)
+        return self.format_search_output(search_output, inputs)
 
     def __call__(
         self,
@@ -320,7 +318,6 @@ class BaseExampleMethod(ABC):
         self,
         search_output: Dict[str, tf.Tensor],
         inputs: Union[tf.Tensor, np.ndarray],
-        targets: Optional[Union[tf.Tensor, np.ndarray]] = None,
     ):
         """
         Format the output of the `search_method` to match the expected returns in `self.returns`.
@@ -332,9 +329,9 @@ class BaseExampleMethod(ABC):
         inputs
             Tensor or Array. Input samples to be explained.
             Expected shape among (N, W), (N, T, W), (N, W, H, C).
-        targets
-            Targets associated to the cases_dataset for dataset projection.
-            See `projection` for details.
+        # targets
+        #     Targets associated to the cases_dataset for dataset projection.
+        #     See `projection` for details.
 
         Returns
         -------
@@ -348,40 +345,15 @@ class BaseExampleMethod(ABC):
         # gather examples, labels, and targets from the example's indices of the search output
         examples = dataset_gather(self.cases_dataset, search_output["indices"])
         examples_labels = dataset_gather(self.labels_dataset, search_output["indices"])
-        examples_targets = dataset_gather(
-            self.targets_dataset, search_output["indices"]
-        )
 
         # add examples and weights
-        if "examples" in self.returns or "weights" in self.returns:
+        if "examples" in self.returns:  #  or "weights" in self.returns:
             if "include_inputs" in self.returns:
                 # include inputs
                 inputs = tf.expand_dims(inputs, axis=1)
                 examples = tf.concat([inputs, examples], axis=1)
-                if targets is not None:
-                    targets = tf.expand_dims(targets, axis=1)
-                    examples_targets = tf.concat([targets, examples_targets], axis=1)
-                else:
-                    examples_targets = [None] * len(examples)
             if "examples" in self.returns:
                 return_dict["examples"] = examples
-            if "weights" in self.returns:
-                # get weights of examples (n, k, ...)
-                # we iterate on the inputs dimension through maps
-                # and ask weights for batch of examples
-                weights = []
-                for ex, ex_targ in zip(examples, examples_targets):
-                    if isinstance(self.projection, Projection):
-                        # get weights in the input space
-                        weights.append(self.projection.get_input_weights(ex, ex_targ))
-                    else:
-                        raise AttributeError(
-                            "Cannot extract weights from the provided projection function"
-                            + "Either remove 'weights' from the `case_returns` or"
-                            + "inherit from `Projection` and overwrite `get_input_weights`."
-                        )
-
-                return_dict["weights"] = tf.stack(weights, axis=0)
 
         # add indices, distances, and labels
         if "indices" in self.returns:

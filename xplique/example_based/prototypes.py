@@ -68,7 +68,7 @@ class Prototypes(BaseExampleMethod, ABC):
         Ignored if `tf.data.Dataset` are provided (these are supposed to be batched).
     distance
         Distance function for examples search. It can be an integer, a string in
-        {"manhattan", "euclidean", "cosine", "chebyshev"}, or a Callable,
+        {"manhattan", "euclidean", "cosine", "chebyshev", "inf"}, or a Callable,
         by default "euclidean".
     nb_prototypes : int
         For general explanations, the number of prototypes to select.

@@ -205,13 +205,11 @@ def test_similar_examples_return_multiple_elements():
     assert isinstance(method_output, dict)
 
     examples = method_output["examples"]
-    weights = method_output["weights"]
     distances = method_output["distances"]
     labels = method_output["labels"]
 
     # test every outputs shape (with the include inputs)
     assert examples.shape == (nb_samples_test, k + 1) + input_shape
-    assert weights.shape == (nb_samples_test, k + 1) + input_shape
     # the inputs distance ae zero and indices do not exist
     assert distances.shape == (nb_samples_test, k)
     assert labels.shape == (nb_samples_test, k)
@@ -226,9 +224,6 @@ def test_similar_examples_return_multiple_elements():
         assert almost_equal(examples[i, 3], x_train[i]) or almost_equal(
             examples[i, 3], x_train[i + 2]
         )
-
-        # test weights
-        assert almost_equal(weights[i], tf.ones(weights[i].shape, dtype=tf.float32))
 
         # test distances
         assert almost_equal(distances[i, 0], 0)
@@ -294,9 +289,3 @@ def test_similar_examples_weighting():
         assert almost_equal(examples[i, 2], x_train[i]) or almost_equal(
             examples[i, 2], x_train[i + 2]
         )
-
-
-# test_similar_examples_input_dataset_management()
-# test_similar_examples_basic()
-# test_similar_examples_return_multiple_elements()
-# test_similar_examples_weighting()

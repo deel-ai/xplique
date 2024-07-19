@@ -63,7 +63,7 @@ class SimilarExamples(BaseExampleMethod):
         Ignored if `tf.data.Dataset` are provided (those are supposed to be batched).
     distance
         Distance for the knn search method. It can be an integer, a string in
-        {"manhattan", "euclidean", "cosine", "chebyshev"}, or a Callable,
+        {"manhattan", "euclidean", "cosine", "chebyshev", "inf"}, or a Callable,
         by default "euclidean".
     """
     def __init__(

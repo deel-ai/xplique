@@ -67,7 +67,7 @@ class NaiveCounterFactuals(BaseExampleMethod):
         Ignored if `tf.data.Dataset` are provided (those are supposed to be batched).
     distance
         Distance function for examples search. It can be an integer, a string in
-        {"manhattan", "euclidean", "cosine", "chebyshev"}, or a Callable,
+        {"manhattan", "euclidean", "cosine", "chebyshev", "inf"}, or a Callable,
         by default "euclidean".
     """
     def __init__(
@@ -183,7 +183,7 @@ class LabelAwareCounterFactuals(BaseExampleMethod):
     distance
         Distance for the FilterKNN search method.
         Distance function for examples search. It can be an integer, a string in
-        {"manhattan", "euclidean", "cosine", "chebyshev"}, or a Callable,
+        {"manhattan", "euclidean", "cosine", "chebyshev", "inf"}, or a Callable,
         by default "euclidean".
     """
     def __init__(
@@ -345,7 +345,7 @@ class KLEORBase(BaseExampleMethod):
     distance
         Distance for the FilterKNN search method.
         Distance function for examples search. It can be an integer, a string in
-        {"manhattan", "euclidean", "cosine", "chebyshev"}, or a Callable,
+        {"manhattan", "euclidean", "cosine", "chebyshev", "inf"}, or a Callable,
         by default "euclidean".
     """
     _returns_possibilities = [
@@ -422,7 +422,6 @@ class KLEORBase(BaseExampleMethod):
         self,
         search_output: Dict[str, tf.Tensor],
         inputs: Union[tf.Tensor, np.ndarray],
-        targets: Optional[Union[tf.Tensor, np.ndarray]] = None, 
     ):
         """
         Format the output of the `search_method` to match the expected returns in `self.returns`.
@@ -434,9 +433,6 @@ class KLEORBase(BaseExampleMethod):
         inputs
             Tensor or Array. Input samples to be explained.
             Expected shape among (N, W), (N, T, W), (N, W, H, C).
-        targets
-            Targets associated to the cases_dataset for dataset projection.
-            See `projection` for details.
 
         Returns
         -------
@@ -444,7 +440,7 @@ class KLEORBase(BaseExampleMethod):
             Dictionary with listed elements in `self.returns`.
             The elements that can be returned are defined with _returns_possibilities static attribute of the class.
         """
-        return_dict = super().format_search_output(search_output, inputs, targets)
+        return_dict = super().format_search_output(search_output, inputs)
         if "nuns" in self.returns:
             return_dict["nuns"] = dataset_gather(self.cases_dataset, search_output["nuns_indices"])
         if "nuns_labels" in self.returns:
