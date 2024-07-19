@@ -108,43 +108,6 @@ class Projection(ABC):
         # set device
         self.device = get_device(device)
 
-    def get_input_weights(
-        self,
-        inputs: Union[tf.Tensor, np.ndarray],
-        targets: Optional[Union[tf.Tensor, np.ndarray]] = None,
-    ):
-        """
-        Depending on the projection, we may not be able to visualize weights
-        as they are after the space projection. In this case, this method should be overwritten,
-        as in `AttributionProjection` that applies an up-sampling.
-
-        Parameters
-        ----------
-        inputs
-            Tensor or Array. Input samples to be explained.
-            Expected shape among (N, W), (N, T, W), (N, W, H, C).
-            More information in the documentation.
-        targets
-            Additional parameter for `self.get_weights` function.
-
-        Returns
-        -------
-        input_weights
-            Tensor with the same dimension as `inputs` modulo the channels.
-            They are an up-sampled version of the actual weights used in the projection.
-        """
-        projected_inputs = self.space_projection(inputs)
-        assert tf.reduce_all(tf.equal(projected_inputs, inputs)), (
-            "Weights cannot be interpreted in the input space"
-            + "if `space_projection()` is not an identity."
-            + "Either remove 'weights' from the returns or"
-            + "make your own projection and overwrite `get_input_weights`."
-        )
-
-        weights = self.get_weights(projected_inputs, targets)
-
-        return weights
-
     @sanitize_inputs_targets
     def project(
         self,
@@ -270,10 +233,17 @@ class Projection(ABC):
         batch_size = None
 
         # iteratively project the dataset
-        for inputs, targets in tf.data.Dataset.zip((cases_dataset, targets_dataset)):
-            if batch_size is None:
-                batch_size = inputs.shape[0]  # TODO check if there is a smarter way to do this
-            projected_cases_dataset.append(self.project(inputs, targets))
+        if targets_dataset is None:
+            for inputs in cases_dataset:
+                if batch_size is None:
+                    batch_size = inputs.shape[0]  # TODO check if there is a smarter way to do this
+                projected_cases_dataset.append(self.project(inputs, None))
+        else:
+            # in case targets are provided, we zip the datasets and project them together
+            for inputs, targets in tf.data.Dataset.zip((cases_dataset, targets_dataset)):
+                if batch_size is None:
+                    batch_size = inputs.shape[0]  # TODO check if there is a smarter way to do this
+                projected_cases_dataset.append(self.project(inputs, targets))
         
         projected_cases_dataset = tf.concat(projected_cases_dataset, axis=0)
         projected_cases_dataset = tf.data.Dataset.from_tensor_slices(projected_cases_dataset)

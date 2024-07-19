@@ -50,7 +50,8 @@ def model_splitting(model: Union[tf.keras.Model, 'torch.nn.Module'],
             return _torch_model_splitting(model, latent_layer, device)
         except ImportError as exc:
             raise AttributeError(
-                f"Unknown model type, should be either `tf.keras.Model` or `torch.nn.Module`."\
+                exc.__str__()+"\n\n"\
+                +f"Unknown model type, should be either `tf.keras.Model` or `torch.nn.Module`."\
                 +f"But got {type(model)} instead.")
 
 
@@ -150,7 +151,7 @@ def _torch_model_splitting(model: 'torch.nn.Module',
         """
         import torch
         import torch.nn as nn
-        from ...wrappers.pytorch import PyTorchWrapper
+        from ...wrappers import TorchWrapper
 
         warnings.warn("Automatically splitting the provided PyTorch model into two parts. "\
                      +"This splitting is based on `model.named_children()`. "\
@@ -194,8 +195,8 @@ def _torch_model_splitting(model: 'torch.nn.Module',
 
         # Wrap models to obtain tensorflow ones
         first_model.eval()
-        wrapped_first_model = PyTorchWrapper(first_model, device=device)
+        wrapped_first_model = TorchWrapper(first_model, device=device)
         second_model.eval()
-        wrapped_second_model = PyTorchWrapper(second_model, device=device)
+        wrapped_second_model = TorchWrapper(second_model, device=device)
 
         return wrapped_first_model, wrapped_second_model

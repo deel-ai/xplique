@@ -16,7 +16,7 @@ from .commons import model_splitting
 
 def _target_free_classification_operator(model: Callable,
                                          inputs: tf.Tensor,
-                                         targets: Optional[tf.Tensor]) -> tf.Tensor:  # TODO: test
+                                         targets: Optional[tf.Tensor]) -> tf.Tensor:  # TODO: test, and use in attribution projection
     """
     Compute predictions scores, only for the label class, for a batch of samples.
     It has the same behavior as `Tasks.CLASSIFICATION` operator
@@ -159,51 +159,3 @@ class HadamardProjection(Projection):
         super().__init__(get_weights=get_weights,
                          space_projection=features_extractor,
                          mappable=mappable)
-
-    def get_input_weights(
-        self,
-        inputs: Union[tf.Tensor, np.ndarray],
-        targets: Optional[Union[tf.Tensor, np.ndarray]] = None,
-    ):
-        """
-        For visualization purpose (and only), we may be interested to project weights
-        from the projected space to the input space.
-        This is applied only if their is a difference in dimension.
-        We assume here that we are treating images and an upsampling is applied.
-
-        Parameters
-        ----------
-        inputs
-            Tensor or Array. Input samples to be explained.
-            Expected shape among (N, W), (N, T, W), (N, W, H, C).
-            More information in the documentation.
-        targets
-            Additional parameter for `self.get_weights` function.
-
-        Returns
-        -------
-        input_weights
-            Tensor with the same dimension as `inputs` modulo the channels.
-            They are an upsampled version of the actual weights used in the projection.
-        """
-        projected_inputs = self.space_projection(inputs)
-        weights = self.get_weights(projected_inputs, targets)
-
-        # take mean over channels for images
-        channel_mean_fn = lambda: tf.reduce_mean(weights, axis=-1, keepdims=True)
-        weights = tf.cond(
-            pred=tf.shape(weights).shape[0] < 4,
-            true_fn=lambda: weights,
-            false_fn=channel_mean_fn,
-        )
-
-        # resizing
-        resize_fn = lambda: tf.image.resize(
-            weights, inputs.shape[1:-1], method="bicubic"
-        )
-        input_weights = tf.cond(
-            pred=projected_inputs.shape == inputs.shape,
-            true_fn=lambda: weights,
-            false_fn=resize_fn,
-        )
-        return input_weights
