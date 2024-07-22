@@ -2,7 +2,7 @@
 Example-based methods available
 """
 
-from .cole import Cole
-from .similar_examples import SimilarExamples
+from .similar_examples import SimilarExamples, Cole
 from .prototypes import Prototypes, ProtoGreedy, ProtoDash, MMDCritic
-from .contrastive_examples import NaiveCounterFactuals, LabelAwareCounterFactuals, KLEORGlobalSim, KLEORSimMiss
+from .counterfactuals import NaiveCounterFactuals, LabelAwareCounterFactuals
+from .semifactuals import KLEORGlobalSim, KLEORSimMiss
