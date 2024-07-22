@@ -200,3 +200,40 @@ def _torch_model_splitting(model: 'torch.nn.Module',
         wrapped_second_model = TorchWrapper(second_model, device=device)
 
         return wrapped_first_model, wrapped_second_model
+
+
+def target_free_classification_operator(model: Callable,
+                                        inputs: tf.Tensor,
+                                        targets: Optional[tf.Tensor] = None) -> tf.Tensor:  # TODO: test, and use in attribution projection
+    """
+    Compute predictions scores, only for the label class, for a batch of samples.
+    It has the same behavior as `Tasks.CLASSIFICATION` operator
+    but computes targets at the same time if not provided.
+    Targets are a mask with 1 on the predicted class and 0 elsewhere.
+    This operator should only be used for classification tasks.
+
+
+    Parameters
+    ----------
+    model
+        Model used for computing predictions.
+    inputs
+        Input samples to be explained.
+    targets
+        One-hot encoded labels or regression target (e.g {+1, -1}), one for each sample.
+
+    Returns
+    -------
+    scores
+        Predictions scores computed, only for the label class.
+    """
+    predictions = model(inputs)
+
+    targets = tf.cond(
+        pred=tf.constant(targets is None, dtype=tf.bool),
+        true_fn=lambda: tf.one_hot(tf.argmax(predictions, axis=-1), predictions.shape[-1]),
+        false_fn=lambda: targets,
+    )
+
+    scores = tf.reduce_sum(predictions * targets, axis=-1)
+    return scores

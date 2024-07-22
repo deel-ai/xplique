@@ -12,7 +12,7 @@ from ...attributions import Saliency
 from ...types import Callable, Union, Optional
 
 from .base import Projection
-from .commons import model_splitting
+from .commons import model_splitting, target_free_classification_operator
 
 
 class AttributionProjection(Projection):
@@ -71,6 +71,12 @@ class AttributionProjection(Projection):
         else:
             # split the model if a latent_layer is provided
             space_projection, self.predictor = model_splitting(model, latent_layer)
+
+        # change default operator
+        if not "operator" in attribution_kwargs or attribution_kwargs["operator"] is None:
+            warnings.warn("No operator provided, using standard classification operator."\
+                          + "For non-classification tasks, please specify an operator.")
+            attribution_kwargs["operator"] = target_free_classification_operator
         
         # compute attributions
         get_weights = self.method(self.predictor, **attribution_kwargs)
