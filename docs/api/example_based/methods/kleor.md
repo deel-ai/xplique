@@ -5,7 +5,7 @@
 </sub> [View colab tutorial]()**WIP** |
 <sub>
     <img src="https://upload.wikimedia.org/wikipedia/commons/9/91/Octicons-mark-github.svg" width="20">
-</sub> [View source](https://github.com/deel-ai/xplique/blob/master/xplique/example_based/kleor.py) |
+</sub> [View source](https://github.com/deel-ai/xplique/blob/master/xplique/example_based/semifactuals.py) |
 📰 [Paper](https://www.researchgate.net/publication/220106308_KLEOR_A_Knowledge_Lite_Approach_to_Explanation_Oriented_Retrieval)
 
 KLEOR for Knowledge-Light Explanation-Oriented Retrieval was introduced by Cummins & Bridge in 2006. It is a method that use counterfactuals, Nearest Unlike Neighbor (NUN), to guide the selection of a semi-factual (SF) example.
