@@ -23,7 +23,7 @@ More specifically, the COLE approach is based on the following steps:
 - (3) Perform a KNN search in the projection space to find the most similar training samples
 
 !!! info
-    In the original paper, the authors focused on Multi-Layer Perceptrons (MLP) and three attribution methods (LPR, Integrated Gradient, and DeepLift). We decided to implement a COLE method that generalizes to a more broader range of Neural Networks and attribution methods that are gradient-based (see [API Attributions documentation](api/attributions/api_attributions/) for definition).
+    In the original paper, the authors focused on Multi-Layer Perceptrons (MLP) and three attribution methods (LPR, Integrated Gradient, and DeepLift). We decided to implement a COLE method that generalizes to a more broader range of Neural Networks and attribution methods (see [API Attributions documentation](api/attributions/api_attributions/) to see the list of methods available).
 
 ## Example
 
