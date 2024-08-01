@@ -147,6 +147,9 @@ Applies the projection to a dataset through `Dataset.map`.
 
 Search methods are used to retrieve examples from the `cases_dataset` that are relevant to the input samples.
 
+!!!info
+    In an Example method, the `cases_dataset` is the dataset that has been projected with a `Projection` object (see the previous section). The search methods are used to find examples in this projected space.
+
 The `BaseSearchMethod` class is an abstract base class for example-based search methods. It defines the interface for search methods used to find examples in a dataset. This class should be inherited by specific search methods.
 
 ??? abstract "Table of search methods available"
