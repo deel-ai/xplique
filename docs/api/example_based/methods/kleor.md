@@ -30,6 +30,9 @@ We extended to the $k$ nearest neighbors of the NUN for both approaches.
 !!!info
     In our implementation, we rather consider the labels predicted by the model $\hat{y}$ (*i.e.* the targets) rather than $y$!
 
+!!!tips
+    As KLEOR methods use counterfactuals, they can also return them. Therefore, it is possible to obtain both semi-factuals and counterfactuals with an unique method. To do so "nuns" and "nuns_labels" should be added to the `cases_returns` list.
+
 ## Example
 
 ```python

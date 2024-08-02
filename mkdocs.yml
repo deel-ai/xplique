@@ -47,8 +47,8 @@ nav:
       - Methods: 
         - Cole: api/example_based/methods/cole.md
         - Kleor: api/example_based/methods/kleor.md
-        - LabelAwareCounterFactuals: api/example_based/methods/label_aware_counterfactuals.md
-        - NaiveCounterFactuals: api/example_based/methods/naive_counterfactuals.md
+        - LabelAwareCounterFactuals: api/example_based/methods/label_aware_counter_factuals.md
+        - NaiveCounterFactuals: api/example_based/methods/naive_counter_factuals.md
         - SimilarExamples: api/example_based/methods/similar_examples.md
       - Prototypes: 
         - API Description: api/example_based/prototypes/api_prototypes.md

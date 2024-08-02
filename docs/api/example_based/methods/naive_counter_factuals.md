@@ -9,7 +9,7 @@
 📰 [Paper](https://www.semanticscholar.org/paper/Nearest-unlike-neighbor-(NUN)%3A-an-aid-to-decision-Dasarathy/48c1a310f655b827e5e7d712c859b25a4e3c0902)
 
 !!!note
-    The paper referenced here is not exactly the one we implemented as we a "naive" of it. However, it is probably the closest in essence of what we implemented.
+    The paper referenced here is not exactly the one we implemented as we use a "naive" version of it. However, it is probably the closest in essence of what we implemented.
 
 We define here a "naive" counterfactual method that is based on the Nearest Unlike Neighbor (NUN) concept introduced by Dasarathy in 1991[^1]. In essence, the NUN of a sample $(x, y)$ is the closest sample in the training dataset which has a different label than $y$.
 

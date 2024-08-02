@@ -5,7 +5,7 @@
 ## Context ##
 
 !!! quote
-    While saliency maps have stolen the show for the last few years in the XAI field, their ability to reflect models' internal processes has been questioned. Although less in the spotlight, example-based XAI methods have continued to improve. It encompasses methods that use examples as explanations for a machine learning model's predictions. This aligns with the psychological mechanisms of human reasoning and makes example-based explanations natural and intuitive for users to understand. Indeed, humans learn and reason by forming mental representations of concepts based on examples.
+    While saliency maps have stolen the show for the last few years in the XAI field, their ability to reflect models' internal processes has been questioned. Although less in the spotlight, example-based XAI methods have continued to improve. It encompasses methods that use samples as explanations for a machine learning model's predictions. This aligns with the psychological mechanisms of human reasoning and makes example-based explanations natural and intuitive for users to understand. Indeed, humans learn and reason by forming mental representations of concepts based on examples.
 
     -- <cite>[Natural Example-Based Explainability: a Survey (2023)](https://arxiv.org/abs/2309.03234)</cite>[^1]
 
@@ -14,7 +14,7 @@ As mentioned by our team members in the quote above, example-based methods are a
 While not being exhaustive we tried to cover a range of methods that are representative of the field and that belong to different families: similar examples, contrastive (counter-factuals and semi-factuals) examples, and prototypes (as concepts based methods have a dedicated sections).
 
 At present, we made the following choices:
-- Focus on methods that are natural example methods (see the paper above for more details).
+- Focus on methods that are natural example methods (post-hoc and non-generative, see the paper above for more details).
 - Try to unify the three families of approaches with a common API.
 
 !!! info
@@ -39,7 +39,7 @@ explanations = explainer.explain(inputs, targets)
 
 We tried to keep the API as close as possible to the one of the attribution methods to keep a consistent experience for the users.
 
-The `BaseExampleMethod` is an abstract base class designed for example-based methods used to explain classification models. It provides examples from a dataset (usually the training dataset) to help understand a model's predictions. Examples are selected using a [search method](#search-methods) within a defined search space, projected from the input space using a [projection function](#projections).
+The `BaseExampleMethod` is an abstract base class designed for example-based methods used to explain classification models. It provides examples from a dataset (usually the training dataset) to help understand a model's predictions. Examples are projected from the input space to a search space using a [projection function](#projections). The projection function defines the search space. Then, examples are selected using a [search method](#search-methods) within the search space.
 
 ??? abstract "Table of example-based methods available"
 
@@ -63,7 +63,13 @@ The `BaseExampleMethod` is an abstract base class designed for example-based met
 - **k** (`int`): The number of examples to retrieve per input.
 - **projection** (`Union[Projection, Callable]`): A projection or callable function that projects samples from the input space to the search space. The search space should be relevant for the model. (see [Projections](#projections))
 - **case_returns** (`Union[List[str], str]`): Elements to return in `self.explain()`. Default is "examples".
-- **batch_size** (`Optional[int]`): Number of samples processed simultaneously for projection and search. Ignored if `tf.data.Dataset` is provided.
+- **batch_size** (`Optional[int]`): Number of samples processed simultaneously for projection and search. Ignored if `cases_dataset` is a `tf.data.Dataset`.
+
+!!!tips
+    If the elements of your dataset are tuples (cases, labels), you can pass this dataset directly to the `cases_dataset`.
+
+!!!tips
+    Apart from contrastive explanations, in the case of classification, the built-in [Projections](#projections) compute `targets` online and the `targets_dataset` is not necessary.
 
 ### Properties ###
 
@@ -148,7 +154,7 @@ Applies the projection to a dataset through `Dataset.map`.
 Search methods are used to retrieve examples from the `cases_dataset` that are relevant to the input samples.
 
 !!!info
-    In an Example method, the `cases_dataset` is the dataset that has been projected with a `Projection` object (see the previous section). The search methods are used to find examples in this projected space.
+    In an search method, the `cases_dataset` is the dataset that has been projected with a `Projection` object (see the previous section). The search methods are used to find examples in this projected space.
 
 The `BaseSearchMethod` class is an abstract base class for example-based search methods. It defines the interface for search methods used to find examples in a dataset. This class should be inherited by specific search methods.
 
