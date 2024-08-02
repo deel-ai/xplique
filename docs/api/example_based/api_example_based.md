@@ -1,6 +1,6 @@
-# API: Example-based API
+# API: Example-based
 
-- [**Example-based Methods**: Getting strated]() **WIP**
+- [**Example-based Methods**: Getting started]() **WIP**
 
 ## Context ##
 

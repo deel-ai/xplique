@@ -43,11 +43,22 @@ nav:
       - Tcav: api/concepts/tcav.md
       - Craft: api/concepts/craft.md
   - Example based:
+      - API Description: api/example_based/api_example_based.md
+      - Methods: 
+        - Cole: api/example_based/methods/cole.md
+        - Kleor: api/example_based/methods/kleor.md
+        - LabelAwareCounterFactuals: api/example_based/methods/label_aware_counterfactuals.md
+        - NaiveCounterFactuals: api/example_based/methods/naive_counterfactuals.md
+        - SimilarExamples: api/example_based/methods/similar_examples.md
       - Prototypes: 
         - API Description: api/example_based/prototypes/api_prototypes.md
         - ProtoGreedy: api/example_based/prototypes/proto_greedy.md 
         - ProtoDash: api/example_based/prototypes/proto_dash.md
         - MMDCritic: api/example_based/prototypes/mmd_critic.md
+      - Projections: api/example_based/projections.md
+      - Search Methods:
+        - Kleor: api/example_based/search_methods/kleor.md
+        - KNN: api/example_based/search_methods/knn.md
   - Feature visualization:
       - Modern Feature Visualization (MaCo): api/feature_viz/maco.md
       - Feature visualization: api/feature_viz/feature_viz.md
