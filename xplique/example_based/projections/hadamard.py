@@ -71,7 +71,7 @@ class HadamardProjection(Projection):
                                                                device=device)
         
         if operator is None:
-            warnings.warn("No operator provided, using standard classification operator."\
+            warnings.warn("No operator provided, using standard classification operator. "\
                           + "For non-classification tasks, please specify an operator.")
             operator = target_free_classification_operator
         

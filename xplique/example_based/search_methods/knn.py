@@ -302,6 +302,12 @@ class FilterKNN(BaseKNN):
         `tf.data.Dataset` are assumed to be batched as tensorflow provide no method to verify it.
         Be careful, `tf.data.Dataset` are often reshuffled at each iteration, be sure that it is not
         the case for your dataset, otherwise, examples will not make sense.
+    targets_dataset
+        Targets are expected to be the one-hot encoding of the model's predictions for the samples in cases_dataset.
+        `tf.data.Dataset` are assumed to be batched as tensorflow provide no method to verify it.
+        Batch size and cardinality of other datasets should match `cases_dataset`.
+        Be careful, `tf.data.Dataset` are often reshuffled at each iteration, be sure that it is not
+        the case for your dataset, otherwise, examples will not make sense.
     k
         The number of examples to retrieve.
     search_returns

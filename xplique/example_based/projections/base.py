@@ -99,6 +99,7 @@ class Projection(ABC):
         if space_projection is None:
             self.space_projection = lambda inputs: inputs
         elif hasattr(space_projection, "__call__"):
+            self.mappable = False
             self.space_projection = space_projection
         else:
             raise TypeError(

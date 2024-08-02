@@ -74,7 +74,7 @@ class AttributionProjection(Projection):
 
         # change default operator
         if not "operator" in attribution_kwargs or attribution_kwargs["operator"] is None:
-            warnings.warn("No operator provided, using standard classification operator."\
+            warnings.warn("No operator provided, using standard classification operator. "\
                           + "For non-classification tasks, please specify an operator.")
             attribution_kwargs["operator"] = target_free_classification_operator
         
