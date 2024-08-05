@@ -23,6 +23,8 @@ At present, we made the following choices:
 ## Common API ##
 
 ```python
+projection = ProjectionMethod(model)
+
 explainer = ExampleMethod(
     cases_dataset,
     labels_dataset,
@@ -39,21 +41,31 @@ explanations = explainer.explain(inputs, targets)
 
 We tried to keep the API as close as possible to the one of the attribution methods to keep a consistent experience for the users.
 
-The `BaseExampleMethod` is an abstract base class designed for example-based methods used to explain classification models. It provides examples from a dataset (usually the training dataset) to help understand a model's predictions. Examples are projected from the input space to a search space using a [projection function](#projections). The projection function defines the search space. Then, examples are selected using a [search method](#search-methods) within the search space.
+The `BaseExampleMethod` is an abstract base class designed for example-based methods used to explain classification models. It provides examples from a dataset (usually the training dataset) to help understand a model's predictions. Examples are projected from the input space to a search space using a [projection function](#projections). The projection function defines the search space. Then, examples are selected using a [search method](#search-methods) within the search space. For all example-based methods, one can define the `distance` function that will be used by the search method. 
+
+We can broadly categorize example-based methods into four families: similar examples, counter-factuals, semi-factuals, and prototypes.
+
+- **Similar Examples**: This method involves finding instances in the dataset that are similar to a given instance. The similarity is often determined based on the feature space, and these examples can help in understanding the model's decision by showing what other data points resemble the instance in question.
+- **Counter Factuals**: Counterfactual explanations identify the minimal changes needed to an instance's features to change the model's prediction to a different, specified outcome. They help answer "what-if" scenarios by showing how altering certain aspects of the input would lead to a different decision.
+- **Semi Factuals**: Semifactual explanations describe hypothetical situations where most features of an instance remain the same except for one or a few features, without changing the overall outcome. They highlight which features could vary without altering the prediction.
+- **Prototypes**: Prototypes are representative examples from the dataset that summarize typical cases within a certain category or cluster. They act as archetypal instances that the model uses to make predictions, providing a reference point for understanding model behavior.
 
 ??? abstract "Table of example-based methods available"
 
-    | Method | Documentation | Family |
+    | Method | Family | Documentation |
     | --- | --- | --- |
-    | `SimilarExamples` | [SimilarExamples](api/example_based/methods/similar_examples) | Similar Examples |
-    | `Cole` | [Cole](api/example_based/methods/cole) | Similar Examples |
-    | `ProtoGreedy` | [ProtoGreedy](api/example_based/methods/proto_greedy/) | Prototypes |
-    | `ProtoDash` | [ProtoDash](api/example_based/methods/proto_dash/) | Prototypes |
-    | `MMDCritic` | [MMDCritic](api/example_based/methods/mmd_critic/) | Prototypes |
-    | `NaiveCounterFactuals` | [NaiveCounterFactuals](api/example_based/methods/naive_counter_factuals/) | Counter Factuals |
-    | `LabelAwareCounterFactuals` | [LabelAwareCounterFactuals](api/example_based/methods/label_aware_counter_factuals/) | Counter Factuals |
-    | `KLEORSimMiss` | [KLEOR](api/example_based/methods/kleor/) | Semi Factuals |
-    | `KLEORGlobalSim` | [KLEOR](api/example_based/methods/kleor/) | Semi Factuals |
+    | `SimilarExamples` | Similar Examples | [SimilarExamples](../similar_examples/similar_examples/) |
+    | `Cole` | Similar Examples | [Cole](../similar_examples/cole/) |
+    |  |  |  |
+    | `NaiveCounterFactuals` | Counter Factuals | [NaiveCounterFactuals](../counterfactuals/naive_counter_factuals/) |
+    | `LabelAwareCounterFactuals` | Counter Factuals | [LabelAwareCounterFactuals](../counterfactuals/label_aware_counter_factuals/) |
+    ||||
+    | `KLEORSimMiss` | Semi Factuals | [KLEOR](../semifactuals/kleor/) |
+    | `KLEORGlobalSim` | Semi Factuals | [KLEOR](../semifactuals/kleor/) |
+    ||||
+    | `ProtoGreedy` | Prototypes | [ProtoGreedy](../prototypes/proto_greedy/) |
+    | `ProtoDash` | Prototypes | [ProtoDash](../prototypes/proto_dash/) |
+    | `MMDCritic` | Prototypes | [MMDCritic](../prototypes/mmd_critic/) |
 
 ### Parameters ###
 
@@ -93,110 +105,22 @@ Returns the relevant examples to explain the (inputs, targets). Projects inputs 
 Projections are functions that map input samples to a search space where examples are retrieved with a `search_method`. The search space should be relevant for the model (e.g. projecting the inputs into the latent space of the model).
 
 !!!info
-    If one decides to use the identity function as a projection, the search space will be the input space, thus rather explaining the dataset than the model. In this case, it may be more relevant to directly use a `search_method` ([Search Methods](#search-methods)) for the dataset.
+    If one decides to use the identity function as a projection, the search space will be the input space, thus rather explaining the dataset than the model.
 
-The `Projection` class is an abstract base class for projections. It involves two parts: `space_projection` and `weights`. The samples are first projected to a new space and then weighted. 
+The `Projection` class is a base class for projections. It involves two parts: `space_projection` and `weights`. The samples are first projected to a new space and then weighted. 
 
 !!!warning
-    If both parts are `None`, the projection acts as an identity function. At least one part should involve the model to ensure meaningful distance calculations.
+    If both parts are `None`, the projection acts as an identity function. In general, we advise that one part should involve the model to ensure meaningful distance calculations with respect to the model.
 
-??? abstract "Table of projection methods available"
-
-    | Method | Documentation |
-    | --- | --- |
-    | `Projection` | HERE |
-    | `LatentSpaceProjection`| [LatentSpaceProjection](api/example_based/projections/latent_space_projection/) |
-    | `HadamardProjection` | [HadamardProjection](api/example_based/projections/hadamard_projection/) |
-    | `AttributionProjection` | [AttributionProjection](api/example_based/projections/attribution_projection/) |
-
-### Parameters ###
-
-- **get_weights** (`Optional[Union[Callable, tf.Tensor, np.ndarray]]`): Either a Tensor or a callable function. 
-  - **Tensor**: Weights are applied in the projected space.
-  - **Callable**: A function that takes inputs and targets, returning the weights (Tensor). Weights should match the input shape (possibly differing in channels).
-  
-  **Example**:
-  ```python
-    def get_weights_example(projected_inputs: Union[tf.Tensor, np.ndarray],
-                            targets: Optional[Union[tf.Tensor, np.ndarray]] = None):
-        # Compute weights using projected_inputs and targets.
-        weights = ...  # Custom logic involving the model.
-        return weights
-  ```
-
-- **space_projection** (`Optional[Callable]`): Callable that takes samples and returns a Tensor in the projected space. An example of a projected space is the latent space of a model.
-- **device** (`Optional[str]`): Device to use for the projection. If `None`, the default device is used.
-- **mappable** (`bool`): If `True`, the projection can be applied to a dataset through `Dataset.map`. Otherwise, the projection is done through a loop.
-
-### `project(self, inputs, targets=None)` ###
-
-Projects samples into a space meaningful for the model. This involves weighting the inputs, projecting them into a latent space, or both. This method should be called during initialization and for each explanation.
-
-- **inputs** (`Union[tf.Tensor, np.ndarray]`): Input samples to be explained. Expected shapes include (N, W), (N, T, W), (N, W, H, C).
-- **targets** (`Optional[Union[tf.Tensor, np.ndarray]]`): Additional parameter for `self.get_weights` function.
-
-**Returns:** `projected_samples` - The samples projected into the new space.
-
-!!!info
-    The `__call__` method is an alias for the `project` method.
-
-### `project_dataset(self, cases_dataset, targets_dataset=None)` ###
-
-Applies the projection to a dataset through `Dataset.map`.
-
-- **cases_dataset** (`tf.data.Dataset`): Dataset of samples to be projected.
-- **targets_dataset** (`Optional[tf.data.Dataset]`): Dataset of targets for the samples.
-
-**Returns:** `projected_dataset` - The projected dataset.
+To know more about projections and their importance, you can refer to the [Projections](../../projections/) section.
 
 ## Search Methods ##
 
 Search methods are used to retrieve examples from the `cases_dataset` that are relevant to the input samples.
 
-!!!info
+!!!warning
     In an search method, the `cases_dataset` is the dataset that has been projected with a `Projection` object (see the previous section). The search methods are used to find examples in this projected space.
 
-The `BaseSearchMethod` class is an abstract base class for example-based search methods. It defines the interface for search methods used to find examples in a dataset. This class should be inherited by specific search methods.
-
-??? abstract "Table of search methods available"
-
-    | Method | Documentation |
-    | --- | --- |
-    | `KNN` | [KNN](api/example_based/search_methods/knn/) |
-    | `FilterKNN` | [KNN](api/example_based/search_methods/knn/) |
-    | `ProtoGreedySearch` | [ProtoGreedySearch](api/example_based/search_methods/proto_greedy_search/) |
-    | `ProtoDashSearch` | [ProtoDashSearch](api/example_based/search_methods/proto_dash_search/) |
-    | `MMDCriticSearch` | [MMDCriticSearch](api/example_based/search_methods/mmd_critic_search/) |
-    | `KLEORSimMissSearch` | [KLEOR](api/example_based/search_methods/kleor/) |
-    | `KLEORGlobalSimSearch` | [KLEOR](api/example_based/search_methods/kleor/) |
-
-
-### Parameters ###
-
-- **cases_dataset** (`Union[tf.data.Dataset, tf.Tensor, np.ndarray]`): The dataset containing the examples to search in. It should be batched as TensorFlow provides no method to verify this. Ensure the dataset is not reshuffled at each iteration.
-- **k** (`int`): The number of examples to retrieve.
-- **search_returns** (`Optional[Union[List[str], str]]`): Elements to return in `self.find_examples()`. It should be a subset of `self._returns_possibilities`.
-- **batch_size** (`Optional[int]`): Number of samples treated simultaneously. It should match the batch size of the `cases_dataset` if it is a `tf.data.Dataset`.
-
-### Properties ###
-
-- **k** (`int`): Getter and setter for the `k` parameter.
-- **returns** (`Union[List[str], str]`): Getter and setter for the `returns` parameter. Defines the elements to return in `self.find_examples()`.
-
-### `find_examples(self, inputs, targets)` ###
-
-Abstract method to search for samples to return as examples. It should be implemented in subclasses. It may return the indices corresponding to the samples based on `self.returns` value.
-
-- **inputs** (`Union[tf.Tensor, np.ndarray]`): Input samples to be explained. Expected shapes include (N, W), (N, T, W), (N, W, H, C).
-- **targets** (`Optional[Union[tf.Tensor, np.ndarray]]`): Targets associated with the samples to be explained.
-
-**Returns:** `return_dict` - Dictionary containing the elements specified in `self.returns`.
-
-!!!info
-    The `__call__` method is an alias for the `find_examples` method.
-
-### `_returns_possibilities`
-
-Attribute thet list possible elements that can be returned by the search methods. For the base class: `["examples", "distances", "labels", "include_inputs"]`.
+Each example-based method has its own search method. The search method is defined in the `search_method_class` property of the `ExampleMethod` class.
 
 [^1]: [Natural Example-Based Explainability: a Survey (2023)](https://arxiv.org/abs/2309.03234)

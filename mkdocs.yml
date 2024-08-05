@@ -44,21 +44,20 @@ nav:
       - Craft: api/concepts/craft.md
   - Example based:
       - API Description: api/example_based/api_example_based.md
-      - Methods: 
-        - Cole: api/example_based/methods/cole.md
-        - Kleor: api/example_based/methods/kleor.md
-        - LabelAwareCounterFactuals: api/example_based/methods/label_aware_counter_factuals.md
-        - NaiveCounterFactuals: api/example_based/methods/naive_counter_factuals.md
-        - SimilarExamples: api/example_based/methods/similar_examples.md
+      - Similar Examples:
+        - SimilarExamples: api/example_based/similar_examples/similar_examples.md
+        - Cole: api/example_based/similar_examples/cole.md
+      - Counterfactuals:
+        - LabelAwareCounterFactuals: api/example_based/counterfactuals/label_aware_counter_factuals.md
+        - NaiveCounterFactuals: api/example_based/counterfactuals/naive_counter_factuals.md
+      - Semifactuals:
+        - Kleor: api/example_based/semifactuals/kleor.md
       - Prototypes: 
         - API Description: api/example_based/prototypes/api_prototypes.md
         - ProtoGreedy: api/example_based/prototypes/proto_greedy.md 
         - ProtoDash: api/example_based/prototypes/proto_dash.md
         - MMDCritic: api/example_based/prototypes/mmd_critic.md
       - Projections: api/example_based/projections.md
-      - Search Methods:
-        - Kleor: api/example_based/search_methods/kleor.md
-        - KNN: api/example_based/search_methods/knn.md
   - Feature visualization:
       - Modern Feature Visualization (MaCo): api/feature_viz/maco.md
       - Feature visualization: api/feature_viz/feature_viz.md
@@ -106,8 +105,8 @@ markdown_extensions:
       custom_checkbox: true
       clickable_checkbox: true
   - pymdownx.emoji:
-      emoji_index: !!python/name:materialx.emoji.twemoji
-      emoji_generator: !!python/name:materialx.emoji.to_svg
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
 
 extra:
   version:

@@ -45,13 +45,13 @@ class HadamardProjection(Projection):
         The method as described in the paper apply the separation on the last convolutional layer.
         To do so, the `"last_conv"` parameter will extract it.
         Otherwise, `-1` could be used for the last layer before softmax.
-    operator  # TODO: make a larger description.
+    operator
         Operator to use to compute the explanation, if None use standard predictions.
     device
         Device to use for the projection, if None, use the default device.
         Only used for PyTorch models. Ignored for TensorFlow models.
     """
-
+     # TODO: make a larger description of the operator arg.
     def __init__(
         self,
         model: Callable,

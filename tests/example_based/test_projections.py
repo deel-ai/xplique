@@ -123,7 +123,7 @@ def test_attribution_projection_mapping():
 
     model = _generate_model(input_shape=input_shape, output_shape=nb_labels)
 
-    projection = AttributionProjection(model, method=Saliency, latent_layer="last_conv")
+    projection = AttributionProjection(model, attribution_method=Saliency, latent_layer="last_conv")
 
     # Generate tf.data.Dataset from numpy
     train_dataset = tf.data.Dataset.from_tensor_slices(x_train).batch(3)

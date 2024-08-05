@@ -198,7 +198,7 @@ class Cole(SimilarExamples):
             # build attribution projection
             projection = AttributionProjection(
                 model=model,
-                method=attribution_method,
+                attribution_method=attribution_method,
                 latent_layer=latent_layer,
                 **attribution_kwargs,
             )

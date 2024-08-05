@@ -33,34 +33,73 @@ We extended to the $k$ nearest neighbors of the NUN for both approaches.
 !!!tips
     As KLEOR methods use counterfactuals, they can also return them. Therefore, it is possible to obtain both semi-factuals and counterfactuals with an unique method. To do so "nuns" and "nuns_labels" should be added to the `cases_returns` list.
 
-## Example
+## Examples
 
 ```python
-from xplique.example_based import KLEORGlobalSim, KLEORSimMiss
+from xplique.example_based import KLEORSimMiss
 
+# loading
 cases_dataset = ... # load the training dataset
-targets = ... # load the targets of the training dataset
+targets = ... # load the one-hot encoding of predicted labels of the training dataset
 
+# parameters
 k = 5
+distance = "euclidean"
+case_returns = ["examples", "nuns"]
 
-# instantiate the KLEOR objects
+# instantiate the KLEOR object
 kleor_sim_miss = KLEORSimMiss(cases_dataset=cases_dataset,
                               targets_dataset=targets,
                               k=k,
+                              distance=distance,
                              )
 
+# load the test samples and targets
+test_samples = ... # load the test samples to search for
+test_targets = ... # load the one-hot encoding of the test samples' predictions
+
+# search the SFs for the test samples
+sim_miss_sf = kleor_sim_miss.explain(test_samples, test_targets)
+
+# get the semi-factuals
+semifactuals = global_sim_sf["examples"]
+
+# get the counterfactuals
+counterfactuals = global_sim_sf["nuns"]
+```
+
+```python
+from xplique.example_based import KLEORGlobalSim
+
+# loading
+cases_dataset = ... # load the training dataset
+targets = ... # load the one-hot encoding of predicted labels of the training dataset
+
+# parameters
+k = 5
+distance = "euclidean"
+case_returns = ["examples", "nuns"]
+
+# instantiate the KLEOR object
 kleor_global_sim = KLEORGlobalSim(cases_dataset=cases_dataset,
                                   targets_dataset=targets,
                                   k=k,
+                                  distance=distance,
+                                  case_returns=case_returns,
                                  )
 
 # load the test samples and targets
 test_samples = ... # load the test samples to search for
-test_targets = ... # load the targets of the test samples
+test_targets = ... # load the one-hot encoding of the test samples' predictions
 
 # search the SFs for the test samples
-sim_miss_sf = kleor_sim_miss.explain(test_samples, test_targets)
 global_sim_sf = kleor_global_sim.explain(test_samples, test_targets)
+
+# get the semi-factuals
+semifactuals = global_sim_sf["examples"]
+
+# get the counterfactuals
+counterfactuals = global_sim_sf["nuns"]
 ```
 
 ## Notebooks

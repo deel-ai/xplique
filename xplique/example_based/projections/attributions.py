@@ -57,11 +57,11 @@ class AttributionProjection(Projection):
     def __init__(
         self,
         model: Callable,
-        method: BlackBoxExplainer = Saliency,
+        attribution_method: BlackBoxExplainer = Saliency,
         latent_layer: Optional[Union[str, int]] = None,
         **attribution_kwargs
     ):
-        self.method = method
+        self.attribution_method = attribution_method
 
         if latent_layer is None:
             # no split
@@ -79,7 +79,7 @@ class AttributionProjection(Projection):
             attribution_kwargs["operator"] = target_free_classification_operator
         
         # compute attributions
-        get_weights = self.method(self.predictor, **attribution_kwargs)
+        get_weights = self.attribution_method(self.predictor, **attribution_kwargs)
 
         # set methods
         super().__init__(get_weights, space_projection, mappable=False)

@@ -15,15 +15,18 @@ COLE for Contributions Oriented Local Explanations was introduced by Kenny & Kea
 
     -- <cite>[COLE paper](https://researchrepository.ucd.ie/handle/10197/11064)</cite>[^1]
 
-The core idea of the COLE approach is to use [attribution maps](api/attributions/api_attributions/) to define a relevant search space for the K-Nearest Neighbors (KNN) search.
+The core idea of the COLE approach is to use [attribution maps](../../../attributions/api_attributions/) to define a relevant search space for the K-Nearest Neighbors (KNN) search.
 
 More specifically, the COLE approach is based on the following steps:
+
 - (1) Given an input sample $x$, compute the attribution map $A(x)$
+
 - (2) Consider the projection space defined by: $p: x \rightarrow A(x) \odot x$ ($\odot$ denotes the element-wise product)
+
 - (3) Perform a KNN search in the projection space to find the most similar training samples
 
 !!! info
-    In the original paper, the authors focused on Multi-Layer Perceptrons (MLP) and three attribution methods (LPR, Integrated Gradient, and DeepLift). We decided to implement a COLE method that generalizes to a more broader range of Neural Networks and attribution methods (see [API Attributions documentation](api/attributions/api_attributions/) to see the list of methods available).
+    In the original paper, the authors focused on Multi-Layer Perceptrons (MLP) and three attribution methods (LPR, Integrated Gradient, and DeepLift). We decided to implement a COLE method that generalizes to a more broader range of Neural Networks and attribution methods (see [API Attributions documentation](../../../attributions/api_attributions/) to see the list of methods available).
 
 ## Example
 
@@ -34,7 +37,10 @@ from xplique.attributions import Saliency
 model = ... # load the model
 cases_dataset = ... # load the training dataset
 target_dataset = ... # load the target dataset (predicted one-hot encoding of model's predictions)
+
+# parameters
 k = 5
+distance = "euclidean"
 
 # instantiate the Cole object
 cole = Cole(
@@ -44,9 +50,9 @@ cole = Cole(
     attribution_method=Saliency,
 )
 
-# load the test samples
-test_samples = ... # load the test samples
-test_targets = ... # load the test targets
+# load the test samples and targets
+test_samples = ... # load the test samples to search for
+test_targets = ... # load the one-hot encoding of the test samples' predictions
 
 # search the most similar samples with the COLE method
 similar_samples = cole.explain(test_samples, test_targets)

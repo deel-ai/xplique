@@ -8,18 +8,67 @@ Consequently, we defined the general `Projection` class that will be used as a b
 
 In addition, we provide concrete implementations of the `Projection` class: `LatentSpaceProjection`, `AttributionProjection`, and `HadamardProjection`.
 
-## `Projection` class
-
 {{xplique.example_based.projections.Projection}}
 
-## `LatentSpaceProjection` class
+!!!info
+    The `__call__` method is an alias for the `project` method.
+
+## Defining a custom projection
+
+To define a custom projection, one needs to implement the `space_projection` and/or `get_weights` methods. The `space_projection` method should return the projected sample, and the `get_weights` method should return the weights of the features of the projected sample.
+
+!!!info
+    The `get_weights` method should take as input the original sample once it has been projected using the `space_projection` method.
+
+For the sake of clarity, we provide an example of a custom projection that projects the samples into a latent space (the final convolution block of the ResNet50 model) and weights the features with the gradients of the model's output with respect to the inputs once they have gone through the layers until the final convolutional layer.
+
+```python
+import tensorflow as tf
+from xplique.attributions import Saliency
+from xplique.example_based.projections import Projection
+
+# load the model
+model = tf.keras.applications.ResNet50(weights="imagenet", include_top=True)
+
+latent_layer = model.get_layer("conv5_block3_out") # output of the final convolutional block
+features_extractor = tf.keras.Model(
+    model.input, latent_layer.output, name="features_extractor"
+)
+
+# reconstruct the second part of the InceptionV3 model
+second_input = tf.keras.Input(shape=latent_layer.output.shape[1:])
+
+x = second_input
+layer_found = False
+for layer in model.layers:
+    if layer_found:
+        x = layer(x)
+    if layer == latent_layer:
+        layer_found = True
+
+predictor = tf.keras.Model(
+    inputs=second_input,
+    outputs=x,
+    name="predictor"
+)
+
+# build the custom projection
+space_projection = features_extractor
+get_weights = Saliency(predictor)
+
+custom_projection = Projection(space_projection=space_projection, get_weights=get_weights, mappable=False)
+
+# build random samples
+rdm_imgs = tf.random.normal((5, 224, 224, 3))
+rdm_targets = tf.random.uniform(shape=[5], minval=0, maxval=1000, dtype=tf.int32)
+rdm_targets = tf.one_hot(rdm_targets, depth=1000)
+
+# project the samples
+projections = custom_projection(rdm_imgs, rdm_targets)
+```
 
 {{xplique.example_based.projections.LatentSpaceProjection}}
 
-## `AttributionProjection` class
-
 {{xplique.example_based.projections.AttributionProjection}}
-
-## `HadamardProjection` class
 
 {{xplique.example_based.projections.HadamardProjection}}

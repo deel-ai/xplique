@@ -11,10 +11,10 @@
 !!!note
     The paper referenced here is not exactly the one we implemented. However, it is probably the closest in essence of what we implemented.
 
-In contrast to the [Naive Counterfactuals](api/example_based/methods/naive_counter_factuals/) approach, the Label Aware Counterfactuals leverage an *a priori* knowledge of the Counterfactuals' (CFs) targets to guide the search for the CFs (*e.g.* one is looking for a CF of the digit 8 in MNIST dataset within the digit 0 instances).
+In contrast to the [Naive Counterfactuals](../../counterfactuals/naive_counter_factuals/) approach, the Label Aware CounterFactuals leverage an *a priori* knowledge of the Counterfactuals' (CFs) targets to guide the search for the CFs (*e.g.* one is looking for a CF of the digit 8 in MNIST dataset within the digit 0 instances).
 
 !!!warning
-    Consequently, for this class, when a user call the `explain` method, the user is not expected to provide the targets corresponding to the input samples but rather a one-hot encoding of the targets of the CFs to search for.
+    Consequently, for this class, when a user call the `explain` method, the user is not expected to provide the targets corresponding to the input samples but rather a one-hot encoding of the label expected for the CFs.
 
 !!!info
     One can use the `Projection` object to compute the distances between the samples (e.g. search for the CF in the latent space of a model).
@@ -22,23 +22,26 @@ In contrast to the [Naive Counterfactuals](api/example_based/methods/naive_count
 ## Example
 
 ```python
-from xplique.example_based import LabelAwareCounterfactuals
+from xplique.example_based import LabelAwareCounterFactuals
 
 # load the training dataset
 cases_dataset = ... # load the training dataset
-targets_dataset = ... # load the targets of the training dataset
+targets_dataset = ... # load the one-hot encoding of predicted labels of the training dataset
 
+# parameters
 k = 5
+distance = "euclidean"
 
 # instantiate the LabelAwareCounterfactuals object
-lacf = LabelAwareCounterfactuals(cases_dataset=cases_dataset,
+lacf = LabelAwareCounterFactuals(cases_dataset=cases_dataset,
                                 targets_dataset=targets_dataset,
                                 k=k,
+                                distance=distance,
                                )
 
 # load the test samples
 test_samples = ... # load the test samples to search for
-test_cf_targets = ... # WARNING: provide the one-hot encoding of the targets of the CFs to search for
+test_cf_targets = ... # WARNING: provide the one-hot encoding of the expected label of the CFs
 
 # search the CFs for the test samples
 counterfactuals = lacf.explain(test_samples, test_cf_targets)
@@ -48,4 +51,4 @@ counterfactuals = lacf.explain(test_samples, test_cf_targets)
 
 TODO: Add notebooks
 
-{{xplique.example_based.counterfactuals.LabelAwareCounterfactuals}}
+{{xplique.example_based.counterfactuals.LabelAwareCounterFactuals}}
