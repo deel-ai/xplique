@@ -15,7 +15,7 @@ While not being exhaustive we tried to cover a range of methods that are represe
 
 At present, we made the following choices:
 - Focus on methods that are natural example methods (post-hoc and non-generative, see the paper above for more details).
-- Try to unify the three families of approaches with a common API.
+- Try to unify the four families of approaches with a common API.
 
 !!! info
     We are in the early stages of development and are looking for feedback on the API design and the methods we have chosen to implement. Also, we are counting on the community to furnish the collection of methods available. If you are willing to contribute reach us on the [GitHub](https://github.com/deel-ai/xplique) repository (with an issue, pull request, ...).
@@ -41,14 +41,14 @@ explanations = explainer.explain(inputs, targets)
 
 We tried to keep the API as close as possible to the one of the attribution methods to keep a consistent experience for the users.
 
-The `BaseExampleMethod` is an abstract base class designed for example-based methods used to explain classification models. It provides examples from a dataset (usually the training dataset) to help understand a model's predictions. Examples are projected from the input space to a search space using a [projection function](#projections). The projection function defines the search space. Then, examples are selected using a [search method](#search-methods) within the search space. For all example-based methods, one can define the `distance` function that will be used by the search method. 
+The `BaseExampleMethod` is an abstract base class designed for example-based methods used to explain classification models. It provides examples from a dataset (usually the training dataset) to help understand a model's predictions. Examples are projected from the input space to a search space using a [projection function](#projections). The projection function defines the search space. Then, examples are selected using a [search method](#search-methods) within the search space. For all example-based methods, one can define the `distance` that will be used by the search method. 
 
 We can broadly categorize example-based methods into four families: similar examples, counter-factuals, semi-factuals, and prototypes.
 
 - **Similar Examples**: This method involves finding instances in the dataset that are similar to a given instance. The similarity is often determined based on the feature space, and these examples can help in understanding the model's decision by showing what other data points resemble the instance in question.
 - **Counter Factuals**: Counterfactual explanations identify the minimal changes needed to an instance's features to change the model's prediction to a different, specified outcome. They help answer "what-if" scenarios by showing how altering certain aspects of the input would lead to a different decision.
 - **Semi Factuals**: Semifactual explanations describe hypothetical situations where most features of an instance remain the same except for one or a few features, without changing the overall outcome. They highlight which features could vary without altering the prediction.
-- **Prototypes**: Prototypes are representative examples from the dataset that summarize typical cases within a certain category or cluster. They act as archetypal instances that the model uses to make predictions, providing a reference point for understanding model behavior.
+- **Prototypes**: Prototypes are representative examples from the dataset that summarize typical cases within a certain category or cluster. They act as archetypal instances that the model uses to make predictions, providing a reference point for understanding model behavior. Additional documentation can be found in the [Prototypes API documentation](../prototypes/api_prototypes/).
 
 ??? abstract "Table of example-based methods available"
 
@@ -93,8 +93,8 @@ We can broadly categorize example-based methods into four families: similar exam
 
 Returns the relevant examples to explain the (inputs, targets). Projects inputs using `self.projection` and finds examples using the `self.search_method`.
 
-- **inputs** (`Union[tf.Tensor, np.ndarray]`): Input samples to be explained.
-- **targets** (`Optional[Union[tf.Tensor, np.ndarray]]`): Targets associated with the `cases_dataset` for dataset projection.
+- **inputs** (`Union[tf.Tensor, np.ndarray]`): Input samples to be explained. Shape: (n, ...) where n is the number of samples.
+- **targets** (`Optional[Union[tf.Tensor, np.ndarray]]`): Targets associated with the `cases_dataset` for dataset projection. Shape: (n, nb_classes) where n is the number of samples and nb_classes is the number of classes.
 
 **Returns:** Dictionary with elements listed in `self.returns`.
 
