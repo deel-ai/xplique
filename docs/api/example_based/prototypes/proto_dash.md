@@ -1,4 +1,4 @@
-# ProtoDashSearch
+# ProtoDash
 
 <sub>
     <img src="https://upload.wikimedia.org/wikipedia/commons/d/d0/Google_Colaboratory_SVG_Logo.svg" width="20">
@@ -8,7 +8,7 @@
 </sub>[View source](https://github.com/deel-ai/xplique/blob/antonin/example-based-merge/xplique/example_based/search_methods/proto_greedy_search.py) |
 📰 [Paper](https://arxiv.org/abs/1707.01212)
 
-`ProtoDahsSearch` associated non-negative weights to prototypes which are indicative of their importance. This approach allows for identifying both prototypes and criticisms (the least weighted examples among prototypes) by maximmizing the same weighted objective function.
+`ProtoDash` associated non-negative weights to prototypes which are indicative of their importance. This approach allows for identifying both prototypes and criticisms (the least weighted examples among prototypes) by maximmizing the same weighted objective function.
 
 !!! quote
     Our work notably generalizes the recent work
@@ -28,7 +28,7 @@ F(\mathcal{P},w)=\frac{2}{n}\sum_{i,j=1}^{|\mathcal{P}|,n}w_i\kappa(p_i,x_j)-\su
 \end{equation}
 where $w$ are non-negative weights for each prototype. The problem then consist on finding a subset $\mathcal{P}$ with a corresponding $w$ that maximizes $J(\mathcal{P}) \equiv \max_{w:supp(w)\in \mathcal{P},w\ge 0} J(\mathcal{P},w)$ s.t. $|\mathcal{P}| \leq m=m_p+m_c$. 
 
-[Gurumoorthy et al., 2019](https://arxiv.org/abs/1707.01212) proposed `ProtoDash` algorithm, which is much faster that `ProtoGreedy` without compromising on the quality of the solution. In fact, `ProtoGreedy` selects the next element that maximizes the increment of the scoring function, whereas `ProtoDash` selects the next element that maximizes a tight lower bound on the increment of the scoring function.
+[Gurumoorthy et al., 2019](https://arxiv.org/abs/1707.01212) proposed `ProtoDash` algorithm, which is much faster that [`ProtoGreedy`](../proto_greedy/) without compromising on the quality of the solution. In fact, `ProtoGreedy` selects the next element that maximizes the increment of the scoring function, whereas `ProtoDash` selects the next element that maximizes a tight lower bound on the increment of the scoring function.
 
 ## Example
 
@@ -55,6 +55,6 @@ local_prototypes = explainer(inputs)
 - [**ProtoDash**: Going Further](https://colab.research.google.com/drive/1nsB7xdQbU0zeYQ1-aB_D-M67-RAnvt4X)
 
 
-{{xplique.example_based.search_methods.ProtoDashSearch}}
+{{xplique.example_based.prototypes.ProtoDash}}
 
 [^1]: [Visual Explanations from Deep Networks via Gradient-based Localization (2016).](https://arxiv.org/abs/1610.02391)

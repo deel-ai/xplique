@@ -1,4 +1,4 @@
-# MMDCriticSearch
+# MMDCritic
 
 <sub>
     <img src="https://upload.wikimedia.org/wikipedia/commons/d/d0/Google_Colaboratory_SVG_Logo.svg" width="20">
@@ -8,7 +8,7 @@
 </sub>[View source](https://github.com/deel-ai/xplique/blob/antonin/example-based-merge/xplique/example_based/search_methods/proto_greedy_search.py) |
 📰 [Paper](https://proceedings.neurips.cc/paper_files/paper/2016/file/5680522b8e2bb01943234bce7bf84534-Paper.pdf)
 
-`MMDCriticSearch` finds prototypes and criticisms by maximizing two separate objectives based on the Maximum Mean Discrepancy (MMD).
+`MMDCritic` finds prototypes and criticisms by maximizing two separate objectives based on the Maximum Mean Discrepancy (MMD).
 
 !!! quote
     MMD-critic uses the MMD statistic as a measure of similarity between points and potential prototypes, and
@@ -52,7 +52,7 @@ local_prototypes = explainer(inputs)
 - [**MMDCritic**: Going Further](https://colab.research.google.com/drive/1nsB7xdQbU0zeYQ1-aB_D-M67-RAnvt4X)
 
 
-{{xplique.example_based.search_methods.MMDCriticSearch}}
+{{xplique.example_based.prototypes.MMDCritic}}
 
 [^1]: [Visual Explanations from Deep Networks via Gradient-based Localization (2016).](https://arxiv.org/abs/1610.02391)
 

@@ -1,4 +1,4 @@
-# ProtoGreedySearch
+# ProtoGreedy
 
 <sub>
     <img src="https://upload.wikimedia.org/wikipedia/commons/d/d0/Google_Colaboratory_SVG_Logo.svg" width="20">
@@ -8,7 +8,7 @@
 </sub>[View source](https://github.com/deel-ai/xplique/blob/antonin/example-based-merge/xplique/example_based/search_methods/proto_greedy_search.py) |
 📰 [Paper](https://arxiv.org/abs/1707.01212)
 
-`ProtoGreedySearch` associated non-negative weights to prototypes which are indicative of their importance. This approach allows for identifying both prototypes and criticisms (the least weighted examples among prototypes) by maximmizing the same weighted objective function.
+`ProtoGreedy` associated non-negative weights to prototypes which are indicative of their importance. This approach allows for identifying both prototypes and criticisms (the least weighted examples among prototypes) by maximizing the same weighted objective function.
 
 !!! quote
     Our work notably generalizes the recent work
@@ -57,6 +57,6 @@ local_prototypes = explainer(inputs)
 - [**ProtoGreedy**: Going Further](https://colab.research.google.com/drive/1nsB7xdQbU0zeYQ1-aB_D-M67-RAnvt4X)
 
 
-{{xplique.example_based.search_methods.ProtoGreedySearch}}
+{{xplique.example_based.prototypes.ProtoGreedy}}
 
 [^1]: [Visual Explanations from Deep Networks via Gradient-based Localization (2016).](https://arxiv.org/abs/1610.02391)
