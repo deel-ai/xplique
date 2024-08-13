@@ -3,6 +3,7 @@ import tensorflow as tf
 from tensorflow.keras.layers import (
     Dense,
     Conv2D,
+    Conv1D,
     Activation,
     Dropout,
     Flatten,
@@ -13,6 +14,8 @@ from tensorflow.keras.layers import (
 from xplique.attributions import Saliency
 from xplique.example_based.projections import Projection, AttributionProjection, LatentSpaceProjection, HadamardProjection
 from xplique.example_based.projections.commons import model_splitting
+
+from ..utils import almost_equal
 
 
 def get_setup(input_shape, nb_samples=10, nb_labels=2):
@@ -93,6 +96,27 @@ def test_simple_projection_mapping():
     # Apply the projection by iterating over the dataset
     projection.mappable = False
     projected_train_dataset = projection.project_dataset(train_dataset, targets_dataset)
+
+
+def test_model_splitting():
+    """
+    Test if projected samples have the expected values
+    """
+    x_train = np.reshape(np.arange(0, 100), (10, 10))
+
+    model = tf.keras.Sequential()
+    model.add(Input(shape=(10,)))
+    model.add(Dense(10, name="dense1"))
+    model.add(Dense(1, name="dense2"))
+    model.compile(loss="categorical_crossentropy", optimizer="sgd")
+
+    model.get_layer("dense1").set_weights([np.eye(10) * np.sign(np.arange(-4.5, 5.5)), np.zeros(10)])
+    model.get_layer("dense2").set_weights([np.ones((10, 1)), np.zeros(1)])
+
+    # Split the model
+    features_extractor, predictor = model_splitting(model, latent_layer="dense1")
+
+    assert almost_equal(predictor(features_extractor(x_train)).numpy(), model(x_train))
 
 
 def test_latent_space_projection_mapping():
