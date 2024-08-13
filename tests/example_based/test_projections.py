@@ -11,7 +11,7 @@ from tensorflow.keras.layers import (
 )
 
 from xplique.attributions import Saliency
-from xplique.example_based.projections import Projection, AttributionProjection, LatentSpaceProjection
+from xplique.example_based.projections import Projection, AttributionProjection, LatentSpaceProjection, HadamardProjection
 from xplique.example_based.projections.commons import model_splitting
 
 
@@ -81,13 +81,18 @@ def test_simple_projection_mapping():
 
     space_projection = lambda x, y=None: tf.nn.max_pool2d(x, ksize=3, strides=1, padding="SAME")
 
-    projection = Projection(get_weights=weights, space_projection=space_projection)
+    projection = Projection(get_weights=weights, space_projection=space_projection, mappable=True)
 
     # Generate tf.data.Dataset from numpy
-    train_dataset = tf.data.Dataset.from_tensor_slices((x_train, y_train)).batch(3)
+    train_dataset = tf.data.Dataset.from_tensor_slices(x_train).batch(3)
+    targets_dataset = tf.data.Dataset.from_tensor_slices(y_train).batch(3)
 
     # Apply the projection by mapping the dataset
-    projected_train_dataset = projection.project_dataset(train_dataset)
+    projected_train_dataset = projection.project_dataset(train_dataset, targets_dataset)
+
+    # Apply the projection by iterating over the dataset
+    projection.mappable = False
+    projected_train_dataset = projection.project_dataset(train_dataset, targets_dataset)
 
 
 def test_latent_space_projection_mapping():
@@ -105,10 +110,37 @@ def test_latent_space_projection_mapping():
     projection = LatentSpaceProjection(model, "last_conv")
 
     # Generate tf.data.Dataset from numpy
-    train_dataset = tf.data.Dataset.from_tensor_slices((x_train, y_train)).batch(3)
+    train_dataset = tf.data.Dataset.from_tensor_slices(x_train).batch(3)
+    targets_dataset = tf.data.Dataset.from_tensor_slices(y_train).batch(3)
 
     # Apply the projection by mapping the dataset
-    projected_train_dataset = projection.project_dataset(train_dataset)
+    projected_train_dataset = projection.project_dataset(train_dataset, targets_dataset)
+    projected_train_dataset = projection._map_project_dataset(train_dataset, targets_dataset)
+    projected_train_dataset = projection._loop_project_dataset(train_dataset, targets_dataset)
+
+
+def test_hadamard_projection_mapping():
+    """
+    Test if the hadamard projection can be mapped.
+    """
+    # Setup
+    input_shape = (7, 7, 3)
+    nb_samples = 10
+    nb_labels = 2
+    x_train, _, y_train = get_setup(input_shape, nb_samples=nb_samples, nb_labels=nb_labels)
+
+    model = _generate_model(input_shape=input_shape, output_shape=nb_labels)
+
+    projection = HadamardProjection(model, "last_conv")
+
+    # Generate tf.data.Dataset from numpy
+    train_dataset = tf.data.Dataset.from_tensor_slices(x_train).batch(3)
+    targets_dataset = tf.data.Dataset.from_tensor_slices(y_train).batch(3)
+
+    # Apply the projection by mapping the dataset
+    projected_train_dataset = projection.project_dataset(train_dataset, targets_dataset)
+    projected_train_dataset = projection._map_project_dataset(train_dataset, targets_dataset)
+    projected_train_dataset = projection._loop_project_dataset(train_dataset, targets_dataset)
 
 
 def test_attribution_projection_mapping():
