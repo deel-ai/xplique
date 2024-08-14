@@ -86,6 +86,13 @@ def _tf_model_splitting(model: tf.keras.Model,
     latent_layer
         Layer used to split the `model`.
     """
+
+    warnings.warn(
+        "Automatically splitting the provided TensorFlow model into two parts. "\
+        +"This splitting is not robust to all models. "\
+        +"It is recommended to split the model manually. "\
+        +"Then the splitted parts can be provided through the `from_splitted_model` method.")
+    
     if latent_layer == "last_conv":
         latent_layer = next(
             layer for layer in model.layers[::-1] if hasattr(layer, "filters")
@@ -153,9 +160,12 @@ def _torch_model_splitting(model: 'torch.nn.Module',
         import torch.nn as nn
         from ...wrappers import TorchWrapper
 
-        warnings.warn("Automatically splitting the provided PyTorch model into two parts. "\
-                     +"This splitting is based on `model.named_children()`. "\
-                     +"If the model cannot be reconstructed via sub-modules, errors are to be expected.")
+        warnings.warn(
+            "Automatically splitting the provided PyTorch model into two parts. "\
+            +"This splitting is based on `model.named_children()`. "\
+            +"If the model cannot be reconstructed via sub-modules, errors are to be expected. "\
+            +"It is recommended to split the model manually and wrap it with `TorchWrapper`. "\
+            +"Then the wrapped parts can be provided through the `from_splitted_model` method.")
 
         if device is None:
             warnings.warn("No device provided for the projection, using 'cuda' if available, else 'cpu'.")
