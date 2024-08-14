@@ -137,8 +137,8 @@ def get_distance_function(distance: Union[int, str, Callable] = "euclidean",) ->
         return lambda x1, x2: _chebyshev_distance(x1, x2)
     else:
         raise AttributeError(
-            "The distance parameter is expected to be either a Callable, "
-            + f" an integer, 'inf', or a string in {_distances.keys()}. "
-            +f"But a {type(distance)} was received, with value {distance}."
+            "The distance parameter is expected to be either a Callable, "\
+            + f" an integer, 'inf', or a string in {_distances.keys()}. "\
+            + f"But a {type(distance)} was received, with value {distance}."
         )
 

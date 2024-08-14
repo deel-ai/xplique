@@ -16,8 +16,8 @@ from .projections import Projection
 
 class NaiveCounterFactuals(BaseExampleMethod):
     """
-    This class allows to search for counterfactuals by searching for the closest sample to a query in a projection space
-    that do not have the same model's prediction. 
+    This class allows to search for counterfactuals by searching for the closest sample to
+    a query in a projection space that do not have the same model's prediction. 
     It is a naive approach as it follows a greedy approach.
 
     Parameters
@@ -28,7 +28,8 @@ class NaiveCounterFactuals(BaseExampleMethod):
         Be careful, `tf.data.Dataset` are often reshuffled at each iteration, be sure that it is not
         the case for your dataset, otherwise, examples will not make sense.
     targets_dataset
-        Targets are expected to be the one-hot encoding of the model's predictions for the samples in cases_dataset.
+        Targets are expected to be the one-hot encoding of
+        the model's predictions for the samples in cases_dataset.
         `tf.data.Dataset` are assumed to be batched as tensorflow provide no method to verify it.
         Batch size and cardinality of other datasets should match `cases_dataset`.
         Be careful, `tf.data.Dataset` are often reshuffled at each iteration, be sure that it is not
@@ -44,8 +45,7 @@ class NaiveCounterFactuals(BaseExampleMethod):
     projection
         Projection or Callable that project samples from the input space to the search space.
         The search space should be a space where distances are relevant for the model.
-        It should not be `None`, otherwise, the model is not involved thus not explained. If you are interested in
-        searching the input space, you should use a `BaseSearchMethod` instead. 
+        It should not be `None`, otherwise, the model is not involved thus not explained. 
 
         Example of Callable:
         ```
@@ -109,16 +109,17 @@ class NaiveCounterFactuals(BaseExampleMethod):
     @property
     def search_method_class(self):
         """
-        This property defines the search method class to use for the search. In this case, it is the FilterKNN that
-        is an efficient KNN search method ignoring non-acceptable cases, thus not considering them in the search.
+        This property defines the search method class to use for the search.
+        In this case, it is the FilterKNN that is an efficient KNN search method
+        ignoring non-acceptable cases, thus not considering them in the search.
         """
         return FilterKNN
 
 
     def filter_fn(self, _, __, targets, cases_targets) -> tf.Tensor:
         """
-        Filter function to mask the cases for which the model's prediction is different from the model's prediction
-        on the inputs.
+        Filter function to mask the cases for which the model's prediction
+        is different from the model's prediction on the inputs.
         """
         # get the labels predicted by the model
         # (n, )
@@ -133,8 +134,8 @@ class NaiveCounterFactuals(BaseExampleMethod):
 
 class LabelAwareCounterFactuals(BaseExampleMethod):
     """
-    This method will search the counterfactuals of a query within an expected class. This class should be provided with
-    the query when calling the explain method.
+    This method will search the counterfactuals of a query within an expected class.
+    This class should be provided with the query when calling the explain method.
 
     Parameters
     ----------
@@ -144,7 +145,8 @@ class LabelAwareCounterFactuals(BaseExampleMethod):
         Be careful, `tf.data.Dataset` are often reshuffled at each iteration, be sure that it is not
         the case for your dataset, otherwise, examples will not make sense.
     targets_dataset
-        Targets are expected to be the one-hot encoding of the model's predictions for the samples in cases_dataset.
+        Targets are expected to be the one-hot encoding of the model's predictions
+        for the samples in cases_dataset.
         `tf.data.Dataset` are assumed to be batched as tensorflow provide no method to verify it.
         Batch size and cardinality of other datasets should match `cases_dataset`.
         Be careful, `tf.data.Dataset` are often reshuffled at each iteration, be sure that it is not
@@ -160,8 +162,7 @@ class LabelAwareCounterFactuals(BaseExampleMethod):
     projection
         Projection or Callable that project samples from the input space to the search space.
         The search space should be a space where distances are relevant for the model.
-        It should not be `None`, otherwise, the model is not involved thus not explained. If you are interested in
-        searching the input space, you should use a `BaseSearchMethod` instead. 
+        It should not be `None`, otherwise, the model is not involved thus not explained.
 
         Example of Callable:
         ```
@@ -207,11 +208,13 @@ class LabelAwareCounterFactuals(BaseExampleMethod):
             batch_size=batch_size,
         )
 
-        # raise a warning to specify that target in the explain method is not the same as the target used for
-        # the target dataset
-        warnings.warn("If your projection method requires the target, be aware that when using the explain method,"
-                        " the target provided is the class within one should search for the counterfactual.\nThus,"
-                        " it is possible that the projection of the query is going wrong.")
+        # raise a warning to specify that target in the explain method is not the same
+        # as the target used for the target dataset
+        warnings.warn(
+            "If your projection method requires the target, "\
+            + "be aware that when using the explain method,"\
+            + "the target provided is the class within one should search for the counterfactual."\
+            + "\nThus, it is possible that the projection of the query is going wrong.")
 
         # set distance function and order for the search method
         self.distance = distance
@@ -228,20 +231,21 @@ class LabelAwareCounterFactuals(BaseExampleMethod):
             filter_fn=self.filter_fn,
             order=self.order
         )
-    
+
     @property
     def search_method_class(self):
         """
-        This property defines the search method class to use for the search. In this case, it is the FilterKNN that
-        is an efficient KNN search method ignoring non-acceptable cases, thus not considering them in the search.
+        This property defines the search method class to use for the search.
+        In this case, it is the FilterKNN that is an efficient KNN search method ignoring
+        non-acceptable cases, thus not considering them in the search.
         """
         return FilterKNN
 
 
     def filter_fn(self, _, __, cf_expected_classes, cases_targets) -> tf.Tensor:
         """
-        Filter function to mask the cases for which the target is different from the target(s) expected for the
-        counterfactuals.
+        Filter function to mask the cases for which the target is different from
+        the target(s) expected for the counterfactuals.
 
         Parameters
         ----------
@@ -263,8 +267,10 @@ class LabelAwareCounterFactuals(BaseExampleMethod):
     ):
         """
         Return the relevant CF examples to explain the inputs.
-        The CF examples are searched within cases for which the target is the one provided in `cf_targets`.
-        It projects inputs with `self.projection` in the search space and find examples with the `self.search_method`.
+        The CF examples are searched within cases
+        for which the target is the one provided in `cf_targets`.
+        It projects inputs with `self.projection` in the search space and
+        find examples with the `self.search_method`.
 
         Parameters
         ----------
@@ -279,7 +285,8 @@ class LabelAwareCounterFactuals(BaseExampleMethod):
         -------
         return_dict
             Dictionary with listed elements in `self.returns`.
-            The elements that can be returned are defined with _returns_possibilities static attribute of the class.
+            The elements that can be returned are defined with the `_returns_possibilities`
+            static attribute of the class.
         """
         # project inputs into the search space
         projected_inputs = self.projection(inputs)

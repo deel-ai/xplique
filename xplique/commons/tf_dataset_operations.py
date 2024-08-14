@@ -204,18 +204,18 @@ def dataset_gather(dataset: tf.data.Dataset, indices: tf.Tensor) -> tf.Tensor:
     """
     if dataset is None:
         return None
-    
+
     if len(indices.shape) != 3 or indices.shape[-1] != 2:
         raise ValueError(
-            "Indices should have dimensions (n, k, 2), "
-            + "where n represent the number of inputs and k the number of corresponding examples. "
-            + "The index of each element is encoded by two values, "
-            + "the batch index and the index of the element in the batch. "
+            "Indices should have dimensions (n, k, 2), "\
+            + "where n represent the number of inputs and k the number of corresponding examples. "\
+            + "The index of each element is encoded by two values, "\
+            + "the batch index and the index of the element in the batch. "\
             + f"Received {indices.shape}."
         )
 
     example = next(iter(dataset))
-    
+
     if dataset.element_spec.dtype in ['uint8', 'int8', 'int16', 'int32', 'int64']:
         results = tf.fill(dims=indices.shape[:-1] + example[0].shape,
                           value=tf.constant(-1, dtype=dataset.element_spec.dtype))

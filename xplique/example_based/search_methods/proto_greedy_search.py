@@ -96,9 +96,9 @@ class ProtoGreedySearch(BaseSearchMethod):
 
         if kernel_type not in ['local', 'global']:
             raise AttributeError(
-                "The kernel_type parameter is expected to be in"
-                + " ['local', 'global'] ",
-                +f"but {kernel_type} was received.",
+                "The kernel_type parameter is expected to be in"\
+                + " ['local', 'global'] "\
+                +f"but {kernel_type} was received."\
             )
         
         self.kernel_type = kernel_type
@@ -109,8 +109,8 @@ class ProtoGreedySearch(BaseSearchMethod):
             kernel_fn = lambda x, y: rbf_kernel(x,y,gamma)        
         elif not hasattr(kernel_fn, "__call__"):
             raise AttributeError(
-                "The kernel_fn parameter is expected to be a Callable",
-                +f"but {kernel_fn} was received.",
+                "The kernel_fn parameter is expected to be a Callable"\
+                +f"but {kernel_fn} was received."\
             )
         
         # define custom kernel function depending on the kernel type

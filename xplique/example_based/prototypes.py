@@ -11,7 +11,7 @@ from ..types import Callable, Dict, List, Optional, Type, Union
 
 from ..commons.tf_dataset_operations import dataset_gather
 
-from .search_methods import BaseSearchMethod, ProtoGreedySearch, MMDCriticSearch, ProtoDashSearch
+from .search_methods import ProtoGreedySearch, MMDCriticSearch, ProtoDashSearch
 from .projections import Projection
 from .base_example_method import BaseExampleMethod
 
@@ -82,6 +82,7 @@ class Prototypes(BaseExampleMethod, ABC):
     gamma : float, optional
         Parameter that determines the spread of the rbf kernel, defaults to 1.0 / n_features.
     """
+    # pylint: disable=too-many-arguments
 
     def __init__(
         self,
@@ -97,8 +98,8 @@ class Prototypes(BaseExampleMethod, ABC):
         kernel_type: str = 'local',
         kernel_fn: callable = None,
         gamma: float = None
-    ):     
-        # set common example-based parameters   
+    ):
+        # set common example-based parameters
         super().__init__(
             cases_dataset=cases_dataset,
             labels_dataset=labels_dataset,
@@ -129,12 +130,12 @@ class Prototypes(BaseExampleMethod, ABC):
             kernel_fn=self.kernel_fn,
             gamma=self.gamma
         )
-    
+
     @property
     @abstractmethod
     def search_method_class(self) -> Type[ProtoGreedySearch]:
         raise NotImplementedError
-  
+
     def get_global_prototypes(self) -> Dict[str, tf.Tensor]:
         """
         Provide the global prototypes computed at the initialization.
@@ -179,18 +180,21 @@ class Prototypes(BaseExampleMethod, ABC):
 
 
 class ProtoGreedy(Prototypes):
+    # pylint: disable=missing-class-docstring
     @property
     def search_method_class(self) -> Type[ProtoGreedySearch]:
         return ProtoGreedySearch
 
 
 class MMDCritic(Prototypes):
+    # pylint: disable=missing-class-docstring
     @property
     def search_method_class(self) -> Type[ProtoGreedySearch]:
         return MMDCriticSearch
 
 
 class ProtoDash(Prototypes):
+    # pylint: disable=missing-class-docstring
     @property
     def search_method_class(self) -> Type[ProtoGreedySearch]:
         return ProtoDashSearch

@@ -22,9 +22,10 @@ from .search_methods.base import _sanitize_returns
 class BaseExampleMethod(ABC):
     """
     Base class for natural example-based methods explaining classification models.
-    An example-based method is a method that explains a model's predictions by providing examples from the cases_dataset
-    (usually the training dataset). The examples are selected with the help of a search method that performs a search in
-    the search space. The search space is defined with the help of a projection function that projects the cases_dataset
+    An example-based method is a method that explains a model's predictions by providing
+    examples from the cases_dataset (usually the training dataset). The examples are selected with
+    the help of a search method that performs a search in the search space. The search space is
+    defined with the help of a projection function that projects the cases_dataset
     and the (inputs, targets) to explain into a space where the search method is relevant.
 
     Parameters
@@ -41,8 +42,8 @@ class BaseExampleMethod(ABC):
         Be careful, `tf.data.Dataset` are often reshuffled at each iteration, be sure that it is not
         the case for your dataset, otherwise, examples will not make sense.
     targets_dataset
-        Targets associated to the cases_dataset for dataset projection, oftentimes the one-hot encoding of a model's
-        predictions. See `projection` for detail.
+        Targets associated to the cases_dataset for dataset projection,
+        oftentimes the one-hot encoding of a model's predictions. See `projection` for detail.
         `tf.data.Dataset` are assumed to be batched as tensorflow provide no method to verify it.
         Batch size and cardinality of other datasets should match `cases_dataset`.
         Be careful, `tf.data.Dataset` are often reshuffled at each iteration, be sure that it is not
@@ -52,8 +53,7 @@ class BaseExampleMethod(ABC):
     projection
         Projection or Callable that project samples from the input space to the search space.
         The search space should be a space where distances are relevant for the model.
-        It should not be `None`, otherwise, the model is not involved thus not explained. If you are interested in
-        searching the input space, you should use a `BaseSearchMethod` instead. 
+        It should not be `None`, otherwise, the model is not involved thus not explained.
 
         Example of Callable:
         ```
@@ -73,6 +73,7 @@ class BaseExampleMethod(ABC):
         Number of sample treated simultaneously for projection and search.
         Ignored if `tf.data.Dataset` are provided (those are supposed to be batched).
     """
+    # pylint: disable=too-many-instance-attributes
     _returns_possibilities = ["examples", "distances", "labels", "include_inputs"]
 
     def __init__(
@@ -104,8 +105,7 @@ class BaseExampleMethod(ABC):
             self.projection = Projection(get_weights=None, space_projection=projection)
         else:
             raise AttributeError(
-                "projection should be a `Projection` or a `Callable`, not a"
-                + f"{type(projection)}"
+                f"projection should be a `Projection` or a `Callable`, not a {type(projection)}"
             )
 
         # project dataset
@@ -115,7 +115,10 @@ class BaseExampleMethod(ABC):
         # set properties
         self.k = k
         self.returns = case_returns
-    
+
+        # temporary value for the search method
+        self.search_method = None
+
     @property
     @abstractmethod
     def search_method_class(self) -> Type[BaseSearchMethod]:
@@ -257,7 +260,7 @@ class BaseExampleMethod(ABC):
                 self.cases_dataset = self.cases_dataset.map(lambda x, y, t: x)
             else:
                 raise AttributeError(
-                    "`cases_dataset` cannot possess more than 3 columns, "
+                    "`cases_dataset` cannot possess more than 3 columns, "\
                     + f"{len(self.cases_dataset.element_spec)} were detected."
                 )
 
@@ -295,7 +298,8 @@ class BaseExampleMethod(ABC):
         -------
         return_dict
             Dictionary with listed elements in `self.returns`.
-            The elements that can be returned are defined with _returns_possibilities static attribute of the class.
+            The elements that can be returned are defined with the `_returns_possibilities`
+            static attribute of the class.
         """
         # project inputs into the search space
         projected_inputs = self.projection(inputs, targets)
@@ -337,7 +341,8 @@ class BaseExampleMethod(ABC):
         -------
         return_dict
             Dictionary with listed elements in `self.returns`.
-            The elements that can be returned are defined with _returns_possibilities static attribute of the class.
+            The elements that can be returned are defined with the `_returns_possibilities`
+            static attribute of the class.
         """
         # initialize return dictionary
         return_dict = {}
