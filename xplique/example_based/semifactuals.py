@@ -80,7 +80,7 @@ class KLEORBase(BaseExampleMethod):
         by default "euclidean".
     """
     _returns_possibilities = [
-        "examples", "weights", "distances", "labels", "include_inputs", "nuns", "nuns_indices", "dist_to_nuns"
+        "examples", "weights", "distances", "labels", "include_inputs", "nuns", "nuns_indices", "dist_to_nuns", "nuns_labels"
     ]
 
     def __init__(
