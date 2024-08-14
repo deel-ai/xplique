@@ -250,9 +250,9 @@ class LabelAwareCounterFactuals(BaseExampleMethod):
         cases_targets
             The one-hot encoding of the target class for the cases.
         """
-        mask = tf.matmul(cf_expected_classes, cases_targets, transpose_b=True) #(n, bs)
-        # TODO: I think some retracing are done here
-        mask = tf.cast(mask, dtype=tf.bool)
+        cases_predicted_labels = tf.argmax(cases_targets, axis=-1)
+        cf_label_targets = tf.argmax(cf_expected_classes, axis=-1)
+        mask = tf.equal(tf.expand_dims(cf_label_targets, axis=1), cases_predicted_labels)
         return mask
 
     @sanitize_inputs_targets
