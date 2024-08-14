@@ -2,7 +2,7 @@
 
 <sub>
     <img src="https://upload.wikimedia.org/wikipedia/commons/d/d0/Google_Colaboratory_SVG_Logo.svg" width="20">
-</sub> [View colab tutorial]()**WIP** |
+</sub> [View colab tutorial](https://colab.research.google.com/drive/1gA7mhWhWzdKholZWkTvAg4FzFnzS8NHF) |
 <sub>
     <img src="https://upload.wikimedia.org/wikipedia/commons/9/91/Octicons-mark-github.svg" width="20">
 </sub> [View source](https://github.com/deel-ai/xplique/blob/master/xplique/example_based/counterfactuals.py) |
@@ -47,7 +47,7 @@ counterfactuals = ncf.explain(test_samples, test_targets)
 
 ## Notebooks
 
-TODO: Add notebooks
+- [**Example-based Methods**: Getting started](https://colab.research.google.com/drive/1gA7mhWhWzdKholZWkTvAg4FzFnzS8NHF)
 
 {{xplique.example_based.counterfactuals.NaiveCounterFactuals}}
 

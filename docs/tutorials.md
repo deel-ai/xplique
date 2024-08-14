@@ -20,6 +20,8 @@ Here is the lists of the availables tutorial for now:
 | Metrics                         | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1WEpVpFSq-oL1Ejugr8Ojb3tcbqXIOPBg)            |
 | Concept Activation Vectors      | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1iuEz46ZjgG97vTBH8p-vod3y14UETvVE)            |
 | Feature Visualization           | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1st43K9AH-UL4eZM1S4QdyrOi7Epa5K8v)            |
+| Example-Based Methods           | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1gA7mhWhWzdKholZWkTvAg4FzFnzS8NHF)            |
+| Prototypes                      | **TODO**            |
 
 
 ## Attributions
@@ -79,3 +81,10 @@ Here is the lists of the availables tutorial for now:
 | :------------------------------------- | :-----------------------------------------------------------------------------------------------------------------------------------------------------: |
 | Feature Visualization: Getting started | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1st43K9AH-UL4eZM1S4QdyrOi7Epa5K8v) |
 | Modern Feature Visualization: MaCo     | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1l0kag1o-qMY4NCbWuAwnuzkzd9sf92ic) |
+
+## Example-Based Methods
+
+| **Tutorial Name**                      | Notebook                                                                                                                                                |
+| :------------------------------------- | :-----------------------------------------------------------------------------------------------------------------------------------------------------: |
+| Example-Based Methods: Getting started | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1gA7mhWhWzdKholZWkTvAg4FzFnzS8NHF) |
+| Prototypes: Getting started            | **TODO**                                                                                                                                               |

@@ -1,6 +1,7 @@
 # API: Example-based
 
-- [**Example-based Methods**: Getting started]() **WIP**
+- [**Example-based Methods**: Getting started](https://colab.research.google.com/drive/1gA7mhWhWzdKholZWkTvAg4FzFnzS8NHF) <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1gA7mhWhWzdKholZWkTvAg4FzFnzS8NHF) </sub>
+- [**TODO: Add the Getting Started on Prototypes**]()
 
 ## Context ##
 
@@ -52,20 +53,20 @@ We can broadly categorize example-based methods into four families: similar exam
 
 ??? abstract "Table of example-based methods available"
 
-    | Method | Family | Documentation |
-    | --- | --- | --- |
-    | `SimilarExamples` | Similar Examples | [SimilarExamples](../similar_examples/similar_examples/) |
-    | `Cole` | Similar Examples | [Cole](../similar_examples/cole/) |
+    | Method | Family | Documentation | Tutorial |
+    | --- | --- | --- | --- |
+    | `SimilarExamples` | Similar Examples | [SimilarExamples](../similar_examples/similar_examples/) | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1gA7mhWhWzdKholZWkTvAg4FzFnzS8NHF) |
+    | `Cole` | Similar Examples | [Cole](../similar_examples/cole/) | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1gA7mhWhWzdKholZWkTvAg4FzFnzS8NHF) |
     |  |  |  |
-    | `NaiveCounterFactuals` | Counter Factuals | [NaiveCounterFactuals](../counterfactuals/naive_counter_factuals/) |
-    | `LabelAwareCounterFactuals` | Counter Factuals | [LabelAwareCounterFactuals](../counterfactuals/label_aware_counter_factuals/) |
+    | `NaiveCounterFactuals` | Counter Factuals | [NaiveCounterFactuals](../counterfactuals/naive_counter_factuals/) | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1gA7mhWhWzdKholZWkTvAg4FzFnzS8NHF) |
+    | `LabelAwareCounterFactuals` | Counter Factuals | [LabelAwareCounterFactuals](../counterfactuals/label_aware_counter_factuals/) | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1gA7mhWhWzdKholZWkTvAg4FzFnzS8NHF) |
     ||||
-    | `KLEORSimMiss` | Semi Factuals | [KLEOR](../semifactuals/kleor/) |
-    | `KLEORGlobalSim` | Semi Factuals | [KLEOR](../semifactuals/kleor/) |
+    | `KLEORSimMiss` | Semi Factuals | [KLEOR](../semifactuals/kleor/) | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1gA7mhWhWzdKholZWkTvAg4FzFnzS8NHF) |
+    | `KLEORGlobalSim` | Semi Factuals | [KLEOR](../semifactuals/kleor/) | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1gA7mhWhWzdKholZWkTvAg4FzFnzS8NHF) |
     ||||
-    | `ProtoGreedy` | Prototypes | [ProtoGreedy](../prototypes/proto_greedy/) |
-    | `ProtoDash` | Prototypes | [ProtoDash](../prototypes/proto_dash/) |
-    | `MMDCritic` | Prototypes | [MMDCritic](../prototypes/mmd_critic/) |
+    | `ProtoGreedy` | Prototypes | [ProtoGreedy](../prototypes/proto_greedy/) | **TODO** |
+    | `ProtoDash` | Prototypes | [ProtoDash](../prototypes/proto_dash/) | **TODO** |
+    | `MMDCritic` | Prototypes | [MMDCritic](../prototypes/mmd_critic/) | **TODO** |
 
 ### Parameters ###
 

@@ -7,6 +7,9 @@
     <a href="#">
         <img src="https://img.shields.io/badge/Python-3.7, 3.8, 3.9, 3.10-efefef">
     </a>
+    <a href="#">
+        <img src="https://img.shields.io/badge/Tensorflow-2.5, ..., 2.15-00008b">
+    </a>
     <a href="https://github.com/deel-ai/xplique/actions/workflows/python-lints.yml">
         <img alt="PyLint" src="https://github.com/deel-ai/xplique/actions/workflows/python-lints.yml/badge.svg">
     </a>
@@ -41,7 +44,12 @@
   <a href="https://deel-ai.github.io/xplique/latest/api/feature_viz/feature_viz/">Feature Visualization</a>
   ·
   <a href="https://deel-ai.github.io/xplique/latest/api/attributions/metrics/api_metrics/">Metrics</a>
+  .
+  <a href="api/example_based/api_example_based/">Example-based</a>
 </p>
+
+> [!IMPORTANT]  
+> With the release of Keras 3.X since TensorFlow 2.16, some methods may not function as expected. We are actively working on a fix. In the meantime, we recommend using TensorFlow 2.15 or earlier versions for optimal compatibility.
 
 The library is composed of several modules, the _Attributions Methods_ module implements various methods (e.g Saliency, Grad-CAM, Integrated-Gradients...), with explanations, examples and links to official papers.
 The _Feature Visualization_ module allows to see how neural networks build their understanding of images by finding inputs that maximize neurons, channels, layers or compositions of these elements.
@@ -53,6 +61,9 @@ Finally, the _Metrics_ module covers the current metrics used in explainability.
 </p>
 
 <br>
+
+> [!NOTE]  
+> We are proud to announce the release of the _Example-based_ module! This module is dedicated to methods that explain a model by retrieving relevant examples from a dataset. It includes methods that belong to different families: similar examples, contrastive (counter-factuals and semi-factuals) examples, and prototypes (as concepts based methods have a dedicated sections).
 
 ## 🔥 Tutorials
 
@@ -109,6 +120,8 @@ Finally, the _Metrics_ module covers the current metrics used in explainability.
         <img width="95%" src="./docs/assets/feature_viz.jpeg">
     </a>
 </p>
+
+- [**Example-based Methods**: Getting started](https://colab.research.google.com/drive/1gA7mhWhWzdKholZWkTvAg4FzFnzS8NHF) <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1gA7mhWhWzdKholZWkTvAg4FzFnzS8NHF) </sub>
 
 You can find a certain number of [**other practical tutorials just here**](https://github.com/deel-ai/xplique/blob/master/TUTORIALS.md). This section is actively developed and more contents will be
 included. We will try to cover all the possible usage of the library, feel free to contact us if you have any suggestions or recommendations towards tutorials you would like to see.
@@ -358,6 +371,28 @@ TF : Tensorflow compatible
 
 
 TF : Tensorflow compatible
+
+</details>
+
+Even though we are only at the early stages, we have also recently added an [Example-based methods](api/example_based/api_example_based/) module. Do not hesitate to give us feedback! Currently, the methods available are summarized in the following table:
+
+<details>
+<summary><b>Table of example-based methods available</b></summary>
+
+| Method | Family | Documentation | Tutorial |
+| --- | --- | --- | --- |
+| `SimilarExamples` | Similar Examples | [SimilarExamples](../similar_examples/similar_examples/) | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1gA7mhWhWzdKholZWkTvAg4FzFnzS8NHF) |
+| `Cole` | Similar Examples | [Cole](../similar_examples/cole/) | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1gA7mhWhWzdKholZWkTvAg4FzFnzS8NHF) |
+|  |  |  |
+| `NaiveCounterFactuals` | Counter Factuals | [NaiveCounterFactuals](../counterfactuals/naive_counter_factuals/) | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1gA7mhWhWzdKholZWkTvAg4FzFnzS8NHF) |
+| `LabelAwareCounterFactuals` | Counter Factuals | [LabelAwareCounterFactuals](../counterfactuals/label_aware_counter_factuals/) | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1gA7mhWhWzdKholZWkTvAg4FzFnzS8NHF) |
+||||
+| `KLEORSimMiss` | Semi Factuals | [KLEOR](../semifactuals/kleor/) | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1gA7mhWhWzdKholZWkTvAg4FzFnzS8NHF) |
+| `KLEORGlobalSim` | Semi Factuals | [KLEOR](../semifactuals/kleor/) | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1gA7mhWhWzdKholZWkTvAg4FzFnzS8NHF) |
+||||
+| `ProtoGreedy` | Prototypes | [ProtoGreedy](../prototypes/proto_greedy/) | **TODO** |
+| `ProtoDash` | Prototypes | [ProtoDash](../prototypes/proto_dash/) | **TODO** |
+| `MMDCritic` | Prototypes | [MMDCritic](../prototypes/mmd_critic/) | **TODO** |
 
 </details>
 
