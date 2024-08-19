@@ -6,11 +6,10 @@ import numpy as np
 from scipy.optimize import minimize
 import tensorflow as tf
 
-from ...commons import dataset_gather
 from ...types import Callable, List, Union, Optional, Tuple
 
 from .proto_greedy_search import ProtoGreedySearch
-from ..projections import Projection
+
 
 class Optimizer():
     """
@@ -29,9 +28,9 @@ class Optimizer():
     """
 
     def __init__(
-            self, 
-            initial_weights: Union[tf.Tensor, np.ndarray], 
-            min_weight: float = 0, 
+            self,
+            initial_weights: Union[tf.Tensor, np.ndarray],
+            min_weight: float = 0,
             max_weight: float = 10000
     ):
         self.initial_weights = initial_weights
@@ -59,11 +58,13 @@ class Optimizer():
         best_objective : Tensor
             The value of the objective function corresponding to the best_weights.
         """
+        # pylint: disable=invalid-name
 
         u = u.numpy()
         K = K.numpy()
 
-        result = minimize(self.objective_fn, self.initial_weights, args=(u, K), method='SLSQP', bounds=self.bounds, options={'disp': False})
+        result = minimize(self.objective_fn, self.initial_weights, args=(u, K),
+                          method='SLSQP', bounds=self.bounds, options={'disp': False})
 
         # Get the best weights
         best_weights = result.x
@@ -71,7 +72,8 @@ class Optimizer():
 
         # Get the best objective
         best_objective = -result.fun
-        best_objective = tf.expand_dims(tf.convert_to_tensor(best_objective, dtype=tf.float32), axis=0)
+        best_objective = tf.expand_dims(tf.convert_to_tensor(best_objective, dtype=tf.float32),
+                                        axis=0)
 
         assert tf.reduce_all(best_weights >= 0)
 
@@ -121,6 +123,7 @@ class ProtoDashSearch(ProtoGreedySearch):
         Exact method is based on a scipy optimization,
         while the other is based on a tensorflow inverse operation.
     """
+    # pylint: disable=duplicate-code
 
     def __init__(
         self,
@@ -131,28 +134,35 @@ class ProtoDashSearch(ProtoGreedySearch):
         batch_size: Optional[int] = 32,
         distance: Union[int, str, Callable] = None,
         nb_prototypes: int = 1,
-        kernel_type: str = 'local', 
+        kernel_type: str = 'local',
         kernel_fn: callable = None,
         gamma: float = None,
         exact_selection_weights_update: bool = False,
-    ): # pylint: disable=R0801
-        
+    ):
+
         self.exact_selection_weights_update = exact_selection_weights_update
 
         super().__init__(
-            cases_dataset=cases_dataset, 
-            labels_dataset=labels_dataset, 
-            k=k, 
-            search_returns=search_returns, 
-            batch_size=batch_size, 
-            distance=distance, 
-            nb_prototypes=nb_prototypes, 
-            kernel_type=kernel_type, 
+            cases_dataset=cases_dataset,
+            labels_dataset=labels_dataset,
+            k=k,
+            search_returns=search_returns,
+            batch_size=batch_size,
+            distance=distance,
+            nb_prototypes=nb_prototypes,
+            kernel_type=kernel_type,
             kernel_fn=kernel_fn,
             gamma=gamma
         )
 
-    def update_selection_weights(self, selection_indices, selection_weights, selection_selection_kernel, best_indice, best_weights, best_objective):
+    def update_selection_weights(self,
+                                 selection_indices: tf.Tensor,
+                                 selection_weights: tf.Tensor,
+                                 selection_selection_kernel: tf.Tensor,
+                                 best_indice: tf.Tensor,
+                                 best_weights: tf.Tensor,
+                                 best_objective: tf.Tensor
+                                 ) -> tf.Tensor:
         """
         Update the selection weights based on the given parameters.
         Pursuant to Lemma IV.4:
@@ -172,7 +182,8 @@ class ProtoDashSearch(ProtoGreedySearch):
         best_indice : int
             The index of the selected prototype with the highest objective function value.
         best_weights : Tensor
-            The weights corresponding to the optimal solution of the objective function for each candidate.
+            The weights corresponding to the optimal solution
+            of the objective function for each candidate.
         best_objective : float
             The computed objective function value.
 
@@ -181,15 +192,17 @@ class ProtoDashSearch(ProtoGreedySearch):
         selection_weights : Tensor
             Updated weights corresponding to the selected prototypes.
         """
+        # pylint: disable=invalid-name
 
         if best_objective <= 0:
             selection_weights = tf.concat([selection_weights, [0]], axis=0)
-        else:       
+        else:
             u = tf.expand_dims(tf.gather(self.col_means, selection_indices), axis=1)
             K = selection_selection_kernel
 
             if self.exact_selection_weights_update:
-                initial_weights = tf.concat([selection_weights, [best_objective / tf.gather(self.diag, best_indice)]], axis=0)
+                best_objective_diag = best_objective / tf.gather(self.diag, best_indice)
+                initial_weights = tf.concat([selection_weights, [best_objective_diag]], axis=0)
                 opt = Optimizer(initial_weights)
                 selection_weights, _ = opt.optimize(u, K)
                 selection_weights = tf.squeeze(selection_weights, axis=0)
@@ -197,14 +210,22 @@ class ProtoDashSearch(ProtoGreedySearch):
                 # We added epsilon to the diagonal of K to ensure that K is invertible
                 K_inv = tf.linalg.inv(K + ProtoDashSearch.EPSILON * tf.eye(K.shape[-1]))
                 selection_weights = tf.linalg.matmul(K_inv, u)
-                selection_weights = tf.maximum(selection_weights, 0)            
+                selection_weights = tf.maximum(selection_weights, 0)
                 selection_weights = tf.squeeze(selection_weights, axis=1)
 
         return selection_weights
 
-    def compute_objectives(self, selection_indices, selection_cases, selection_weights, selection_selection_kernel, candidates_indices, candidates_selection_kernel):
+    def compute_objectives(self,
+                           selection_indices: tf.Tensor,
+                           selection_cases: tf.Tensor,
+                           selection_weights: tf.Tensor,
+                           selection_selection_kernel: tf.Tensor,
+                           candidates_indices: tf.Tensor,
+                           candidates_selection_kernel: tf.Tensor
+                           ) -> Tuple[tf.Tensor, tf.Tensor]:
         """
-        Compute the objective function and corresponding weights for a given set of selected prototypes and a candidate.
+        Compute the objective function and corresponding weights
+        for a given set of selected prototypes and a candidate.
         Calculate the gradient of l(w) = w^T * μ_p - 1/2 * w^T * K * w 
         w.r.t w, on the optimal weight point ζ^(S)
         g = ∇l(ζ^(S)) = μ_p - K * ζ^(S)
@@ -231,12 +252,13 @@ class ProtoDashSearch(ProtoGreedySearch):
             Tensor that contains the computed objective values for each candidate.
         objectives_weights
             Tensor that contains the computed objective weights for each candidate.
-        """  
-        
+        """
+        # pylint: disable=invalid-name
+
         u = tf.gather(self.col_means, candidates_indices)
 
         if selection_indices.shape[0] == 0:
-            # S = ∅ and ζ^(∅) = 0, g = ∇l(ζ^(∅)) = μ_p            
+            # S = ∅ and ζ^(∅) = 0, g = ∇l(ζ^(∅)) = μ_p
             objectives = u
         else:
             u = tf.expand_dims(u, axis=1)

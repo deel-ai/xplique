@@ -69,6 +69,7 @@ class NaiveCounterFactuals(BaseExampleMethod):
         {"manhattan", "euclidean", "cosine", "chebyshev", "inf"}, or a Callable,
         by default "euclidean".
     """
+    # pylint: disable=duplicate-code
     def __init__(
         self,
         cases_dataset: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
@@ -288,6 +289,10 @@ class LabelAwareCounterFactuals(BaseExampleMethod):
             The elements that can be returned are defined with the `_returns_possibilities`
             static attribute of the class.
         """
+        # pylint: disable=arguments-renamed
+        # pylint: disable=fixme
+        # TODO: remove pylint disable the issue is fixed
+
         # project inputs into the search space
         projected_inputs = self.projection(inputs)
 

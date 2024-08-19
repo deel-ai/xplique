@@ -83,6 +83,7 @@ class Prototypes(BaseExampleMethod, ABC):
         Parameter that determines the spread of the rbf kernel, defaults to 1.0 / n_features.
     """
     # pylint: disable=too-many-arguments
+    # pylint: disable=duplicate-code
 
     def __init__(
         self,

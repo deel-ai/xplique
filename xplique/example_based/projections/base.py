@@ -83,10 +83,9 @@ class Projection(ABC):
                 weights = get_weights
 
             # define a function that returns the weights
-            def get_weights(inputs, _ = None):
-                nweights = tf.expand_dims(weights, axis=0)
-                return tf.repeat(nweights, tf.shape(inputs)[0], axis=0)
-            self.get_weights = get_weights
+            self.get_weights = lambda inputs, _: tf.repeat(tf.expand_dims(weights, axis=0),
+                                                           tf.shape(inputs)[0],
+                                                           axis=0)
         elif hasattr(get_weights, "__call__"):
             # weights is a function
             self.get_weights = get_weights
@@ -94,7 +93,7 @@ class Projection(ABC):
             raise TypeError(
                 f"`get_weights` should be `Callable` or a Tensor, not a {type(get_weights)}"
             )
-        
+
         # set space_projection
         if space_projection is None:
             self.space_projection = lambda inputs: inputs
@@ -170,8 +169,7 @@ class Projection(ABC):
         """
         if self.mappable:
             return self._map_project_dataset(cases_dataset, targets_dataset)
-        else:
-            return self._loop_project_dataset(cases_dataset, targets_dataset)
+        return self._loop_project_dataset(cases_dataset, targets_dataset)
 
     def _map_project_dataset(
         self,
@@ -200,10 +198,8 @@ class Projection(ABC):
             # in case targets are provided, we zip the datasets and project them together
             projected_cases_dataset = tf.data.Dataset.zip(
                 (cases_dataset, targets_dataset)
-            ).map(
-                lambda x, y: self.project(x, y)
-            )
-        
+            ).map(self.project)
+
         return projected_cases_dataset
 
     def _loop_project_dataset(
@@ -228,6 +224,7 @@ class Projection(ABC):
         projected_dataset
             The projected dataset.
         """
+        # pylint: disable=fixme
         # TODO see if a warning is needed
 
         projected_cases_dataset = []
@@ -245,9 +242,9 @@ class Projection(ABC):
                 if batch_size is None:
                     batch_size = inputs.shape[0]  # TODO check if there is a smarter way to do this
                 projected_cases_dataset.append(self.project(inputs, targets))
-        
+
         projected_cases_dataset = tf.concat(projected_cases_dataset, axis=0)
         projected_cases_dataset = tf.data.Dataset.from_tensor_slices(projected_cases_dataset)
         projected_cases_dataset = projected_cases_dataset.batch(batch_size)
-        
+
         return projected_cases_dataset

@@ -14,8 +14,9 @@ from .base_example_method import BaseExampleMethod
 
 class SimilarExamples(BaseExampleMethod):
     """
-    Class for similar example-based method. This class allows to search the k Nearest Neighbor of an input in the
-    projected space (defined by the projection method) using the distance defined by the distance method provided.
+    Class for similar example-based method. This class allows to search the k Nearest Neighbor
+    of an input in the projected space (defined by the projection method)
+    using the distance defined by the distance method provided.
 
     Parameters
     ----------
@@ -31,8 +32,8 @@ class SimilarExamples(BaseExampleMethod):
         Be careful, `tf.data.Dataset` are often reshuffled at each iteration, be sure that it is not
         the case for your dataset, otherwise, examples will not make sense.
     targets_dataset
-        Targets associated to the cases_dataset for dataset projection, oftentimes the one-hot encoding of a model's
-        predictions. See `projection` for detail.
+        Targets associated to the cases_dataset for dataset projection,
+        oftentimes the one-hot encoding of a model's predictions. See `projection` for detail.
         `tf.data.Dataset` are assumed to be batched as tensorflow provide no method to verify it.
         Batch size and cardinality of other datasets should match `cases_dataset`.
         Be careful, `tf.data.Dataset` are often reshuffled at each iteration, be sure that it is not
@@ -42,8 +43,7 @@ class SimilarExamples(BaseExampleMethod):
     projection
         Projection or Callable that project samples from the input space to the search space.
         The search space should be a space where distances are relevant for the model.
-        It should not be `None`, otherwise, the model is not involved thus not explained. If you are interested in
-        searching the input space, you should use a `BaseSearchMethod` instead. 
+        It should not be `None`, otherwise, the model is not involved thus not explained.
 
         Example of Callable:
         ```
@@ -67,6 +67,7 @@ class SimilarExamples(BaseExampleMethod):
         {"manhattan", "euclidean", "cosine", "chebyshev", "inf"}, or a Callable,
         by default "euclidean".
     """
+    # pylint: disable=duplicate-code
     def __init__(
         self,
         cases_dataset: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
@@ -77,7 +78,7 @@ class SimilarExamples(BaseExampleMethod):
         case_returns: Union[List[str], str] = "examples",
         batch_size: Optional[int] = 32,
         distance: Union[int, str, Callable] = "euclidean",
-    ):        
+    ):
         super().__init__(
             cases_dataset=cases_dataset,
             labels_dataset=labels_dataset,
@@ -108,8 +109,9 @@ class SimilarExamples(BaseExampleMethod):
 
 class Cole(SimilarExamples):
     """
-    Cole is a similar examples method that gives the most similar examples to a query in some specific projection space.
-    Cole use the model (to be explained) to build a search space so that distances are meaningful for the model.
+    Cole is a similar examples method that gives the most similar examples
+    to a query in some specific projection space.
+    Cole uses the model to build a search space so that distances are meaningful for the model.
     It uses attribution methods to weight inputs.
     Those attributions may be computed in the latent space for high-dimensional data like images.
 
@@ -131,8 +133,8 @@ class Cole(SimilarExamples):
         Be careful, `tf.data.Dataset` are often reshuffled at each iteration, be sure that it is not
         the case for your dataset, otherwise, examples will not make sense.
     targets_dataset
-        Targets associated to the cases_dataset for dataset projection, oftentimes the one-hot encoding of a model's
-        predictions. See `projection` for detail.
+        Targets associated to the cases_dataset for dataset projection,
+        oftentimes the one-hot encoding of a model's predictions. See `projection` for detail.
         `tf.data.Dataset` are assumed to be batched as tensorflow provide no method to verify it.
         Batch size and cardinality of other datasets should match `cases_dataset`.
         Be careful, `tf.data.Dataset` are often reshuffled at each iteration, be sure that it is not
@@ -188,7 +190,7 @@ class Cole(SimilarExamples):
         if isinstance(attribution_method, str) and attribution_method.lower() == "gradient":
 
             operator = attribution_kwargs.get("operator", None)
-            
+
             projection = HadamardProjection(
                 model=model,
                 latent_layer=latent_layer,
@@ -204,8 +206,8 @@ class Cole(SimilarExamples):
             )
         else:
             raise ValueError(
-                f"attribution_method should be 'gradient' or a subclass of BlackBoxExplainer," +\
-                    "not {attribution_method}"
+                "`attribution_method` should be 'gradient' or a subclass of BlackBoxExplainer, " +\
+                f"not {attribution_method}"
             )
 
         super().__init__(

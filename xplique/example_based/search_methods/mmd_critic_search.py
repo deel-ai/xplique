@@ -2,14 +2,11 @@
 MMDCritic search method in example-based module
 """
 
-import numpy as np
 import tensorflow as tf
 
-from ...commons import dataset_gather
-from ...types import Callable, List, Union, Optional, Tuple
+from ...types import Tuple
 
 from .proto_greedy_search import ProtoGreedySearch
-from ..projections import Projection
 
 
 class MMDCriticSearch(ProtoGreedySearch):
@@ -52,9 +49,17 @@ class MMDCriticSearch(ProtoGreedySearch):
         Parameter that determines the spread of the rbf kernel, defaults to 1.0 / n_features.
     """
 
-    def compute_objectives(self, selection_indices, selection_cases, selection_weights, selection_selection_kernel, candidates_indices, candidates_selection_kernel):
+    def compute_objectives(self,
+                           selection_indices: tf.Tensor,
+                           selection_cases: tf.Tensor,
+                           selection_weights: tf.Tensor,
+                           selection_selection_kernel: tf.Tensor,
+                           candidates_indices: tf.Tensor,
+                           candidates_selection_kernel: tf.Tensor
+                           ) -> Tuple[tf.Tensor, tf.Tensor]:
         """
-        Compute the objective function and corresponding weights for a given set of selected prototypes and a candidate.
+        Compute the objective function and corresponding weights
+        for a given set of selected prototypes and a candidate.
 
         Here, we have a special case of protogreedy where we give equal weights to all prototypes, 
         the objective here is simplified to speed up processing
@@ -63,8 +68,9 @@ class MMDCriticSearch(ProtoGreedySearch):
         ≡
         Find argmax_{c} F(S ∪ c)
         ≡
-        Find argmax_{c} (sum1 - sum2) where: sum1 = (2 / n) * ∑[i=1 to n] κ(x_i, c) 
-                                            sum2 = 1/(|S|+1) [2 * ∑[j=1 to |S|] * κ(x_j, c) + κ(c, c)]
+        Find argmax_{c} (sum1 - sum2)
+        where: sum1 = (2 / n) * ∑[i=1 to n] κ(x_i, c) 
+               sum2 = 1/(|S|+1) [2 * ∑[j=1 to |S|] * κ(x_j, c) + κ(c, c)]
             
         Parameters
         ----------
@@ -87,7 +93,7 @@ class MMDCriticSearch(ProtoGreedySearch):
             Tensor that contains the computed objective values for each candidate.
         objectives_weights
             Tensor that contains the computed objective weights for each candidate.
-        """  
+        """
 
         nb_candidates = candidates_indices.shape[0]
         nb_selection = selection_indices.shape[0]
@@ -102,6 +108,7 @@ class MMDCriticSearch(ProtoGreedySearch):
             sum2 /= (nb_selection + 1)
 
         objectives = sum1 - sum2
-        objectives_weights = tf.ones(shape=(nb_candidates, nb_selection+1), dtype=tf.float32) / tf.cast(nb_selection+1, dtype=tf.float32)
+        objectives_weights = tf.ones(shape=(nb_candidates, nb_selection+1), dtype=tf.float32)
+        objectives_weights /= tf.cast(nb_selection+1, dtype=tf.float32)
 
         return objectives, objectives_weights

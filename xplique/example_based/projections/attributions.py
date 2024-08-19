@@ -3,8 +3,6 @@ Attribution, a projection from example based module
 """
 import warnings
 
-import tensorflow as tf
-import numpy as np
 from xplique.types import Optional
 
 from ...attributions.base import BlackBoxExplainer
@@ -73,11 +71,11 @@ class AttributionProjection(Projection):
             space_projection, self.predictor = model_splitting(model, latent_layer)
 
         # change default operator
-        if not "operator" in attribution_kwargs or attribution_kwargs["operator"] is None:
+        if "operator" not in attribution_kwargs or attribution_kwargs["operator"] is None:
             warnings.warn("No operator provided, using standard classification operator. "\
                           + "For non-classification tasks, please specify an operator.")
             attribution_kwargs["operator"] = target_free_classification_operator
-        
+
         # compute attributions
         get_weights = self.attribution_method(self.predictor, **attribution_kwargs)
 

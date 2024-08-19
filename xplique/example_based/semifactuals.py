@@ -1,8 +1,6 @@
 """
 Implementation of semi factuals methods for classification tasks.
 """
-import warnings
-
 import numpy as np
 import tensorflow as tf
 
@@ -18,16 +16,17 @@ from .search_methods.base import _sanitize_returns
 
 class KLEORBase(BaseExampleMethod):
     """
-    Base class for KLEOR methods. KLEOR methods search Semi-Factuals examples. In those methods, one should first
-    retrieve the Nearest Unlike Neighbor (NUN) which is the closest example to the query that has a different prediction
-    than the query. Then, the method search for the K-Nearest Neighbors (KNN) of the NUN that have the same prediction
-    as the query. 
+    Base class for KLEOR methods. KLEOR methods search Semi-Factuals examples.
+    In those methods, one should first retrieve the Nearest Unlike Neighbor (NUN)
+    which is the closest example to the query that has a different prediction than the query.
+    Then, the method search for the K-Nearest Neighbors (KNN) of the NUN
+    that have the same prediction as the query. 
     
-    All the searches are done in a projection space where distances are relevant for the model. The projection space is
-    defined by the `projection` method.
+    All the searches are done in a projection space where distances are relevant for the model.
+    The projection space is defined by the `projection` method.
 
-    Depending on the KLEOR method some additional condition for the search are added. See the specific KLEOR method for
-    more details.
+    Depending on the KLEOR method some additional condition for the search are added.
+    See the specific KLEOR method for more details.
 
     Parameters
     ----------
@@ -37,7 +36,8 @@ class KLEORBase(BaseExampleMethod):
         Be careful, `tf.data.Dataset` are often reshuffled at each iteration, be sure that it is not
         the case for your dataset, otherwise, examples will not make sense.
     targets_dataset
-        Targets are expected to be the one-hot encoding of the model's predictions for the samples in cases_dataset.
+        Targets are expected to be the one-hot encoding of the model's predictions
+        for the samples in cases_dataset.
         `tf.data.Dataset` are assumed to be batched as tensorflow provide no method to verify it.
         Batch size and cardinality of other datasets should match `cases_dataset`.
         Be careful, `tf.data.Dataset` are often reshuffled at each iteration, be sure that it is not
@@ -53,8 +53,7 @@ class KLEORBase(BaseExampleMethod):
     projection
         Projection or Callable that project samples from the input space to the search space.
         The search space should be a space where distances are relevant for the model.
-        It should not be `None`, otherwise, the model is not involved thus not explained. If you are interested in
-        searching the input space, you should use a `BaseSearchMethod` instead. 
+        It should not be `None`, otherwise, the model is not involved thus not explained.
 
         Example of Callable:
         ```
@@ -80,8 +79,10 @@ class KLEORBase(BaseExampleMethod):
         by default "euclidean".
     """
     _returns_possibilities = [
-        "examples", "weights", "distances", "labels", "include_inputs", "nuns", "nuns_indices", "dist_to_nuns", "nuns_labels"
+        "examples", "weights", "distances", "labels", "include_inputs",
+        "nuns", "nuns_indices", "dist_to_nuns", "nuns_labels"
     ]
+    # pylint: disable=duplicate-code
 
     def __init__(
         self,
@@ -127,8 +128,9 @@ class KLEORBase(BaseExampleMethod):
     @returns.setter
     def returns(self, returns: Union[List[str], str]):
         """
-        Set the returns parameter. The returns parameter is a string or a list of string with the elements to return
-        in `self.explain()`. The elements that can be returned are defined with _returns_possibilities static attribute
+        Set the returns parameter. The returns parameter is a string
+        or a list of string with the elements to return in `self.explain()`.
+        Possibly returned elements are defined with `_returns_possibilities` static attribute.
         """
         default = "examples"
         self._returns = _sanitize_returns(returns, self._returns_possibilities, default)
@@ -143,7 +145,7 @@ class KLEORBase(BaseExampleMethod):
 
         if isinstance(self._returns, list) and ("dist_to_nuns" in self._returns):
             self._search_returns.append("dist_to_nuns")
-        
+
         try:
             self.search_method.returns = self._search_returns
         except AttributeError:
@@ -169,13 +171,15 @@ class KLEORBase(BaseExampleMethod):
         -------
         return_dict
             Dictionary with listed elements in `self.returns`.
-            The elements that can be returned are defined with _returns_possibilities static attribute of the class.
+            The elements that can be returned are defined with the `_returns_possibilities`
+            static attribute of the class.
         """
         return_dict = super().format_search_output(search_output, inputs)
         if "nuns" in self.returns:
             return_dict["nuns"] = dataset_gather(self.cases_dataset, search_output["nuns_indices"])
         if "nuns_labels" in self.returns:
-            return_dict["nuns_labels"] = dataset_gather(self.labels_dataset, search_output["nuns_indices"])
+            return_dict["nuns_labels"] = dataset_gather(self.labels_dataset,
+                                                        search_output["nuns_indices"])
         if "nuns_indices" in self.returns:
             return_dict["nuns_indices"] = search_output["nuns_indices"]
         if "dist_to_nuns" in self.returns:
@@ -185,31 +189,38 @@ class KLEORBase(BaseExampleMethod):
 
 class KLEORSimMiss(KLEORBase):
     """
-    The KLEORSimMiss method search for Semi-Factuals examples by searching for the Nearest Unlike Neighbor (NUN) of
-    the query. The NUN is the closest example to the query that has a different prediction than the query. Then, the
-    method search for the K-Nearest Neighbors (KNN) of the NUN that have the same prediction as the query.
+    The KLEORSimMiss method search for Semi-Factuals examples
+    by searching for the Nearest Unlike Neighbor (NUN) of the query.
+    The NUN is the closest example to the query that has a different prediction than the query.
+    Then, the method search for the K-Nearest Neighbors (KNN) of the NUN
+    that have the same prediction as the query.
 
-    The search is done in a projection space where distances are relevant for the model. The projection space is defined
-    by the `projection` method.
+    The search is done in a projection space where distances are relevant for the model.
+    The projection space is defined by the `projection` method.
     """
     @property
     def search_method_class(self):
         """
-        This property defines the search method class to use for the search. In this case, it is the KLEORSimMissSearch.
+        This property defines the search method class to use for the search.
+        In this case, it is the KLEORSimMissSearch.
         """
         return KLEORSimMissSearch
 
 class KLEORGlobalSim(KLEORBase):
     """
-    The KLEORGlobalSim method search for Semi-Factuals examples by searching for the Nearest Unlike Neighbor (NUN) of
-    the query. The NUN is the closest example to the query that has a different prediction than the query. Then, the
-    method search for the K-Nearest Neighbors (KNN) of the NUN that have the same prediction as the query.
+    The KLEORGlobalSim method search for Semi-Factuals examples
+    by searching for the Nearest Unlike Neighbor (NUN) of the query.
+    The NUN is the closest example to the query that has a different prediction than the query.
+    Then, the method search for the K-Nearest Neighbors (KNN) of the NUN
+    that have the same prediction as the query.
 
-    In addition, for a SF candidate to be considered, the SF should be closer to the query than the NUN in the
-    projection space (i.e. the SF should be 'between' the input and its NUN). This condition is added to the search.
+    In addition, for a SF candidate to be considered,
+    the SF should be closer to the query than the NUN in the projection space
+    (i.e. the SF should be 'between' the input and its NUN).
+    This condition is added to the search.
 
-    The search is done in a projection space where distances are relevant for the model. The projection space is defined
-    by the `projection` method.
+    The search is done in a projection space where distances are relevant for the model.
+    The projection space is defined by the `projection` method.
     """
     @property
     def search_method_class(self):

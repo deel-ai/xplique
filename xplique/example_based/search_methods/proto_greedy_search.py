@@ -5,7 +5,7 @@ ProtoGreedy search method in example-based module
 import numpy as np
 import tensorflow as tf
 
-from ...commons import dataset_gather, sanitize_dataset
+from ...commons import sanitize_dataset
 from ...types import Callable, List, Union, Optional, Tuple
 
 from .base import BaseSearchMethod
@@ -14,7 +14,33 @@ from .knn import KNN
 # from ..projections import Projection
 
 
-def rbf_kernel(X, Y=None, gamma=None):
+@tf.function
+def rbf_kernel(X: tf.Tensor,
+               Y: Optional[tf.Tensor] = None,
+               gamma: Optional[float] = None
+               ) -> tf.Tensor:
+    """
+    Compute the rbf kernel matrix between two sets of samples.
+
+    Parameters
+    ----------
+    X
+        The first set of samples.
+    Y
+        The second set of samples, by default None.
+        If None, it is set to X.
+    gamma
+        The spread of the rbf kernel, by default None.
+        If None, it is set to 1.0 / n_features.
+    
+    Returns
+    -------
+    Tensor
+        The rbf kernel matrix.
+    """
+    # pylint: disable=invalid-name
+    # pylint: disable=invalid-unary-operand-type
+    # (for `X - Y`, pylint sees that Y might be `None`, but it is not the case)
     if Y is None:
         Y = X
 
@@ -70,6 +96,7 @@ class ProtoGreedySearch(BaseSearchMethod):
     gamma : float, optional
         Parameter that determines the spread of the rbf kernel, defaults to 1.0 / n_features.
     """
+    # pylint: disable=duplicate-code
 
     # Avoid zero division during procedure. (the value is not important, as if the denominator is
     # zero, then the nominator will also be zero).
@@ -84,14 +111,17 @@ class ProtoGreedySearch(BaseSearchMethod):
         batch_size: Optional[int] = 32,
         distance: Union[int, str, Callable] = None,
         nb_prototypes: int = 1,
-        kernel_type: str = 'local', 
+        kernel_type: str = 'local',
         kernel_fn: callable = None,
         gamma: float = None
-    ): # pylint: disable=R0801
+    ):
         super().__init__(
             cases_dataset, k, search_returns, batch_size
         )
 
+        # pylint: disable=fixme
+        # TODO: see if leave the choice between local and global kernels to the user
+        # by forcing a global kernel, we can simplify the code
         self.labels_dataset = sanitize_dataset(labels_dataset, self.batch_size)
 
         if kernel_type not in ['local', 'global']:
@@ -100,19 +130,19 @@ class ProtoGreedySearch(BaseSearchMethod):
                 + " ['local', 'global'] "\
                 +f"but {kernel_type} was received."\
             )
-        
+
         self.kernel_type = kernel_type
 
         # set default kernel function (rbf_kernel) or raise error if kernel_fn is not callable
         if kernel_fn is None:
             # define rbf kernel function
-            kernel_fn = lambda x, y: rbf_kernel(x,y,gamma)        
+            kernel_fn = lambda x, y: rbf_kernel(x,y,gamma)
         elif not hasattr(kernel_fn, "__call__"):
             raise AttributeError(
                 "The kernel_fn parameter is expected to be a Callable"\
                 +f"but {kernel_fn} was received."\
             )
-        
+
         # define custom kernel function depending on the kernel type
         def custom_kernel_fn(x1, x2, y1=None, y2=None):
             if self.kernel_type == 'global':
@@ -120,7 +150,7 @@ class ProtoGreedySearch(BaseSearchMethod):
                 if isinstance(kernel_matrix, np.ndarray):
                     kernel_matrix = tf.convert_to_tensor(kernel_matrix)
             else:
-                # In the case of a local kernel, calculations are limited to within the class. 
+                # In the case of a local kernel, calculations are limited to within the class.
                 # Across different classes, the kernel values are set to 0.
                 kernel_matrix = np.zeros((x1.shape[0], x2.shape[0]), dtype=np.float32)
                 y_intersect = np.intersect1d(y1, y2)
@@ -128,7 +158,10 @@ class ProtoGreedySearch(BaseSearchMethod):
                     y1_indices = tf.where(tf.equal(y1, y_intersect[i]))[:, 0]
                     y2_indices = tf.where(tf.equal(y2, y_intersect[i]))[:, 0]
                     sub_matrix = kernel_fn(tf.gather(x1, y1_indices), tf.gather(x2, y2_indices))
-                    kernel_matrix[tf.reshape(y1_indices, (-1, 1)), tf.reshape(y2_indices, (1, -1))] = sub_matrix
+
+                    y1_indices_flatten = tf.reshape(y1_indices, (-1, 1))
+                    y2_indices_flatten = tf.reshape(y2_indices, (1, -1))
+                    kernel_matrix[y1_indices_flatten, y2_indices_flatten] = sub_matrix
                 kernel_matrix = tf.convert_to_tensor(kernel_matrix)
             return kernel_matrix
 
@@ -139,27 +172,27 @@ class ProtoGreedySearch(BaseSearchMethod):
             def kernel_induced_distance(x1, x2):
                 x1 = tf.expand_dims(x1, axis=0)
                 x2 = tf.expand_dims(x2, axis=0)
-                distance = tf.squeeze(tf.sqrt(kernel_fn(x1,x1) - 2 * kernel_fn(x1,x2) + kernel_fn(x2,x2)))
-                return distance
+                distance = tf.sqrt(kernel_fn(x1,x1) - 2 * kernel_fn(x1,x2) + kernel_fn(x2,x2))
+                return tf.squeeze(distance)
             self.distance_fn = kernel_induced_distance
         else:
             self.distance_fn = get_distance_function(distance)
-        
-        # Compute the sum of the columns and the diagonal values of the kernel matrix of the dataset.
-        # We take advantage of the symmetry of this matrix to traverse only its lower triangle.
+
+        # Compute the sum of the columns and the diagonal values of the kernel matrix of the dataset
+        # We take advantage of the symmetry of this matrix to traverse only its lower triangle
         col_sums = []
         diag = []
         row_sums = []
-        
+
         for batch_col_index, (batch_col_cases, batch_col_labels) in enumerate(
             zip(self.cases_dataset, self.labels_dataset)
         ):
             # elements should be tabular data
             assert len(batch_col_cases.shape) == 2,\
-                "Prototypes' searches expects 2D data, (nb_samples, nb_features),"+\
-                f"but got {batch_col_cases.shape}"+\
-                "Please verify your projection if you provided a custom one."+\
-                "If you use a splitted model, make sure the output of the first part of the model is flattened."
+                "Prototypes' searches expects 2D data, (nb_samples, nb_features), but got "+\
+                f"{batch_col_cases.shape}. Please verify your projection "+\
+                "if you provided a custom one. If you use a splitted model, "+\
+                "make sure the output of the first part of the model is flattened."
 
             batch_col_sums = tf.zeros((batch_col_cases.shape[0]))
 
@@ -168,15 +201,16 @@ class ProtoGreedySearch(BaseSearchMethod):
             ):
                 if batch_row_index < batch_col_index:
                     continue
-                
-                batch_kernel = self.kernel_fn(batch_row_cases, batch_col_cases, batch_row_labels, batch_col_labels)
+
+                batch_kernel = self.kernel_fn(batch_row_cases, batch_col_cases,
+                                              batch_row_labels, batch_col_labels)
 
                 batch_col_sums = batch_col_sums + tf.reduce_sum(batch_kernel, axis=0)
 
-                if batch_col_index == batch_row_index:        
+                if batch_col_index == batch_row_index:
                     if batch_col_index != 0:
-                        batch_col_sums = batch_col_sums + row_sums[batch_row_index]                   
-                
+                        batch_col_sums = batch_col_sums + row_sums[batch_row_index]
+
                     diag.append(tf.linalg.diag_part(batch_kernel))
 
                 if batch_col_index == 0:
@@ -186,7 +220,7 @@ class ProtoGreedySearch(BaseSearchMethod):
                         row_sums.append(tf.reduce_sum(batch_kernel, axis=1))
                 else:
                     row_sums[batch_row_index] += tf.reduce_sum(batch_kernel, axis=1)
-                      
+
             col_sums.append(batch_col_sums)
 
         self.col_sums = tf.concat(col_sums, axis=0)
@@ -196,7 +230,8 @@ class ProtoGreedySearch(BaseSearchMethod):
         self.nb_features = batch_col_cases.shape[1]
 
         # compute the prototypes in the latent space
-        self.prototypes_indices, self.prototypes, self.prototypes_labels, self.prototypes_weights = self.find_prototypes(nb_prototypes)
+        self.prototypes_indices, self.prototypes, self.prototypes_labels, self.prototypes_weights =\
+            self.find_prototypes(nb_prototypes)
 
         self.knn = KNN(
             cases_dataset=self.prototypes,
@@ -206,7 +241,14 @@ class ProtoGreedySearch(BaseSearchMethod):
             distance=self.distance_fn
         )
 
-    def compute_objectives(self, selection_indices, selection_cases, selection_weights, selection_selection_kernel, candidates_indices, candidates_selection_kernel):
+    def compute_objectives(self,
+                           selection_indices: tf.Tensor,
+                           selection_cases: tf.Tensor,
+                           selection_weights: tf.Tensor,
+                           selection_selection_kernel: tf.Tensor,
+                           candidates_indices: tf.Tensor,
+                           candidates_selection_kernel: tf.Tensor
+                           ) -> Tuple[tf.Tensor, tf.Tensor]:
         """
         Compute the objective and its weights for each candidate.
 
@@ -231,41 +273,69 @@ class ProtoGreedySearch(BaseSearchMethod):
             Tensor that contains the computed objective values for each candidate.
         objectives_weights
             Tensor that contains the computed objective weights for each candidate.
-        """  
+        """
+        # pylint: disable=invalid-name
 
         nb_candidates = candidates_indices.shape[0]
         nb_selection = selection_cases.shape[0]
 
-        repeated_selection_indices = tf.tile(tf.expand_dims(selection_indices, 0), [nb_candidates, 1])
-        repeated_selection_candidates_indices = tf.concat([repeated_selection_indices, tf.expand_dims(candidates_indices, 1)], axis=1)            
+        repeated_selection_indices = tf.tile(tf.expand_dims(selection_indices, 0),
+                                             [nb_candidates, 1])
+        repeated_selection_candidates_indices = tf.concat([repeated_selection_indices,
+                                                           tf.expand_dims(candidates_indices, 1)],
+                                                          axis=1)
         u = tf.expand_dims(tf.gather(self.col_means, repeated_selection_candidates_indices), axis=2)
 
-        if nb_selection == 0:
-            K = tf.expand_dims(tf.expand_dims(tf.gather(self.diag, candidates_indices), axis=-1), axis=-1) 
-        else:
-            repeated_selection_selection_kernel = tf.tile(tf.expand_dims(selection_selection_kernel, 0), [nb_candidates, 1, 1])
-            repeated_selection_selection_kernel = tf.pad(repeated_selection_selection_kernel, [[0, 0], [0, 1], [0, 1]])
+        candidates_diag = tf.gather(self.diag, candidates_indices)
+        candidates_diag = tf.expand_dims(tf.expand_dims(candidates_diag, axis=-1), axis=-1)
 
-            candidates_diag = tf.expand_dims(tf.expand_dims(tf.gather(self.diag, candidates_indices), axis=-1), axis=-1)
-            candidates_diag = tf.pad(candidates_diag, [[0, 0], [nb_selection, 0], [nb_selection, 0]])
+        if nb_selection == 0:
+            K = candidates_diag
+        else:
+            repeated_selection_selection_kernel = tf.tile(
+                tf.expand_dims(selection_selection_kernel, 0),
+                [nb_candidates, 1, 1]
+            )
+            repeated_selection_selection_kernel = tf.pad(
+                repeated_selection_selection_kernel,
+                [[0, 0], [0, 1], [0, 1]]
+            )
+
+            candidates_diag = tf.pad(
+                candidates_diag,
+                [[0, 0], [nb_selection, 0], [nb_selection, 0]]
+            )
 
             candidates_selection_kernel = tf.expand_dims(candidates_selection_kernel, axis=-1)
-            candidates_selection_kernel = tf.pad(candidates_selection_kernel, [[0, 0], [0, 1], [nb_selection, 0]])
+            candidates_selection_kernel = tf.pad(
+                candidates_selection_kernel,
+                [[0, 0], [0, 1], [nb_selection, 0]]
+            )
 
-            K = repeated_selection_selection_kernel + candidates_diag + candidates_selection_kernel + tf.transpose(candidates_selection_kernel, [0, 2, 1])
+            K = repeated_selection_selection_kernel + candidates_diag\
+                + candidates_selection_kernel + tf.transpose(candidates_selection_kernel, [0, 2, 1])
 
-        # Compute the objective weights for each candidate in the batch         
+        # Compute the objective weights for each candidate in the batch
         K_inv = tf.linalg.inv(K + ProtoGreedySearch.EPSILON * tf.eye(K.shape[-1]))
         objectives_weights = tf.matmul(K_inv, u)
         objectives_weights = tf.maximum(objectives_weights, 0)
-        
+
         # Compute the objective for each candidate in the batch
-        objectives = tf.matmul(tf.transpose(objectives_weights, [0, 2, 1]), u) - 0.5 * tf.matmul(tf.matmul(tf.transpose(objectives_weights, [0, 2, 1]), K), objectives_weights)
-        objectives = tf.squeeze(objectives, axis=[1,2])
+        k_objectives = tf.matmul(tf.transpose(objectives_weights, [0, 2, 1]), K)
+        u_objectives = tf.matmul(tf.transpose(objectives_weights, [0, 2, 1]), u)
+        objectives = u_objectives - 0.5 * tf.matmul(k_objectives, objectives_weights)
+        objectives = tf.squeeze(objectives, axis=[1, 2])
 
         return objectives, objectives_weights
 
-    def update_selection_weights(self, selection_indices, selection_weights, selection_selection_kernel, best_indice, best_weights, best_objective):
+    def update_selection_weights(self,
+                                 selection_indices: tf.Tensor,
+                                 selection_weights: tf.Tensor,
+                                 selection_selection_kernel: tf.Tensor,
+                                 best_indice: tf.Tensor,
+                                 best_weights: tf.Tensor,
+                                 best_objective: tf.Tensor
+                                 ) -> tf.Tensor:
         """
         Update the selection weights based on the optimization results.
 
@@ -280,7 +350,8 @@ class ProtoGreedySearch(BaseSearchMethod):
         best_indice : int
             The index of the selected prototype with the highest objective function value.
         best_weights : Tensor
-            The weights corresponding to the optimal solution of the objective function for each candidate.
+            The weights corresponding to the optimal solution
+            of the objective function for each candidate.
         best_objective : float
             The computed objective function value.
 
@@ -293,7 +364,7 @@ class ProtoGreedySearch(BaseSearchMethod):
         selection_weights = best_weights
 
         return selection_weights
-    
+
     def find_prototypes(self, nb_prototypes):
         """
         Search for prototypes and their corresponding weights.
@@ -318,43 +389,45 @@ class ProtoGreedySearch(BaseSearchMethod):
         # Tensors to store selected indices and their corresponding cases, labels and weights.
         selection_indices = tf.constant([], dtype=tf.int32)
         selection_cases = tf.zeros((0, self.nb_features), dtype=tf.float32)
-        selection_labels = tf.constant([], dtype=tf.int32)   
-        selection_weights = tf.constant([], dtype=tf.float32)     
+        selection_labels = tf.constant([], dtype=tf.int32)
+        selection_weights = tf.constant([], dtype=tf.float32)
         # Tensor to store the all_candidates-selection kernel of the previous iteration.
         all_candidates_selection_kernel = tf.zeros((self.n, 0), dtype=tf.float32)
         # Tensor to store the selection-selection kernel.
         selection_selection_kernel = None
-        
+
         k = 0
         while k < nb_prototypes:
-  
+
             nb_selection = selection_cases.shape[0]
 
             # Tensor to store the all_candidates-last_selected kernel
             if nb_selection !=0:
                 all_candidates_last_selected_kernel = tf.zeros((self.n), dtype=tf.float32)
 
-            best_objective = None   
+            best_objective = None
             best_indice = None
-            best_case = None 
-            best_label = None 
+            best_case = None
+            best_label = None
             best_weights = None
-        
+
             for batch_index, (cases, labels) in enumerate(
                 zip(self.cases_dataset, self.labels_dataset)
             ):
                 batch_inside_indices = tf.range(cases.shape[0], dtype=tf.int32)
                 batch_indices = batch_index * self.batch_size + batch_inside_indices
-        
+
                 # Filter the batch to keep only candidate indices.
                 if nb_selection == 0:
                     candidates_indices = batch_indices
                 else:
-                    candidates_indices = tf.convert_to_tensor(np.setdiff1d(batch_indices, selection_indices))
+                    candidates_indices = tf.convert_to_tensor(
+                        np.setdiff1d(batch_indices, selection_indices)
+                    )
 
                 nb_candidates = candidates_indices.shape[0]
 
-                if nb_candidates == 0: 
+                if nb_candidates == 0:
                     continue
 
                 candidates_inside_indices = candidates_indices % self.batch_size
@@ -365,41 +438,64 @@ class ProtoGreedySearch(BaseSearchMethod):
                 if nb_selection == 0:
                     candidates_selection_kernel = None
                 else:
-                    candidates_last_selected_kernel = self.kernel_fn(candidates_cases, selection_cases[-1:, :], candidates_labels, selection_labels[-1:])
-                    candidates_selection_kernel = tf.concat([tf.gather(all_candidates_selection_kernel, candidates_indices, axis=0), candidates_last_selected_kernel], axis=1)
-                    all_candidates_last_selected_kernel = tf.tensor_scatter_nd_update(all_candidates_last_selected_kernel, tf.expand_dims(candidates_indices, axis=1), tf.squeeze(candidates_last_selected_kernel, axis=1))
-                 
+                    candidates_last_selected_kernel = self.kernel_fn(
+                        candidates_cases, selection_cases[-1:, :],
+                        candidates_labels, selection_labels[-1:]
+                    )
+                    candidates_selection_kernel = tf.concat(
+                        [tf.gather(all_candidates_selection_kernel, candidates_indices, axis=0),
+                         candidates_last_selected_kernel],
+                        axis=1
+                    )
+                    all_candidates_last_selected_kernel = tf.tensor_scatter_nd_update(
+                        all_candidates_last_selected_kernel,
+                        tf.expand_dims(candidates_indices, axis=1),
+                        tf.squeeze(candidates_last_selected_kernel, axis=1)
+                    )
+
                 # Compute the objectives for the batch
-                objectives, objectives_weights = self.compute_objectives(selection_indices, selection_cases, selection_weights, selection_selection_kernel, candidates_indices, candidates_selection_kernel)
-    
-                # Select the best objective in the batch           
+                objectives, objectives_weights = self.compute_objectives(
+                    selection_indices, selection_cases, selection_weights,
+                    selection_selection_kernel, candidates_indices, candidates_selection_kernel
+                )
+
+                # Select the best objective in the batch
                 objectives_argmax = tf.argmax(objectives)
-                
-                if (best_objective is None) or (tf.gather(objectives, objectives_argmax) > best_objective):
-                    best_objective = tf.gather(objectives, objectives_argmax)        
+
+                if (best_objective is None)\
+                        or (tf.gather(objectives, objectives_argmax) > best_objective):
+                    best_objective = tf.gather(objectives, objectives_argmax)
                     best_indice = tf.squeeze(tf.gather(candidates_indices, objectives_argmax))
                     best_case = tf.gather(candidates_cases, objectives_argmax)
                     best_label = tf.gather(candidates_labels, objectives_argmax)
                     if objectives_weights is not None:
-                        best_weights = tf.squeeze(tf.gather(objectives_weights, objectives_argmax))  
+                        best_weights = tf.squeeze(tf.gather(objectives_weights, objectives_argmax))
 
             # Update the all_candidates-selection kernel
             if nb_selection != 0:
-                all_candidates_selection_kernel = tf.concat([all_candidates_selection_kernel, tf.expand_dims(all_candidates_last_selected_kernel, axis=1)], axis=1)
-           
+                all_candidates_selection_kernel = tf.concat(
+                    [all_candidates_selection_kernel,
+                     tf.expand_dims(all_candidates_last_selected_kernel, axis=1)],
+                    axis=1)
+
             # Update the selection-selection kernel
             if nb_selection == 0:
                 selection_selection_kernel = tf.gather(self.diag, [[best_indice]])
-            else:    
+            else:
                 selection_selection_kernel = tf.pad(selection_selection_kernel, [[0, 1], [0, 1]])
 
-                best_candidate_selection_kernel = tf.gather(all_candidates_selection_kernel, [best_indice], axis=0)
-                best_candidate_selection_kernel = tf.pad(best_candidate_selection_kernel, [[nb_selection, 0], [0, 1]])
+                best_candidate_selection_kernel = tf.gather(all_candidates_selection_kernel,
+                                                            [best_indice], axis=0)
+                best_candidate_selection_kernel = tf.pad(best_candidate_selection_kernel,
+                                                         [[nb_selection, 0], [0, 1]])
 
                 best_candidate_diag = tf.expand_dims(tf.gather(self.diag, [best_indice]), axis=-1)
-                best_candidate_diag = tf.pad(best_candidate_diag, [[nb_selection, 0], [nb_selection, 0]])
+                best_candidate_diag = tf.pad(best_candidate_diag,
+                                             [[nb_selection, 0], [nb_selection, 0]])
 
-                selection_selection_kernel = selection_selection_kernel + best_candidate_diag + best_candidate_selection_kernel + tf.transpose(best_candidate_selection_kernel)
+                selection_selection_kernel = selection_selection_kernel + best_candidate_diag\
+                                             + best_candidate_selection_kernel\
+                                             + tf.transpose(best_candidate_selection_kernel)
 
             # Update selection indices, cases and labels
             selection_indices = tf.concat([selection_indices, [best_indice]], axis=0)
@@ -407,8 +503,10 @@ class ProtoGreedySearch(BaseSearchMethod):
             selection_labels = tf.concat([selection_labels, [best_label]], axis=0)
 
             # Update selection weights
-            selection_weights = self.update_selection_weights(selection_indices, selection_weights, selection_selection_kernel, best_indice, best_weights, best_objective)
-               
+            selection_weights = self.update_selection_weights(
+                selection_indices, selection_weights, selection_selection_kernel,
+                best_indice, best_weights, best_objective)
+
             k += 1
 
         prototypes_indices = selection_indices
@@ -420,8 +518,11 @@ class ProtoGreedySearch(BaseSearchMethod):
         prototypes_weights = prototypes_weights / tf.reduce_sum(prototypes_weights)
 
         return prototypes_indices, prototypes, prototypes_labels, prototypes_weights
-    
-    def find_examples(self, inputs: Union[tf.Tensor, np.ndarray], _):
+
+    def find_examples(self,
+                      inputs: Union[tf.Tensor, np.ndarray],
+                      _ = None
+                      ) -> dict:
         """
         Search the samples to return as examples. Called by the explain methods.
         It may also return the indices corresponding to the samples,
@@ -433,6 +534,15 @@ class ProtoGreedySearch(BaseSearchMethod):
             Tensor or Array. Input samples to be explained.
             Assumed to have been already projected.
             Expected shape among (N, W), (N, T, W), (N, W, H, C).
+        
+        Returns
+        -------
+        dict
+            Dictionary potentially containing the following elements:
+            - "examples" : the expected examples,
+            the inputs may be included in the first position. (n, k(+1), ...)
+            - "distances" : the distances between the inputs and the corresponding examples.
+            They are associated to the examples. (n, k, ...)
         """
 
         # look for closest prototypes to projected inputs
@@ -441,8 +551,9 @@ class ProtoGreedySearch(BaseSearchMethod):
         # obtain closest prototypes indices with respect to the prototypes
         indices_wrt_prototypes = knn_output["indices"]
 
-        # convert to unique indices 
-        indices_wrt_prototypes = indices_wrt_prototypes[:, :, 0] * self.batch_size + indices_wrt_prototypes[:, :, 1]
+        # convert to unique indices
+        indices_wrt_prototypes = indices_wrt_prototypes[:, :, 0] * self.batch_size\
+                                 + indices_wrt_prototypes[:, :, 1]
 
         # get prototypes indices with respect to the dataset
         indices = tf.gather(self.prototypes_indices, indices_wrt_prototypes)

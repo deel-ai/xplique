@@ -5,7 +5,7 @@ Common functions for search methods.
 import numpy as np
 import tensorflow as tf
 
-from ...types import Callable, List, Union, Optional, Tuple
+from ...types import Callable, Union
 
 
 def _manhattan_distance(x1: tf.Tensor, x2: tf.Tensor) -> tf.Tensor:
@@ -112,6 +112,7 @@ _distances = {
     "euclidean": _euclidean_distance,
     "cosine": _cosine_distance,
     "chebyshev": _chebyshev_distance,
+    "inf": _chebyshev_distance,
 }
 
 
@@ -129,16 +130,15 @@ def get_distance_function(distance: Union[int, str, Callable] = "euclidean",) ->
     # set distance function
     if hasattr(distance, "__call__"):
         return distance
-    elif isinstance(distance, str) and distance in _distances:
+    if isinstance(distance, str) and distance in _distances:
         return _distances[distance]
-    elif isinstance(distance, int):
+    if isinstance(distance, int):
         return lambda x1, x2: _minkowski_distance(x1, x2, p=distance)
-    elif distance == np.inf or (isinstance(distance, str) and distance == "inf"):
-        return lambda x1, x2: _chebyshev_distance(x1, x2)
-    else:
-        raise AttributeError(
-            "The distance parameter is expected to be either a Callable, "\
-            + f" an integer, 'inf', or a string in {_distances.keys()}. "\
-            + f"But a {type(distance)} was received, with value {distance}."
-        )
+    if distance == np.inf:
+        return _chebyshev_distance
 
+    raise AttributeError(
+        "The distance parameter is expected to be either a Callable, "\
+        + f" an integer, 'inf', or a string in {_distances.keys()}. "\
+        + f"But a {type(distance)} was received, with value {distance}."
+    )

@@ -14,7 +14,8 @@ from .common import get_distance_function
 
 class BaseKNN(BaseSearchMethod):
     """
-    Base class for the KNN search methods. It is an abstract class that should be inherited by a specific KNN method.
+    Base class for the KNN search methods.
+    It is an abstract class that should be inherited by a specific KNN method.
 
     Parameters
     ----------
@@ -32,9 +33,10 @@ class BaseKNN(BaseSearchMethod):
         Number of sample treated simultaneously.
         It should match the batch size of the `search_set` in the case of a `tf.data.Dataset`.
     order
-        The order of the distances, either `ORDER.ASCENDING` or `ORDER.DESCENDING`. Default is `ORDER.ASCENDING`.
-        ASCENDING means that the smallest distances are the best, DESCENDING means that the biggest distances are
-        the best.
+        The order of the distances, either `ORDER.ASCENDING` or `ORDER.DESCENDING`.
+        Default is `ORDER.ASCENDING`.
+        ASCENDING means that the smallest distances are the best,
+        DESCENDING means that the biggest distances are the best.
     """
     def __init__(
         self,
@@ -51,13 +53,17 @@ class BaseKNN(BaseSearchMethod):
             batch_size=batch_size,
         )
         # set order
-        assert isinstance(order, ORDER), f"order should be an instance of ORDER and not {type(order)}"
+        assert isinstance(order, ORDER),\
+            f"order should be an instance of ORDER and not {type(order)}"
         self.order = order
         # fill value
         self.fill_value = np.inf if self.order == ORDER.ASCENDING else -np.inf
-   
+
     @abstractmethod
-    def kneighbors(self, inputs: Union[tf.Tensor, np.ndarray], targets: Optional[Union[tf.Tensor, np.ndarray]] = None) -> Tuple[tf.Tensor, tf.Tensor]:
+    def kneighbors(self,
+                   inputs: Union[tf.Tensor, np.ndarray],
+                   targets: Optional[Union[tf.Tensor, np.ndarray]] = None
+                   ) -> Tuple[tf.Tensor, tf.Tensor]:
         """
         Compute the k-nearest neighbors to each tensor of `inputs` in `self.cases_dataset`.
         Here `self.cases_dataset` is a `tf.data.Dataset`, hence, computations are done by batches.
@@ -85,7 +91,10 @@ class BaseKNN(BaseSearchMethod):
         """
         raise NotImplementedError
 
-    def find_examples(self, inputs: Union[tf.Tensor, np.ndarray], targets: Optional[Union[tf.Tensor, np.ndarray]] = None) -> dict:
+    def find_examples(self,
+                      inputs: Union[tf.Tensor, np.ndarray],
+                      targets: Optional[Union[tf.Tensor, np.ndarray]] = None
+                      ) -> dict:
         """
         Search the samples to return as examples. Called by the explain methods.
         It may also return the indices corresponding to the samples,
@@ -115,8 +124,9 @@ class BaseKNN(BaseSearchMethod):
 
     def _build_return_dict(self, inputs, examples_distances, examples_indices) -> dict:
         """
-        Build the return dict based on the `self.returns` values. It builds the return dict with the value in the
-        subset of ['examples', 'include_inputs', 'indices', 'distances'] which is commonly shared.
+        Build the return dict based on the `self.returns` values.
+        It builds the return dict with the value in the subset of
+        ['examples', 'include_inputs', 'indices', 'distances'] which is commonly shared.
         """
         # Set values in return dict
         return_dict = {}
@@ -155,14 +165,16 @@ class KNN(BaseKNN):
         Number of sample treated simultaneously.
         It should match the batch size of the `search_set` in the case of a `tf.data.Dataset`.
     order
-        The order of the distances, either `ORDER.ASCENDING` or `ORDER.DESCENDING`. Default is `ORDER.ASCENDING`.
-        ASCENDING means that the smallest distances are the best, DESCENDING means that the biggest distances are
-        the best.
+        The order of the distances, either `ORDER.ASCENDING` or `ORDER.DESCENDING`.
+        Default is `ORDER.ASCENDING`.
+        ASCENDING means that the smallest distances are the best,
+        DESCENDING means that the biggest distances are the best.
     distance
         Distance function for examples search. It can be an integer, a string in
         {"manhattan", "euclidean", "cosine", "chebyshev", "inf"}, or a Callable,
         by default "euclidean".
     """
+    # pylint: disable=duplicate-code
     def __init__(
         self,
         cases_dataset: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
@@ -171,7 +183,7 @@ class KNN(BaseKNN):
         batch_size: Optional[int] = 32,
         distance: Union[int, str, Callable] = "euclidean",
         order: ORDER = ORDER.ASCENDING,
-    ): # pylint: disable=R0801
+    ):
         super().__init__(
             cases_dataset=cases_dataset,
             k=k,
@@ -216,7 +228,10 @@ class KNN(BaseKNN):
         distances = tf.vectorized_map(compute_distance, args)
         return distances
 
-    def kneighbors(self, inputs: Union[tf.Tensor, np.ndarray], _ = None) -> Tuple[tf.Tensor, tf.Tensor]:
+    def kneighbors(self,
+                   inputs: Union[tf.Tensor, np.ndarray],
+                   _ = None,
+                   ) -> Tuple[tf.Tensor, tf.Tensor]:
         """
         Compute the k-neareast neighbors to each tensor of `inputs` in `self.cases_dataset`.
         Here `self.cases_dataset` is a `tf.data.Dataset`, hence, computations are done by batches.
@@ -254,7 +269,6 @@ class KNN(BaseKNN):
         batch_indices = tf.tile(batch_indices, multiples=(nb_inputs, 1))
 
         # iterate on batches
-        # for batch_index, (cases, cases_targets) in enumerate(zip(self.cases_dataset, self.targets_dataset)):
         for batch_index, cases in enumerate(self.cases_dataset):
             # add new elements
             # (n, current_bs, 2)
@@ -291,9 +305,9 @@ class FilterKNN(BaseKNN):
     """
     KNN method to search examples. Based on `sklearn.neighbors.NearestNeighbors`.
     The kneighbors method is implemented in a batched way to handle large datasets.
-    In addition, a filter function is used to select the elements to compute the distances, thus reducing the
-    computational cost of the distance computation (worth if the computation of the filter is low and the matrix
-    of distances is sparse).
+    In addition, a filter function is used to select the elements to compute the distances,
+    thus reducing the computational cost of the distance computation
+    (worth if the computation of the filter is low and the matrix of distances is sparse).
 
     Parameters
     ----------
@@ -303,7 +317,8 @@ class FilterKNN(BaseKNN):
         Be careful, `tf.data.Dataset` are often reshuffled at each iteration, be sure that it is not
         the case for your dataset, otherwise, examples will not make sense.
     targets_dataset
-        Targets are expected to be the one-hot encoding of the model's predictions for the samples in cases_dataset.
+        Targets are expected to be the one-hot encoding of the model's predictions
+        for the samples in cases_dataset.
         `tf.data.Dataset` are assumed to be batched as tensorflow provide no method to verify it.
         Batch size and cardinality of other datasets should match `cases_dataset`.
         Be careful, `tf.data.Dataset` are often reshuffled at each iteration, be sure that it is not
@@ -317,18 +332,21 @@ class FilterKNN(BaseKNN):
         Number of sample treated simultaneously.
         It should match the batch size of the `search_set` in the case of a `tf.data.Dataset`.
     order
-        The order of the distances, either `ORDER.ASCENDING` or `ORDER.DESCENDING`. Default is `ORDER.ASCENDING`.
-        ASCENDING means that the smallest distances are the best, DESCENDING means that the biggest distances are
-        the best.
+        The order of the distances, either `ORDER.ASCENDING` or `ORDER.DESCENDING`.
+        Default is `ORDER.ASCENDING`.
+        ASCENDING means that the smallest distances are the best,
+        DESCENDING means that the biggest distances are the best.
     distance
         Distance function for examples search. It can be an integer, a string in
         {"manhattan", "euclidean", "cosine", "chebyshev", "inf"}, or a Callable,
         by default "euclidean".
     filter_fn
-        A Callable that takes as inputs the inputs, their targets, the cases and their targets and
-        returns a boolean mask of shape (n, m) where n is the number of inputs and m the number of cases.
+        A Callable that takes as inputs the inputs, their targets,
+        the cases and their targets and returns a boolean mask of shape (n, m)
+        where n is the number of inputs and m the number of cases.
         This boolean mask is used to choose between which inputs and cases to compute the distances. 
     """
+    # pylint: disable=duplicate-code
     def __init__(
         self,
         cases_dataset: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
@@ -339,7 +357,8 @@ class FilterKNN(BaseKNN):
         distance: Union[int, str, Callable] = "euclidean",
         order: ORDER = ORDER.ASCENDING,
         filter_fn: Optional[Callable] = None,
-    ): # pylint: disable=R0801
+    ):
+        # pylint: disable=fixme
         super().__init__(
             cases_dataset=cases_dataset,
             k=k,
@@ -380,7 +399,8 @@ class FilterKNN(BaseKNN):
         x2
             Tensor. Cases samples of shape (m, ...).
         mask
-            Tensor. Boolean mask of shape (n, m). It is used to filter the elements for which the distance is computed.
+            Tensor. Boolean mask of shape (n, m).
+            It is used to filter the elements for which the distance is computed.
 
         Returns
         -------
@@ -402,13 +422,16 @@ class FilterKNN(BaseKNN):
         distances = tf.vectorized_map(compute_distance, args)
         return distances
 
-    def kneighbors(self, inputs: Union[tf.Tensor, np.ndarray], targets: Optional[Union[tf.Tensor, np.ndarray]] = None) -> Tuple[tf.Tensor, tf.Tensor]:
+    def kneighbors(self,
+                   inputs: Union[tf.Tensor, np.ndarray],
+                   targets: Optional[Union[tf.Tensor, np.ndarray]] = None
+                   ) -> Tuple[tf.Tensor, tf.Tensor]:
         """
         Compute the k-neareast neighbors to each tensor of `inputs` in `self.cases_dataset`.
         Here `self.cases_dataset` is a `tf.data.Dataset`, hence, computations are done by batches.
-        In addition, a filter function is used to select the elements to compute the distances, thus reducing the
-        computational cost of the distance computation (worth if the computation of the filter is low and the matrix
-        of distances is sparse).
+        In addition, a filter function is used to select the elements to compute the distances,
+        thus reducing the computational cost of the distance computation
+        (worth if the computation of the filter is low and the matrix of distances is sparse).
 
         Parameters
         ----------
@@ -443,7 +466,8 @@ class FilterKNN(BaseKNN):
         batch_indices = tf.tile(batch_indices, multiples=(nb_inputs, 1))
 
         # iterate on batches
-        for batch_index, (cases, cases_targets) in enumerate(zip(self.cases_dataset, self.targets_dataset)):
+        for batch_index, (cases, cases_targets) in\
+                enumerate(zip(self.cases_dataset, self.targets_dataset)):
             # add new elements
             # (n, current_bs, 2)
             indices = batch_indices[:, : tf.shape(cases)[0]]

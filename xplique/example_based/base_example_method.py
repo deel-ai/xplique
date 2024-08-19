@@ -114,6 +114,11 @@ class BaseExampleMethod(ABC):
 
         # set properties
         self.k = k
+        if self.labels_dataset is None\
+                and ("labels" in case_returns or case_returns in ["all", "labels"]):
+            raise AttributeError(
+                "The method cannot return labels without a label dataset."
+            )
         self.returns = case_returns
 
         # temporary value for the search method
@@ -305,7 +310,7 @@ class BaseExampleMethod(ABC):
         projected_inputs = self.projection(inputs, targets)
 
         # look for relevant elements in the search space
-        search_output = self.search_method(projected_inputs, targets)
+        search_output = self.search_method.find_examples(projected_inputs, targets)
 
         # manage returned elements
         return self.format_search_output(search_output, inputs)

@@ -4,8 +4,7 @@ Custom, a projection from example based module
 
 import tensorflow as tf
 
-from ...commons import find_layer
-from ...types import Callable, Union
+from ...types import Union
 
 from .base import Projection
 from .commons import model_splitting
@@ -47,7 +46,7 @@ class LatentSpaceProjection(Projection):
     @classmethod
     def from_splitted_model(cls,
                             features_extractor: tf.keras.Model,
-                            mappable=True):  # TODO: test
+                            mappable=True):
         """
         Create LatentSpaceProjection from a splitted model.
         The projection will project the inputs in the latent space,
@@ -62,8 +61,9 @@ class LatentSpaceProjection(Projection):
             It is not the case for wrapped PyTorch models.
             If you encounter errors in the `project_dataset` method, you can set it to `False`.
         """
+        # pylint: disable=fixme
+        # TODO: test
         assert isinstance(features_extractor, tf.keras.Model),\
             f"features_extractor should be a tf.keras.Model, got {type(features_extractor)}"\
             f" instead. If you have a PyTorch model, you can use the `TorchWrapper`."
         super().__init__(space_projection=features_extractor, mappable=mappable)
-

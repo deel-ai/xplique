@@ -4,7 +4,6 @@ Attribution, a projection from example based module
 import warnings
 
 import tensorflow as tf
-import numpy as np
 from xplique.types import Optional
 
 from ...commons import get_gradient_functions
@@ -51,7 +50,8 @@ class HadamardProjection(Projection):
         Device to use for the projection, if None, use the default device.
         Only used for PyTorch models. Ignored for TensorFlow models.
     """
-     # TODO: make a larger description of the operator arg.
+    # pylint: disable=fixme
+    # TODO: make a larger description of the operator arg.
     def __init__(
         self,
         model: Callable,
@@ -69,15 +69,16 @@ class HadamardProjection(Projection):
             space_projection, self.predictor = model_splitting(model,
                                                                latent_layer=latent_layer,
                                                                device=device)
-        
+
         if operator is None:
             warnings.warn("No operator provided, using standard classification operator. "\
                           + "For non-classification tasks, please specify an operator.")
             operator = target_free_classification_operator
-        
+
         # the weights are given by the gradient of the operator based on the predictor
         gradients, _ = get_gradient_functions(self.predictor, operator)
-        get_weights = lambda inputs, targets: gradients(self.predictor, inputs, targets)  # TODO check usage of gpu
+        # TODO check usage of gpu
+        get_weights = lambda inputs, targets: gradients(self.predictor, inputs, targets)
 
         mappable = isinstance(model, tf.keras.Model)
 
@@ -108,16 +109,18 @@ class HadamardProjection(Projection):
             It is not the case for wrapped PyTorch models.
             If you encounter errors in the `project_dataset` method, you can set it to `False`.
         """
+        # pylint: disable=fixme
         assert isinstance(features_extractor, tf.keras.Model),\
             f"features_extractor should be a tf.keras.Model, got {type(features_extractor)}"\
             f" instead. If you have a PyTorch model, you can use the `TorchWrapper`."
         assert isinstance(predictor, tf.keras.Model),\
             f"predictor should be a tf.keras.Model, got {type(predictor)}"\
             f" instead. If you have a PyTorch model, you can use the `TorchWrapper`."
-        
+
         # the weights are given by the gradient of the operator based on the predictor
         gradients, _ = get_gradient_functions(predictor, operator)
-        get_weights = lambda inputs, targets: gradients(predictor, inputs, targets)  # TODO check usage of gpu
+        # TODO check usage of gpu
+        get_weights = lambda inputs, targets: gradients(predictor, inputs, targets)
 
         super().__init__(get_weights=get_weights,
                          space_projection=features_extractor,

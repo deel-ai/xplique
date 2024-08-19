@@ -1,6 +1,7 @@
 """
 CRAFT Module for Pytorch
 """
+# pylint: disable=no-member
 
 from typing import Callable, Optional, Tuple
 from math import ceil

@@ -234,7 +234,6 @@ def plot_maco(image, alpha, percentile_image=1.0, percentile_alpha=80):
 
 def plot_examples(
         examples: np.ndarray,
-        weights: np.ndarray = None,
         distances: float = None,
         labels: np.ndarray = None,
         test_labels: np.ndarray = None,
@@ -263,9 +262,6 @@ def plot_examples(
         Size of each subplots (in inch), considering we keep aspect ratio
     """
     # pylint: disable=too-many-arguments
-    if weights is not None:
-        assert examples.shape[:2] == weights.shape[:2],\
-            "Number of weights must correspond to the number of examples."
     if distances is not None:
         assert examples.shape[0] == distances.shape[0],\
             "Number of samples treated should match between examples and distances."
@@ -278,7 +274,7 @@ def plot_examples(
             "Number of labels for each input must correspond to the number of examples -1."
 
     # number of rows depends if weights are provided
-    rows_by_input = 1 + (weights is not None)
+    rows_by_input = 1
     rows = rows_by_input * examples.shape[0]
     cols = examples.shape[1]
     # get width and height of our images
@@ -309,7 +305,7 @@ def plot_examples(
 
     # configure the grid to show all results
     plt.rcParams["figure.autolayout"] = True
-    plt.rcParams["figure.figsize"] = [3 * examples.shape[1], 4 * (1 + (weights is not None))]
+    plt.rcParams["figure.figsize"] = [3 * examples.shape[1], 4]
 
     # loop to organize and show all results
     for i in range(examples.shape[0]):
@@ -337,12 +333,4 @@ def plot_examples(
             else:
                 plt.imshow(img)
             plt.axis("off")
-
-            # plot weights
-            if weights is not None:
-                plt.subplot(rows, cols, (rows_by_input * i + 1) * cols + k + 1)
-                plot_attribution(weights[i, k], examples[i, k], **attribution_kwargs)
-                plt.axis("off")
-                plt.plot([-1, 1.5], [-space_with_line, -space_with_line],
-                         color='black', lw=1, transform=plt.gca().transAxes, clip_on=False)
     fig.tight_layout()

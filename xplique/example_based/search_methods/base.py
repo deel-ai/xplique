@@ -64,9 +64,9 @@ def _sanitize_returns(returns: Optional[Union[List[str], str]] = None,
 
 class BaseSearchMethod(ABC):
     """
-    Base class for the example-based search methods. This class is abstract. It should be inherited by
-    the search methods that are used to find examples in a dataset. It also defines the interface for the
-    search methods.
+    Base class for the example-based search methods. This class is abstract.
+    It should be inherited by the search methods that are used to find examples in a dataset.
+    It also defines the interface for the search methods.
 
     Parameters
     ----------
@@ -84,6 +84,7 @@ class BaseSearchMethod(ABC):
         Number of sample treated simultaneously.
         It should match the batch size of the `search_set` in the case of a `tf.data.Dataset`.
     """
+    # pylint: disable=duplicate-code
     _returns_possibilities = ["examples", "indices", "distances", "include_inputs"]
 
     def __init__(
@@ -92,8 +93,8 @@ class BaseSearchMethod(ABC):
         k: int = 1,
         search_returns: Optional[Union[List[str], str]] = None,
         batch_size: Optional[int] = 32,
-    ): # pylint: disable=R0801
-        
+    ):
+
         # set batch size
         if hasattr(cases_dataset, "_batch_size"):
             self.batch_size = tf.cast(cases_dataset._batch_size, tf.int32)
@@ -144,7 +145,9 @@ class BaseSearchMethod(ABC):
         self._returns = _sanitize_returns(returns, self._returns_possibilities, default)
 
     @abstractmethod
-    def find_examples(self, inputs: Union[tf.Tensor, np.ndarray], targets: Optional[Union[tf.Tensor, np.ndarray]] = None) -> dict:
+    def find_examples(self,
+                      inputs: Union[tf.Tensor, np.ndarray],
+                      targets: Optional[Union[tf.Tensor, np.ndarray]] = None) -> dict:
         """
         Search the samples to return as examples. Called by the explain methods.
         It may also return the indices corresponding to the samples,
@@ -165,6 +168,8 @@ class BaseSearchMethod(ABC):
         """
         raise NotImplementedError()
 
-    def __call__(self, inputs: Union[tf.Tensor, np.ndarray], targets: Optional[Union[tf.Tensor, np.ndarray]] = None) -> dict:
+    def __call__(self,
+                 inputs: Union[tf.Tensor, np.ndarray],
+                 targets: Optional[Union[tf.Tensor, np.ndarray]] = None) -> dict:
         """find_samples() alias"""
         return self.find_examples(inputs, targets)

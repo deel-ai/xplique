@@ -95,6 +95,3 @@ def test_plot_cole_spliting():
         predicted_labels=predicted_labels,
         **outputs
     )
-
-
-# test_plot_cole_spliting()
