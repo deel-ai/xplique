@@ -83,7 +83,10 @@ class HadamardProjection(Projection):
         mappable = isinstance(model, tf.keras.Model)
 
         # set methods
-        super().__init__(get_weights, space_projection, mappable=mappable)
+        super().__init__(get_weights=get_weights,
+                         space_projection=space_projection,
+                         mappable=mappable,
+                         requires_targets=True)
 
     @classmethod
     def from_splitted_model(cls,
@@ -124,4 +127,5 @@ class HadamardProjection(Projection):
 
         super().__init__(get_weights=get_weights,
                          space_projection=features_extractor,
-                         mappable=mappable)
+                         mappable=mappable,
+                         requires_targets=True)

@@ -80,4 +80,7 @@ class AttributionProjection(Projection):
         get_weights = self.attribution_method(self.predictor, **attribution_kwargs)
 
         # set methods
-        super().__init__(get_weights, space_projection, mappable=False)
+        super().__init__(get_weights=get_weights,
+                         space_projection=space_projection,
+                         mappable=False,
+                         requires_targets=True)

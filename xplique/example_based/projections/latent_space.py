@@ -41,7 +41,9 @@ class LatentSpaceProjection(Projection):
         features_extractor, _ = model_splitting(model, latent_layer=latent_layer, device=device)
 
         mappable = isinstance(model, tf.keras.Model)
-        super().__init__(space_projection=features_extractor, mappable=mappable)
+        super().__init__(space_projection=features_extractor,
+                         mappable=mappable,
+                         requires_targets=False)
 
     @classmethod
     def from_splitted_model(cls,
@@ -66,4 +68,6 @@ class LatentSpaceProjection(Projection):
         assert isinstance(features_extractor, tf.keras.Model),\
             f"features_extractor should be a tf.keras.Model, got {type(features_extractor)}"\
             f" instead. If you have a PyTorch model, you can use the `TorchWrapper`."
-        super().__init__(space_projection=features_extractor, mappable=mappable)
+        super().__init__(space_projection=features_extractor,
+                         mappable=mappable,
+                         requires_targets=False)

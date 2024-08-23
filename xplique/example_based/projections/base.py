@@ -3,6 +3,7 @@ Base projection for similar examples in example based module
 """
 
 from abc import ABC
+import warnings
 
 import tensorflow as tf
 import numpy as np
@@ -63,13 +64,15 @@ class Projection(ABC):
                  get_weights: Optional[Union[Callable, tf.Tensor, np.ndarray]] = None,
                  space_projection: Optional[Callable] = None,
                  device: Optional[str] = None,
-                 mappable: bool = True,):
+                 mappable: bool = True,
+                 requires_targets: bool = False):
         assert get_weights is not None or space_projection is not None, (
             "At least one of `get_weights` and `space_projection`"
             + "should not be `None`."
         )
 
         self.mappable = mappable
+        self.requires_targets = requires_targets
 
         # set get_weights
         if get_weights is None:
@@ -167,6 +170,13 @@ class Projection(ABC):
         projected_dataset
             The projected dataset.
         """
+        if self.requires_targets and targets_dataset is None:
+                warnings.warn(
+                    "The projection requires `targets` but `targets_dataset` is not provided. "\
+                    +"`targets` will be computed online, assuming a classification setting. "\
+                    +"Hence, online `targets` will be the predicted class one-hot-encoding. "\
+                    +"If this is not the expected behavior, please provide a `targets_dataset`.")
+
         if self.mappable:
             return self._map_project_dataset(cases_dataset, targets_dataset)
         return self._loop_project_dataset(cases_dataset, targets_dataset)
