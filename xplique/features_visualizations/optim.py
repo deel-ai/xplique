@@ -4,11 +4,11 @@ Optimisation functions
 
 import tensorflow as tf
 
-from xplique.commons.model_override import override_relu_gradient, open_relu_policy
-from xplique.types import Optional, Union, List, Callable, Tuple
-from xplique.features_visualizations.preconditioning import fft_image, get_fft_scale, fft_to_rgb, to_valid_rgb, to_valid_grayscale
-from xplique.features_visualizations.transformations import generate_standard_transformations
-from xplique.features_visualizations.objectives import Objective
+from ..commons.model_override import override_relu_gradient, open_relu_policy
+from ..types import Optional, Union, List, Callable, Tuple
+from .preconditioning import fft_image, get_fft_scale, fft_to_rgb, to_valid_rgb, to_valid_grayscale
+from .transformations import generate_standard_transformations
+from .objectives import Objective
 
 
 def optimize(objective: Objective,
