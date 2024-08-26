@@ -128,10 +128,12 @@ class Objective:
             return loss
 
         # the model outputs will be composed of the layers needed
-        model_reconfigured = tf.keras.Model(self.model.input, [*self.layers])
+        model_reconfigured = tf.keras.Model(self.model.inputs, [*self.layers])
 
         nb_combinations = masks[0].shape[0]
-        input_shape = (nb_combinations, *model_reconfigured.input.shape[1:])
+        model_input_shape = model_reconfigured.input[0].shape[1:] if isinstance(
+            model_reconfigured.input, list) else model_reconfigured.input.shape[1:]
+        input_shape = (nb_combinations, *model_input_shape)
 
         return model_reconfigured, objective_function, names, input_shape
 
