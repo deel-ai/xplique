@@ -48,6 +48,45 @@ def random_blur(sigma_range: Tuple[float, float] = (1.0, 2.0),
     return blur
 
 
+def random_blur_grayscale(sigma_range: Tuple[float, float] = (1.0, 2.0),
+                          kernel_size: int = 10) -> Callable:
+    """
+    Generate a function that apply a random gaussian blur to a batch of grayscale (1 channel) images.
+
+    Parameters
+    ----------
+    sigma_range
+        Min and max sigma (or scale) of the gaussian kernel.
+    kernel_size
+        Size of the gaussian kernel
+
+    Returns
+    -------
+    blur
+        Transformation function applying random blur.
+    """
+    uniform = tf.linspace(-(kernel_size - 1) / 2., (kernel_size - 1) / 2.,
+                          kernel_size)
+    uniform_xx, uniform_yy = tf.meshgrid(uniform, uniform)
+
+    kernel_size = tf.cast(kernel_size, tf.float32)
+    sigma_min = tf.cast(max(sigma_range[0], 0.1), tf.float32)
+    sigma_max = tf.cast(max(sigma_range[1], 0.1), tf.float32)
+
+    def blur(images: tf.Tensor) -> tf.Tensor:
+        sigma = tf.random.uniform([], minval=sigma_min, maxval=sigma_max,
+                                  dtype=tf.float32)
+
+        kernel = tf.exp(-0.5 * (uniform_xx ** 2 + uniform_yy ** 2) / sigma ** 2)
+        kernel /= tf.reduce_sum(kernel)
+        kernel = tf.reshape(kernel, (kernel_size, kernel_size, 1, 1))
+
+        return tf.nn.depthwise_conv2d(images, kernel, strides=[1, 1, 1, 1],
+                                      padding='SAME')
+
+    return blur
+
+
 def random_jitter(delta: int = 6) -> Callable:
     """
     Generate a function that perform a random jitter on batch of images.
@@ -178,7 +217,7 @@ def compose_transformations(transformations: List[Callable]) -> Callable:
     return composed_func
 
 
-def generate_standard_transformations(size: int) -> Callable:
+def generate_standard_transformations(size: int, channels: int = 3) -> Callable:
     """
     Prepare a set of (apparently) robust transformations.
 
@@ -186,24 +225,42 @@ def generate_standard_transformations(size: int) -> Callable:
     ----------
     size
         Input size of the image.
+    channels
+        Number of channels of the image.
 
     Returns
     -------
     transformations
         A combinations of transformations to make the optimization robust.
     """
+    assert channels == 1 or channels == 3, "Only grayscale or RGB images are supported."
     unit = int(size / 16)
 
-    return compose_transformations([
-        pad(unit * 4, 0.0),
-        random_jitter(unit * 2),
-        random_jitter(unit * 2),
-        random_jitter(unit * 4),
-        random_jitter(unit * 4),
-        random_jitter(unit * 4),
-        random_scale((0.92, 0.96)),
-        random_blur(sigma_range=(1.0, 1.1)),
-        random_jitter(unit),
-        random_jitter(unit),
-        random_flip()
-    ])
+    if channels == 1:
+        return compose_transformations([
+            pad(unit * 4, 0.0),
+            random_jitter(unit * 2),
+            random_jitter(unit * 2),
+            random_jitter(unit * 4),
+            random_jitter(unit * 4),
+            random_jitter(unit * 4),
+            random_scale((0.92, 0.96)),
+            random_blur_grayscale(sigma_range=(1.0, 1.1)),
+            random_jitter(unit),
+            random_jitter(unit),
+            random_flip()
+        ])
+    else:
+        return compose_transformations([
+            pad(unit * 4, 0.0),
+            random_jitter(unit * 2),
+            random_jitter(unit * 2),
+            random_jitter(unit * 4),
+            random_jitter(unit * 4),
+            random_jitter(unit * 4),
+            random_scale((0.92, 0.96)),
+            random_blur(sigma_range=(1.0, 1.1)),
+            random_jitter(unit),
+            random_jitter(unit),
+            random_flip()
+        ])
