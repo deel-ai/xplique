@@ -86,6 +86,46 @@ def to_valid_rgb(images: tf.Tensor,
     return images
 
 
+def to_valid_grayscale(images: tf.Tensor,
+                 normalizer: Union[str, Callable] = 'sigmoid',
+                 values_range: Tuple[float, float] = (0, 1)) -> tf.Tensor:
+    """
+    Apply transformations to map tensors to valid gray-scale images.
+
+
+    Parameters
+    ----------
+    images
+        Input samples, with N number of samples, W & H the sample dimensions,
+        and only 1 channel.
+    normalizer
+        Transformation to apply to map pixels in the range [0, 1]. Either 'clip' or 'sigmoid'.
+    values_range
+        Range of values of the inputs that will be provided to the model, e.g (0, 1) or (-1, 1).
+
+    Returns
+    -------
+    images
+        Images after correction
+    """
+    if normalizer == 'sigmoid':
+        images = tf.nn.sigmoid(images)
+    elif normalizer == 'clip':
+        images = tf.clip_by_value(images, values_range[0], values_range[1])
+    elif isinstance(normalizer, Callable):
+        images = normalizer(images)
+    else:
+        raise ValueError("Invalid normalizer.")
+
+    # rescale according to value range
+    images = images - tf.reduce_min(images, (1, 2, 3), keepdims=True)
+    images = images / tf.reduce_max(images, (1, 2, 3), keepdims=True)
+    images *= values_range[1] - values_range[0]
+    images += values_range[0]
+
+    return images
+
+
 def fft_2d_freq(width: int, height: int) -> np.ndarray:
     """
     Return the fft samples frequencies for a given width/height.
@@ -228,6 +268,7 @@ def init_maco_buffer(image_shape, std=1.0):
     magnitude = np.moveaxis(magnitude, -1, 0)
 
     return tf.cast(magnitude, tf.float32), tf.cast(phase, tf.float32)
+
 
 @tf.function
 def maco_image_parametrization(magnitude, phase, values_range):
