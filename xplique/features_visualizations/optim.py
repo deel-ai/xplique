@@ -1,14 +1,15 @@
+import sys; sys.path.append('..'); sys.path.append('../..')
 """
 Optimisation functions
 """
 
 import tensorflow as tf
 
-from ..commons.model_override import override_relu_gradient, open_relu_policy
-from ..types import Optional, Union, List, Callable, Tuple
-from .preconditioning import fft_image, get_fft_scale, fft_to_rgb, to_valid_rgb
-from .transformations import generate_standard_transformations
-from .objectives import Objective
+from xplique.commons.model_override import override_relu_gradient, open_relu_policy
+from xplique.types import Optional, Union, List, Callable, Tuple
+from xplique.features_visualizations.preconditioning import fft_image, get_fft_scale, fft_to_rgb, to_valid_rgb, to_valid_grayscale
+from xplique.features_visualizations.transformations import generate_standard_transformations
+from xplique.features_visualizations.objectives import Objective
 
 
 def optimize(objective: Objective,
@@ -83,13 +84,17 @@ def optimize(objective: Objective,
         img_shape = (img_shape[0], *custom_shape, img_shape[-1])
 
     if transformations == 'standard':
-        transformations = generate_standard_transformations(img_shape[1])
+        transformations = generate_standard_transformations(size=img_shape[1], channels=img_shape[-1])
 
     if use_fft:
         inputs = tf.Variable(fft_image(img_shape, std), trainable=True)
         fft_scale = get_fft_scale(img_shape[1], img_shape[2], decay_power=fft_decay)
-        image_param = lambda inputs: to_valid_rgb(fft_to_rgb(img_shape, inputs, fft_scale),
-                                                  image_normalizer, values_range)
+        if img_shape[-1] == 1:
+            image_param = lambda inputs: to_valid_grayscale(fft_to_rgb(img_shape, inputs, fft_scale),
+                                                            image_normalizer, values_range)
+        else:
+            image_param = lambda inputs: to_valid_rgb(fft_to_rgb(img_shape, inputs, fft_scale),
+                                                      image_normalizer, values_range)
     else:
         inputs = tf.Variable(tf.random.normal(img_shape, std, dtype=tf.float32))
         image_param = lambda inputs: to_valid_rgb(inputs, image_normalizer, values_range)
