@@ -172,6 +172,10 @@ class Rise(BlackBoxExplainer):
                 downsampled_shape = grid_size
             mask_shape = (nb_samples, *downsampled_shape, 1)
 
+        else:
+            raise ValueError("Data type is not supported. "
+                             "Only tabular, time series and image data")
+
         downsampled_masks = tf.random.uniform(mask_shape, 0, 1)
 
         binary_masks = downsampled_masks < preservation_probability
@@ -231,6 +235,10 @@ class Rise(BlackBoxExplainer):
 
             masks = tf.image.random_crop(upsampled_masks,
                                          (binary_masks.shape[0], *single_input.shape[:-1], 1))
+
+        else:
+            raise ValueError("Data type is not supported. "
+                             "Only tabular, time series and image data")
 
         masked_input = masks * tf.expand_dims(single_input, 0) + (1 - masks) * mask_value
 
