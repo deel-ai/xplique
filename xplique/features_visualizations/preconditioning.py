@@ -10,7 +10,7 @@ Credit is due to the original Lucid authors.
 import numpy as np
 import tensorflow as tf
 
-from ..types import Tuple, Union, Callable
+from ..types import Tuple, Union, Callable, Optional
 
 
 IMAGENET_SPECTRUM_URL = "https://storage.googleapis.com/serrelab/loupe/"\
@@ -236,7 +236,7 @@ def fft_image(shape: Tuple, std: float = 0.01) -> tf.Tensor:
     return buffer
 
 
-def init_maco_buffer(image_shape, std=1.0):
+def init_maco_buffer(image_shape, dataset: Optional = None, std=1.0):
     """
     Initialize the buffer for the MACO algorithm.
 
@@ -245,6 +245,8 @@ def init_maco_buffer(image_shape, std=1.0):
     image_shape
         Shape of the images with N number of samples, W & H the sample
         dimensions, and C the number of channels.
+    dataset
+        Dataset to use for the initialization of the buffer.
     std
         Standard deviation of the normal for the buffer initialization
 
@@ -257,15 +259,35 @@ def init_maco_buffer(image_shape, std=1.0):
     """
     spectrum_shape = (image_shape[0], image_shape[1]//2+1)
 
-    # init randomly the phase and load the constrained spectrum (average spectrum)
-    phase = np.random.normal(size=(3, *spectrum_shape), scale=std).astype(np.float32)
+    if dataset is None:
+        # init randomly the phase and load the constrained spectrum (average spectrum)
+        phase = np.random.normal(size=(3, *spectrum_shape), scale=std).astype(np.float32)
 
-    magnitude_path = tf.keras.utils.get_file("spectrum_decorrelated.npy",
-                                             IMAGENET_SPECTRUM_URL,
-                                             cache_subdir="spectrums")
-    magnitude = np.load(magnitude_path)
-    magnitude = tf.image.resize(np.moveaxis(magnitude, 0, -1), spectrum_shape).numpy()
-    magnitude = np.moveaxis(magnitude, -1, 0)
+        magnitude_path = tf.keras.utils.get_file("spectrum_decorrelated.npy",
+                                                 IMAGENET_SPECTRUM_URL,
+                                                 cache_subdir="spectrums")
+        magnitude = np.load(magnitude_path)
+        magnitude = tf.image.resize(np.moveaxis(magnitude, 0, -1), spectrum_shape).numpy()
+        magnitude = np.moveaxis(magnitude, -1, 0)
+    else:
+        # Get amount of channels from the dataset
+        channels = dataset.element_spec.shape[-1]
+
+        # init randomly the phase and load the constrained spectrum (average spectrum)
+        phase = tf.random.normal((channels, *spectrum_shape), stddev=std, dtype=tf.float32)
+
+        # Compute the mean FFT magnitude across the dataset
+        magnitude_sum = 0
+        count = 0
+        for images in dataset:
+            images = tf.transpose(images, [0, 3, 1, 2])  # rfft2d only operates on the two last dimensions
+            images_fft = tf.signal.rfft2d(images)
+            magnitude_sum += tf.reduce_sum(tf.abs(images_fft), axis=0)
+            count += images.shape[0]
+
+        magnitude_mean = magnitude_sum / count
+        magnitude = tf.image.resize(tf.transpose(magnitude_mean, [1, 2, 0]), spectrum_shape)
+        magnitude = tf.transpose(magnitude, [2, 0, 1])
 
     return tf.cast(magnitude, tf.float32), tf.cast(phase, tf.float32)
 
@@ -294,12 +316,13 @@ def maco_image_parametrization(magnitude, phase, values_range):
 
     buffer = tf.complex(tf.cos(phase) * magnitude, tf.sin(phase) * magnitude)
     img = tf.signal.irfft2d(buffer)
-    img = tf.transpose(img, [1,2,0])
+    img = tf.transpose(img, [1, 2, 0])
 
     img = img - tf.reduce_mean(img)
     img = img / (tf.math.reduce_std(img) + 1e-5)
 
-    img = recorrelate_colors(img)
+    if img.shape[-1] == 3:  # recorrelation only needed for RGB images
+        img = recorrelate_colors(img)
     img = tf.nn.sigmoid(img)
 
     img = img * (values_range[1] - values_range[0]) + values_range[0]
