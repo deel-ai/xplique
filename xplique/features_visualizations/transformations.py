@@ -51,7 +51,8 @@ def random_blur(sigma_range: Tuple[float, float] = (1.0, 2.0),
 def random_blur_grayscale(sigma_range: Tuple[float, float] = (1.0, 2.0),
                           kernel_size: int = 10) -> Callable:
     """
-    Generate a function that apply a random gaussian blur to a batch of grayscale (1 channel) images.
+    Generate a function that apply a random gaussian blur to a batch of
+    grayscale (1 channel) images.
 
     Parameters
     ----------
@@ -233,7 +234,7 @@ def generate_standard_transformations(size: int, channels: int = 3) -> Callable:
     transformations
         A combinations of transformations to make the optimization robust.
     """
-    assert channels == 1 or channels == 3, "Only grayscale or RGB images are supported."
+    assert channels in (1, 3), "Only grayscale or RGB images are supported."
     unit = int(size / 16)
 
     if channels == 1:
@@ -250,17 +251,17 @@ def generate_standard_transformations(size: int, channels: int = 3) -> Callable:
             random_jitter(unit),
             random_flip()
         ])
-    else:
-        return compose_transformations([
-            pad(unit * 4, 0.0),
-            random_jitter(unit * 2),
-            random_jitter(unit * 2),
-            random_jitter(unit * 4),
-            random_jitter(unit * 4),
-            random_jitter(unit * 4),
-            random_scale((0.92, 0.96)),
-            random_blur(sigma_range=(1.0, 1.1)),
-            random_jitter(unit),
-            random_jitter(unit),
-            random_flip()
-        ])
+
+    return compose_transformations([
+        pad(unit * 4, 0.0),
+        random_jitter(unit * 2),
+        random_jitter(unit * 2),
+        random_jitter(unit * 4),
+        random_jitter(unit * 4),
+        random_jitter(unit * 4),
+        random_scale((0.92, 0.96)),
+        random_blur(sigma_range=(1.0, 1.1)),
+        random_jitter(unit),
+        random_jitter(unit),
+        random_flip()
+    ])

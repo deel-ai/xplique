@@ -280,7 +280,8 @@ def init_maco_buffer(image_shape, dataset: Optional = None, std=1.0):
         magnitude_sum = 0
         count = 0
         for images in dataset:
-            images = tf.transpose(images, [0, 3, 1, 2])  # rfft2d only operates on the two last dimensions
+            # rfft2d only operates on the two last dimensions
+            images = tf.transpose(images, [0, 3, 1, 2])
             images_fft = tf.signal.rfft2d(images)
             magnitude_sum += tf.reduce_sum(tf.abs(images_fft), axis=0)
             count += images.shape[0]

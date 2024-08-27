@@ -102,11 +102,7 @@ def maco(objective: Objective,
 
     magnitude, phase = init_maco_buffer(img_shape, dataset=maco_dataset)
     phase = tf.Variable(phase, trainable=True)
-
-    if input_shape[-1] == 1:
-        transparency = tf.zeros((*custom_shape, 1))
-    else:
-        transparency = tf.zeros((*custom_shape, 3))
+    transparency = tf.zeros((*custom_shape, input_shape[-1]))
 
     for step_i in range(nb_steps):
 
