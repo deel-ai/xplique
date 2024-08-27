@@ -80,7 +80,7 @@ def test_neurons():
 
     objectif = Objective.neuron(model, "early", list(range(20)))
 
-    masks = np.zeros((20) + model.get_layer("early").output.shape[1:])
+    masks = np.zeros((20,) + model.get_layer("early").output.shape[1:])
     for i in range(20):
         masks[i, 0, i // masks.shape[3], i % masks.shape[3]] = 1.0
 
@@ -109,7 +109,7 @@ def test_combinations():
 
     nb_neurons = 3
     neurons_obj = Objective.neuron(model, "features", list(range(nb_neurons)))
-    mask_neurons = np.zeros((nb_neurons) + model.get_layer("features").output.shape[1:])
+    mask_neurons = np.zeros((nb_neurons,) + model.get_layer("features").output.shape[1:])
     for i in range(nb_neurons):
         mask_neurons[i, 0, i // mask_neurons.shape[3], i % mask_neurons.shape[3]] = 1.0
 
