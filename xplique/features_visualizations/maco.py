@@ -104,7 +104,7 @@ def maco(objective: Objective,
     phase = tf.Variable(phase, trainable=True)
 
     if input_shape[-1] == 1:
-        transparency = tf.zeros(custom_shape)
+        transparency = tf.zeros((*custom_shape, 1))
     else:
         transparency = tf.zeros((*custom_shape, 3))
 
