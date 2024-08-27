@@ -83,23 +83,24 @@ def optimize(objective: Objective,
         img_shape = (img_shape[0], *custom_shape, img_shape[-1])
 
     if transformations == 'standard':
-        transformations = generate_standard_transformations(size=img_shape[1], channels=img_shape[-1])
+        transformations = generate_standard_transformations(
+            size=img_shape[1], channels=img_shape[-1]
+        )
+
+    to_valid_image = to_valid_rgb if img_shape[-1] == 3 else to_valid_grayscale
 
     if use_fft:
         inputs = tf.Variable(fft_image(img_shape, std), trainable=True)
         fft_scale = get_fft_scale(img_shape[1], img_shape[2], decay_power=fft_decay)
-        if img_shape[-1] == 1:
-            image_param = lambda inputs: to_valid_grayscale(fft_to_rgb(img_shape, inputs, fft_scale),
-                                                            image_normalizer, values_range)
-        else:
-            image_param = lambda inputs: to_valid_rgb(fft_to_rgb(img_shape, inputs, fft_scale),
-                                                      image_normalizer, values_range)
+        image_param = lambda inputs: to_valid_image(
+            fft_to_rgb(img_shape, inputs, fft_scale),
+            image_normalizer, values_range
+        )
     else:
         inputs = tf.Variable(tf.random.normal(img_shape, std, dtype=tf.float32))
-        if img_shape[-1] == 1:
-            image_param = lambda inputs: to_valid_grayscale(inputs, image_normalizer, values_range)
-        else:
-            image_param = lambda inputs: to_valid_rgb(inputs, image_normalizer, values_range)
+        image_param = lambda inputs: to_valid_image(
+            inputs, image_normalizer, values_range
+        )
 
     optimisation_step = _get_optimisation_step(objective_function,
                                                len(model.outputs),
