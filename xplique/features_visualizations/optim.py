@@ -96,7 +96,10 @@ def optimize(objective: Objective,
                                                       image_normalizer, values_range)
     else:
         inputs = tf.Variable(tf.random.normal(img_shape, std, dtype=tf.float32))
-        image_param = lambda inputs: to_valid_rgb(inputs, image_normalizer, values_range)
+        if img_shape[-1] == 1:
+            image_param = lambda inputs: to_valid_grayscale(inputs, image_normalizer, values_range)
+        else:
+            image_param = lambda inputs: to_valid_rgb(inputs, image_normalizer, values_range)
 
     optimisation_step = _get_optimisation_step(objective_function,
                                                len(model.outputs),
