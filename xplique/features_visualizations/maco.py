@@ -12,6 +12,7 @@ from .objectives import Objective
 
 def maco(objective: Objective,
          optimizer: Optional[tf.keras.optimizers.Optimizer] = None,
+         maco_dataset: Optional[tf.data.Dataset] = None,
          nb_steps: int = 256,
          noise_intensity: Optional[Union[float, Callable]] = 0.08,
          box_size: Optional[Union[float, Callable]] = None,
@@ -32,6 +33,9 @@ def maco(objective: Objective,
         Objective object.
     optimizer
         Optimizer used for gradient ascent, default Nadam(lr=1.0).
+    maco_dataset
+        Dataset on which to create the Fourier magnitude buffer. If None, ImageNet is going
+        to be used for RGB images. A dataset is required for grayscale images.
     nb_steps
         Number of iterations.
     noise_intensity
@@ -64,6 +68,9 @@ def maco(objective: Objective,
 
     assert input_shape[0] == 1, "You can only optimize one objective at a time with MaCo."
 
+    if input_shape[-1] == 1 and maco_dataset is None:
+        raise ValueError('For grayscale images, a dataset is required to compute the buffer.')
+
     if optimizer is None:
         optimizer = tf.keras.optimizers.Nadam(1.0)
 
@@ -93,10 +100,13 @@ def maco(objective: Objective,
     if custom_shape:
         img_shape = custom_shape
 
-    magnitude, phase = init_maco_buffer(img_shape)
+    magnitude, phase = init_maco_buffer(img_shape, dataset=maco_dataset)
     phase = tf.Variable(phase, trainable=True)
 
-    transparency = tf.zeros((*custom_shape, 3))
+    if input_shape[-1] == 1:
+        transparency = tf.zeros(custom_shape)
+    else:
+        transparency = tf.zeros((*custom_shape, 3))
 
     for step_i in range(nb_steps):
 
@@ -164,8 +174,11 @@ def maco_optimisation_step(model, objective_function, magnitude, phase,
                           center_x + delta_x * 0.5,
                           center_y + delta_y * 0.5], -1)
 
-        crops = tf.image.crop_and_resize(image[None, :, :, :], boxes, box_indices,
-                                         model.input_shape[1:3])
+        if nb_crops == 0:
+            crops = tf.image.resize(image[None, :, :, :], model.input_shape[1:3])
+        else:
+            crops = tf.image.crop_and_resize(image[None, :, :, :], boxes, box_indices,
+                                             model.input_shape[1:3])
 
         # add random noise as feature viz robustness
         # see (https://distill.pub/2017/feature-visualization)
