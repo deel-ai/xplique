@@ -27,6 +27,7 @@ Second, to find criticisms $\mathcal{C}$, the same greedy algorithm is used to s
 !!!warning
     For `MMDCritic`, the kernel must satisfy a condition that ensures the submodularity of the set function. The Gaussian kernel meets this requirement and it is recommended. If you wish to choose a different kernel, it must satisfy the condition described by [Kim et al., 2016](https://proceedings.neurips.cc/paper_files/paper/2016/file/5680522b8e2bb01943234bce7bf84534-Paper.pdf).
 
+
 ## Example
 
 ```python

@@ -40,6 +40,17 @@ local_prototypes = explainer(inputs)
 !!!info
     Prototypes, share a common API with other example-based methods. Thus, to understand some parameters, we recommend reading the [dedicated documentation](../../api_example_based/).
 
+## Specificity of prototypes
+
+The prototypes implement the API as follows.  
+The `search` method includes the following additional parameters:  
+
+`nb_prototypes` whci represents the total number of prototypes desired to represent the entire dataset, whereas $k$ represents the number of prototypes closest to the input, allowing for a local explanation.
+
+`kernel_type`, `kernel_fn`, and `gamma` are used to specify the kernel, as these methods are based on the MMD distance.
+
+The prototype class has a `get_global_prototypes()` method, which calculates all the prototypes in the base dataset; these are called the global prototypes. The `explain` method then provides a local explanation, i.e., finds the prototypes closest to the input given as a parameter.
+
 ## Prototypes for Data-Centric Interpretability
 
 In this class, prototypes are selected without relying on the model and provide an overview of
@@ -55,21 +66,9 @@ For both cases, submodularity and monotonicity of $F(\mathcal{P})$ are necessary
 
 The library implements three methods from **Data summarization with knapsack constraint**: `MMDCritic`, `ProtoGreedy` and `ProtoDash`.
 
-[Kim et al., 2016](https://proceedings.neurips.cc/paper_files/paper/2016/file/5680522b8e2bb01943234bce7bf84534-Paper.pdf) proposed `MMDCritic` method that used a set function based on the Maximum Mean Discrepancy [(MMD)](#what-is-mmd). They solved **data summarization with knapsack constraint** problem to find both prototypes and criticisms. First, the number of prototypes and criticisms to be found, respectively as $m_p$ and $m_c$, are selected. Second, to find prototypes, a greedy algorithm is used to maximize $F(\mathcal{P})$ s.t. $|\mathcal{P}| \le m_p$ where $F(\mathcal{P})$ is defined as:
 
-\begin{equation}
-    F(\mathcal{P})=\frac{2}{|\mathcal{P}|\cdot n}\sum_{i,j=1}^{|\mathcal{P}|,n}\kappa(p_i,x_j)-\frac{1}{|\mathcal{P}|^2}\sum_{i,j=1}^{|\mathcal{P}|}\kappa(p_i,p_j)
-\end{equation}
 
-They used diagonal dominance conditions on the kernel to ensure monotonocity and submodularity of $F(\mathcal{P})$. To find criticisms $\mathcal{C}$, the same greedy algorithm is used to select points that maximize another objective function $J(\mathcal{C})$. 
 
-[Gurumoorthy et al., 2019](https://arxiv.org/pdf/1707.01212) associated non-negative weights to prototypes which are indicative of their importance. This approach allows for identifying both prototypes and criticisms (the least weighted examples among prototypes) by maximizing the same weighted objective $F(\mathcal{P},w)$ defined as:
-
-\begin{equation}   
-    F(\mathcal{P},w)=\frac{2}{n}\sum_{i,j=1}^{|\mathcal{P}|,n}w_i\kappa(p_i,x_j)-\sum_{i,j=1}^{|\mathcal{P}|}w_iw_j\kappa(p_i,p_j),
-\end{equation}
-
-where $w$ are non-negative weights for each prototype. The problem then consist on finding $\mathcal{P}$ with a corresponding $w$ that maximizes $J(\mathcal{P}) \equiv \max_{w:supp(w)\in \mathcal{P},w\ge 0} J(\mathcal{P},w)$ s.t. $|\mathcal{P}| \leq m=m_p+m_c$. They established the weak submodular property of $J(\mathcal{P})$ and present tractable algorithms (`ProtoGreedy` and `ProtoDash`) to optimize it. 
 
 ### Method comparison
 

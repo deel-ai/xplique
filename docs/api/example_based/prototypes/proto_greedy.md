@@ -28,9 +28,9 @@ F(\mathcal{P},w)=\frac{2}{n}\sum_{i,j=1}^{|\mathcal{P}|,n}w_i\kappa(p_i,x_j)-\su
 \end{equation}
 where $w$ are non-negative weights for each prototype. The problem then consist on finding a subset $\mathcal{P}$ with a corresponding $w$ that maximizes $J(\mathcal{P}) \equiv \max_{w:supp(w)\in \mathcal{P},w\ge 0} J(\mathcal{P},w)$ s.t. $|\mathcal{P}| \leq m=m_p+m_c$. 
 
-[Gurumoorthy et al., 2019](https://arxiv.org/abs/1707.01212) demonstrate that this problem is weakly submodular, which immediately leads to a standard greedy algorithm which they call `ProtoGreedy`.
+!!!info
+    For ProtoGreedy, any kernel can be used, as these methods rely on weak submodularity instead of full submodularity.
 
-`ProtoGreedy` is algorithmically similar to greedy algorithm used by [Kim et al., 2016](https://proceedings.neurips.cc/paper_files/paper/2016/file/5680522b8e2bb01943234bce7bf84534-Paper.pdf) where both the methods greedily select the next element that maximizes the increment of the scoring function.
 
 ## Example
 
