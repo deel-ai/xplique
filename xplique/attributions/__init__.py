@@ -17,3 +17,4 @@ from .object_detector import BoundingBoxesExplainer
 from .global_sensitivity_analysis import SobolAttributionMethod, HsicAttributionMethod
 from .gradient_statistics import SmoothGrad, VarGrad, SquareGrad
 from . import global_sensitivity_analysis
+from .opti_cam import OptiCAM
