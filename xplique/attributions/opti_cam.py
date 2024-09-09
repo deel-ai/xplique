@@ -3,7 +3,7 @@ import numpy as np
 
 from .base import WhiteBoxExplainer, sanitize_input_output
 from ..commons import Tasks, find_layer
-from ..types import Tuple, Union, Optional, OperatorSignature
+from ..types import Union, Optional, OperatorSignature
 
 
 _normalization_dict = {
@@ -112,15 +112,15 @@ class OptiCAM(WhiteBoxExplainer):
         # pylint: disable=E1101
         batch_size = self.batch_size if self.batch_size is not None else len(inputs)
 
-        # initialize weights and optimization elements
-        weights = tf.Variable(0.5 * tf.ones((len(inputs), 1, 1, self.conv_layer.output.shape[-1])),
-                              trainable=True, dtype=tf.float32)
-        optimizer = tf.keras.optimizers.Adam(0.05)
-
         # optimization loop is done for each batch separately
         opti_cams = None
         for x_batch, y_batch in tf.data.Dataset.from_tensor_slices((inputs, targets)).batch(
                 batch_size):
+            # initialize weights and optimization elements
+            current_batch_size = x_batch.shape[0]
+            weights = tf.Variable(0.5 * tf.ones((current_batch_size, 1, 1, self.conv_layer.output.shape[-1])),
+                                  trainable=True, dtype=tf.float32)
+            optimizer = tf.keras.optimizers.Adam(0.05)
             for _ in range(self.n_iters):
                 with tf.GradientTape(watch_accessed_variables=False) as tape:
                     tape.watch(weights)
