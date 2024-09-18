@@ -1,11 +1,5 @@
 # Prototypes
-Prototype-based explanation is a family of natural example-based XAI methods. Prototypes consist of a set of samples that are representative of either the dataset or a class. Three classes of prototype-based methods are found in the literature ([Poché et al., 2023](https://hal.science/hal-04117520/document)): 
-
-- [Prototypes for Data-Centric Interpretability](#prototypes-for-data-centric-interpretability)
-- [Prototypes for Post-hoc Interpretability](#prototypes-for-post-hoc-interpretability)
-- Prototype-Based Models Interpretable by Design
-
-For now, the library focuses on the first two classes.
+Prototype-based explanation is a family of natural example-based XAI methods. Prototypes consist of a set of samples that are representative of either the dataset or a class ([Poché et al., 2023](https://hal.science/hal-04117520/document)). Using the identity projection, one is looking for the **dataset prototypes**. In contrast, using the latent space of a model as a projection, one is looking for **prototypes relevant for the model**.
 
 ## Common API ##
 
@@ -35,40 +29,23 @@ local_prototypes = explainer(inputs)
     *: Before using a PyTorch model it is highly recommended to read the [dedicated documentation](../pytorch/)
 
 !!!info
-    Using the identity projection, one is looking for the **dataset prototypes**. In contrast, using the latent space of a model as a projection, one is looking for **prototypes relevant for the model**.
-
-!!!info
     Prototypes, share a common API with other example-based methods. Thus, to understand some parameters, we recommend reading the [dedicated documentation](../../api_example_based/).
 
 ## Specificity of prototypes
+ 
+The search method class related to a `Prorotypes` class includes the following additional parameters:  
 
-The prototypes implement the API as follows.  
-The `search` method includes the following additional parameters:  
+- `nb_prototypes` which represents the total number of prototypes desired to represent the entire dataset. This should not be confused with $k$, which represents the number of prototypes closest to the input and allows for a local explanation.
 
-`nb_prototypes` whci represents the total number of prototypes desired to represent the entire dataset, whereas $k$ represents the number of prototypes closest to the input, allowing for a local explanation.
-
-`kernel_type`, `kernel_fn`, and `gamma` are used to specify the kernel, as these methods are based on the MMD distance.
+- `kernel_type`, `kernel_fn`, and `gamma` which are related to the kernel used to compute the [MMD distance](#what-is-mmd).
 
 The prototype class has a `get_global_prototypes()` method, which calculates all the prototypes in the base dataset; these are called the global prototypes. The `explain` method then provides a local explanation, i.e., finds the prototypes closest to the input given as a parameter.
 
-## Prototypes for Data-Centric Interpretability
+## Implemented methods
 
-In this class, prototypes are selected without relying on the model and provide an overview of
-the dataset. As mentioned in ([Poché et al., 2023](https://hal.science/hal-04117520/document)), we found in this class: **clustering methods** and **data summarization methods**, also known as **set cover methods**. This library focuses on **data summarization methods** which can be treated in two ways [(Lin et al., 2011)](https://aclanthology.org/P11-1052.pdf): 
-
-- **Data summarization with knapsack constraint**: 
+The library implements three methods from **Data summarization with knapsack constraint** [(Lin et al., 2011)](https://aclanthology.org/P11-1052.pdf): `MMDCritic`, `ProtoGreedy` and `ProtoDash`. **Data summarization with knapsack constraint**: 
 consists in finding a subset of prototypes $\mathcal{P}$ that maximizes the coverage set function $F(\mathcal{P})$ under the constraint that its selection cost $C(\mathcal{P})$ (e.g., the number of selected prototypes $|\mathcal{P}|$) should be less than a given budget. 
-
-- **Data summarization with covering constraint**:
-consists in finding a low-cost subset  of prototypes $\mathcal{P}$ under the constraint it should cover all the data. 
-
-For both cases, submodularity and monotonicity of $F(\mathcal{P})$ are necessary to guarantee that a greedy algorithm has a constant factor guarantee of optimality [(Lin et al., 2011)](https://aclanthology.org/P11-1052.pdf). In addition, $F(\mathcal{P})$ should encourage coverage and penalize redundancy in order to have a good summary [(Lin et al., 2011)](https://aclanthology.org/P11-1052.pdf).
-
-The library implements three methods from **Data summarization with knapsack constraint**: `MMDCritic`, `ProtoGreedy` and `ProtoDash`.
-
-
-
-
+Submodularity and monotonicity of $F(\mathcal{P})$ are necessary to guarantee that a greedy algorithm has a constant factor guarantee of optimality [(Lin et al., 2011)](https://aclanthology.org/P11-1052.pdf). In addition, $F(\mathcal{P})$ should encourage coverage and penalize redundancy in order to have a good summary [(Lin et al., 2011)](https://aclanthology.org/P11-1052.pdf).
 
 ### Method comparison
 
@@ -77,6 +54,18 @@ The library implements three methods from **Data summarization with knapsack con
 - `MMDCritic` and `ProtoGreedy` select the next element that maximizes the increment of the scoring function while `Protodash` maximizes a tight lower bound on the increment of the scoring function (it maximizes the gradient of $F(\mathcal{P},w)$).
 - `ProtoDash` is much faster than `ProtoGreedy` without compromising on the quality of the solution (the complexity of `ProtoGreedy` is $O(n(n+m^4))$ comparing to $O(n(n+m^2)+m^4)$ for `ProtoDash`). 
 - The approximation guarantee for `ProtoGreedy` is $(1-e^{-\gamma})$, where $\gamma$ is submodularity ratio of $F(\mathcal{P})$, comparing to $(1-e^{-1})$ for `MMDCritic`.
+
+### Implementation details
+
+`MMDCritic`, `ProtoDash` and `ProtoGreedy` inherit from `Prototypes` class which in turn inherit from `BaseExampleMethod` class. Each of these classes has a corresponding search method class: `MMDCriticSearch`, `ProtoDashSearch` and `ProtoGreedySearch`.
+
+`ProtoGreedySearch` inherits from the `BaseSearchMethod` class. It finds prototypes and assigns a non-negative weight to each one.
+
+Both `MMDCriticSearch` and `ProtoDashSearch` classes inherit from `ProtoGreedySearch`. 
+
+`MMDCriticSearch` and `ProtoGreedySearch` use the same greedy algorithm to find prototypes. In `ProtoGreedySearch`, the `compute_objective` method calculates optimal weights for each prototype, whereas `MMDCriticSearch` assigns uniform weights to all prototypes.
+
+`ProtoDashSearch`, like `ProtoGreedySearch`, assigns a non-negative weight to each prototype. However, the algorithm used by `ProtoDashSearch` is [different](#method-comparison) from the one used by `ProtoGreedySearch`. Therefore, `ProtoDashSearch` overrides both the `compute_objective` method and the `update_selection` method.
 
 ### What is MMD?
 
@@ -114,14 +103,4 @@ If we consider any exponential kernel (Gaussian kernel, Laplace, ...), we automa
 ### Default kernel
 The default kernel used is Gaussian kernel. This kernel distance assigns higher similarity to points that are close in feature space and gradually decreases similarity as points move further apart. It is a good choice when your data has complexity. However, it can be sensitive to the choice of hyperparameters, such as the width $\sigma$ of the Gaussian kernel, which may need to be carefully fine-tuned.
 
-### Implementation details
 
-The search method for `ProtoGreedy` inherits from the `BaseSearchMethod` class. It finds prototypes and assigns a non-negative weight to each one.
-
-Both the search methods for `MMDCritic` and `ProtoDash` classes inherit from the one defined for `ProtoGreedy`. The search method for `MMDCritic` differs from `ProtoGreedy` by assigning equal weights to the selection of prototypes. The two classes use the same greedy algorithm. In the `compute_objective` method of the search method of `ProtoGreedy`, for each new candidate, we calculate the best weights for the selection of prototypes. However, in `MMDCritic`, the `compute_objective` method assigns the same weight to all elements in the selection.
-
-`ProtoDash`, like `ProtoGreedy`, assigns a non-negative weight to each prototype. However, the algorithm used by `ProtoDash` is [different](#method-comparison) from the one used by `ProtoGreedy`. Therefore, search method of `ProtoDash` overrides both the `compute_objective` method and the `update_selection` method.
-
-## Prototypes for Post-hoc Interpretability
-
-Data-Centric methods such as `ProtoGreedy`, `ProtoDash` and `MMDCritic` can be used in either the output or the latent space of the model. In these cases, [projections methods](../../projections/) are used to transfer the data from the input space to the latent/output spaces.
