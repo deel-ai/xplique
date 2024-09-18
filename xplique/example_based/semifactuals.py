@@ -5,7 +5,8 @@ import numpy as np
 import tensorflow as tf
 
 from ..types import Callable, List, Optional, Union, Dict
-from ..commons import dataset_gather
+
+from .datasets_operations.tf_dataset_operations import dataset_gather
 
 from .base_example_method import BaseExampleMethod
 from .search_methods import ORDER, KLEORSimMissSearch, KLEORGlobalSimSearch
