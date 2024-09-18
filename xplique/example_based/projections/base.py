@@ -171,11 +171,11 @@ class Projection(ABC):
             The projected dataset.
         """
         if self.requires_targets and targets_dataset is None:
-                warnings.warn(
-                    "The projection requires `targets` but `targets_dataset` is not provided. "\
-                    +"`targets` will be computed online, assuming a classification setting. "\
-                    +"Hence, online `targets` will be the predicted class one-hot-encoding. "\
-                    +"If this is not the expected behavior, please provide a `targets_dataset`.")
+            warnings.warn(
+                "The projection requires `targets` but `targets_dataset` is not provided. "\
+                +"`targets` will be computed online, assuming a classification setting. "\
+                +"Hence, online `targets` will be the predicted class one-hot-encoding. "\
+                +"If this is not the expected behavior, please provide a `targets_dataset`.")
 
         if self.mappable:
             return self._map_project_dataset(cases_dataset, targets_dataset)
