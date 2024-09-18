@@ -67,6 +67,7 @@ def test_naive_counter_factuals():
     expected_indices = tf.constant([[[0, 1], [1, 0]],[[0, 0], [1, 1]],[[1, 1], [0, 0]]], dtype=tf.int32)
     assert tf.reduce_all(tf.equal(indices, expected_indices))
 
+
 def test_label_aware_cf():
     """
     Test suite for the LabelAwareCounterFactuals class
@@ -80,21 +81,22 @@ def test_label_aware_cf():
     cases_targets_dataset = tf.data.Dataset.from_tensor_slices(cases_targets).batch(2)
 
     inputs = tf.constant([[1.5, 2.5], [2.5, 3.5], [4.5, 5.5]], dtype=tf.float32)
-    cf_targets = tf.constant([[1, 0], [0, 1], [0, 1]], dtype=tf.float32)
+    # cf_targets = tf.constant([[0, 1], [1, 0], [1, 0]], dtype=tf.float32)
+    cf_expected_classes = tf.constant([[1, 0], [0, 1], [0, 1]], dtype=tf.float32)
 
     projection = Projection(space_projection=lambda inputs: inputs)
 
     # build the LabelAwareCounterFactuals object
     counter_factuals = LabelAwareCounterFactuals(
-        cases_dataset,
-        cases_targets_dataset,
+        cases_dataset=cases_dataset,
+        targets_dataset=cases_targets_dataset,
         k=1,
         projection=projection,
         case_returns=["examples", "indices", "distances", "include_inputs"],
         batch_size=2
     )
 
-    mask = counter_factuals.filter_fn(inputs, cases, cf_targets, cases_targets)
+    mask = counter_factuals.filter_fn(inputs, cases, cf_expected_classes, cases_targets)
     assert mask.shape == (inputs.shape[0], cases.shape[0])
 
     expected_mask = tf.constant([
@@ -103,7 +105,7 @@ def test_label_aware_cf():
         [True, False, False, True, False]], dtype=tf.bool)
     assert tf.reduce_all(tf.equal(mask, expected_mask))
 
-    return_dict = counter_factuals(inputs, cf_targets)
+    return_dict = counter_factuals(inputs, targets=None, cf_expected_classes=cf_expected_classes)
     assert set(return_dict.keys()) == set(["examples", "indices", "distances"])
 
     examples = return_dict["examples"]
@@ -134,8 +136,8 @@ def test_label_aware_cf():
     cases_targets_dataset = tf.data.Dataset.from_tensor_slices(cases_targets).batch(2)
 
     counter_factuals = LabelAwareCounterFactuals(
-        cases_dataset,
-        cases_targets_dataset,
+        cases_dataset=cases_dataset,
+        targets_dataset=cases_targets_dataset,
         k=1,
         projection=projection,
         case_returns=["examples", "indices", "distances", "include_inputs"],
@@ -143,9 +145,9 @@ def test_label_aware_cf():
     )
 
     inputs = tf.constant([[1.5], [2.5], [4.5], [6.5], [8.5]], dtype=tf.float32)
-    cf_targets = tf.constant([[1, 0, 0], [0, 1, 0], [0, 0, 1], [0, 0, 1], [0, 1, 0]], dtype=tf.float32)
+    cf_expected_classes = tf.constant([[1, 0, 0], [0, 1, 0], [0, 0, 1], [0, 0, 1], [0, 1, 0]], dtype=tf.float32)
 
-    mask = counter_factuals.filter_fn(inputs, cases, cf_targets, cases_targets)
+    mask = counter_factuals.filter_fn(inputs, cases, cf_expected_classes, cases_targets)
     assert mask.shape == (inputs.shape[0], cases.shape[0])
 
     expected_mask = tf.constant([
@@ -156,7 +158,7 @@ def test_label_aware_cf():
         [True, False, False, False, False, False, True, False, True, False]], dtype=tf.bool)
     assert tf.reduce_all(tf.equal(mask, expected_mask))
 
-    return_dict = counter_factuals(inputs, cf_targets)
+    return_dict = counter_factuals(inputs, cf_expected_classes=cf_expected_classes)
     assert set(return_dict.keys()) == set(["examples", "indices", "distances"])
 
     examples = return_dict["examples"]
@@ -181,6 +183,7 @@ def test_label_aware_cf():
     expected_indices = tf.constant([[[0, 1]],[[0, 0]],[[1, 0]],[[2, 1]],[[4, 0]]], dtype=tf.int32)
     assert tf.reduce_all(tf.equal(indices, expected_indices))
 
+
 def test_kleor():
     """
     Test suite for the Kleor class
@@ -199,8 +202,8 @@ def test_kleor():
 
     # start when strategy is sim_miss
     kleor_sim_miss = KLEORSimMiss(
-        cases_dataset,
-        cases_targets_dataset,
+        cases_dataset=cases_dataset,
+        targets_dataset=cases_targets_dataset,
         k=1,
         projection=projection,
         case_returns=["examples", "indices", "distances", "include_inputs", "nuns"],
@@ -308,4 +311,8 @@ def test_contrastive_with_projection():
                 batch_size=7
             )
 
-            contrastive_method(features, labels)
+            if isinstance(contrastive_method, LabelAwareCounterFactuals):
+                cf_expected_classes = tf.one_hot(tf.argmax(labels, axis=-1) + 1 % nb_labels, nb_labels)
+                contrastive_method(features, targets=labels, cf_expected_classes=cf_expected_classes)
+            else:
+                contrastive_method(features, targets=labels)

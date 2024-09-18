@@ -216,6 +216,7 @@ class LabelAwareCounterFactuals(BaseExampleMethod):
             + "be aware that when using the explain method,"\
             + "the target provided is the class within one should search for the counterfactual."\
             + "\nThus, it is possible that the projection of the query is going wrong.")
+        self.warned = False
 
         # set distance function and order for the search method
         self.distance = distance
@@ -264,7 +265,8 @@ class LabelAwareCounterFactuals(BaseExampleMethod):
     def explain(
         self,
         inputs: Union[tf.Tensor, np.ndarray],
-        cf_expected_classes: Union[tf.Tensor, np.ndarray],
+        targets: Optional[Union[tf.Tensor, np.ndarray]] = None,
+        cf_expected_classes: Union[tf.Tensor, np.ndarray] = None,
     ):
         """
         Return the relevant CF examples to explain the inputs.
@@ -279,6 +281,9 @@ class LabelAwareCounterFactuals(BaseExampleMethod):
             Tensor or Array. Input samples to be explained.
             Expected shape among (N, W), (N, T, W), (N, W, H, C).
             More information in the documentation.
+        targets
+            Tensor or Array. One-hot encoded labels or regression target (e.g {+1, -1}),
+            one for each sample. If not provided, the model's predictions are used.
         cf_expected_classes
             Tensor or Array. One-hot encoding of the target class for the counterfactuals.
 
@@ -291,13 +296,24 @@ class LabelAwareCounterFactuals(BaseExampleMethod):
         """
         # pylint: disable=arguments-renamed
         # pylint: disable=fixme
-        # TODO: remove pylint disable the issue is fixed
+        if not self.warned:
+            # TODO
+            self.warned = True
 
         # project inputs into the search space
-        projected_inputs = self.projection(inputs)
+        projected_inputs = self.projection(inputs, targets)
 
         # look for relevant elements in the search space
         search_output = self.search_method(projected_inputs, cf_expected_classes)
 
         # manage returned elements
         return self.format_search_output(search_output, inputs)
+
+    def __call__(
+        self,
+        inputs: Union[tf.Tensor, np.ndarray],
+        targets: Optional[Union[tf.Tensor, np.ndarray]] = None,
+        cf_expected_classes: Union[tf.Tensor, np.ndarray] = None,
+    ):
+        """explain() alias"""
+        return self.explain(inputs, targets, cf_expected_classes)
