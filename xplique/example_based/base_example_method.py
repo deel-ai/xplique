@@ -12,7 +12,8 @@ import numpy as np
 from ..types import Callable, Dict, List, Optional, Type, Union
 
 from ..commons import sanitize_inputs_targets
-from ..commons import sanitize_dataset, dataset_gather
+from .datasets_operations.harmonize import harmonize_datasets
+from .datasets_operations.tf_dataset_operations import dataset_gather
 from .search_methods import BaseSearchMethod
 from .projections import Projection
 
@@ -91,9 +92,8 @@ class BaseExampleMethod(ABC):
         ), "`BaseExampleMethod` without Projection method should be a `BaseSearchMethod`."
 
         # set attributes
-        self.batch_size = self._initialize_cases_dataset(
-            cases_dataset, labels_dataset, targets_dataset, batch_size
-        )
+        self.cases_dataset, self.labels_dataset, self.targets_dataset, self.batch_size =\
+            harmonize_datasets(cases_dataset, labels_dataset, targets_dataset, batch_size)
 
         self._search_returns = ["indices", "distances"]
 
@@ -174,109 +174,6 @@ class BaseExampleMethod(ABC):
         """
         default = "examples"
         self._returns = _sanitize_returns(returns, self._returns_possibilities, default)
-
-    def _initialize_cases_dataset(
-        self,
-        cases_dataset: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
-        labels_dataset: Optional[Union[tf.data.Dataset, tf.Tensor, np.ndarray]],
-        targets_dataset: Optional[Union[tf.data.Dataset, tf.Tensor, np.ndarray]],
-        batch_size: Optional[int],
-    ) -> int:
-        """
-        Factorization of `__init__()` method for dataset related attributes.
-
-        Parameters
-        ----------
-        cases_dataset
-            The dataset used to train the model, examples are extracted from this dataset.
-        labels_dataset
-            Labels associated to the examples in the cases_dataset.
-            Indices should match with cases_dataset.
-        targets_dataset
-            Targets associated to the cases_dataset for dataset projection.
-            See `projection` for details.
-        batch_size
-            Number of sample treated simultaneously when using the datasets.
-            Ignored if `tf.data.Dataset` are provided (those are supposed to be batched).
-
-        Returns
-        -------
-        batch_size
-            Number of sample treated simultaneously when using the datasets.
-            Extracted from the datasets in case they are `tf.data.Dataset`.
-            Otherwise, the input value.
-        """
-        # at least one dataset provided
-        if isinstance(cases_dataset, tf.data.Dataset):
-            # set batch size (ignore provided argument) and cardinality
-            if isinstance(cases_dataset.element_spec, tuple):
-                batch_size = tf.shape(next(iter(cases_dataset))[0])[0].numpy()
-            else:
-                batch_size = tf.shape(next(iter(cases_dataset)))[0].numpy()
-
-            cardinality = cases_dataset.cardinality().numpy()
-        else:
-            # if cases_dataset is not a `tf.data.Dataset`, then neither should the other.
-            assert not isinstance(labels_dataset, tf.data.Dataset), (
-                "if the cases_dataset is not a `tf.data.Dataset`, "
-                + "then neither should the labels_dataset."
-            )
-            assert not isinstance(targets_dataset, tf.data.Dataset), (
-                "if the cases_dataset is not a `tf.data.Dataset`, "
-                + "then neither should the targets_dataset."
-            )
-            # set batch size and cardinality
-            batch_size = min(batch_size, len(cases_dataset))
-            cardinality = math.ceil(len(cases_dataset) / batch_size)
-
-        # verify cardinality and create datasets from the tensors
-        self.cases_dataset = sanitize_dataset(
-            cases_dataset, batch_size, cardinality
-        )
-        self.labels_dataset = sanitize_dataset(
-            labels_dataset, batch_size, cardinality
-        )
-        self.targets_dataset = sanitize_dataset(
-            targets_dataset, batch_size, cardinality
-        )
-
-        # if the provided `cases_dataset` has several columns
-        if isinstance(self.cases_dataset.element_spec, tuple):
-            # switch case on the number of columns of `cases_dataset`
-            if len(self.cases_dataset.element_spec) == 2:
-                assert self.labels_dataset is None, (
-                    "The second column of `cases_dataset` is assumed to be the labels. "
-                    + "Hence, `labels_dataset` should be empty."
-                )
-                self.labels_dataset = self.cases_dataset.map(lambda x, y: y)
-                self.cases_dataset = self.cases_dataset.map(lambda x, y: x)
-
-            elif len(self.cases_dataset.element_spec) == 3:
-                assert self.labels_dataset is None, (
-                    "The second column of `cases_dataset` is assumed to be the labels. "
-                    + "Hence, `labels_dataset` should be empty."
-                )
-                assert self.targets_dataset is None, (
-                    "The second column of `cases_dataset` is assumed to be the labels. "
-                    + "Hence, `labels_dataset` should be empty."
-                )
-                self.targets_dataset = self.cases_dataset.map(lambda x, y, t: t)
-                self.labels_dataset = self.cases_dataset.map(lambda x, y, t: y)
-                self.cases_dataset = self.cases_dataset.map(lambda x, y, t: x)
-            else:
-                raise AttributeError(
-                    "`cases_dataset` cannot possess more than 3 columns, "\
-                    + f"{len(self.cases_dataset.element_spec)} were detected."
-                )
-
-        # prefetch datasets
-        self.cases_dataset = self.cases_dataset.prefetch(tf.data.AUTOTUNE)
-        if self.labels_dataset is not None:
-            self.labels_dataset = self.labels_dataset.prefetch(tf.data.AUTOTUNE)
-        if self.targets_dataset is not None:
-            self.targets_dataset = self.targets_dataset.prefetch(tf.data.AUTOTUNE)
-
-        return batch_size
 
     @sanitize_inputs_targets
     def explain(
