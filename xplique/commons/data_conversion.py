@@ -76,14 +76,24 @@ def sanitize_inputs_targets(explanation_method: Callable):
     explanation_method
         Function to wrap, should return an tf.tensor.
     """
-    def sanitize(self, inputs: Union[tf.Tensor, np.array],
+    def sanitize(self,
+                 inputs: Union[tf.Tensor, np.array],
                  targets: Optional[Union[tf.Tensor, np.array]] = None,
+                 *args,
+                 **kwargs
                  ):
         # ensure we have tf.tensor
         inputs = tf.cast(inputs, tf.float32)
         if targets is not None:
             targets = tf.cast(targets, tf.float32)
+
+        if args:
+            args = [tf.cast(arg, tf.float32) for arg in args]
+        
+        if kwargs:
+            kwargs = {key: tf.cast(value, tf.float32) for key, value in kwargs.items()}
+
         # then enter the explanation function
-        return explanation_method(self, inputs, targets)
+        return explanation_method(self, inputs, targets, *args, **kwargs)
 
     return sanitize
