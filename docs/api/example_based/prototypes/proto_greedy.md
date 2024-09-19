@@ -12,7 +12,7 @@
 
 !!! quote
     Our work notably generalizes the recent work
-    by Kim et al. (2016) where in addition to selecting prototypes, we
+    by [Kim et al. (2016)](../mmd_critic/)) where in addition to selecting prototypes, we
     also associate non-negative weights which are indicative of their
     importance. This extension provides a single coherent framework
     under which both prototypes and criticisms (i.e. outliers) can be
