@@ -6,7 +6,7 @@ from abc import abstractmethod
 import numpy as np
 import tensorflow as tf
 
-from ...commons import dataset_gather, sanitize_dataset
+from ..datasets_operations.tf_dataset_operations import dataset_gather, sanitize_dataset
 from ...types import Callable, List, Union, Optional, Tuple
 
 from .base import BaseSearchMethod, ORDER

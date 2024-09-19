@@ -5,7 +5,7 @@ ProtoGreedy search method in example-based module
 import numpy as np
 import tensorflow as tf
 
-from ...commons import sanitize_dataset
+from ..datasets_operations.tf_dataset_operations import sanitize_dataset
 from ...types import Callable, List, Union, Optional, Tuple
 
 from .base import BaseSearchMethod

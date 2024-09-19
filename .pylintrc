@@ -6,6 +6,7 @@ disable=
     E1123, # issues between pylint and tensorflow since 2.2.0
     E1120, # see pylint#3613
     C3001, # lambda function as variable
+    E1101, # (no-member), flag for every tf.keras
 
 [FORMAT]
 max-line-length=100

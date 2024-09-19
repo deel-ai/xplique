@@ -6,7 +6,7 @@ from itertools import product
 import numpy as np
 import tensorflow as tf
 
-from ..types import Optional, Union
+from ...types import Optional, Union
 
 
 def _almost_equal(arr1, arr2, epsilon=1e-6):
@@ -14,9 +14,9 @@ def _almost_equal(arr1, arr2, epsilon=1e-6):
     return np.shape(arr1) == np.shape(arr2) and np.sum(np.abs(arr1 - arr2)) < epsilon
 
 
-def are_dataset_first_elems_equal(
-    dataset1: Optional[tf.data.Dataset], dataset2: Optional[tf.data.Dataset]
-) -> bool:
+def are_dataset_first_elems_equal(dataset1: Optional[tf.data.Dataset] = None,
+                                  dataset2: Optional[tf.data.Dataset] = None,
+                                  ) -> bool:
     """
     Test if the first batch of elements of two datasets are the same.
     It is used to verify equality between datasets in a lazy way.
@@ -49,6 +49,38 @@ def are_dataset_first_elems_equal(
             return False
 
     return _almost_equal(next1, next2)
+
+
+def is_batched(dataset: tf.data.Dataset) -> bool:
+    """
+    Check if a TensorFlow dataset is batched.
+
+    Parameters
+    ----------
+    dataset : tf.data.Dataset
+        The dataset to check.
+
+    Returns
+    -------
+    bool
+        True if the dataset is batched, False otherwise.
+    """
+    # Extract the element_spec
+    spec = dataset.element_spec
+
+    # Handle datasets with tuple or dict structures
+    if isinstance(spec, (tuple, dict)):
+        # Check if any part of the element_spec is batched
+        if isinstance(spec, tuple):
+            return all(s.shape[0] is None for s in spec)
+        if isinstance(spec, dict):
+            return all(s.shape[0] is None for s in spec.values())
+    else:
+        # Check if the first dimension is None (indicating batching)
+        return spec.shape[0] is None
+
+    # If we reach here, it's not batched
+    return False
 
 
 def is_not_shuffled(dataset: Optional[tf.data.Dataset]) -> bool:
@@ -93,6 +125,9 @@ def batch_size_matches(dataset: Optional[tf.data.Dataset], batch_size: int) -> b
     if dataset is None:
         # ignored
         return True
+    
+    if not is_batched(dataset):
+        return False
 
     first_item = next(iter(dataset))
     if isinstance(first_item, tuple):
@@ -111,7 +146,7 @@ def sanitize_dataset(
     Function to ensure input dataset match expected format.
     It also transforms tensors in `tf.data.Dataset` and also verify the properties.
     This function verify that datasets do not reshuffle at each iteration and
-    that their batch isze and cardinality match the expected ones.
+    that their batch and cardinality match the expected ones.
     Note that, that Tensorflow do not provide easy way to make those tests, hence,
     for cost constraints, our tests are not perfect.
 
@@ -141,8 +176,13 @@ def sanitize_dataset(
             assert batch_size_matches(
                 dataset, batch_size
             ), "The batch size should match between datasets."
-        else:
+        elif isinstance(dataset, (tf.Tensor, np.ndarray)):
             dataset = tf.data.Dataset.from_tensor_slices(dataset).batch(batch_size)
+        else:
+            raise ValueError(
+                "The input dataset should be a `tf.data.Dataset`, a `tf.Tensor` or a `np.array`. "
+                + f"Received {type(dataset)}."
+            )
 
         if cardinality is not None and cardinality > 0:
             dataset_cardinality = dataset.cardinality().numpy()
@@ -153,6 +193,10 @@ def sanitize_dataset(
                     + "You may have provided non-batched datasets "\
                     + "or datasets with different lengths."
                 )
+            else:
+                # negative cardinality means unknown cardinality,
+                # it will be the case for datasets created from generator, thus torch converted ones
+                pass
 
     return dataset
 

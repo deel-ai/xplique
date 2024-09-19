@@ -8,7 +8,7 @@ import tensorflow as tf
 import numpy as np
 
 from ...types import Union, Optional, List
-from ...commons import sanitize_dataset
+from ..datasets_operations.tf_dataset_operations import sanitize_dataset
 
 class ORDER(Enum):
     """

@@ -12,8 +12,8 @@ import numpy as np
 import tensorflow as tf
 
 
-from xplique.commons.tf_dataset_operations import *
-from xplique.commons.tf_dataset_operations import _almost_equal
+from xplique.example_based.datasets_operations.tf_dataset_operations import *
+from xplique.example_based.datasets_operations.tf_dataset_operations import _almost_equal
 
 
 def test_are_dataset_first_elems_equal():
@@ -78,13 +78,14 @@ def test_batch_size_matches():
     tf_dataset = tf.data.Dataset.from_tensor_slices(
         tf.reshape(tf.range(90), (10, 3, 3))
     )
+    tf_dataset_b1 = tf_dataset.batch(1)
     tf_dataset_b2 = tf_dataset.batch(2)
     tf_dataset_b5 = tf_dataset.batch(5)
     tf_dataset_b25 = tf_dataset_b5.batch(2)
     tf_dataset_b52 = tf_dataset_b2.batch(5)
     tf_dataset_b32 = tf_dataset.batch(32)
 
-    assert batch_size_matches(tf_dataset, 3)
+    assert batch_size_matches(tf_dataset_b1, 1)
     assert batch_size_matches(tf_dataset_b2, 2)
     assert batch_size_matches(tf_dataset_b5, 5)
     assert batch_size_matches(tf_dataset_b25, 2)

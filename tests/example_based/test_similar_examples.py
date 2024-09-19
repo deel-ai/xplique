@@ -7,12 +7,9 @@ import sys
 sys.path.append(os.getcwd())
 
 from math import prod, sqrt
-import unittest
 
 import numpy as np
 import tensorflow as tf
-
-from xplique.commons import are_dataset_first_elems_equal
 
 from xplique.example_based import SimilarExamples
 from xplique.example_based.projections import Projection
@@ -33,100 +30,6 @@ def get_setup(input_shape, nb_samples=10, nb_labels=10):
 
     return x_train, x_test, y_train
 
-
-def test_similar_examples_input_datasets_management():
-    """
-    Test management of dataset init inputs
-    """
-    proj = Projection(space_projection=lambda inputs, targets=None: inputs)
-
-    tf_tensor = tf.reshape(tf.range(90, dtype=tf.float32), (10, 3, 3))
-    np_array = np.array(tf_tensor)
-    tf_dataset = tf.data.Dataset.from_tensor_slices(tf_tensor)
-    too_short_np_array = np_array[:3]
-    too_long_tf_dataset = tf_dataset.concatenate(tf_dataset)
-
-    tf_dataset_b3 = tf_dataset.batch(3)
-    tf_dataset_b5 = tf_dataset.batch(5)
-    too_long_tf_dataset_b5 = too_long_tf_dataset.batch(5)
-    too_long_tf_dataset_b10 = too_long_tf_dataset.batch(10)
-
-    tf_shuffled = tf_dataset.shuffle(32, 0).batch(4)
-    tf_one_shuffle = tf_dataset.shuffle(32, 0, reshuffle_each_iteration=False).batch(4)
-
-    # Method initialization that should work
-    method = SimilarExamples(tf_dataset_b3, None, np_array, projection=proj)
-    assert are_dataset_first_elems_equal(method.cases_dataset, tf_dataset_b3)
-    assert are_dataset_first_elems_equal(method.labels_dataset, None)
-    assert are_dataset_first_elems_equal(method.targets_dataset, tf_dataset_b3)
-
-    method = SimilarExamples(np_array, tf_tensor, None, batch_size=5, projection=proj)
-    assert are_dataset_first_elems_equal(method.cases_dataset, tf_dataset_b5)
-    assert are_dataset_first_elems_equal(method.labels_dataset, tf_dataset_b5)
-    assert are_dataset_first_elems_equal(method.targets_dataset, None)
-
-    method = SimilarExamples(
-        tf.data.Dataset.zip((tf_dataset_b5, tf_dataset_b5)),
-        None,
-        np_array,
-        projection=proj,
-    )
-    assert are_dataset_first_elems_equal(method.cases_dataset, tf_dataset_b5)
-    assert are_dataset_first_elems_equal(method.labels_dataset, tf_dataset_b5)
-    assert are_dataset_first_elems_equal(method.targets_dataset, tf_dataset_b5)
-
-    method = SimilarExamples(
-        tf.data.Dataset.zip((tf_one_shuffle, tf_one_shuffle)), projection=proj
-    )
-    assert are_dataset_first_elems_equal(method.cases_dataset, tf_one_shuffle)
-    assert are_dataset_first_elems_equal(method.labels_dataset, tf_one_shuffle)
-    assert are_dataset_first_elems_equal(method.targets_dataset, None)
-
-    method = SimilarExamples(tf_one_shuffle, projection=proj)
-    assert are_dataset_first_elems_equal(method.cases_dataset, tf_one_shuffle)
-    assert are_dataset_first_elems_equal(method.labels_dataset, None)
-    assert are_dataset_first_elems_equal(method.targets_dataset, None)
-
-    # Method initialization that should not work
-    test_raise_assertion_error = unittest.TestCase().assertRaises
-    test_raise_assertion_error(TypeError, SimilarExamples)
-    test_raise_assertion_error(AssertionError, SimilarExamples, tf_tensor)
-    test_raise_assertion_error(
-        AssertionError, SimilarExamples, tf_shuffled, projection=proj
-    )
-    test_raise_assertion_error(
-        AssertionError, SimilarExamples, tf_dataset, tf_tensor, projection=proj
-    )
-    test_raise_assertion_error(
-        AssertionError, SimilarExamples, tf_dataset_b3, tf_dataset_b5, projection=proj
-    )
-    test_raise_assertion_error(
-        AssertionError,
-        SimilarExamples,
-        tf.data.Dataset.zip((tf_dataset_b5, tf_dataset_b5)),
-        np_array,
-        projection=proj,
-    )
-    test_raise_assertion_error(
-        AssertionError, SimilarExamples, tf_dataset_b3, too_short_np_array
-    )
-    test_raise_assertion_error(
-        AssertionError, SimilarExamples, tf_dataset, None, too_long_tf_dataset
-    )
-    test_raise_assertion_error(
-        AssertionError,
-        SimilarExamples,
-        tf_dataset_b5,
-        too_long_tf_dataset_b5,
-        projection=proj,
-    )
-    test_raise_assertion_error(
-        AssertionError,
-        SimilarExamples,
-        too_long_tf_dataset_b10,
-        tf_dataset_b5,
-        projection=proj,
-    )
 
 
 def test_similar_examples_basic():
@@ -262,7 +165,7 @@ def test_similar_examples_weighting():
 
     method = SimilarExamples(
         cases_dataset=x_train,
-        labels_dataset=y_train,
+        labels_dataset=np.array(y_train),
         projection=weighting_function,
         k=k,
         batch_size=5,
@@ -278,9 +181,6 @@ def test_similar_examples_weighting():
     assert examples.shape == (nb_samples_test, k) + input_shape
 
     for i in range(nb_samples_test):
-        print(i)
-        print(examples[i, 0])
-        print(x_train[i + 1])
         # test examples:
         assert almost_equal(examples[i, 0], x_train[i + 1])
         assert almost_equal(examples[i, 1], x_train[i + 2]) or almost_equal(

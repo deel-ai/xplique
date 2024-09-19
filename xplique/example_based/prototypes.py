@@ -9,7 +9,7 @@ import numpy as np
 
 from ..types import Callable, Dict, List, Optional, Type, Union
 
-from ..commons.tf_dataset_operations import dataset_gather
+from .datasets_operations.tf_dataset_operations import dataset_gather
 
 from .search_methods import ProtoGreedySearch, MMDCriticSearch, ProtoDashSearch
 from .projections import Projection
