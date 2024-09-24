@@ -126,7 +126,7 @@ def _torch_model_splitting(
         model: 'torch.nn.Module',
         latent_layer: Union[str, int],
         device: Union["torch.device", str] = None,
-    ) -> Tuple['torch.nn.Module', 'torch.nn.Module']: # pylint: disable=import-outside-toplevel
+    ) -> Tuple['torch.nn.Module', 'torch.nn.Module']:
     """
     Split the model into two parts, before and after the `latent_layer`.
     The parts will respectively be called `features_extractor` and `predictor`.
@@ -214,6 +214,7 @@ def _torch_model_splitting(
     return wrapped_first_model, wrapped_second_model
 
 
+@tf.function
 def target_free_classification_operator(model: Callable,
                                         inputs: tf.Tensor,
                                         targets: Optional[tf.Tensor] = None) -> tf.Tensor:
@@ -239,15 +240,18 @@ def target_free_classification_operator(model: Callable,
     scores
         Predictions scores computed, only for the label class.
     """
-    # pylint: disable=fixme
-    # TODO: test, and use in attribution projection
     predictions = model(inputs)
 
-    targets = tf.cond(
-        pred=tf.constant(targets is None, dtype=tf.bool),
-        true_fn=lambda: tf.one_hot(tf.argmax(predictions, axis=-1), predictions.shape[-1]),
-        false_fn=lambda: targets,
-    )
+    # the condition is always the same, hence this should not affect the graph
+    if targets is None:
+        targets = tf.one_hot(tf.argmax(predictions, axis=-1), predictions.shape[-1])
+
+    # this implementation did not pass the tests, the cond shapes were different if targets is None
+    # targets = tf.cond(
+    #     pred=tf.constant(targets is None, dtype=tf.bool),
+    #     true_fn=lambda: tf.one_hot(tf.argmax(predictions, axis=-1), predictions.shape[-1]),
+    #     false_fn=lambda: targets,
+    # )
 
     scores = tf.reduce_sum(predictions * targets, axis=-1)
     return scores
