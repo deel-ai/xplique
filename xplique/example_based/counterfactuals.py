@@ -70,6 +70,7 @@ class NaiveCounterFactuals(BaseExampleMethod):
         by default "euclidean".
     """
     # pylint: disable=duplicate-code
+
     def __init__(
         self,
         cases_dataset: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
@@ -187,6 +188,8 @@ class LabelAwareCounterFactuals(BaseExampleMethod):
         {"manhattan", "euclidean", "cosine", "chebyshev", "inf"}, or a Callable,
         by default "euclidean".
     """
+    # pylint: disable=duplicate-code
+
     def __init__(
         self,
         cases_dataset: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
@@ -213,7 +216,7 @@ class LabelAwareCounterFactuals(BaseExampleMethod):
         # as the target used for the target dataset
         warnings.warn(
             "If your projection method requires the target, "\
-            + "be aware that when using the explain method,"\
+            + "be aware that when using the explain method, "\
             + "the target provided is the class within one should search for the counterfactual."\
             + "\nThus, it is possible that the projection of the query is going wrong.")
         self.warned = False
@@ -294,10 +297,12 @@ class LabelAwareCounterFactuals(BaseExampleMethod):
             The elements that can be returned are defined with the `_returns_possibilities`
             static attribute of the class.
         """
-        # pylint: disable=arguments-renamed
-        # pylint: disable=fixme
         if not self.warned:
-            # TODO
+            warnings.warn(
+                "If your projection method requires the target, "\
+                + "be aware that when using the explain method, the target provided "\
+                + "is the class within one should search for the counterfactual."\
+                + "\nThus, it is possible that the projection of the query is going wrong.")
             self.warned = True
 
         # project inputs into the search space

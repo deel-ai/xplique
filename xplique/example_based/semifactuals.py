@@ -79,11 +79,12 @@ class KLEORBase(BaseExampleMethod):
         {"manhattan", "euclidean", "cosine", "chebyshev", "inf"}, or a Callable,
         by default "euclidean".
     """
+    # pylint: disable=duplicate-code
+
     _returns_possibilities = [
         "examples", "weights", "distances", "labels", "include_inputs",
         "nuns", "nuns_indices", "dist_to_nuns", "nuns_labels"
     ]
-    # pylint: disable=duplicate-code
 
     def __init__(
         self,
