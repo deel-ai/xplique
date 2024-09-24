@@ -84,7 +84,6 @@ class BaseSearchMethod(ABC):
         Number of sample treated simultaneously.
         It should match the batch size of the `search_set` in the case of a `tf.data.Dataset`.
     """
-    # pylint: disable=duplicate-code
     _returns_possibilities = ["examples", "indices", "distances", "include_inputs"]
 
     def __init__(

@@ -49,7 +49,6 @@ class BaseKLEORSearch(FilterKNN, ABC):
         {"manhattan", "euclidean", "cosine", "chebyshev", "inf"}, or a Callable,
         by default "euclidean".
     """
-    # pylint: disable=duplicate-code
     def __init__(
         self,
         cases_dataset: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
@@ -164,7 +163,8 @@ class BaseKLEORSearch(FilterKNN, ABC):
 
     def kneighbors(self,
                    inputs: Union[tf.Tensor, np.ndarray],
-                   targets: Union[tf.Tensor, np.ndarray]) -> Tuple[tf.Tensor, tf.Tensor]:
+                   targets: Union[tf.Tensor, np.ndarray]
+                   ) -> Tuple[tf.Tensor, tf.Tensor]:
         """
         Compute the k SF to each tensor of `inputs` in `self.cases_dataset`.
         Here `self.cases_dataset` is a `tf.data.Dataset`, hence, computations are done by batches.

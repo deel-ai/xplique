@@ -2,6 +2,7 @@
 KNN online search method in example-based module
 """
 from abc import abstractmethod
+import inspect
 
 import numpy as np
 import tensorflow as tf
@@ -174,7 +175,6 @@ class KNN(BaseKNN):
         {"manhattan", "euclidean", "cosine", "chebyshev", "inf"}, or a Callable,
         by default "euclidean".
     """
-    # pylint: disable=duplicate-code
     def __init__(
         self,
         cases_dataset: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
@@ -346,7 +346,6 @@ class FilterKNN(BaseKNN):
         where n is the number of inputs and m the number of cases.
         This boolean mask is used to choose between which inputs and cases to compute the distances. 
     """
-    # pylint: disable=duplicate-code
     def __init__(
         self,
         cases_dataset: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
@@ -358,7 +357,6 @@ class FilterKNN(BaseKNN):
         order: ORDER = ORDER.ASCENDING,
         filter_fn: Optional[Callable] = None,
     ):
-        # pylint: disable=fixme
         super().__init__(
             cases_dataset=cases_dataset,
             k=k,
@@ -374,9 +372,16 @@ class FilterKNN(BaseKNN):
             self.distance_fn = lambda x1, x2, m:\
                 tf.where(m, get_distance_function(distance)(x1, x2), self.fill_value)
 
-        # TODO: Assertion on the function signature
         if filter_fn is None:
             filter_fn = lambda x, z, y, t: tf.ones((tf.shape(x)[0], tf.shape(z)[0]), dtype=tf.bool)
+        elif hasattr(filter_fn, "__call__"):
+            filter_fn_signature = inspect.signature(filter_fn)
+            assert len(filter_fn_signature.parameters) == 4,\
+                f"filter_fn should take 4 parameters, not {len(filter_fn_signature.parameters)}"
+        else:
+            raise TypeError(
+                f"filter_fn should be Callable, not {type(filter_fn)}"
+            )
         self.filter_fn = filter_fn
 
         # set targets_dataset
