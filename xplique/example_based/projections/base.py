@@ -66,9 +66,10 @@ class Projection(ABC):
                  device: Optional[str] = None,
                  mappable: bool = True,
                  requires_targets: bool = False):
-        assert get_weights is not None or space_projection is not None, (
-            "At least one of `get_weights` and `space_projection`"
-            + "should not be `None`."
+        if get_weights is not None or space_projection is not None:
+            warnings.warn(
+                "At least one of `get_weights` and `space_projection`"
+                + "should not be `None`. Otherwise the projection is an identity function."
         )
 
         self.mappable = mappable
@@ -234,23 +235,16 @@ class Projection(ABC):
         projected_dataset
             The projected dataset.
         """
-        # pylint: disable=fixme
-        # TODO see if a warning is needed
-
         projected_cases_dataset = []
-        batch_size = None
+        batch_size = next(iter(cases_dataset)).shape[0]
 
         # iteratively project the dataset
         if targets_dataset is None:
             for inputs in cases_dataset:
-                if batch_size is None:
-                    batch_size = inputs.shape[0]  # TODO check if there is a smarter way to do this
                 projected_cases_dataset.append(self.project(inputs, None))
         else:
             # in case targets are provided, we zip the datasets and project them together
             for inputs, targets in tf.data.Dataset.zip((cases_dataset, targets_dataset)):
-                if batch_size is None:
-                    batch_size = inputs.shape[0]  # TODO check if there is a smarter way to do this
                 projected_cases_dataset.append(self.project(inputs, targets))
 
         projected_cases_dataset = tf.concat(projected_cases_dataset, axis=0)
