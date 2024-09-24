@@ -255,20 +255,20 @@ def download_file(identifier: str,
             if chunk:
                 file.write(chunk)
 
-def get_gaussian_data(nb_classes=3, nb_samples_class=20):
+def get_gaussian_data(nb_classes=3, nb_samples_class=20, n_dims=1):
     tf.random.set_seed(42)
 
     sigma = 1
     mu = [10 * (id + 1) for id in range(nb_classes)]
 
     X = tf.concat([
-        tf.random.normal(shape=(nb_samples_class,1), mean=mu[i], stddev=sigma, dtype=tf.float32)
+        tf.random.normal(shape=(nb_samples_class, n_dims), mean=mu[i], stddev=sigma, dtype=tf.float32)
         for i in range(nb_classes)
     ], axis=0)
 
     y = tf.concat([
         tf.ones(shape=(nb_samples_class), dtype=tf.int32) * i
-        for i in range(3)
+        for i in range(nb_classes)
     ], axis=0)
 
     return(X, y)
