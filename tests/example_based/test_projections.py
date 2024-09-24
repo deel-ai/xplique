@@ -11,9 +11,10 @@ from tensorflow.keras.layers import (
     Input,
 )
 
+from xplique.commons.operators import predictions_operator
 from xplique.attributions import Saliency
 from xplique.example_based.projections import Projection, AttributionProjection, LatentSpaceProjection, HadamardProjection
-from xplique.example_based.projections.commons import model_splitting
+from xplique.example_based.projections.commons import model_splitting, target_free_classification_operator
 
 from ..utils import almost_equal
 
@@ -45,29 +46,6 @@ def _generate_model(input_shape=(32, 32, 3), output_shape=2):
     model.compile(loss="categorical_crossentropy", optimizer="sgd")
 
     return model
-
-
-# def test_model_splitting_latent_layer():
-#     """We should target the right layer using either int, string or default procedure"""
-#     tf.keras.backend.clear_session()
-
-#     model = _generate_model()
-
-#     first_conv_layer = model.get_layer("conv2d_1")
-#     last_conv_layer = model.get_layer("conv2d_2")
-#     flatten_layer = model.get_layer("flatten")
-
-#     # last_conv should be recognized
-#     _, _, latent_layer = model_splitting(model, latent_layer="last_conv", return_layer=True)
-#     assert latent_layer == last_conv_layer
-
-#     # target the first conv layer
-#     _, _, latent_layer = model_splitting(model, latent_layer=0, return_layer=True)
-#     assert latent_layer == first_conv_layer
-
-#     # target a random flatten layer
-#     _, _, latent_layer = model_splitting(model, latent_layer="flatten", return_layer=True)
-#     assert latent_layer == flatten_layer
 
 
 def test_simple_projection_mapping():
@@ -114,6 +92,8 @@ def test_model_splitting():
     model.get_layer("dense2").set_weights([np.ones((10, 1)), np.zeros(1)])
 
     # Split the model
+    _, _ = model_splitting(model, latent_layer=-1)
+    _, _ = model_splitting(model, latent_layer="dense2")
     features_extractor, predictor = model_splitting(model, latent_layer="dense1")
 
     assert almost_equal(predictor(features_extractor(x_train)).numpy(), model(x_train))
@@ -187,3 +167,60 @@ def test_attribution_projection_mapping():
 
     # Apply the projection by mapping the dataset
     projected_train_dataset = projection.project_dataset(train_dataset, targets_dataset)
+
+
+def test_from_splitted_model():
+    """
+    Test the other way of constructing the projection.
+    """
+    latent_width = 8
+    nb_samples = 15
+    input_features = 10
+    output_features = 3
+    x_train = np.reshape(np.arange(0, nb_samples * input_features), (nb_samples, input_features))
+    tf_x_train = tf.convert_to_tensor(x_train, dtype=tf.float32)
+
+    train_dataset = tf.data.Dataset.from_tensor_slices(x_train).batch(3)
+
+    model1 = tf.keras.Sequential()
+    model1.add(Input(shape=(input_features,)))
+    model1.add(Dense(latent_width, name="dense1"))
+    model1.compile(loss="mean_absolute_error", optimizer="sgd")
+
+    model2 = tf.keras.Sequential()
+    model2.add(Input(shape=(latent_width,)))
+    model2.add(Dense(output_features, name="dense2"))
+    model2.compile(loss="categorical_crossentropy", optimizer="sgd")
+
+    assert model1(x_train).shape == (nb_samples, latent_width)
+    assert model2(model1(x_train)).shape == (nb_samples, output_features)
+
+    # test LatentSpaceProjection from splitted model
+    projection = LatentSpaceProjection.from_splitted_model(features_extractor=model1, mappable=True)
+    projected_train_dataset = projection.project_dataset(train_dataset)
+
+    # test HadamardProjection from splitted model
+    projection = HadamardProjection.from_splitted_model(features_extractor=model1, predictor=model2, mappable=True)
+    projected_train_dataset = projection.project_dataset(train_dataset)
+
+
+def test_target_free_classification_operator():
+    """
+    Test if the target free classification operator works as expected.
+    """
+    nb_classes = 5
+    x_train = np.reshape(np.arange(0, 100), (10, 10))
+
+    model = tf.keras.Sequential()
+    model.add(Input(shape=(10,)))
+    model.add(Dense(10, name="dense1"))
+    model.add(Dense(nb_classes, name="dense2"))
+    model.compile(loss="categorical_crossentropy", optimizer="sgd")
+
+    preds = model(x_train)
+    targets = tf.one_hot(tf.argmax(preds, axis=1), nb_classes)
+
+    scores1 = target_free_classification_operator(model, x_train)
+    scores2 = predictions_operator(model, x_train, targets)
+
+    assert almost_equal(scores1, scores2)
