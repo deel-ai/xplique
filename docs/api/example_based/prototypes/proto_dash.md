@@ -12,13 +12,13 @@
 
 !!! quote
     Our work notably generalizes the recent work
-    by Kim et al. (2016) where in addition to selecting prototypes, we
+    by [Kim et al. (2016)](../mmd_critic/)) where in addition to selecting prototypes, we
     also associate non-negative weights which are indicative of their
     importance. This extension provides a single coherent framework
     under which both prototypes and criticisms (i.e. outliers) can be
     found. Furthermore, our framework works for any symmetric
     positive definite kernel thus addressing one of the key open
-    questions laid out in Kim et al. (2016).
+    questions laid out in [Kim et al. (2016)](../mmd_critic/)).
 
     -- <cite>[Efficient Data Representation by Selecting Prototypes with Importance Weights (2019).](https://arxiv.org/abs/1707.01212)</cite>
 
