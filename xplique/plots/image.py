@@ -239,7 +239,6 @@ def plot_examples(
         test_labels: np.ndarray = None,
         predicted_labels: np.ndarray = None,
         img_size: float = 2.,
-        **attribution_kwargs,
 ):
     """
     This function is for image data, it show the returns of the explain function.
@@ -288,8 +287,6 @@ def plot_examples(
 
     left = margin/figwidth
     bottom = margin/figheight
-
-    space_with_line = spacing / (3 * img_size)
 
     fig = plt.figure()
     fig.set_size_inches(figwidth, figheight)
