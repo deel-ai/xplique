@@ -63,11 +63,15 @@ class LatentSpaceProjection(Projection):
             It is not the case for wrapped PyTorch models.
             If you encounter errors in the `project_dataset` method, you can set it to `False`.
         """
-        # pylint: disable=fixme
-        # TODO: test
         assert isinstance(features_extractor, tf.keras.Model),\
             f"features_extractor should be a tf.keras.Model, got {type(features_extractor)}"\
             f" instead. If you have a PyTorch model, you can use the `TorchWrapper`."
-        super().__init__(space_projection=features_extractor,
-                         mappable=mappable,
-                         requires_targets=False)
+
+        new_instance = cls.__new__(cls)
+        super(LatentSpaceProjection, cls).__init__(
+            new_instance,
+            space_projection=features_extractor,
+            mappable=mappable,
+            requires_targets=False
+        )
+        return new_instance

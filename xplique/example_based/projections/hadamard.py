@@ -46,12 +46,12 @@ class HadamardProjection(Projection):
         Otherwise, `-1` could be used for the last layer before softmax.
     operator
         Operator to use to compute the explanation, if None use standard predictions.
+        The default operator is the classification operator with online targets computations.
+        For more information, refer to the Attribution documentation.
     device
         Device to use for the projection, if None, use the default device.
         Only used for PyTorch models. Ignored for TensorFlow models.
     """
-    # pylint: disable=fixme
-    # TODO: make a larger description of the operator arg.
     def __init__(
         self,
         model: Callable,
@@ -77,7 +77,6 @@ class HadamardProjection(Projection):
 
         # the weights are given by the gradient of the operator based on the predictor
         gradients, _ = get_gradient_functions(self.predictor, operator)
-        # TODO check usage of gpu
         get_weights = lambda inputs, targets: gradients(self.predictor, inputs, targets)
 
         mappable = isinstance(model, tf.keras.Model)
@@ -93,7 +92,7 @@ class HadamardProjection(Projection):
                             features_extractor: tf.keras.Model,
                             predictor: tf.keras.Model,
                             operator: Optional[OperatorSignature] = None,
-                            mappable=True):  # TODO: test
+                            mappable=True):
         """
         Create LatentSpaceProjection from a splitted model.
         The projection will project the inputs in the latent space,
@@ -112,7 +111,6 @@ class HadamardProjection(Projection):
             It is not the case for wrapped PyTorch models.
             If you encounter errors in the `project_dataset` method, you can set it to `False`.
         """
-        # pylint: disable=fixme
         assert isinstance(features_extractor, tf.keras.Model),\
             f"features_extractor should be a tf.keras.Model, got {type(features_extractor)}"\
             f" instead. If you have a PyTorch model, you can use the `TorchWrapper`."
@@ -120,12 +118,21 @@ class HadamardProjection(Projection):
             f"predictor should be a tf.keras.Model, got {type(predictor)}"\
             f" instead. If you have a PyTorch model, you can use the `TorchWrapper`."
 
+        if operator is None:
+            warnings.warn("No operator provided, using standard classification operator. "\
+                          + "For non-classification tasks, please specify an operator.")
+            operator = target_free_classification_operator
+
         # the weights are given by the gradient of the operator based on the predictor
         gradients, _ = get_gradient_functions(predictor, operator)
-        # TODO check usage of gpu
         get_weights = lambda inputs, targets: gradients(predictor, inputs, targets)
 
-        super().__init__(get_weights=get_weights,
-                         space_projection=features_extractor,
-                         mappable=mappable,
-                         requires_targets=True)
+        new_instance = cls.__new__(cls)
+        super(HadamardProjection, cls).__init__(
+            new_instance,
+            get_weights=get_weights,
+            space_projection=features_extractor,
+            mappable=mappable,
+            requires_targets=True
+        )
+        return new_instance
