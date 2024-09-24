@@ -6,7 +6,7 @@ import numpy as np
 from scipy.optimize import minimize
 import tensorflow as tf
 
-from ...types import Callable, List, Union, Optional, Tuple
+from ...types import Union, Optional, Tuple
 
 from .proto_greedy_search import ProtoGreedySearch
 
@@ -94,25 +94,11 @@ class ProtoDashSearch(ProtoGreedySearch):
     cases_dataset
         The dataset used to train the model, examples are extracted from the dataset.
         For natural example-based methods it is the train dataset.
-    labels_dataset
-        Labels associated to the examples in the dataset. Indices should match with cases_dataset.
-    k
-        The number of examples to retrieve.
-    search_returns
-        String or list of string with the elements to return in `self.find_examples()`.
-        See `self.set_returns()` for detail.
     batch_size
         Number of sample treated simultaneously.
         It should match the batch size of the `search_set` in the case of a `tf.data.Dataset`.
-    distance
-        Distance function for examples search. It can be an integer, a string in
-        {"manhattan", "euclidean", "cosine", "chebyshev", "inf"}, or a Callable,
-        by default "euclidean".
     nb_prototypes : int
-            Number of prototypes to find.    
-    kernel_type : str, optional
-        The kernel type. It can be 'local' or 'global', by default 'local'.
-        When it is local, the distances are calculated only within the classes.
+            Number of prototypes to find.
     kernel_fn : Callable, optional
         Kernel function, by default the rbf kernel.
         This function must only use TensorFlow operations.
@@ -123,18 +109,12 @@ class ProtoDashSearch(ProtoGreedySearch):
         Exact method is based on a scipy optimization,
         while the other is based on a tensorflow inverse operation.
     """
-    # pylint: disable=duplicate-code
 
     def __init__(
         self,
         cases_dataset: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
-        labels_dataset: Optional[Union[tf.data.Dataset, tf.Tensor, np.ndarray]] = None,
-        k: int = 1,
-        search_returns: Optional[Union[List[str], str]] = None,
         batch_size: Optional[int] = 32,
-        distance: Union[int, str, Callable] = None,
         nb_prototypes: int = 1,
-        kernel_type: str = 'local',
         kernel_fn: callable = None,
         gamma: float = None,
         exact_selection_weights_update: bool = False,
@@ -144,25 +124,18 @@ class ProtoDashSearch(ProtoGreedySearch):
 
         super().__init__(
             cases_dataset=cases_dataset,
-            labels_dataset=labels_dataset,
-            k=k,
-            search_returns=search_returns,
             batch_size=batch_size,
-            distance=distance,
             nb_prototypes=nb_prototypes,
-            kernel_type=kernel_type,
             kernel_fn=kernel_fn,
             gamma=gamma
         )
 
-    def update_selection_weights(self,
-                                 selection_indices: tf.Tensor,
-                                 selection_weights: tf.Tensor,
-                                 selection_selection_kernel: tf.Tensor,
-                                 best_indice: tf.Tensor,
-                                 best_weights: tf.Tensor,
-                                 best_objective: tf.Tensor
-                                 ) -> tf.Tensor:
+    def _update_selection_weights(self,
+                                  selection_kernel_col_means: tf.Tensor,
+                                  selection_selection_kernel: tf.Tensor,
+                                  best_diag: tf.Tensor,
+                                  best_objective: tf.Tensor
+                                  ) -> tf.Tensor:
         """
         Update the selection weights based on the given parameters.
         Pursuant to Lemma IV.4:
@@ -173,56 +146,61 @@ class ProtoDashSearch(ProtoGreedySearch):
 
         Parameters
         ----------
-        selected_indices : Tensor
-            Indices corresponding to the selected prototypes.
-        selected_weights : Tensor
-            Weights corresponding to the selected prototypes.
+        selection_kernel_col_means : Tensor
+            Column means of the kernel matrix computed from the selected prototypes. Shape (|S|,).
         selection_selection_kernel : Tensor
-            Kernel matrix computed from the selected prototypes.
-        best_indice : int
-            The index of the selected prototype with the highest objective function value.
-        best_weights : Tensor
-            The weights corresponding to the optimal solution
-            of the objective function for each candidate.
-        best_objective : float
-            The computed objective function value.
+            Kernel matrix computed from the selected prototypes. Shape (|S|, |S|).
+        best_diag : tf.Tensor
+            The diagonal element of the kernel matrix corresponding to the lastly added prototype.
+            Shape (1,).
+        best_objective : tf.Tensor
+            The computed objective function value of the lastly added prototype. Shape (1,).
+            Used to initialize the weights for the exact weights update.
 
-        Returns
-        -------
-        selection_weights : Tensor
-            Updated weights corresponding to the selected prototypes.
         """
         # pylint: disable=invalid-name
+        nb_selected = selection_kernel_col_means.shape[0]
 
         if best_objective <= 0:
-            selection_weights = tf.concat([selection_weights, [0]], axis=0)
+            self.prototypes_weights[nb_selected - 1].assign(0)
         else:
-            u = tf.expand_dims(tf.gather(self.col_means, selection_indices), axis=1)
+            # (|S|,)
+            u = selection_kernel_col_means
+
+            # (|S|, |S|)
             K = selection_selection_kernel
 
             if self.exact_selection_weights_update:
-                best_objective_diag = best_objective / tf.gather(self.diag, best_indice)
-                initial_weights = tf.concat([selection_weights, [best_objective_diag]], axis=0)
-                opt = Optimizer(initial_weights)
-                selection_weights, _ = opt.optimize(u, K)
-                selection_weights = tf.squeeze(selection_weights, axis=0)
+                # initialize the weights
+                best_objective_diag = best_objective / best_diag
+                self.prototypes_weights[nb_selected - 1].assign(best_objective_diag)
+
+                # optimize the weights
+                opt = Optimizer(self.prototypes_weights[:nb_selected])
+                optimized_weights, _ = opt.optimize(u[:, tf.newaxis], K)
+
+                # update the weights
+                self.prototypes_weights[:nb_selected].assign(tf.squeeze(optimized_weights, axis=0))
             else:
                 # We added epsilon to the diagonal of K to ensure that K is invertible
+                # (|S|, |S|)
                 K_inv = tf.linalg.inv(K + ProtoDashSearch.EPSILON * tf.eye(K.shape[-1]))
-                selection_weights = tf.linalg.matmul(K_inv, u)
-                selection_weights = tf.maximum(selection_weights, 0)
-                selection_weights = tf.squeeze(selection_weights, axis=1)
 
-        return selection_weights
+                # use w* = K^-1 * u as the optimal weights
+                # (|S|,)
+                selection_weights = tf.linalg.matvec(K_inv, u)
+                selection_weights = tf.abs(selection_weights)
 
-    def compute_objectives(self,
-                           selection_indices: tf.Tensor,
-                           selection_cases: tf.Tensor,
-                           selection_weights: tf.Tensor,
-                           selection_selection_kernel: tf.Tensor,
-                           candidates_indices: tf.Tensor,
-                           candidates_selection_kernel: tf.Tensor
-                           ) -> Tuple[tf.Tensor, tf.Tensor]:
+                # update the weights
+                self.prototypes_weights[:nb_selected].assign(selection_weights)
+
+    def _compute_batch_objectives(self,
+                                  candidates_kernel_diag: tf.Tensor,
+                                  candidates_kernel_col_means: tf.Tensor,
+                                  selection_kernel_col_means: tf.Tensor,
+                                  candidates_selection_kernel: tf.Tensor,
+                                  selection_selection_kernel: tf.Tensor
+                                  ) -> Tuple[tf.Tensor, tf.Tensor]:
         """
         Compute the objective function and corresponding weights
         for a given set of selected prototypes and a candidate.
@@ -233,38 +211,34 @@ class ProtoDashSearch(ProtoGreedySearch):
 
         Parameters
         ----------
-        selection_indices : Tensor
-            Indices corresponding to the selected prototypes.
-        selection_cases : Tensor
-            Cases corresponding to the selected prototypes.
-        selection_weights : Tensor
-            Weights corresponding to the selected prototypes.
-        selection_selection_kernel : Tensor
-            Kernel matrix computed from the selected prototypes.
-        candidates_indices : Tensor
-            Indices corresponding to the candidate prototypes.
+        candidates_kernel_diag : Tensor
+            Diagonal values of the kernel matrix between the candidates and themselves. Shape (bc,).
+        candidates_kernel_col_means : Tensor
+            Column means of the kernel matrix, subset for the candidates. Shape (bc,).
+        selection_kernel_col_means : Tensor
+            Column means of the kernel matrix, subset for the selected prototypes. Shape (|S|,).
         candidates_selection_kernel : Tensor
-            Kernel matrix between the candidates and the selected prototypes.
+            Kernel matrix between the candidates and the selected prototypes. Shape (bc, |S|).
+        selection_selection_kernel : Tensor
+            Kernel matrix between the selected prototypes. Shape (|S|, |S|).
 
         Returns
         -------
         objectives
-            Tensor that contains the computed objective values for each candidate.
+            Tensor that contains the computed objective values for each candidate. Shape (bc,).
         objectives_weights
-            Tensor that contains the computed objective weights for each candidate.
+            No weights are returned in this case. It is set to None.
+            The weights are computed and updated in the `_update_selection_weights` method.
         """
         # pylint: disable=invalid-name
 
-        u = tf.gather(self.col_means, candidates_indices)
-
-        if selection_indices.shape[0] == 0:
+        if candidates_selection_kernel is None:
+            # (bc,)
             # S = ∅ and ζ^(∅) = 0, g = ∇l(ζ^(∅)) = μ_p
-            objectives = u
+            objectives = candidates_kernel_col_means
         else:
-            u = tf.expand_dims(u, axis=1)
-            K = candidates_selection_kernel
-
-            objectives = u - tf.matmul(K, tf.expand_dims(selection_weights, axis=1))
-            objectives = tf.squeeze(objectives, axis=1)
+            # (bc,) - g = μ_p - K * ζ^(S)
+            objectives = candidates_kernel_col_means - tf.linalg.matvec(candidates_selection_kernel,
+                                                                        selection_kernel_col_means)
 
         return objectives, None

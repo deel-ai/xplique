@@ -23,25 +23,11 @@ class MMDCriticSearch(ProtoGreedySearch):
     cases_dataset
         The dataset used to train the model, examples are extracted from the dataset.
         For natural example-based methods it is the train dataset.
-    labels_dataset
-        Labels associated to the examples in the dataset. Indices should match with cases_dataset.
-    k
-        The number of examples to retrieve.
-    search_returns
-        String or list of string with the elements to return in `self.find_examples()`.
-        See `self.set_returns()` for detail.
     batch_size
         Number of sample treated simultaneously.
         It should match the batch size of the `search_set` in the case of a `tf.data.Dataset`.
-    distance
-        Distance function for examples search. It can be an integer, a string in
-        {"manhattan", "euclidean", "cosine", "chebyshev", "inf"}, or a Callable,
-        by default "euclidean".
     nb_prototypes : int
-            Number of prototypes to find.    
-    kernel_type : str, optional
-        The kernel type. It can be 'local' or 'global', by default 'local'.
-        When it is local, the distances are calculated only within the classes.
+            Number of prototypes to find.
     kernel_fn : Callable, optional
         Kernel function, by default the rbf kernel.
         This function must only use TensorFlow operations.
@@ -49,14 +35,13 @@ class MMDCriticSearch(ProtoGreedySearch):
         Parameter that determines the spread of the rbf kernel, defaults to 1.0 / n_features.
     """
 
-    def compute_objectives(self,
-                           selection_indices: tf.Tensor,
-                           selection_cases: tf.Tensor,
-                           selection_weights: tf.Tensor,
-                           selection_selection_kernel: tf.Tensor,
-                           candidates_indices: tf.Tensor,
-                           candidates_selection_kernel: tf.Tensor
-                           ) -> Tuple[tf.Tensor, tf.Tensor]:
+    def _compute_batch_objectives(self,
+                                  candidates_kernel_diag: tf.Tensor,
+                                  candidates_kernel_col_means: tf.Tensor,
+                                  selection_kernel_col_means: tf.Tensor,
+                                  candidates_selection_kernel: tf.Tensor,
+                                  selection_selection_kernel: tf.Tensor
+                                  ) -> Tuple[tf.Tensor, tf.Tensor]:
         """
         Compute the objective function and corresponding weights
         for a given set of selected prototypes and a candidate.
@@ -70,45 +55,55 @@ class MMDCriticSearch(ProtoGreedySearch):
         ≡
         Find argmax_{c} (sum1 - sum2)
         where: sum1 = (2 / n) * ∑[i=1 to n] κ(x_i, c) 
-               sum2 = 1/(|S|+1) [2 * ∑[j=1 to |S|] * κ(x_j, c) + κ(c, c)]
+               sum2 = 1/(|S|+1) [κ(c, c) + 2 * ∑[j=1 to |S|] κ(x_j, c)]
             
         Parameters
         ----------
-        selection_indices : Tensor
-            Indices corresponding to the selected prototypes.
-        selection_cases : Tensor
-            Cases corresponding to the selected prototypes.
-        selection_weights : Tensor
-            Weights corresponding to the selected prototypes.
-        selection_selection_kernel : Tensor
-            Kernel matrix computed from the selected prototypes.
-        candidates_indices : Tensor
-            Indices corresponding to the candidate prototypes.
+        candidates_kernel_diag : Tensor
+            Diagonal values of the kernel matrix between the candidates and themselves. Shape (bc,).
+        candidates_kernel_col_means : Tensor
+            Column means of the kernel matrix, subset for the candidates. Shape (bc,).
+        selection_kernel_col_means : Tensor
+            Column means of the kernel matrix, subset for the selected prototypes. Shape (|S|,).
         candidates_selection_kernel : Tensor
-            Kernel matrix between the candidates and the selected prototypes.
+            Kernel matrix between the candidates and the selected prototypes. Shape (bc, |S|).
+        selection_selection_kernel : Tensor
+            Kernel matrix between the selected prototypes. Shape (|S|, |S|).
 
         Returns
         -------
         objectives
-            Tensor that contains the computed objective values for each candidate.
+            Tensor that contains the computed objective values for each candidate. Shape (bc,).
         objectives_weights
             Tensor that contains the computed objective weights for each candidate.
+            Shape (bc, |S|+1).
         """
 
-        nb_candidates = candidates_indices.shape[0]
-        nb_selection = selection_indices.shape[0]
+        nb_candidates = tf.shape(candidates_kernel_diag)[0]
 
-        sum1 = 2 * tf.gather(self.col_means, candidates_indices)
+        # (bc,) - 2 * ∑[i=1 to n] κ(x_i, c)
+        sum1 = 2 * candidates_kernel_col_means
 
-        if nb_selection == 0:
-            sum2 = tf.abs(tf.gather(self.diag, candidates_indices))
+        if candidates_selection_kernel is None:
+            extended_nb_selected = 1
+
+            # (bc,) - κ(c, c)
+            sum2 = candidates_kernel_diag
         else:
-            temp = tf.transpose(candidates_selection_kernel, perm=[1, 0])
-            sum2 = tf.reduce_sum(temp, axis=0) * 2 + tf.gather(self.diag, candidates_indices)
-            sum2 /= (nb_selection + 1)
+            extended_nb_selected = tf.shape(selection_kernel_col_means)[0] + 1
 
+            # (bc,) - κ(c, c) + 2 * ∑[j=1 to |S|] κ(x_j, c)
+            # the second term is 0 when the selection is empty
+            sum2 = candidates_kernel_diag + 2 * tf.reduce_sum(candidates_selection_kernel, axis=1)
+
+        # (bc,) - 1/(|S|+1) [κ(c, c) + 2 * ∑[j=1 to |S|] κ(x_j, c)]
+        sum2 /= tf.cast(extended_nb_selected, tf.float32)
+
+        # (bc,)
         objectives = sum1 - sum2
-        objectives_weights = tf.ones(shape=(nb_candidates, nb_selection+1), dtype=tf.float32)
-        objectives_weights /= tf.cast(nb_selection+1, dtype=tf.float32)
+
+        # (bc, |S|+1) - 1/(|S|+1)
+        objectives_weights = tf.fill(dims=(nb_candidates, extended_nb_selected),
+                                     value=1.0 / tf.cast(extended_nb_selected, tf.float32))
 
         return objectives, objectives_weights

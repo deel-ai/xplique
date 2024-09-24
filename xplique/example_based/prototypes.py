@@ -12,6 +12,7 @@ from ..types import Callable, Dict, List, Optional, Type, Union
 from .datasets_operations.tf_dataset_operations import dataset_gather
 
 from .search_methods import ProtoGreedySearch, MMDCriticSearch, ProtoDashSearch
+from .search_methods import KNN, ORDER
 from .projections import Projection
 from .base_example_method import BaseExampleMethod
 
@@ -63,26 +64,25 @@ class Prototypes(BaseExampleMethod, ABC):
     case_returns
         String or list of string with the elements to return in `self.explain()`.
         See `self.set_returns()` for detail.
+        In the case of prototypes, the indices returned by local search are
+        the indices of the prototypes in the list of prototypes.
+        To obtain the indices of the prototypes in the dataset, use `self.prototypes_indices`.
     batch_size
         Number of sample treated simultaneously for projection and search.
         Ignored if `tf.data.Dataset` are provided (these are supposed to be batched).
     distance
         Distance function for examples search. It can be an integer, a string in
-        {"manhattan", "euclidean", "cosine", "chebyshev", "inf"}, or a Callable,
-        by default "euclidean".
+        {"manhattan", "euclidean", "cosine", "chebyshev", "inf"}, or a Callable.
+        By default a distance function based on the kernel_fn is used.
     nb_prototypes : int
         For general explanations, the number of prototypes to select.
-        If `class_wise` is True, it will correspond to the number of prototypes per class.    
-    kernel_type : str, optional
-        The kernel type. It can be 'local' or 'global', by default 'local'.
-        When it is local, the distances are calculated only within the classes.
+        If `class_wise` is True, it will correspond to the number of prototypes per class.
     kernel_fn : Callable, optional
         Kernel function, by default the rbf kernel.
         This function must only use TensorFlow operations.
     gamma : float, optional
         Parameter that determines the spread of the rbf kernel, defaults to 1.0 / n_features.
     """
-    # pylint: disable=too-many-arguments
     # pylint: disable=duplicate-code
 
     def __init__(
@@ -94,9 +94,8 @@ class Prototypes(BaseExampleMethod, ABC):
         projection: Union[Projection, Callable] = None,
         case_returns: Union[List[str], str] = "examples",
         batch_size: Optional[int] = 32,
-        distance: Union[int, str, Callable] = None,
+        distance: Optional[Union[int, str, Callable]] = None,
         nb_prototypes: int = 1,
-        kernel_type: str = 'local',
         kernel_fn: callable = None,
         gamma: float = None
     ):
@@ -112,24 +111,28 @@ class Prototypes(BaseExampleMethod, ABC):
         )
 
         # set prototypes parameters
-        self.distance = distance
         self.nb_prototypes = nb_prototypes
-        self.kernel_type = kernel_type
-        self.kernel_fn = kernel_fn
-        self.gamma = gamma
 
-        # initiate search_method
-        self.search_method = self.search_method_class(
+        # initiate search_method and search global prototypes
+        self.global_prototypes_search_method = self.search_method_class(
             cases_dataset=self.projected_cases_dataset,
-            labels_dataset=self.labels_dataset,
-            k=self.k,
-            search_returns=self._search_returns,
             batch_size=self.batch_size,
-            distance=self.distance,
             nb_prototypes=self.nb_prototypes,
-            kernel_type=self.kernel_type,
-            kernel_fn=self.kernel_fn,
-            gamma=self.gamma
+            kernel_fn=kernel_fn,
+            gamma=gamma
+        )
+
+        # get global prototypes through the indices found by the search method
+        self.get_global_prototypes()
+
+        # set knn for local explanations
+        self.search_method = KNN(
+            cases_dataset=self.global_prototypes_search_method.prototypes,
+            search_returns=self._search_returns,
+            k=self.k,
+            batch_size=self.batch_size,
+            distance=self.global_prototypes_search_method._get_distance_fn(distance),
+            order=ORDER.ASCENDING,
         )
 
     @property
@@ -152,32 +155,106 @@ class Prototypes(BaseExampleMethod, ABC):
             - 'prototype_weights': The weights of the prototypes.
             - 'prototype_indices': The indices of the prototypes.
         """
-        # (nb_prototypes,)
-        indices = self.search_method.prototypes_indices
-        batch_indices = indices // self.batch_size
-        elem_indices = indices % self.batch_size
+        # pylint: disable=access-member-before-definition
+        if not hasattr(self, "prototypes") or self.prototypes is None:
+            assert self.global_prototypes_search_method is not None, (
+                "global_prototypes_search_method is not initialized"
+            )
+            assert self.global_prototypes_search_method.prototypes_indices is not None, (
+                "prototypes_indices are not initialized"
+            )
 
-        # (nb_prototypes, 2)
-        batch_elem_indices = tf.stack([batch_indices, elem_indices], axis=1)
+            # (nb_prototypes, 2)
+            self.prototypes_indices = self.global_prototypes_search_method.prototypes_indices
+            indices = self.prototypes_indices[tf.newaxis, ...]
 
-        # (1, nb_prototypes, 2)
-        batch_elem_indices = tf.expand_dims(batch_elem_indices, axis=0)
+            # (nb_prototypes, ...)
+            self.prototypes = dataset_gather(self.cases_dataset, indices)[0]
 
-        # (nb_prototypes, ...)
-        prototypes = dataset_gather(self.cases_dataset, batch_elem_indices)[0]
+            # (nb_prototypes,)
+            if self.labels_dataset is not None:
+                self.prototypes_labels = dataset_gather(self.labels_dataset, indices)[0]
+            else:
+                self.prototypes_labels = None
 
-        # (nb_prototypes,)
-        labels = dataset_gather(self.labels_dataset, batch_elem_indices)[0]
-
-        # (nb_prototypes,)
-        weights = self.search_method.prototypes_weights
+            # (nb_prototypes,)
+            self.prototypes_weights = self.global_prototypes_search_method.prototypes_weights
 
         return {
-            "prototypes": prototypes,
-            "prototypes_labels": labels,
-            "prototypes_weights": weights,
-            "prototypes_indices": indices,
+            "prototypes": self.prototypes,
+            "prototypes_labels": self.prototypes_labels,
+            "prototypes_weights": self.prototypes_weights,
+            "prototypes_indices": self.prototypes_indices,
         }
+
+    def format_search_output(
+        self,
+        search_output: Dict[str, tf.Tensor],
+        inputs: Union[tf.Tensor, np.ndarray],
+    ):
+        """
+        Format the output of the `search_method` to match the expected returns in `self.returns`.
+
+        Parameters
+        ----------
+        search_output
+            Dictionary with the required outputs from the `search_method`.
+        inputs
+            Tensor or Array. Input samples to be explained.
+            Expected shape among (N, W), (N, T, W), (N, W, H, C).
+        # targets
+        #     Targets associated to the cases_dataset for dataset projection.
+        #     See `projection` for details.
+
+        Returns
+        -------
+        return_dict
+            Dictionary with listed elements in `self.returns`.
+            The elements that can be returned are defined with the `_returns_possibilities`
+            static attribute of the class.
+        """
+        # initialize return dictionary
+        return_dict = {}
+
+        # indices in the list of prototypes
+        # (n, k)
+        flatten_indices = search_output["indices"][:, :, 0] * self.batch_size\
+                          + search_output["indices"][:, :, 1]
+        flatten_indices = tf.reshape(flatten_indices, [-1])
+
+        # add examples and weights
+        if "examples" in self.returns:  #  or "weights" in self.returns:
+            # (n * k, ...)
+            examples = tf.gather(params=self.prototypes, indices=flatten_indices)
+            # (n, k, ...)
+            examples = tf.reshape(examples, (inputs.shape[0], self.k) + examples.shape[1:])
+            if "include_inputs" in self.returns:
+                # include inputs
+                inputs = tf.expand_dims(inputs, axis=1)
+                examples = tf.concat([inputs, examples], axis=1)
+            if "examples" in self.returns:
+                return_dict["examples"] = examples
+
+        # add indices, distances, and labels
+        if "indices" in self.returns:
+            # convert indices in the list of prototypes to indices in the dataset
+            # (n * k, 2)
+            indices = tf.gather(params=self.prototypes_indices, indices=flatten_indices)
+            # (n, k, 2)
+            return_dict["indices"] = tf.reshape(indices, (inputs.shape[0], self.k, 2))
+        if "distances" in self.returns:
+            return_dict["distances"] = search_output["distances"]
+        if "labels" in self.returns:
+            assert (
+                self.prototypes_labels is not None
+            ), "The method cannot return labels without a label dataset."
+
+            # (n * k)
+            labels = tf.gather(params=self.prototypes_labels, indices=flatten_indices)
+            # (n, k)
+            return_dict["labels"] = tf.reshape(labels, (inputs.shape[0], self.k))
+
+        return return_dict
 
 
 class ProtoGreedy(Prototypes):
