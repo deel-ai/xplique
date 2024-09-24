@@ -3,8 +3,7 @@ Base model for example-based
 """
 
 from abc import ABC, abstractmethod
-
-import math
+import warnings
 
 import tensorflow as tf
 import numpy as np
@@ -87,9 +86,11 @@ class BaseExampleMethod(ABC):
         case_returns: Union[List[str], str] = "examples",
         batch_size: Optional[int] = 32,
     ):
-        assert (
-            projection is not None
-        ), "`BaseExampleMethod` without Projection method should be a `BaseSearchMethod`."
+        if projection is None:
+            warnings.warn(
+                "Example-based methods without projection will not explain the model."\
+                + "To explain the model, consider using projections like the LatentSpaceProjection."
+            )
 
         # set attributes
         self.cases_dataset, self.labels_dataset, self.targets_dataset, self.batch_size =\
@@ -98,11 +99,12 @@ class BaseExampleMethod(ABC):
         self._search_returns = ["indices", "distances"]
 
         # check projection
-        assert hasattr(projection, "__call__"), "projection should be a callable."
         if isinstance(projection, Projection):
             self.projection = projection
         elif hasattr(projection, "__call__"):
             self.projection = Projection(get_weights=None, space_projection=projection)
+        elif projection is None:
+            self.projection = Projection(get_weights=None, space_projection=None)
         else:
             raise AttributeError(
                 f"projection should be a `Projection` or a `Callable`, not a {type(projection)}"
