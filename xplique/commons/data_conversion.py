@@ -82,6 +82,7 @@ def sanitize_inputs_targets(explanation_method: Callable):
                  *args,
                  **kwargs
                  ):
+        # pylint: disable=keyword-arg-before-vararg
         # ensure we have tf.tensor
         inputs = tf.cast(inputs, tf.float32)
         if targets is not None:
@@ -89,7 +90,7 @@ def sanitize_inputs_targets(explanation_method: Callable):
 
         if args:
             args = [tf.cast(arg, tf.float32) for arg in args]
-        
+
         if kwargs:
             kwargs = {key: tf.cast(value, tf.float32) for key, value in kwargs.items()}
 
