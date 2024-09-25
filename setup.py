@@ -12,7 +12,7 @@ setup(
     author="Thomas FEL",
     author_email="thomas_fel@brown.edu",
     license="MIT",
-    install_requires=['tensorflow>=2.1.0,<2.16', 'numpy', 'scikit-learn', 'scikit-image',
+    install_requires=['numpy<2.0.0', 'tensorflow>=2.1.0,<2.16.0', 'scikit-learn', 'scikit-image',
                       'matplotlib', 'scipy', 'opencv-python', 'deprecated'],
     extras_require={
         "tests": ["pytest", "pylint"],
