@@ -6,24 +6,15 @@ import sys
 
 sys.path.append(os.getcwd())
 
-from math import prod, sqrt
-
-import numpy as np
-import scipy
 import tensorflow as tf
 
-from xplique.attributions import Occlusion, Saliency
+from xplique.attributions import Occlusion
 
-from xplique.example_based import Cole, SimilarExamples
-from xplique.example_based.projections import Projection
-from xplique.example_based.search_methods import KNN
+from xplique.example_based import Cole
 from xplique.plots.image import plot_examples
 
 from tests.utils import (
-    generate_data,
     generate_model,
-    almost_equal,
-    generate_timeseries_model,
 )
 
 

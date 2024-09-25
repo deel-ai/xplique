@@ -6,8 +6,6 @@ import sys
 
 sys.path.append(os.getcwd())
 
-from math import prod, sqrt
-
 import numpy as np
 import tensorflow as tf
 
@@ -130,8 +128,8 @@ def test_similar_examples_return_multiple_elements():
 
         # test distances
         assert almost_equal(distances[i, 0], 0)
-        assert almost_equal(distances[i, 1], sqrt(prod(input_shape)))
-        assert almost_equal(distances[i, 2], sqrt(prod(input_shape)))
+        assert almost_equal(distances[i, 1], np.sqrt(np.prod(input_shape)))
+        assert almost_equal(distances[i, 2], np.sqrt(np.prod(input_shape)))
 
         # test labels
         assert almost_equal(labels[i, 0], y_train[i + 1])
