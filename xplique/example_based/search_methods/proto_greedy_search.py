@@ -359,8 +359,8 @@ class ProtoGreedySearch():
         K_inv = tf.linalg.inv(K + ProtoGreedySearch.EPSILON * tf.eye(K.shape[-1]))
 
         # (bc, |S| + 1) - w* = K^-1 mu_p
-        objectives_weights = tf.abs(tf.einsum("bsp,bp->bs",
-                                              K_inv, candidates_selection_kernel_col_means))
+        objectives_weights = tf.einsum("bsp,bp->bs", K_inv, candidates_selection_kernel_col_means)
+        objectives_weights = tf.maximum(objectives_weights, 0)
 
         # (bc,) - (w*^T mu_p)
         weights_mu_p = tf.einsum("bp,bp->b",

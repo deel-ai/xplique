@@ -189,7 +189,7 @@ class ProtoDashSearch(ProtoGreedySearch):
                 # use w* = K^-1 * u as the optimal weights
                 # (|S|,)
                 selection_weights = tf.linalg.matvec(K_inv, u)
-                selection_weights = tf.abs(selection_weights)
+                selection_weights = tf.maximum(selection_weights, 0)
 
                 # update the weights
                 self.prototypes_weights[:nb_selected].assign(selection_weights)
