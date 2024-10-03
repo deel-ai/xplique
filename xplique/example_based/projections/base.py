@@ -55,15 +55,17 @@ class Projection():
     device
         Device to use for the projection, if None, use the default device.
     mappable
-        If True, the projection can be applied to a dataset through `Dataset.map`.
+        If True, the projection can be applied to a `tf.data.Dataset` through `Dataset.map`.
         Otherwise, the dataset projection will be done through a loop.
+        It is not the case for wrapped PyTorch models.
+        If you encounter errors in the `project_dataset` method, you can set it to `False`.
     """
 
     def __init__(self,
                  get_weights: Optional[Union[Callable, tf.Tensor, np.ndarray]] = None,
                  space_projection: Optional[Callable] = None,
                  device: Optional[str] = None,
-                 mappable: bool = True,
+                 mappable: bool = False,
                  requires_targets: bool = False):
         if get_weights is not None or space_projection is not None:
             warnings.warn(
@@ -71,7 +73,6 @@ class Projection():
                 + "should not be `None`. Otherwise the projection is an identity function."
         )
 
-        self.mappable = mappable
         self.requires_targets = requires_targets
 
         # set get_weights
@@ -82,6 +83,7 @@ class Projection():
             # weights is a tensor
             if isinstance(get_weights, np.ndarray):
                 weights = tf.convert_to_tensor(get_weights, dtype=tf.float32)
+                mappable = False
             else:
                 weights = get_weights
 
@@ -100,15 +102,14 @@ class Projection():
         # set space_projection
         if space_projection is None:
             self.space_projection = lambda inputs: inputs
-        elif isinstance(space_projection, tf.python.eager.def_function.Function):
-            self.space_projection = space_projection
         elif hasattr(space_projection, "__call__"):
-            self.mappable = False
             self.space_projection = space_projection
         else:
             raise TypeError(
                 f"`space_projection` should be a `Callable`, not a {type(space_projection)}"
             )
+
+        self.mappable = mappable
 
         # set device
         self.device = get_device(device)
