@@ -83,7 +83,7 @@ def is_batched(dataset: tf.data.Dataset) -> bool:
     return False
 
 
-def is_not_shuffled(dataset: Optional[tf.data.Dataset]) -> bool:
+def is_shuffled(dataset: Optional[tf.data.Dataset]) -> bool:
     """
     Test if the provided dataset reshuffle at each iteration.
     Tensorflow do not provide clean way to verify it,
@@ -100,7 +100,11 @@ def is_not_shuffled(dataset: Optional[tf.data.Dataset]) -> bool:
     test_result
         Boolean value of the test.
     """
-    return are_dataset_first_elems_equal(dataset, dataset)
+    if are_dataset_first_elems_equal(dataset, dataset):
+        # test a second time to minimize the risk of false positive
+        return not are_dataset_first_elems_equal(dataset, dataset)
+    else:
+        return True
 
 
 def batch_size_matches(dataset: Optional[tf.data.Dataset], batch_size: int) -> bool:
@@ -169,13 +173,16 @@ def sanitize_dataset(
     """
     if dataset is not None:
         if isinstance(dataset, tf.data.Dataset):
-            assert is_not_shuffled(dataset), (
+            assert not is_shuffled(dataset), (
                 "Datasets should not be shuffled, "
                 + "the order of the element should stay the same at each iteration."
             )
-            assert batch_size_matches(
-                dataset, batch_size
-            ), "The batch size should match between datasets."
+            if not is_batched(dataset):
+                dataset = dataset.batch(batch_size)
+            else:
+                assert batch_size_matches(
+                    dataset, batch_size
+                ), "The batch size should match between datasets."
         elif isinstance(dataset, (tf.Tensor, np.ndarray)):
             dataset = tf.data.Dataset.from_tensor_slices(dataset).batch(batch_size)
         else:
@@ -230,7 +237,7 @@ def dataset_gather(dataset: tf.data.Dataset, indices: tf.Tensor) -> tf.Tensor:
     Parameters
     ----------
     dataset
-        Tensorflow dataset to verify or tensor to transform in `tf.data.Dataset` and verify.
+        The dataset from which to extract elements.
     indices
         Tensor of indices of elements to extract from the `dataset`.
         `indices` should be of dimensions (n, k, 2),

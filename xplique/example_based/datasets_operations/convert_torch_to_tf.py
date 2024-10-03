@@ -9,12 +9,28 @@ import torch
 from torch.utils.data import DataLoader
 
 
-def convert_column_dataloader_to_tf_dataset(dataloader: torch.utils.data.DataLoader,
-                                            elements_shape: Tuple[int],
-                                            column_index: Optional[int] = None,
-                                            ) -> tf.data.Dataset:
+def convert_column_dataloader_to_tf_dataset(
+        dataloader: torch.utils.data.DataLoader,
+        elements_shape: Tuple[int],
+        column_index: Optional[int] = None,
+    ) -> tf.data.Dataset:
     """
     Converts a PyTorch torch.utils.data.DataLoader to a TensorFlow Dataset.
+
+    Parameters
+    ----------
+    dataloader
+        The DataLoader to convert.
+    elements_shape
+        The shape of the elements in the DataLoader.
+    column_index
+        The index of the column to convert.
+        If `None`, the entire DataLoader is converted.
+
+    Returns
+    -------
+    dataset
+        The converted dataset.
     """
 
     # make generator from dataloader

@@ -1,6 +1,7 @@
 """
 Common functions for search methods.
 """
+# pylint: disable=invalid-name
 
 import numpy as np
 import tensorflow as tf
@@ -43,7 +44,7 @@ def _euclidean_distance(x1: tf.Tensor, x2: tf.Tensor) -> tf.Tensor:
     tf.Tensor
         Euclidean distance between the two vectors.
     """
-    return tf.norm(x1 - x2, axis=-1)
+    return tf.norm(x1 - x2, ord="euclidean", axis=-1)
 
 
 def _cosine_distance(x1: tf.Tensor, x2: tf.Tensor) -> tf.Tensor:

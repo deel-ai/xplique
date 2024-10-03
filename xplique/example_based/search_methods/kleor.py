@@ -43,7 +43,7 @@ class BaseKLEORSearch(FilterKNN, ABC):
         String or list of string with the elements to return in `self.find_examples()`.
         It should be a subset of `self._returns_possibilities`.
     batch_size
-        Number of sample treated simultaneously.
+        Number of samples treated simultaneously.
     distance
         Distance function for examples search. It can be an integer, a string in
         {"manhattan", "euclidean", "cosine", "chebyshev", "inf"}, or a Callable,
@@ -203,6 +203,7 @@ class BaseKLEORSearch(FilterKNN, ABC):
             The n NUNs times the k-SF.
         """
         # pylint: disable=signature-differs
+        # pylint: disable=duplicate-code
         # get the Nearest Unlike Neighbors and their distance to the related input
         nuns, nuns_indices, nuns_input_distances = self._get_nuns(inputs, targets)
 
@@ -303,7 +304,7 @@ class KLEORSimMissSearch(BaseKLEORSearch):
     def _additional_filtering(self,
                               nun_sf_distances: tf.Tensor,
                               input_sf_distances: tf.Tensor,
-                              nuns_input_distances: tf.Tensor) -> Tuple:
+                              nuns_input_distances: tf.Tensor) -> Tuple[tf.Tensor, tf.Tensor]:
         """
         No additional filtering for the KLEORSimMiss method.
         """
@@ -325,9 +326,25 @@ class KLEORGlobalSimSearch(BaseKLEORSearch):
     def _additional_filtering(self,
                               nun_sf_distances: tf.Tensor,
                               input_sf_distances: tf.Tensor,
-                              nuns_input_distances: tf.Tensor) -> Tuple:
+                              nuns_input_distances: tf.Tensor) -> Tuple[tf.Tensor, tf.Tensor]:
         """
         Filter the distances to keep only the SF that are 'between' the input and its NUN.
+
+        Parameters
+        ----------
+        nun_sf_distances
+            Distances between the SF and the NUN.
+        input_sf_distances
+            Distances between the SF and the input.
+        nuns_input_distances
+            Distances between the input and the NUN.
+
+        Returns
+        -------
+        nun_sf_distances
+            Filtered distances between the SF and the NUN.
+        input_sf_distances
+            Filtered distances between the SF and the input.
         """
         # filter non acceptable cases, i.e. cases for which the distance to the input is greater
         # than the distance between the input and its nun

@@ -19,9 +19,11 @@ class ORDER(Enum):
     ASCENDING = 1
     DESCENDING = 2
 
-def _sanitize_returns(returns: Optional[Union[List[str], str]] = None,
-                      possibilities: List[str] = None,
-                      default: Union[List[str], str] = None):
+def _sanitize_returns(
+        returns: Optional[Union[List[str], str]] = None,
+        possibilities: List[str] = None,
+        default: Union[List[str], str] = None
+    ) -> List[str]:
     """
     It cleans the `returns` parameter.
     Results is either a sublist of possibilities or a value among possibilities.
@@ -76,13 +78,14 @@ class BaseSearchMethod(ABC):
         Be careful, `tf.data.Dataset` are often reshuffled at each iteration, be sure that it is not
         the case for your dataset, otherwise, examples will not make sense.
     k
-        The number of examples to retrieve.
+        The number of examples to retrieve at each call.
     search_returns
         String or list of string with the elements to return in `self.find_examples()`.
-        It should be a subset of `self._returns_possibilities`.
+        It should be a subset of `self._returns_possibilities` or `"all"`.
+        See self.returns setter for more detail.
     batch_size
-        Number of sample treated simultaneously.
-        It should match the batch size of the `search_set` in the case of a `tf.data.Dataset`.
+        Number of samples treated simultaneously.
+        It should match the batch size of the cases_dataset in the case of a `tf.data.Dataset`.
     """
     _returns_possibilities = ["examples", "indices", "distances", "include_inputs"]
 
@@ -95,8 +98,8 @@ class BaseSearchMethod(ABC):
     ):
 
         # set batch size
-        if hasattr(cases_dataset, "_batch_size"):
-            self.batch_size = tf.cast(cases_dataset._batch_size, tf.int32)
+        if isinstance(cases_dataset, tf.data.Dataset):
+            self.batch_size = tf.shape(next(iter(cases_dataset)))[0].numpy()
         else:
             self.batch_size = batch_size
 

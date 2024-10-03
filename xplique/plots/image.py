@@ -247,16 +247,14 @@ def plot_examples(
     ---------
     examples
         Represente the k nearest neighbours of the input. (n, k+1, h, w, c)
-    weights
-        Features weight of the examples.
     distances
         Distance between input data and examples.
     labels
         Labels of the examples.
     labels_test
         Corresponding to labels of the dataset test.
-    attribution_kwargs
-        Additionnal parameters passed to `xplique.plots.plot_attribution()`.
+    predicted_labels
+        Predicted labels of the examples.
     img_size:
         Size of each subplots (in inch), considering we keep aspect ratio
     """

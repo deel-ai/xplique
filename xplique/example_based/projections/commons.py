@@ -21,11 +21,10 @@ def model_splitting(
     Parameters
     ----------
     model
-        Model to be split.
+        Model to split.
     latent_layer
         Layer used to split the `model`.
 
-        Layer to target for the outputs (e.g logits or after softmax).
         If an `int` is provided it will be interpreted as a layer index.
         If a `string` is provided it will look for the layer name.
 
@@ -64,11 +63,10 @@ def _tf_model_splitting(model: tf.keras.Model,
     Parameters
     ----------
     model
-        Model to be split.
+        Model to split.
     latent_layer
         Layer used to split the `model`.
 
-        Layer to target for the outputs (e.g logits or after softmax).
         If an `int` is provided it will be interpreted as a layer index.
         If a `string` is provided it will look for the layer name.
 
@@ -89,7 +87,7 @@ def _tf_model_splitting(model: tf.keras.Model,
         "Automatically splitting the provided TensorFlow model into two parts. "\
         +"This splitting is not robust to all models. "\
         +"It is recommended to split the model manually. "\
-        +"Then the splitted parts can be provided through the `from_splitted_model` method.")
+        +"Then the splitted parts can be provided at the method initialization.")
 
     if latent_layer == "last_conv":
         latent_layer = next(
@@ -104,18 +102,18 @@ def _tf_model_splitting(model: tf.keras.Model,
     second_input = tf.keras.Input(shape=latent_layer.output_shape[1:])
 
     # Reconstruct the second part of the model
-    x = second_input
+    new_input = second_input
     layer_found = False
     for layer in model.layers:
         if layer_found:
-            x = layer(x)
+            new_input = layer(new_input)
         if layer == latent_layer:
             layer_found = True
 
     # Create the second part of the model (predictor)
     predictor = tf.keras.Model(
         inputs=second_input,
-        outputs=x,
+        outputs=new_input,
         name="predictor"
     )
 
@@ -134,11 +132,10 @@ def _torch_model_splitting(
     Parameters
     ----------
     model
-        Model to be split.
+        Model to split.
     latent_layer
         Layer used to split the `model`.
 
-        Layer to target for the outputs (e.g logits or after softmax).
         If an `int` is provided it will be interpreted as a layer index.
         If a `string` is provided it will look for the layer name.
 
@@ -165,7 +162,7 @@ def _torch_model_splitting(
         +"This splitting is based on `model.named_children()`. "\
         +"If the model cannot be reconstructed via sub-modules, errors are to be expected. "\
         +"It is recommended to split the model manually and wrap it with `TorchWrapper`. "\
-        +"Then the wrapped parts can be provided through the `from_splitted_model` method.")
+        +"Then the wrapped parts can be provided at the method initialization.")
 
     if device is None:
         warnings.warn(
@@ -190,16 +187,16 @@ def _torch_model_splitting(
             second_model.add_module(name, module)
 
     # Define forward function for the first model
-    def first_model_forward(x):
+    def first_model_forward(new_input):
         for module in first_model:
-            x = module(x)
-        return x
+            new_input = module(new_input)
+        return new_input
 
     # Define forward function for the second model
-    def second_model_forward(x):
+    def second_model_forward(new_input):
         for module in second_model:
-            x = module(x)
-        return x
+            new_input = module(new_input)
+        return new_input
 
     # Set the forward functions for the models
     first_model.forward = first_model_forward
@@ -246,12 +243,4 @@ def target_free_classification_operator(model: Callable,
     if targets is None:
         targets = tf.one_hot(tf.argmax(predictions, axis=-1), predictions.shape[-1])
 
-    # this implementation did not pass the tests, the cond shapes were different if targets is None
-    # targets = tf.cond(
-    #     pred=tf.constant(targets is None, dtype=tf.bool),
-    #     true_fn=lambda: tf.one_hot(tf.argmax(predictions, axis=-1), predictions.shape[-1]),
-    #     false_fn=lambda: targets,
-    # )
-
-    scores = tf.reduce_sum(predictions * targets, axis=-1)
-    return scores
+    return tf.reduce_sum(predictions * targets, axis=-1)

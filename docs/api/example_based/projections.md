@@ -64,7 +64,7 @@ rdm_targets = tf.random.uniform(shape=[5], minval=0, maxval=1000, dtype=tf.int32
 rdm_targets = tf.one_hot(rdm_targets, depth=1000)
 
 # project the samples
-projections = custom_projection(rdm_imgs, rdm_targets)
+projected_samples = custom_projection(rdm_imgs, rdm_targets)
 ```
 
 {{xplique.example_based.projections.LatentSpaceProjection}}

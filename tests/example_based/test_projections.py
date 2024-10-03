@@ -196,11 +196,11 @@ def test_from_splitted_model():
     assert model2(model1(x_train)).shape == (nb_samples, output_features)
 
     # test LatentSpaceProjection from splitted model
-    projection = LatentSpaceProjection.from_splitted_model(features_extractor=model1, mappable=True)
+    projection = LatentSpaceProjection(model=model1, latent_layer=None, mappable=True)
     projected_train_dataset = projection.project_dataset(train_dataset)
 
     # test HadamardProjection from splitted model
-    projection = HadamardProjection.from_splitted_model(features_extractor=model1, predictor=model2, mappable=True)
+    projection = HadamardProjection(features_extractor=model1, predictor=model2, mappable=True)
     projected_train_dataset = projection.project_dataset(train_dataset)
 
 

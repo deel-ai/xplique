@@ -2,16 +2,20 @@
 Test example-based methods with PyTorch models and datasets.
 """
 
-import unittest
+import pytest
 
 import numpy as np
 import tensorflow as tf
 import torch
 from torch import nn
-from torch.utils.data import TensorDataset, DataLoader, ConcatDataset
+import torch.nn.functional as F
+from torch.utils.data import TensorDataset, DataLoader
 
-from xplique.example_based import SimilarExamples
-from xplique.example_based.projections import Projection, LatentSpaceProjection
+from xplique.example_based import (
+    SimilarExamples, Cole, MMDCritic, ProtoDash, ProtoGreedy,
+    NaiveCounterFactuals, LabelAwareCounterFactuals, KLEORGlobalSim, KLEORSimMiss,
+)
+from xplique.example_based.projections import Projection, LatentSpaceProjection, HadamardProjection
 from xplique.example_based.projections.commons import model_splitting
 
 from xplique.example_based.datasets_operations.tf_dataset_operations import are_dataset_first_elems_equal
@@ -28,11 +32,13 @@ def get_setup(input_shape, nb_samples=10, nb_labels=10):
     x_train = torch.stack(
         [i * torch.ones(input_shape, dtype=torch.float32) for i in range(nb_samples)]
     )
+    y_train = torch.arange(len(x_train), dtype=torch.int64) % nb_labels
+    train_targets = F.one_hot(y_train, num_classes=nb_labels).to(torch.float32)
     
     x_test = x_train[1:-1]  # Exclude the first and last elements
-    y_train = torch.arange(len(x_train), dtype=torch.float32) % nb_labels
+    test_targets = train_targets[1:-1]  # Exclude the first and last elements
 
-    return x_train, x_test, y_train
+    return x_train, x_test, y_train, train_targets, test_targets
 
 
 def create_cnn_model(input_shape, output_shape):
@@ -184,57 +190,57 @@ def test_error_raising():
 
 
     # Method initialization that should not work
-    test_raise_assertion_error = unittest.TestCase().assertRaises
 
     # not input
-    test_raise_assertion_error(TypeError, harmonize_datasets)
+    with pytest.raises(TypeError):
+        harmonize_datasets()
 
     # shuffled
-    test_raise_assertion_error(AssertionError, harmonize_datasets, torch_shuffled,)
+    with pytest.raises(AssertionError):
+            harmonize_datasets(torch_shuffled,)
 
     # mismatching types
-    test_raise_assertion_error(AssertionError, harmonize_datasets, torch_dataloader_b3, torch_tensor,)
-    test_raise_assertion_error(AssertionError, harmonize_datasets, torch_tensor, tf_tensor,)
-    test_raise_assertion_error(AssertionError, harmonize_datasets, np_array, torch_tensor,)
-    test_raise_assertion_error(AssertionError, harmonize_datasets, np_array, torch_dataloader_b3,)
-    test_raise_assertion_error(AssertionError, harmonize_datasets, tf_dataset, torch_dataloader_b3,)
-    test_raise_assertion_error(
-        AssertionError, harmonize_datasets, torch_zipped2_dataloader_b5, tf_tensor,
-    )
+    with pytest.raises(AssertionError):
+            harmonize_datasets(torch_dataloader_b3, torch_tensor,)
+    with pytest.raises(AssertionError):
+            harmonize_datasets(torch_tensor, tf_tensor,)
+    with pytest.raises(AssertionError):
+            harmonize_datasets(np_array, torch_tensor,)
+    with pytest.raises(AssertionError):
+            harmonize_datasets(np_array, torch_dataloader_b3,)
+    with pytest.raises(AssertionError):
+            harmonize_datasets(tf_dataset, torch_dataloader_b3,)
+    with pytest.raises(AssertionError):
+            harmonize_datasets(torch_zipped2_dataloader_b5, tf_tensor,)
 
     # labels or targets zipped
-    test_raise_assertion_error(
-        AssertionError, harmonize_datasets, torch_dataloader_b5, torch_zipped2_dataloader_b5,
-    )
-    test_raise_assertion_error(
-        AssertionError, harmonize_datasets, torch_dataloader_b3, None, torch_zipped3_dataloader_b3,
-    )
+    with pytest.raises(AssertionError):
+            harmonize_datasets(torch_dataloader_b5, torch_zipped2_dataloader_b5,)
+    with pytest.raises(AssertionError):
+            harmonize_datasets(torch_dataloader_b3, None, torch_zipped3_dataloader_b3,)
 
     # not batched and no batch size provided
-    test_raise_assertion_error(AssertionError, harmonize_datasets, torch_dataloader,)
+    with pytest.raises(AssertionError):
+            harmonize_datasets(torch_dataloader,)
 
     # not matching batch sizes
-    test_raise_assertion_error(
-        AssertionError, harmonize_datasets, torch_dataloader_b3, torch_dataloader_b5,
-    )
-    test_raise_assertion_error(
-        AssertionError, harmonize_datasets, torch_zipped2_dataloader_b5, None, torch_dataloader_b3,
-    )
-    test_raise_assertion_error(
-        AssertionError,
-        harmonize_datasets,
-        too_long_torch_dataloader_b10,
-        too_long_torch_dataloader_b10,
-        torch_dataloader_b5,
-    )
+    with pytest.raises(AssertionError):
+            harmonize_datasets(torch_dataloader_b3, torch_dataloader_b5,)
+    with pytest.raises(AssertionError):
+            harmonize_datasets(torch_zipped2_dataloader_b5, None, torch_dataloader_b3,)
+    
+    with pytest.raises(AssertionError):
+        harmonize_datasets(
+            too_long_torch_dataloader_b10,
+            too_long_torch_dataloader_b10,
+            torch_dataloader_b5,
+        )
 
     # multiple datasets for labels or targets
-    test_raise_assertion_error(
-        AssertionError, harmonize_datasets, torch_zipped2_dataloader_b5, torch_dataloader_b5,
-    )
-    test_raise_assertion_error(
-        AssertionError, harmonize_datasets, torch_zipped3_dataloader_b3, None, torch_dataloader_b3,
-    )
+    with pytest.raises(AssertionError):
+            harmonize_datasets(torch_zipped2_dataloader_b5, torch_dataloader_b5,)
+    with pytest.raises(AssertionError):
+            harmonize_datasets(torch_zipped3_dataloader_b3, None, torch_dataloader_b3,)
 
 
 def test_torch_model_splitting():
@@ -288,7 +294,7 @@ def test_similar_examples_basic():
     k = 3
     batch_size = 4
 
-    x_train, x_test, y_train = get_setup(input_shape)
+    x_train, x_test, y_train, _, _ = get_setup(input_shape)
 
     torch_dataset = TensorDataset(x_train, y_train)
     torch_dataloader = DataLoader(torch_dataset, batch_size=batch_size, shuffle=False)
@@ -346,12 +352,12 @@ def test_similar_examples_with_splitting():
     k = 3
     batch_size = 4
 
-    x_train, x_test, y_train = get_setup(input_shape, nb_samples, nb_labels)
+    x_train, x_test, y_train, _, _ = get_setup(input_shape, nb_samples, nb_labels)
     torch_dataset = TensorDataset(x_train, y_train)
     torch_dataloader = DataLoader(torch_dataset, batch_size=batch_size, shuffle=False)
 
     model = create_cnn_model(input_shape=torch_input_shape, output_shape=nb_labels)
-    projection = LatentSpaceProjection(model, "last_conv")
+    projection = LatentSpaceProjection(model, "last_conv", device=device)
 
     # Method initialization
     method = SimilarExamples(
@@ -386,3 +392,58 @@ def test_similar_examples_with_splitting():
             or almost_equal(np.array(labels[i, 1]), np.array(y_train[i]))
         assert almost_equal(np.array(labels[i, 2]), np.array(y_train[i]))\
             or almost_equal(np.array(labels[i, 2]), np.array(y_train[i + 2]))
+
+
+def test_all_methods_with_torch():
+    # Setup
+    device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+
+    nb_samples = 13
+    torch_input_shape = (3, 32, 32)
+    input_shape = (32, 32, 3)
+    nb_labels = 5
+    batch_size = 4
+
+    x_train, x_test, y_train, train_targets, test_targets = get_setup(input_shape, nb_samples, nb_labels)
+    torch_dataset = TensorDataset(x_train, y_train)
+    torch_dataloader = DataLoader(torch_dataset, batch_size=batch_size, shuffle=False)
+    targets_dataloader = DataLoader(TensorDataset(train_targets), batch_size=batch_size, shuffle=False)
+
+    model = create_cnn_model(input_shape=torch_input_shape, output_shape=nb_labels)
+    projection = HadamardProjection(model, "last_conv", device=device)
+
+    methods = [SimilarExamples, Cole, MMDCritic, ProtoDash, ProtoGreedy,
+               NaiveCounterFactuals, LabelAwareCounterFactuals, KLEORGlobalSim, KLEORSimMiss,]
+
+    for method_class in methods:
+        print("DEBUG: test_all_methods_with_torch: method_class =", method_class)
+        if method_class == Cole:
+            method = method_class(
+                cases_dataset=torch_dataloader,
+                targets_dataset=targets_dataloader,
+                case_returns="all",
+                model=model,
+                latent_layer="last_conv",
+                device=device,
+            )
+        else:
+            method = method_class(
+                cases_dataset=torch_dataloader,
+                targets_dataset=targets_dataloader,
+                projection=projection,
+                case_returns="all",
+            )
+
+        # Generate explanation
+        if method_class == LabelAwareCounterFactuals:
+            outputs = method.explain(x_test, cf_expected_classes=test_targets)
+        elif method_class in [NaiveCounterFactuals, KLEORGlobalSim, KLEORSimMiss]:
+            outputs = method.explain(x_test, targets=test_targets)
+        else:
+            outputs = method.explain(x_test, targets=None)
+
+        examples = outputs["examples"]
+        labels = outputs["labels"]
+
+        assert examples.shape == (len(x_test), 2) + input_shape
+        assert labels.shape == (len(x_test), 1)

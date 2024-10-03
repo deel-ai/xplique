@@ -7,7 +7,7 @@ from abc import ABC, abstractmethod
 import tensorflow as tf
 import numpy as np
 
-from ..types import Callable, Dict, List, Optional, Type, Union
+from ..types import Callable, Dict, List, Optional, Type, Union, DatasetOrTensor
 
 from .datasets_operations.tf_dataset_operations import dataset_gather
 
@@ -24,31 +24,36 @@ class Prototypes(BaseExampleMethod, ABC):
     Parameters
     ----------
     cases_dataset
-        The dataset used to train the model, examples are extracted from the dataset.
-        `tf.data.Dataset` are assumed to be batched as tensorflow provide no method to verify it.
-        Be careful, `tf.data.Dataset` are often reshuffled at each iteration, be sure that it is not
-        the case for your dataset, otherwise, examples will not make sense.
+        The dataset used to train the model, examples are extracted from this dataset.
+        All datasets (cases, labels, and targets) should be of the same type.
+        Supported types are: `tf.data.Dataset`, `torch.utils.data.DataLoader`,
+        `tf.Tensor`, `np.ndarray`, `torch.Tensor`.
+        For datasets with multiple columns, the first column is assumed to be the cases.
+        While the second column is assumed to be the labels, and the third the targets.
+        Warning: datasets tend to reshuffle at each iteration, ensure the datasets are
+        not reshuffle as we use index in the dataset.
     labels_dataset
-        Labels associated to the examples in the dataset. Indices should match with cases_dataset.
-        `tf.data.Dataset` are assumed to be batched as tensorflow provide no method to verify it.
-        Batch size and cardinality of other dataset should match `cases_dataset`.
-        Be careful, `tf.data.Dataset` are often reshuffled at each iteration, be sure that it is not
-        the case for your dataset, otherwise, examples will not make sense.
+        Labels associated with the examples in the `cases_dataset`.
+        It should have the same type as `cases_dataset`.
     targets_dataset
-        Targets associated to the cases_dataset for dataset projection. See `projection` for detail.
-        `tf.data.Dataset` are assumed to be batched as tensorflow provide no method to verify it.
-        Batch size and cardinality of other dataset should match `cases_dataset`.
-        Be careful, `tf.data.Dataset` are often reshuffled at each iteration, be sure that it is not
-        the case for your dataset, otherwise, examples will not make sense.
-    k
-        For decision explanations, the number of closest prototypes to return. Used in `explain`.
-        Default is 1, which means that only the closest prototype is returned.
+        Targets associated with the `cases_dataset` for dataset projection,
+        oftentimes the one-hot encoding of a model's predictions. See `projection` for detail.
+        It should have the same type as `cases_dataset`.
+        It is not be necessary for all projections.
+        Furthermore, projections which requires it compute it internally by default.
+    nb_global_prototypes
+        Number of prototypes to select to explain the dataset or the model.
+        They define the number of elements returned by the `get_global_prototypes` method.
+        They have a huge impact on the computation time of the method.
+    nb_local_prototypes
+        Number of prototypes to select to explain the decision of the model on given inputs.
+        They define the number of elements returned by the `explain` method.
+        (Calling this method do not make sens if `projection` is `None`.)
     projection
         Projection or Callable that project samples from the input space to the search space.
         The search space should be a space where distance make sense for the model.
         The output of the projection should be a two dimensional tensor. (nb_samples, nb_features).
-        `projection` should not be `None`, otherwise,
-        all examples could be computed only with the `search_method`.
+        If `projection` is `None`, the model is not explained and prototypes represent the dataset.
 
         Example of Callable:
         ```
@@ -66,17 +71,14 @@ class Prototypes(BaseExampleMethod, ABC):
         See `self.set_returns()` for detail.
         In the case of prototypes, the indices returned by local search are
         the indices of the prototypes in the list of prototypes.
-        To obtain the indices of the prototypes in the dataset, use `self.prototypes_indices`.
+        To obtain the indices of the prototypes in the dataset, use `get_global_prototypes`.
     batch_size
-        Number of sample treated simultaneously for projection and search.
+        Number of samples treated simultaneously for projection and search.
         Ignored if `tf.data.Dataset` are provided (these are supposed to be batched).
     distance
         Distance function for examples search. It can be an integer, a string in
         {"manhattan", "euclidean", "cosine", "chebyshev", "inf"}, or a Callable.
         By default a distance function based on the kernel_fn is used.
-    nb_prototypes : int
-        For general explanations, the number of prototypes to select.
-        If `class_wise` is True, it will correspond to the number of prototypes per class.
     kernel_fn : Callable, optional
         Kernel function, by default the rbf kernel.
         This function must only use TensorFlow operations.
@@ -87,15 +89,15 @@ class Prototypes(BaseExampleMethod, ABC):
 
     def __init__(
         self,
-        cases_dataset: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
-        labels_dataset: Optional[Union[tf.data.Dataset, tf.Tensor, np.ndarray]] = None,
-        targets_dataset: Optional[Union[tf.data.Dataset, tf.Tensor, np.ndarray]] = None,
-        k: int = 1,
+        cases_dataset: DatasetOrTensor,
+        labels_dataset: Optional[DatasetOrTensor] = None,
+        targets_dataset: Optional[DatasetOrTensor] = None,
+        nb_global_prototypes: int = 1,
+        nb_local_prototypes: int = 1,
         projection: Union[Projection, Callable] = None,
         case_returns: Union[List[str], str] = "examples",
-        batch_size: Optional[int] = 32,
+        batch_size: Optional[int] = None,
         distance: Optional[Union[int, str, Callable]] = None,
-        nb_prototypes: int = 1,
         kernel_fn: callable = None,
         gamma: float = None
     ):
@@ -104,20 +106,17 @@ class Prototypes(BaseExampleMethod, ABC):
             cases_dataset=cases_dataset,
             labels_dataset=labels_dataset,
             targets_dataset=targets_dataset,
-            k=k,
+            k=nb_local_prototypes,
             projection=projection,
             case_returns=case_returns,
             batch_size=batch_size,
         )
 
-        # set prototypes parameters
-        self.nb_prototypes = nb_prototypes
-
         # initiate search_method and search global prototypes
         self.global_prototypes_search_method = self.search_method_class(
             cases_dataset=self.projected_cases_dataset,
             batch_size=self.batch_size,
-            nb_prototypes=self.nb_prototypes,
+            nb_prototypes=nb_global_prototypes,
             kernel_fn=kernel_fn,
             gamma=gamma
         )
@@ -202,9 +201,6 @@ class Prototypes(BaseExampleMethod, ABC):
         inputs
             Tensor or Array. Input samples to be explained.
             Expected shape among (N, W), (N, T, W), (N, W, H, C).
-        # targets
-        #     Targets associated to the cases_dataset for dataset projection.
-        #     See `projection` for details.
 
         Returns
         -------
@@ -232,8 +228,7 @@ class Prototypes(BaseExampleMethod, ABC):
                 # include inputs
                 inputs = tf.expand_dims(inputs, axis=1)
                 examples = tf.concat([inputs, examples], axis=1)
-            if "examples" in self.returns:
-                return_dict["examples"] = examples
+            return_dict["examples"] = examples
 
         # add indices, distances, and labels
         if "indices" in self.returns:
@@ -249,7 +244,7 @@ class Prototypes(BaseExampleMethod, ABC):
                 self.prototypes_labels is not None
             ), "The method cannot return labels without a label dataset."
 
-            # (n * k)
+            # (n * k,)
             labels = tf.gather(params=self.prototypes_labels, indices=flatten_indices)
             # (n, k)
             return_dict["labels"] = tf.reshape(labels, (inputs.shape[0], self.k))

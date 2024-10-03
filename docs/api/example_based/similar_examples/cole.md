@@ -26,36 +26,46 @@ More specifically, the COLE approach is based on the following steps:
 - (3) Perform a KNN search in the projection space to find the most similar training samples
 
 !!! info
-    In the original paper, the authors focused on Multi-Layer Perceptrons (MLP) and three attribution methods (LPR, Integrated Gradient, and DeepLift). We decided to implement a COLE method that generalizes to a more broader range of Neural Networks and attribution methods (see [API Attributions documentation](../../../attributions/api_attributions/) to see the list of methods available).
+    In the original paper, the authors focused on Multi-Layer Perceptrons (MLP) and three attribution methods (Hadamard, LPR, Integrated Gradient, and DeepLift). We decided to implement a COLE method that generalizes to a more broader range of Neural Networks and attribution methods (see [API Attributions documentation](../../../attributions/api_attributions/) to see the list of methods available).
+
+!!! tips
+    The original paper shown that the hadamard product between the latent space and the gradient was the best method. Hence we optimized the code for this method. Setting the `attribution_method` argument to `"gradient"` will run much faster.
 
 ## Example
 
 ```python
 from xplique.example_based import Cole
-from xplique.attributions import Saliency
 
-model = ... # load the model
+# load the training dataset and the model
 cases_dataset = ... # load the training dataset
-target_dataset = ... # load the target dataset (predicted one-hot encoding of model's predictions)
+model = ... # load the model
+
+# load the test samples
+test_samples = ... # load the test samples to search for
 
 # parameters
-k = 5
+k = 3
+case_returns = "all"  # elements returned by the explain function
 distance = "euclidean"
+attribution_method = "gradient",
+latent_layer = "last_conv"  # where to split your model for the projection
 
 # instantiate the Cole object
 cole = Cole(
     cases_dataset=cases_dataset,
     model=model,
     k=k,
-    attribution_method=Saliency,
+    attribution_method=attribution_method,
+    latent_layer=latent_layer,
+    case_returns=case_returns,
+    distance=distance,
 )
 
-# load the test samples and targets
-test_samples = ... # load the test samples to search for
-test_targets = ... # load the one-hot encoding of the test samples' predictions
-
 # search the most similar samples with the COLE method
-similar_samples = cole.explain(test_samples, test_targets)
+similar_samples = cole.explain(
+    inputs=test_samples,
+    targets=None,  # not necessary with default operator, they are computed internally
+)
 ```
 
 ## Notebooks

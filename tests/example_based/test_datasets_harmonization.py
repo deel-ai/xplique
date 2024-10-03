@@ -1,10 +1,9 @@
 import pytest
-import unittest
 import tensorflow as tf
 import numpy as np
 
 
-from xplique.example_based.datasets_operations.tf_dataset_operations import are_dataset_first_elems_equal
+from xplique.example_based.datasets_operations.tf_dataset_operations import are_dataset_first_elems_equal, is_batched
 from xplique.example_based.datasets_operations.harmonize import split_tf_dataset, harmonize_datasets
 
 
@@ -13,7 +12,7 @@ def generate_tf_dataset(n_samples=100, n_features=10, n_labels=1, n_targets=None
     Utility function to generate TensorFlow datasets for testing.
     """
     cases = np.random.random((n_samples, n_features, n_features)).astype(np.float32)
-    labels = np.random.randint(0, 2, size=(n_samples, n_labels)).astype(np.int64)
+    labels = np.random.randint(0, n_labels, size=(n_samples,)).astype(np.int64)
     
     if n_targets is not None:
         targets = np.random.random((n_samples, n_targets)).astype(np.float32)
@@ -36,8 +35,8 @@ def test_split_tf_dataset_two_columns():
     assert targets is None, "Targets dataset should be None for a 2-column dataset."
     
     for case_h, label_h, (case, label) in zip(cases, labels, dataset):
-        assert len(case.shape) == 3
-        assert len(label.shape) == 2
+        assert len(case_h.shape) == 3 and case_h.shape[1:] == (5, 5)
+        assert len(label_h.shape) == 1
         assert np.allclose(case_h, case), "Cases should match the original dataset."
         assert np.allclose(label_h, label), "Labels should match the original dataset."
 
@@ -51,24 +50,38 @@ def test_split_tf_dataset_three_columns():
     assert targets is not None, "Targets dataset should not be None for a 3-column dataset."
 
     for case_h, label_h, target_h, (case, label, target) in zip(cases, labels, targets, dataset):
-        assert len(case.shape) == 3
-        assert len(label.shape) == 2
-        assert len(target.shape) == 2
+        assert len(case_h.shape) == 3 and case_h.shape[1:] == (5, 5)
+        assert len(label_h.shape) == 1
+        assert len(target_h.shape) == 2 and target_h.shape[1] == 2
         assert np.allclose(case_h, case), "Cases should match the original dataset."
         assert np.allclose(label_h, label), "Labels should match the original dataset."
         assert np.allclose(target_h, target), "Targets should match the original dataset."
 
 
 def test_harmonize_datasets_with_tf_dataset():
-    dataset = generate_tf_dataset(n_samples=100, n_features=5, n_labels=3)
+    nb_features = 5
+    nb_labels = 3
+    dataset = generate_tf_dataset(n_samples=100, n_features=nb_features, n_labels=nb_labels)
     batch_size = 10
 
+    assert not is_batched(dataset), "Dataset should not be batched."
+
     cases, labels, targets, batch_size_out = harmonize_datasets(dataset, batch_size=batch_size)
+    batched_dataset = dataset.batch(10)
+
+    assert is_batched(cases), "Cases dataset should be batched."
+    assert is_batched(labels), "Labels dataset should be batched."
 
     assert cases is not None, "Cases dataset should not be None."
     assert labels is not None, "Labels dataset should not be None."
     assert targets is None, "Targets dataset should be None for a 2-column input dataset."
     assert batch_size_out == batch_size, "Output batch size should match the input batch size."
+
+    for case_h, label_h, (case, label) in zip(cases, labels, batched_dataset):
+        assert len(case_h.shape) == 3 and case_h.shape[1:] == (nb_features, nb_features)
+        assert len(label_h.shape) == 1
+        assert np.allclose(case_h, case), "Cases should match the original dataset."
+        assert np.allclose(label_h, label), "Labels should match the original dataset."
 
 
 def test_harmonize_datasets_with_tf_dataset_three_columns():
@@ -154,7 +167,6 @@ def test_inputs_combinations():
     assert batch_size == 4
 
 
-
 def test_error_raising():
     """
     Test management of dataset init inputs
@@ -174,67 +186,44 @@ def test_error_raising():
     tf_shuffled = tf_dataset.shuffle(32, 0).batch(4)
 
     # Method initialization that should not work
-    test_raise_assertion_error = unittest.TestCase().assertRaises
-
     # not input
-    test_raise_assertion_error(TypeError, harmonize_datasets)
+    with pytest.raises(TypeError):
+        harmonize_datasets()
 
     # shuffled
-    test_raise_assertion_error(AssertionError, harmonize_datasets, tf_shuffled,)
+    with pytest.raises(AssertionError):
+        harmonize_datasets(tf_shuffled)
 
     # mismatching types
-    test_raise_assertion_error(AssertionError, harmonize_datasets, tf_dataset, tf_tensor,)
-    test_raise_assertion_error(
-        AssertionError,
-        harmonize_datasets,
-        tf.data.Dataset.zip((tf_dataset_b5, tf_dataset_b5)),
-        np_array,
-    )
-    test_raise_assertion_error(
-        AssertionError, harmonize_datasets, tf_dataset_b3, too_short_np_array
-    )
-    test_raise_assertion_error(
-        AssertionError, harmonize_datasets, tf_dataset, None, too_long_tf_dataset
-    )
+    with pytest.raises(AssertionError):
+        harmonize_datasets(tf_dataset, tf_tensor)
+    with pytest.raises(AssertionError):
+        harmonize_datasets(tf.data.Dataset.zip((tf_dataset_b5, tf_dataset_b5)), np_array)
+    with pytest.raises(AssertionError):
+        harmonize_datasets(tf_dataset_b3, too_short_np_array)
+    with pytest.raises(AssertionError):
+        harmonize_datasets(tf_dataset, None, too_long_tf_dataset)
 
     # not batched and no batch size provided
-    test_raise_assertion_error(
-        AssertionError,
-        harmonize_datasets,
-        tf.data.Dataset.from_tensor_slices((tf_tensor, tf_tensor)),
-        tf_dataset,
-    )
+    with pytest.raises(AssertionError):
+        harmonize_datasets(tf.data.Dataset.from_tensor_slices((tf_tensor, tf_tensor)), tf_dataset,)
 
     # not matching batch sizes
-    test_raise_assertion_error(
-        AssertionError, harmonize_datasets, tf_dataset_b3, tf_dataset_b5,
-    )
-    test_raise_assertion_error(
-        AssertionError,
-        harmonize_datasets,
-        too_long_tf_dataset_b10,
-        tf_dataset_b5,
-    )
+    with pytest.raises(AssertionError):
+        harmonize_datasets(tf_dataset_b3, tf_dataset_b5,)
+    with pytest.raises(AssertionError):
+        harmonize_datasets(too_long_tf_dataset_b10, tf_dataset_b5,)
 
     # mismatching cardinality
-    test_raise_assertion_error(
-        AssertionError,
-        harmonize_datasets,
-        tf_dataset_b5,
-        too_long_tf_dataset_b5,
-    )
+    with pytest.raises(AssertionError):
+        harmonize_datasets(tf_dataset_b5, too_long_tf_dataset_b5,)
 
     # multiple datasets for labels or targets
-    test_raise_assertion_error(
-        AssertionError,
-        harmonize_datasets,
-        tf.data.Dataset.zip((tf_dataset_b5, tf_dataset_b5)),
-        tf_dataset_b5,
-    )
-    test_raise_assertion_error(
-        AssertionError,
-        harmonize_datasets,
-        tf.data.Dataset.zip((tf_dataset_b5, tf_dataset_b5, tf_dataset_b5)),
-        None,
-        tf_dataset_b5,
-    )
+    with pytest.raises(AssertionError):
+        harmonize_datasets(tf.data.Dataset.zip((tf_dataset_b5, tf_dataset_b5)), tf_dataset_b5,)
+    with pytest.raises(AssertionError):
+        harmonize_datasets(
+            tf.data.Dataset.zip((tf_dataset_b5, tf_dataset_b5, tf_dataset_b5)),
+            None,
+            tf_dataset_b5,
+        )

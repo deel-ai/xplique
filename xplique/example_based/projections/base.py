@@ -2,7 +2,6 @@
 Base projection for similar examples in example based module
 """
 
-from abc import ABC
 import warnings
 
 import tensorflow as tf
@@ -12,9 +11,9 @@ from ...commons import sanitize_inputs_targets, get_device
 from ...types import Callable, Union, Optional
 
 
-class Projection(ABC):
+class Projection():
     """
-    Base class used by `NaturalExampleBasedExplainer` to project samples to a meaningful space
+    Base class used by `BaseExampleMethod` to project samples to a meaningful space
     for the model to explain.
 
     Projection have two parts a `space_projection` and `weights`, to apply a projection,
@@ -101,6 +100,8 @@ class Projection(ABC):
         # set space_projection
         if space_projection is None:
             self.space_projection = lambda inputs: inputs
+        elif isinstance(space_projection, tf.types.experimental.PolymorphicFunction):
+            self.space_projection = space_projection
         elif hasattr(space_projection, "__call__"):
             self.mappable = False
             self.space_projection = space_projection
@@ -220,7 +221,8 @@ class Projection(ABC):
     ) -> tf.data.Dataset:
         """
         Apply the projection to a dataset without `Dataset.map`.
-        Because attribution methods create a `tf.data.Dataset` for batching,
+        Because some projections are not compatible with a `tf.data.Dataset.map`.
+        For example, the attribution methods, because they create a `tf.data.Dataset` for batching,
         however doing so inside a `Dataset.map` is not recommended.
 
         Parameters
@@ -236,7 +238,7 @@ class Projection(ABC):
             The projected dataset.
         """
         projected_cases_dataset = []
-        batch_size = next(iter(cases_dataset)).shape[0]
+        batch_size = tf.shape(next(iter(cases_dataset)))[0].numpy()
 
         # iteratively project the dataset
         if targets_dataset is None:

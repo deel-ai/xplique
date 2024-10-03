@@ -4,12 +4,12 @@ Implementation of semi factuals methods for classification tasks.
 import numpy as np
 import tensorflow as tf
 
-from ..types import Callable, List, Optional, Union, Dict
+from ..types import Callable, List, Optional, Union, Dict, DatasetOrTensor
 
 from .datasets_operations.tf_dataset_operations import dataset_gather
 
 from .base_example_method import BaseExampleMethod
-from .search_methods import ORDER, KLEORSimMissSearch, KLEORGlobalSimSearch
+from .search_methods import KLEORSimMissSearch, KLEORGlobalSimSearch
 from .projections import Projection
 
 from .search_methods.base import _sanitize_returns
@@ -33,22 +33,21 @@ class KLEORBase(BaseExampleMethod):
     ----------
     cases_dataset
         The dataset used to train the model, examples are extracted from this dataset.
-        `tf.data.Dataset` are assumed to be batched as tensorflow provide no method to verify it.
-        Be careful, `tf.data.Dataset` are often reshuffled at each iteration, be sure that it is not
-        the case for your dataset, otherwise, examples will not make sense.
+        All datasets (cases, labels, and targets) should be of the same type.
+        Supported types are: `tf.data.Dataset`, `torch.utils.data.DataLoader`,
+        `tf.Tensor`, `np.ndarray`, `torch.Tensor`.
+        For datasets with multiple columns, the first column is assumed to be the cases.
+        While the second column is assumed to be the labels, and the third the targets.
+        Warning: datasets tend to reshuffle at each iteration, ensure the datasets are
+        not reshuffle as we use index in the dataset.
     targets_dataset
-        Targets are expected to be the one-hot encoding of the model's predictions
-        for the samples in cases_dataset.
-        `tf.data.Dataset` are assumed to be batched as tensorflow provide no method to verify it.
-        Batch size and cardinality of other datasets should match `cases_dataset`.
-        Be careful, `tf.data.Dataset` are often reshuffled at each iteration, be sure that it is not
-        the case for your dataset, otherwise, examples will not make sense.
+        Targets associated with the `cases_dataset` for dataset projection,
+        oftentimes the one-hot encoding of a model's predictions. See `projection` for detail.
+        They are also used to know the prediction of the model on the dataset.
+        It should have the same type as `cases_dataset`.
     labels_dataset
-        Labels associated to the examples in the dataset. Indices should match with cases_dataset.
-        `tf.data.Dataset` are assumed to be batched as tensorflow provide no method to verify it.
-        Batch size and cardinality of other datasets should match `cases_dataset`.
-        Be careful, `tf.data.Dataset` are often reshuffled at each iteration, be sure that it is not
-        the case for your dataset, otherwise, examples will not make sense.
+        Labels associated with the examples in the `cases_dataset`.
+        It should have the same type as `cases_dataset`.
     k
         The number of examples to retrieve per input.
     projection
@@ -71,8 +70,9 @@ class KLEORBase(BaseExampleMethod):
         String or list of string with the elements to return in `self.explain()`.
         See the base class returns property for more details.
     batch_size
-        Number of sample treated simultaneously for projection and search.
-        Ignored if `tf.data.Dataset` are provided (those are supposed to be batched).
+        Number of samples treated simultaneously for projection and search.
+        Ignored if `cases_dataset` is a batched `tf.data.Dataset` or
+        a batched `torch.utils.data.DataLoader` is provided.
     distance
         Distance for the FilterKNN search method.
         Distance function for examples search. It can be an integer, a string in
@@ -88,13 +88,13 @@ class KLEORBase(BaseExampleMethod):
 
     def __init__(
         self,
-        cases_dataset: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
-        targets_dataset: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
-        labels_dataset: Optional[Union[tf.data.Dataset, tf.Tensor, np.ndarray]] = None,
+        cases_dataset: DatasetOrTensor,
+        targets_dataset: DatasetOrTensor,
+        labels_dataset: Optional[DatasetOrTensor] = None,
         k: int = 1,
         projection: Union[Projection, Callable] = None,
         case_returns: Union[List[str], str] = "examples",
-        batch_size: Optional[int] = 32,
+        batch_size: Optional[int] = None,
         distance: Union[int, str, Callable] = "euclidean",
     ):
 
@@ -108,10 +108,6 @@ class KLEORBase(BaseExampleMethod):
             batch_size=batch_size,
         )
 
-        # set distance function and order for the search method
-        self.distance = distance
-        self.order = ORDER.ASCENDING
-
         # initiate search_method
         self.search_method = self.search_method_class(
             cases_dataset=self.projected_cases_dataset,
@@ -119,7 +115,7 @@ class KLEORBase(BaseExampleMethod):
             k=self.k,
             search_returns=self._search_returns,
             batch_size=self.batch_size,
-            distance=self.distance,
+            distance=distance,
         )
 
     @property
@@ -138,14 +134,14 @@ class KLEORBase(BaseExampleMethod):
         self._returns = _sanitize_returns(returns, self._returns_possibilities, default)
         self._search_returns = ["indices", "distances"]
 
-        if isinstance(self._returns, list) and ("nuns" in self._returns):
+        if "nuns" in self._returns:
             self._search_returns.append("nuns_indices")
-        elif isinstance(self._returns, list) and ("nuns_indices" in self._returns):
+        elif "nuns_indices" in self._returns:
             self._search_returns.append("nuns_indices")
-        elif isinstance(self._returns, list) and ("nuns_labels" in self._returns):
+        elif "nuns_labels" in self._returns:
             self._search_returns.append("nuns_indices")
 
-        if isinstance(self._returns, list) and ("dist_to_nuns" in self._returns):
+        if "dist_to_nuns" in self._returns:
             self._search_returns.append("dist_to_nuns")
 
         try:

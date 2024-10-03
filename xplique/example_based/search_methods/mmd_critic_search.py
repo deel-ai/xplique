@@ -24,8 +24,8 @@ class MMDCriticSearch(ProtoGreedySearch):
         The dataset used to train the model, examples are extracted from the dataset.
         For natural example-based methods it is the train dataset.
     batch_size
-        Number of sample treated simultaneously.
-        It should match the batch size of the `search_set` in the case of a `tf.data.Dataset`.
+        Number of samples treated simultaneously.
+        It should match the batch size of the `cases_dataset` in the case of a `tf.data.Dataset`.
     nb_prototypes : int
             Number of prototypes to find.
     kernel_fn : Callable, optional
@@ -102,8 +102,7 @@ class MMDCriticSearch(ProtoGreedySearch):
         # (bc,)
         objectives = sum1 - sum2
 
-        # (bc, |S|+1) - 1/(|S|+1)
-        objectives_weights = tf.fill(dims=(nb_candidates, extended_nb_selected),
-                                     value=1.0 / tf.cast(extended_nb_selected, tf.float32))
+        # (bc, |S|+1) - ones (the weights are normalized later)
+        objectives_weights = tf.ones((nb_candidates, extended_nb_selected), dtype=tf.float32)
 
         return objectives, objectives_weights

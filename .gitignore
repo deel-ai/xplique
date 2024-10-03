@@ -44,6 +44,7 @@ coverage.xml
 cover/
 *test*.sh
 tests/concepts/checkpoints/
+tests/FreeMono.ttf
 
 # Environments
 .env

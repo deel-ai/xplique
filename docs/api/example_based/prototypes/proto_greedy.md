@@ -36,18 +36,38 @@ where $w$ are non-negative weights for each prototype. The problem then consist 
 
 ```python
 from xplique.example_based import ProtoGreedy
+from xplique.example_based.projections import LatentSpaceProjection
 
-# load data and labels
-# ...
+# load the training dataset and the model
+cases_dataset = ... # load the training dataset
+model = ...
 
-explainer = ProtoGreedy(cases_dataset, labels_dataset, targets_dataset, k, 
-                   projection, case_returns, batch_size, distance, 
-                   nb_prototypes, kernel_type, 
-                   kernel_fn, gamma)
+# load the test samples
+test_samples = ... # load the test samples to search for
+
+# parameters
+case_returns = "all"  # elements returned by the explain function
+latent_layer = "last_conv"  # where to split your model for the projection
+nb_global_prototypes = 5
+nb_local_prototypes = 1
+kernel_fn = None  # the default rbf kernel will be used, the distance will be based on this
+
+# construct a projection with your model
+projection = LatentSpaceProjection(model, latent_layer=latent_layer)
+
+protogreedy = ProtoGreedy(
+    cases_dataset=cases_dataset,
+    nb_global_prototypes=nb_global_prototypes,
+    nb_local_prototypes=nb_local_prototypes,
+    projection=projection,
+    case_returns=case_returns,
+)
+
 # compute global explanation
-global_prototypes = explainer.get_global_prototypes()
+global_prototypes = protogreedy.get_global_prototypes()
+
 # compute local explanation
-local_prototypes = explainer(inputs)
+local_prototypes = protogreedy.explain(test_samples)
 ```
 
 ## Notebooks

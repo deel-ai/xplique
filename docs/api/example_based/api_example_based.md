@@ -27,17 +27,14 @@ At present, we made the following choices:
 projection = ProjectionMethod(model)
 
 explainer = ExampleMethod(
-    cases_dataset,
-    labels_dataset,
-    targets_dataset,
-    k,
-    projection,
-    case_returns,
-    batch_size,
-    **kwargs
+    cases_dataset=cases_dataset, 
+    k=k,
+    projection=projection,
+    case_returns=case_returns,
+    distance=distance,
 )
 
-explanations = explainer.explain(inputs, targets)
+outputs_dict = explainer.explain(inputs, targets)
 ```
 
 We tried to keep the API as close as possible to the one of the attribution methods to keep a consistent experience for the users.
@@ -70,13 +67,15 @@ We can broadly categorize example-based methods into four families: similar exam
 
 ### Parameters ###
 
-- **cases_dataset** (`Union[tf.data.Dataset, tf.Tensor, np.ndarray]`): The dataset used to train the model, from which examples are extracted. It should be batched as TensorFlow provides no method to verify this. Ensure the dataset is not reshuffled at each iteration.
-- **labels_dataset** (`Optional[Union[tf.data.Dataset, tf.Tensor, np.ndarray]]`): Labels associated with the examples in the cases dataset. Indices should match the `cases_dataset`.
-- **targets_dataset** (`Optional[Union[tf.data.Dataset, tf.Tensor, np.ndarray]]`): Targets associated with the `cases_dataset` for dataset projection, often the one-hot encoding of a model's predictions.
+`DatasetOrTensor = Union[tf.Tensor, np.ndarray, "torch.Tensor", tf.data.Dataset, "torch.utils.data.DataLoader"]`
+
+- **cases_dataset** (`DatasetOrTensor`): The dataset used to train the model, examples are extracted from this dataset. All datasets (cases, labels, and targets) should be of the same type. Supported types are: `tf.data.Dataset`, `torch.utils.data.DataLoader`, `tf.Tensor`, `np.ndarray`, `torch.Tensor`. For datasets with multiple columns, the first column is assumed to be the cases. While the second column is assumed to be the labels, and the third the targets. Warning: datasets tend to reshuffle at each iteration, ensure the datasets are not reshuffle as we use index in the dataset.
+- **labels_dataset** (`Optional[DatasetOrTensor]`): Labels associated with the examples in the cases dataset. It should have the same type as `cases_dataset`.
+- **targets_dataset** (`Optional[DatasetOrTensor]`): Targets associated with the `cases_dataset` for dataset projection, often the one-hot encoding of a model's predictions. See `projection` for detail. It should have the same type as `cases_dataset`. It is not be necessary for all projections. Furthermore, projections which requires it compute it internally by default.
 - **k** (`int`): The number of examples to retrieve per input.
 - **projection** (`Union[Projection, Callable]`): A projection or callable function that projects samples from the input space to the search space. The search space should be relevant for the model. (see [Projections](#projections))
-- **case_returns** (`Union[List[str], str]`): Elements to return in `self.explain()`. Default is "examples".
-- **batch_size** (`Optional[int]`): Number of samples processed simultaneously for projection and search. Ignored if `cases_dataset` is a `tf.data.Dataset`.
+- **case_returns** (`Union[List[str], str]`): Elements to return in `self.explain()`. Default is `"examples"`. `"all"` indicates that every possible output should be returned.
+- **batch_size** (`Optional[int]`): Number of samples processed simultaneously for projection and search. Ignored if `cases_dataset` is a batched `tf.data.Dataset` or a batched `torch.utils.data.DataLoader` is provided.
 
 !!!tips
     If the elements of your dataset are tuples (cases, labels), you can pass this dataset directly to the `cases_dataset`.
@@ -116,6 +115,9 @@ The `Projection` class is a base class for projections. It involves two parts: `
 To know more about projections and their importance, you can refer to the [Projections](../../projections/) section.
 
 ## Search Methods ##
+
+!!!info
+    The search methods are hidden to the user and only used internally. However, they help to understand how the API works.
 
 Search methods are used to retrieve examples from the `cases_dataset` that are relevant to the input samples.
 

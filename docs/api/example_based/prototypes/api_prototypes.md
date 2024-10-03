@@ -7,13 +7,24 @@ A prototype in AI explainability is a representative example from the data that 
 ## Common API ##
 
 ```python
+# only for model explanations, define a projection based on the model
+projection = ProjectionMethod(model)
 
-explainer = Method(cases_dataset, labels_dataset, nb_local_prototypes, projection, 
-                   case_returns, batch_size, distance, nb_global_prototypes)
+# construct the explainer (it computes the global prototypes)
+explainer = PrototypesMethod(
+    cases_dataset=cases_dataset, 
+    nb_global_prototypes=nb_global_prototypes,
+    nb_local_prototypes=nb_local_prototypes,
+    projection=projection,
+    case_returns=case_returns,
+    distance=distance,
+)
+
 # compute global explanation
-global_prototypes = explainer.get_global_prototypes()
+global_prototypes_dict = explainer.get_global_prototypes()
+
 # compute local explanation
-local_prototypes = explainer(inputs)
+local_prototypes_dict = explainer(inputs)
 
 ```
 
@@ -37,7 +48,7 @@ The search method class related to a `Prototypes` class includes the following a
 - `nb_global_prototypes` which represents the total number of prototypes desired to represent the entire dataset. 
 - `nb_local_prototypes` which represents the number of prototypes closest to the input and allows for a local explanation. This attribute is equivalent to $k$ in the other exemple based methods.
 
-- `kernel_type`, `kernel_fn`, and `gamma` which are related to the [kernel](#how-to-choose-the-kernel) used to compute the [MMD distance](#what-is-mmd).
+- `kernel_fn`, and `gamma` which are related to the [kernel](#how-to-choose-the-kernel) used to compute the [MMD distance](#what-is-mmd).
 
 The prototype class has a `get_global_prototypes()` method, which calculates all the prototypes in the base dataset; these are called the global prototypes. The `explain` method then provides a local explanation, i.e., finds the prototypes closest to the input given as a parameter.
 

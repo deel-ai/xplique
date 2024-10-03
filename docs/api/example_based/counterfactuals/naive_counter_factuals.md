@@ -21,28 +21,41 @@ As it is mentioned in the [API documentation](../../api_example_based/), by sett
 
 ```python
 from xplique.example_based import NaiveCounterFactuals
+from xplique.example_based.projections import LatentSpaceProjection
 
-# load the training dataset
+# load the training dataset and the model
 cases_dataset = ... # load the training dataset
 targets_dataset = ... # load the one-hot encoding of predicted labels of the training dataset
+model = ...
+
+# load the test samples
+test_samples = ... # load the test samples to search for
+test_targets = ... # compute a one hot encoding of the model's prediction on the samples
 
 # parameters
-k = 5
+k = 5  # number of example for each input
+case_returns = "all"  # elements returned by the explain function
 distance = "euclidean"
+latent_layer = "last_conv"  # where to split your model for the projection
 
-# instantiate the NaiveCounterfactuals object
-ncf = NaiveCounterFactuals(cases_dataset=cases_dataset,
-                           targets_dataset=targets_dataset,
-                           k=k,
-                           distance=distance,
-                          )
+# construct a projection with your model
+projection = LatentSpaceProjection(model, latent_layer=latent_layer)
 
-# load the test samples and targets
-test_samples = ... # load the test samples to search for
-test_targets = ... # load the one-hot encoding of the test samples' predictions
+# instantiate the NaiveCounterFactuals object
+ncf = NaiveCounterFactuals(
+    cases_dataset=cases_dataset,
+    targets_dataset=targets_dataset,
+    k=k,
+    projection=projection,
+    case_returns=case_returns,
+    distance=distance,
+)
 
 # search the CFs for the test samples
-counterfactuals = ncf.explain(test_samples, test_targets)
+output_dict = ncf.explain(
+    inputs=test_samples,
+    targets=test_targets,
+)
 ```
 
 ## Notebooks

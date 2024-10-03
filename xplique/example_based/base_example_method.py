@@ -8,7 +8,7 @@ import warnings
 import tensorflow as tf
 import numpy as np
 
-from ..types import Callable, Dict, List, Optional, Type, Union
+from ..types import Callable, Dict, List, Optional, Type, Union, DatasetOrTensor
 
 from ..commons import sanitize_inputs_targets
 from .datasets_operations.harmonize import harmonize_datasets
@@ -32,22 +32,22 @@ class BaseExampleMethod(ABC):
     ----------
     cases_dataset
         The dataset used to train the model, examples are extracted from this dataset.
-        `tf.data.Dataset` are assumed to be batched as tensorflow provide no method to verify it.
-        Be careful, `tf.data.Dataset` are often reshuffled at each iteration, be sure that it is not
-        the case for your dataset, otherwise, examples will not make sense.
+        All datasets (cases, labels, and targets) should be of the same type.
+        Supported types are: `tf.data.Dataset`, `torch.utils.data.DataLoader`,
+        `tf.Tensor`, `np.ndarray`, `torch.Tensor`.
+        For datasets with multiple columns, the first column is assumed to be the cases.
+        While the second column is assumed to be the labels, and the third the targets.
+        Warning: datasets tend to reshuffle at each iteration, ensure the datasets are
+        not reshuffle as we use index in the dataset.
     labels_dataset
-        Labels associated to the examples in the dataset. Indices should match with cases_dataset.
-        `tf.data.Dataset` are assumed to be batched as tensorflow provide no method to verify it.
-        Batch size and cardinality of other datasets should match `cases_dataset`.
-        Be careful, `tf.data.Dataset` are often reshuffled at each iteration, be sure that it is not
-        the case for your dataset, otherwise, examples will not make sense.
+        Labels associated with the examples in the `cases_dataset`.
+        It should have the same type as `cases_dataset`.
     targets_dataset
-        Targets associated to the cases_dataset for dataset projection,
+        Targets associated with the `cases_dataset` for dataset projection,
         oftentimes the one-hot encoding of a model's predictions. See `projection` for detail.
-        `tf.data.Dataset` are assumed to be batched as tensorflow provide no method to verify it.
-        Batch size and cardinality of other datasets should match `cases_dataset`.
-        Be careful, `tf.data.Dataset` are often reshuffled at each iteration, be sure that it is not
-        the case for your dataset, otherwise, examples will not make sense.
+        It should have the same type as `cases_dataset`.
+        It is not be necessary for all projections.
+        Furthermore, projections which requires it compute it internally by default.
     k
         The number of examples to retrieve per input.
     projection
@@ -70,28 +70,23 @@ class BaseExampleMethod(ABC):
         String or list of string with the elements to return in `self.explain()`.
         See the returns property for details.
     batch_size
-        Number of sample treated simultaneously for projection and search.
-        Ignored if `tf.data.Dataset` are provided (those are supposed to be batched).
+        Number of samples treated simultaneously for projection and search.
+        Ignored if `cases_dataset` is a batched `tf.data.Dataset` or
+        a batched `torch.utils.data.DataLoader` is provided.
     """
     # pylint: disable=too-many-instance-attributes
     _returns_possibilities = ["examples", "distances", "labels", "include_inputs"]
 
     def __init__(
         self,
-        cases_dataset: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
-        labels_dataset: Optional[Union[tf.data.Dataset, tf.Tensor, np.ndarray]] = None,
-        targets_dataset: Optional[Union[tf.data.Dataset, tf.Tensor, np.ndarray]] = None,
+        cases_dataset: DatasetOrTensor,
+        labels_dataset: Optional[DatasetOrTensor] = None,
+        targets_dataset: Optional[DatasetOrTensor] = None,
         k: int = 1,
         projection: Union[Projection, Callable] = None,
         case_returns: Union[List[str], str] = "examples",
-        batch_size: Optional[int] = 32,
+        batch_size: Optional[int] = None,
     ):
-        if projection is None:
-            warnings.warn(
-                "Example-based methods without projection will not explain the model."\
-                + "To explain the model, consider using projections like the LatentSpaceProjection."
-            )
-
         # set attributes
         self.cases_dataset, self.labels_dataset, self.targets_dataset, self.batch_size =\
             harmonize_datasets(cases_dataset, labels_dataset, targets_dataset, batch_size)
@@ -104,6 +99,10 @@ class BaseExampleMethod(ABC):
         elif hasattr(projection, "__call__"):
             self.projection = Projection(get_weights=None, space_projection=projection)
         elif projection is None:
+            warnings.warn(
+                "Example-based methods without projection will not explain the model."\
+                + "To explain the model, consider using projections like the LatentSpaceProjection."
+            )
             self.projection = Projection(get_weights=None, space_projection=None)
         else:
             raise AttributeError(
@@ -195,8 +194,10 @@ class BaseExampleMethod(ABC):
             Expected shape among (N, W), (N, T, W), (N, W, H, C).
             More information in the documentation.
         targets
-            Targets associated to the cases_dataset for dataset projection.
-            See `projection` for details.
+            Targets associated to the `inputs` for projection.
+            Shape: (n, nb_classes) where n is the number of samples and
+            nb_classes is the number of classes.
+            It is used in the `projection`. But `projection` can compute it internally.
 
         Returns
         -------
@@ -261,8 +262,7 @@ class BaseExampleMethod(ABC):
                 # include inputs
                 inputs = tf.expand_dims(inputs, axis=1)
                 examples = tf.concat([inputs, examples], axis=1)
-            if "examples" in self.returns:
-                return_dict["examples"] = examples
+            return_dict["examples"] = examples
 
         # add indices, distances, and labels
         if "indices" in self.returns:
@@ -270,9 +270,9 @@ class BaseExampleMethod(ABC):
         if "distances" in self.returns:
             return_dict["distances"] = search_output["distances"]
         if "labels" in self.returns:
-            assert (
-                examples_labels is not None
-            ), "The method cannot return labels without a label dataset."
+            assert (examples_labels is not None),\
+                "The method cannot return labels without a label dataset. "\
+                + "Either remove 'labels' from `case_returns` or provide a `labels_dataset`."
             return_dict["labels"] = examples_labels
 
         return return_dict

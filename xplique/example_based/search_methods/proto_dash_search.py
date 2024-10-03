@@ -95,8 +95,8 @@ class ProtoDashSearch(ProtoGreedySearch):
         The dataset used to train the model, examples are extracted from the dataset.
         For natural example-based methods it is the train dataset.
     batch_size
-        Number of sample treated simultaneously.
-        It should match the batch size of the `search_set` in the case of a `tf.data.Dataset`.
+        Number of samples treated simultaneously.
+        It should match the batch size of the `cases_dataset` in the case of a `tf.data.Dataset`.
     nb_prototypes : int
             Number of prototypes to find.
     kernel_fn : Callable, optional

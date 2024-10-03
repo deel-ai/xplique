@@ -31,8 +31,8 @@ class BaseKNN(BaseSearchMethod):
         String or list of string with the elements to return in `self.find_examples()`.
         It should be a subset of `self._returns_possibilities`.
     batch_size
-        Number of sample treated simultaneously.
-        It should match the batch size of the `search_set` in the case of a `tf.data.Dataset`.
+        Number of samples treated simultaneously.
+        It should match the batch size of the `cases_dataset` in the case of a `tf.data.Dataset`.
     order
         The order of the distances, either `ORDER.ASCENDING` or `ORDER.DESCENDING`.
         Default is `ORDER.ASCENDING`.
@@ -88,7 +88,8 @@ class BaseKNN(BaseSearchMethod):
             Where, n represent the number of inputs and k the number of corresponding examples.
             The index of each element is encoded by two values,
             the batch index and the index of the element in the batch.
-            Those indices can be used through `xplique.commons.tf_dataset_operation.dataset_gather`.
+            Those indices can be used through:
+            `xplique.example_based.datasets_operations.tf_dataset_operation.dataset_gather`.
         """
         raise NotImplementedError
 
@@ -123,11 +124,37 @@ class BaseKNN(BaseSearchMethod):
 
         return return_dict
 
-    def _build_return_dict(self, inputs, examples_distances, examples_indices) -> dict:
+    def _build_return_dict(self,
+                           inputs: Union[tf.Tensor, np.ndarray],
+                           examples_distances: tf.Tensor,
+                           examples_indices: tf.Tensor
+                           ) -> dict:
         """
         Build the return dict based on the `self.returns` values.
         It builds the return dict with the value in the subset of
         ['examples', 'include_inputs', 'indices', 'distances'] which is commonly shared.
+
+        Parameters
+        ----------
+        inputs
+            Tensor or Array. Input samples to be explained.
+            Assumed to have been already projected.
+            Expected shape among (N, W), (N, T, W), (N, W, H, C).
+        examples_distances
+            Tensor of distances between the knn and the inputs with dimension (n, k).
+            The n inputs times their k-nearest neighbors.
+        examples_indices
+            Tensor of indices of the knn in `self.cases_dataset` with dimension (n, k, 2).
+            Where, n represent the number of inputs and k the number of corresponding examples.
+            The index of each element is encoded by two values,
+            the batch index and the index of the element in the batch.
+            Those indices can be used through:
+            `xplique.example_based.datasets_operations.tf_dataset_operation.dataset_gather`.
+
+        Returns
+        -------
+        return_dict
+            Dictionary containing the elements to return which are specified in `self.returns`.
         """
         # Set values in return dict
         return_dict = {}
@@ -163,8 +190,8 @@ class KNN(BaseKNN):
         String or list of string with the elements to return in `self.find_examples()`.
         It should be a subset of `self._returns_possibilities`.
     batch_size
-        Number of sample treated simultaneously.
-        It should match the batch size of the `search_set` in the case of a `tf.data.Dataset`.
+        Number of samples treated simultaneously.
+        It should match the batch size of the `cases_dataset` in the case of a `tf.data.Dataset`.
     order
         The order of the distances, either `ORDER.ASCENDING` or `ORDER.DESCENDING`.
         Default is `ORDER.ASCENDING`.
@@ -213,6 +240,7 @@ class KNN(BaseKNN):
         distances
             Tensor of distances between the inputs and the cases with dimension (n, m).
         """
+        # pylint: disable=invalid-name
         n = x1.shape[0]
         m = x2.shape[0]
         x2 = tf.expand_dims(x2, axis=0)
@@ -255,7 +283,8 @@ class KNN(BaseKNN):
             Where, n represent the number of inputs and k the number of corresponding examples.
             The index of each element is encoded by two values,
             the batch index and the index of the element in the batch.
-            Those indices can be used through `xplique.commons.tf_dataset_operation.dataset_gather`.
+            Those indices can be used through:
+            `xplique.example_based.datasets_operations.tf_dataset_operation.dataset_gather`.
         """
         nb_inputs = tf.shape(inputs)[0]
 
@@ -329,8 +358,8 @@ class FilterKNN(BaseKNN):
         String or list of string with the elements to return in `self.find_examples()`.
         It should be a subset of `self._returns_possibilities`.
     batch_size
-        Number of sample treated simultaneously.
-        It should match the batch size of the `search_set` in the case of a `tf.data.Dataset`.
+        Number of samples treated simultaneously.
+        It should match the batch size of the `cases_dataset` in the case of a `tf.data.Dataset`.
     order
         The order of the distances, either `ORDER.ASCENDING` or `ORDER.DESCENDING`.
         Default is `ORDER.ASCENDING`.
@@ -357,6 +386,7 @@ class FilterKNN(BaseKNN):
         order: ORDER = ORDER.ASCENDING,
         filter_fn: Optional[Callable] = None,
     ):
+        # pylint: disable=invalid-name
         super().__init__(
             cases_dataset=cases_dataset,
             k=k,
@@ -412,6 +442,7 @@ class FilterKNN(BaseKNN):
         distances
             Tensor of distances between the inputs and the cases with dimension (n, m).
         """
+        # pylint: disable=invalid-name
         n = x1.shape[0]
         m = x2.shape[0]
         x2 = tf.expand_dims(x2, axis=0)
@@ -457,7 +488,8 @@ class FilterKNN(BaseKNN):
             Where, n represent the number of inputs and k the number of corresponding examples.
             The index of each element is encoded by two values,
             the batch index and the index of the element in the batch.
-            Those indices can be used through `xplique.commons.tf_dataset_operation.dataset_gather`.
+            Those indices can be used through:
+            `xplique.example_based.datasets_operations.tf_dataset_operation.dataset_gather`.
         """
         nb_inputs = tf.shape(inputs)[0]
 

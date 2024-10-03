@@ -7,7 +7,7 @@ import tensorflow as tf
 from xplique.types import Optional
 
 from ...commons import get_gradient_functions
-from ...types import Callable, Union, Optional, OperatorSignature
+from ...types import Union, Optional, OperatorSignature
 
 from .base import Projection
 from .commons import model_splitting, target_free_classification_operator
@@ -32,12 +32,16 @@ class HadamardProjection(Projection):
     ----------
     model
         The model from which we want to obtain explanations.
+        It can be splitted manually outside of the projection and provided as two models:
+        the `feature_extractor` and the `predictor`. In this case, `model` should be `None`.
+        It is recommended to split it manually.
     latent_layer
         Layer used to split the model, the first part will be used for projection and
         the second to compute the attributions. By default, the model is not split.
         For such split, the `model` should be a `tf.keras.Model`.
+        Ignored if `model` is `None`, hence if a splitted model is provided through:
+        the `feature_extractor` and the `predictor`.
 
-        Layer to target for the outputs (e.g logits or after softmax).
         If an `int` is provided it will be interpreted as a layer index.
         If a `string` is provided it will look for the layer name.
 
@@ -51,72 +55,55 @@ class HadamardProjection(Projection):
     device
         Device to use for the projection, if None, use the default device.
         Only used for PyTorch models. Ignored for TensorFlow models.
+    features_extractor
+        The feature extraction part of the model. Mapping inputs to the latent space.
+        Used to provided the first part of a splitted model.
+        It cannot be provided if a `model` is provided. It should be provided with a `predictor`.
+    predictor
+        The prediction part of the model. Mapping the latent space to the outputs.
+        Used to provided the second part of a splitted model.
+        It cannot be provided if a `model` is provided.
+        It should be provided with a `features_extractor`.
+    mappable
+        If the model parts can be placed in a `tf.data.Dataset` mapping function.
+        It is not the case for wrapped PyTorch models.
+        If you encounter errors in the `project_dataset` method, you can set it to `False`.
+        Used only for a splitted model. Thgus if `model` is `None`.
     """
     def __init__(
         self,
-        model: Callable,
+        model: Optional[Union[tf.keras.Model, 'torch.nn.Module']] = None,
         latent_layer: Optional[Union[str, int]] = None,
         operator: Optional[OperatorSignature] = None,
         device: Union["torch.device", str] = None,
+        features_extractor: Optional[tf.keras.Model] = None,
+        predictor: Optional[tf.keras.Model] = None,
+        mappable: bool = True,
     ):
-        if latent_layer is None:
-            # no split
-            self.latent_layer = None
-            space_projection = None
-            self.predictor = model
+        if model is None:
+            assert features_extractor is not None and predictor is not None,\
+                "If no model is provided, the features_extractor and predictor should be provided."
+
+            assert isinstance(features_extractor, tf.keras.Model)\
+                and isinstance(predictor, tf.keras.Model),\
+                "The features_extractor and predictor should be tf.keras.Model."\
+                + "The xplique.wrappers.TorchWrapper can be used for PyTorch models."
         else:
-            # split the model if a latent_layer is provided
-            space_projection, self.predictor = model_splitting(model,
-                                                               latent_layer=latent_layer,
-                                                               device=device)
+            assert features_extractor is None and predictor is None,\
+                "If a model is provided, the features_extractor and predictor cannot be provided."
 
-        if operator is None:
-            warnings.warn("No operator provided, using standard classification operator. "\
-                          + "For non-classification tasks, please specify an operator.")
-            operator = target_free_classification_operator
+            if latent_layer is None:
+                # no split
+                self.latent_layer = None
+                features_extractor = None
+                predictor = model
+            else:
+                # split the model if a latent_layer is provided
+                features_extractor, predictor = model_splitting(model,
+                                                                latent_layer=latent_layer,
+                                                                device=device)
 
-        # the weights are given by the gradient of the operator based on the predictor
-        gradients, _ = get_gradient_functions(self.predictor, operator)
-        get_weights = lambda inputs, targets: gradients(self.predictor, inputs, targets)
-
-        mappable = isinstance(model, tf.keras.Model)
-
-        # set methods
-        super().__init__(get_weights=get_weights,
-                         space_projection=space_projection,
-                         mappable=mappable,
-                         requires_targets=True)
-
-    @classmethod
-    def from_splitted_model(cls,
-                            features_extractor: tf.keras.Model,
-                            predictor: tf.keras.Model,
-                            operator: Optional[OperatorSignature] = None,
-                            mappable=True):
-        """
-        Create LatentSpaceProjection from a splitted model.
-        The projection will project the inputs in the latent space,
-        which corresponds to the output of the `features_extractor`.
-
-        Parameters
-        ----------
-        features_extractor
-            The feature extraction part of the model. Mapping inputs to the latent space.
-        predictor
-            The prediction part of the model. Mapping the latent space to the outputs.
-        operator
-            Operator to use to compute the explanation, if None use standard predictions.
-        mappable
-            If the model can be placed in a `tf.data.Dataset` mapping function.
-            It is not the case for wrapped PyTorch models.
-            If you encounter errors in the `project_dataset` method, you can set it to `False`.
-        """
-        assert isinstance(features_extractor, tf.keras.Model),\
-            f"features_extractor should be a tf.keras.Model, got {type(features_extractor)}"\
-            f" instead. If you have a PyTorch model, you can use the `TorchWrapper`."
-        assert isinstance(predictor, tf.keras.Model),\
-            f"predictor should be a tf.keras.Model, got {type(predictor)}"\
-            f" instead. If you have a PyTorch model, you can use the `TorchWrapper`."
+            mappable = isinstance(model, tf.keras.Model)
 
         if operator is None:
             warnings.warn("No operator provided, using standard classification operator. "\
@@ -127,12 +114,10 @@ class HadamardProjection(Projection):
         gradients, _ = get_gradient_functions(predictor, operator)
         get_weights = lambda inputs, targets: gradients(predictor, inputs, targets)
 
-        new_instance = cls.__new__(cls)
-        super(HadamardProjection, cls).__init__(
-            new_instance,
+        # set methods
+        super().__init__(
             get_weights=get_weights,
             space_projection=features_extractor,
             mappable=mappable,
             requires_targets=True
         )
-        return new_instance

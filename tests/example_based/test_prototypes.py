@@ -33,11 +33,11 @@ def test_prototypes_global_explanations_basic():
         method = method_class(
             cases_dataset=x_train,
             labels_dataset=y_train,
-            k=k,
+            nb_local_prototypes=k,
             batch_size=batch_size,
             case_returns=["examples", "distances", "labels", "indices"],
             distance="euclidean",
-            nb_prototypes=nb_prototypes,
+            nb_global_prototypes=nb_prototypes,
             gamma=gamma,
         )
 
@@ -122,23 +122,18 @@ def test_prototypes_global_sanity_check():
 
     x_train, y_train = get_gaussian_data(nb_classes=nb_prototypes, nb_samples_class=5, n_dims=3)
 
-    print("DEBUG: test_prototypes_global_sanity_check: x_train", x_train)
-
     for method_class in [MMDCritic, ProtoDash, ProtoGreedy]:
-        print("DEBUG: test_prototypes_global_sanity_check: method_class", method_class)
         # compute general prototypes
         method = method_class(
             cases_dataset=x_train,
             labels_dataset=y_train,
-            k=k,
+            nb_local_prototypes=k,
             batch_size=8,
-            nb_prototypes=nb_prototypes,
+            nb_global_prototypes=nb_prototypes,
             gamma=gamma,
         )
         # extract prototypes
         prototypes_labels = method.get_global_prototypes()["prototypes_labels"]
-        print("DEBUG: test_prototypes_global_sanity_check: y_train", y_train)
-        print("DEBUG: test_prototypes_global_sanity_check: prototypes_labels", prototypes_labels)
 
         # check 1
         assert len(tf.unique(prototypes_labels)[0]) == nb_prototypes
@@ -175,11 +170,11 @@ def test_prototypes_with_projection():
         method = method_class(
             cases_dataset=x_train,
             labels_dataset=y_train,
-            k=k,
+            nb_local_prototypes=k,
             projection=weighted_projection,
             batch_size=batch_size,
             case_returns=["examples", "distances", "labels", "indices"],
-            nb_prototypes=nb_prototypes,
+            nb_global_prototypes=nb_prototypes,
             gamma=gamma,
         )
 

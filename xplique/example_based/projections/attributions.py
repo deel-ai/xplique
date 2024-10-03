@@ -3,11 +3,13 @@ Attribution, a projection from example based module
 """
 import warnings
 
+import tensorflow as tf
+
 from xplique.types import Optional
 
 from ...attributions.base import BlackBoxExplainer
 from ...attributions import Saliency
-from ...types import Callable, Union, Optional
+from ...types import Union, Optional
 
 from .base import Projection
 from .commons import model_splitting, target_free_classification_operator
@@ -37,7 +39,6 @@ class AttributionProjection(Projection):
         the second to compute the attributions. By default, the model is not split.
         For such split, the `model` should be a `tf.keras.Model`.
 
-        Layer to target for the outputs (e.g logits or after softmax).
         If an `int` is provided it will be interpreted as a layer index.
         If a `string` is provided it will look for the layer name.
 
@@ -54,7 +55,7 @@ class AttributionProjection(Projection):
 
     def __init__(
         self,
-        model: Callable,
+        model: Union[tf.keras.Model, 'torch.nn.Module'],
         attribution_method: BlackBoxExplainer = Saliency,
         latent_layer: Optional[Union[str, int]] = None,
         **attribution_kwargs

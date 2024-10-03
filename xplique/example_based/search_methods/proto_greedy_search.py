@@ -27,8 +27,8 @@ class ProtoGreedySearch():
         The dataset used to train the model, examples are extracted from the dataset.
         For natural example-based methods it is the train dataset.
     batch_size
-        Number of sample treated simultaneously.
-        It should match the batch size of the `search_set` in the case of a `tf.data.Dataset`.
+        Number of samples treated simultaneously.
+        It should match the batch size of the `cases_dataset` in the case of a `tf.data.Dataset`.
     nb_prototypes : int
             Number of prototypes to find.
     kernel_fn : Callable, optional
@@ -51,9 +51,10 @@ class ProtoGreedySearch():
         kernel_fn: callable = None,
         gamma: float = None
     ):
+        # pylint: disable=duplicate-code
         # set batch size
-        if hasattr(cases_dataset, "_batch_size"):
-            self.batch_size = tf.cast(cases_dataset._batch_size, tf.int32)
+        if isinstance(cases_dataset, tf.data.Dataset):
+            self.batch_size = tf.shape(next(iter(cases_dataset)))[0].numpy()
         else:
             self.batch_size = batch_size
 
@@ -98,6 +99,7 @@ class ProtoGreedySearch():
         Callable
             Distance function for examples search.
         """
+        # pylint: disable=invalid-name
         if distance is None:
             def kernel_induced_distance(x1, x2):
                 def dist(x):
@@ -106,7 +108,7 @@ class ProtoGreedySearch():
                         self.kernel_fn(x1, x1) - 2 * self.kernel_fn(x1, x) + self.kernel_fn(x, x)
                     )
                 distance = tf.map_fn(dist, x2)
-                return tf.squeeze(distance)
+                return tf.squeeze(distance, axis=[1, 2])
             return kernel_induced_distance
 
         return get_distance_function(distance)
@@ -486,6 +488,7 @@ class ProtoGreedySearch():
                         best_weights = objectives_weights[objectives_argmax]
 
             # update the selected prototypes
+            # pylint: disable=unknown-option-value
             # pylint: disable=possibly-used-before-assignment
             last_selected = best_case[tf.newaxis, :]
             mask_of_selected[best_batch_index, best_index].assign(True)

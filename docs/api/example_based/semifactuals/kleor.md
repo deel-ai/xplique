@@ -36,70 +36,48 @@ We extended to the $k$ nearest neighbors of the NUN for both approaches.
 ## Examples
 
 ```python
-from xplique.example_based import KLEORSimMiss
+from xplique.example_based import KLEORGlobalSim  # or KLEORSimMiss
+from xplique.example_based.projections import LatentSpaceProjection
 
-# loading
+# load the training dataset and the model
 cases_dataset = ... # load the training dataset
-targets = ... # load the one-hot encoding of predicted labels of the training dataset
+targets_dataset = ... # load the one-hot encoding of predicted labels of the training dataset
+model = ...
+
+# load the test samples
+test_samples = ... # load the test samples to search for
+test_targets = ... # compute a one hot encoding of the model's prediction on the samples
 
 # parameters
-k = 5
+k = 1  # number of example for each input
+case_returns = "all"  # elements returned by the explain function
 distance = "euclidean"
-case_returns = ["examples", "nuns"]
+latent_layer = "last_conv"  # where to split your model for the projection
 
-# instantiate the KLEOR object
-kleor_sim_miss = KLEORSimMiss(cases_dataset=cases_dataset,
-                              targets_dataset=targets,
-                              k=k,
-                              distance=distance,
-                             )
+# construct a projection with your model
+projection = LatentSpaceProjection(model, latent_layer=latent_layer)
 
-# load the test samples and targets
-test_samples = ... # load the test samples to search for
-test_targets = ... # load the one-hot encoding of the test samples' predictions
+# instantiate the KLEORGlobalSim object (could be KLEORSimMiss, the code do not change)
+sf_explainer = KLEORGlobalSim(
+    cases_dataset=cases_dataset,
+    targets_dataset=targets_dataset,
+    k=k,
+    projection=projection,
+    case_returns=case_returns,
+    distance=distance,
+)
 
 # search the SFs for the test samples
-sim_miss_sf = kleor_sim_miss.explain(test_samples, test_targets)
+sf_output_dict = sf_explainer.explain(
+    inputs=test_samples,
+    targets=test_targets,
+)
 
 # get the semi-factuals
-semifactuals = global_sim_sf["examples"]
+semifactuals = sf_output_dict["examples"]
 
 # get the counterfactuals
-counterfactuals = global_sim_sf["nuns"]
-```
-
-```python
-from xplique.example_based import KLEORGlobalSim
-
-# loading
-cases_dataset = ... # load the training dataset
-targets = ... # load the one-hot encoding of predicted labels of the training dataset
-
-# parameters
-k = 5
-distance = "euclidean"
-case_returns = ["examples", "nuns"]
-
-# instantiate the KLEOR object
-kleor_global_sim = KLEORGlobalSim(cases_dataset=cases_dataset,
-                                  targets_dataset=targets,
-                                  k=k,
-                                  distance=distance,
-                                  case_returns=case_returns,
-                                 )
-
-# load the test samples and targets
-test_samples = ... # load the test samples to search for
-test_targets = ... # load the one-hot encoding of the test samples' predictions
-
-# search the SFs for the test samples
-global_sim_sf = kleor_global_sim.explain(test_samples, test_targets)
-
-# get the semi-factuals
-semifactuals = global_sim_sf["examples"]
-
-# get the counterfactuals
-counterfactuals = global_sim_sf["nuns"]
+counterfactuals = sf_output_dict["nuns"]
 ```
 
 ## Notebooks

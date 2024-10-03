@@ -4,16 +4,12 @@ Allow Example-based methods to work with different types of datasets and tensors
 
 
 import math
-from typing import Optional, Tuple, TypeVar
 
 import numpy as np
 import tensorflow as tf
 
+from ...types import Optional, Tuple, DatasetOrTensor
 from .tf_dataset_operations import sanitize_dataset, is_batched
-
-DatasetTensor = TypeVar("DatasetTensor",
-                        tf.Tensor, np.ndarray, "torch.Tensor",
-                        tf.data.Dataset, "torch.utils.data.DataLoader")
 
 
 def split_tf_dataset(cases_dataset: tf.data.Dataset,
@@ -78,14 +74,14 @@ def split_tf_dataset(cases_dataset: tf.data.Dataset,
 
 
 def harmonize_datasets(
-        cases_dataset: DatasetTensor,
-        labels_dataset: Optional[DatasetTensor] = None,
-        targets_dataset: Optional[DatasetTensor] = None,
+        cases_dataset: DatasetOrTensor,
+        labels_dataset: Optional[DatasetOrTensor] = None,
+        targets_dataset: Optional[DatasetOrTensor] = None,
         batch_size: Optional[int] = None,
-    ) -> Tuple[DatasetTensor, DatasetTensor, DatasetTensor, int]:
+    ) -> Tuple[tf.data.Dataset, tf.data.Dataset, tf.data.Dataset, int]:
     """
-    Harmonizes the provided datasets, ensuring they are either `tf.data.Dataset` or
-    `torch.utils.data.DataLoader`, and transforms them if necessary.
+    Harmonizes the provided datasets, transforming them to tf.data.Dataset if necessary.
+    Datasets are also checked in case they are shuffled or do not match in batch_size.
     If the datasets have multiple columns, the function will split them into cases,
     labels, and targets datasets based on the number of columns.
     
@@ -93,28 +89,35 @@ def harmonize_datasets(
     
     Parameters
     ----------
-    cases_dataset : DatasetTensor
+    cases_dataset
         The dataset used to train the model, examples are extracted from this dataset.
-        If the dataset has multiple columns,
-        the function will split it into cases, labels, and targets.
-        All datasets should be of the same type.
-    labels_dataset : Optional[DatasetTensor]
+        All datasets (cases, labels, and targets) should be of the same type.
+        Supported types are: `tf.data.Dataset`, `torch.utils.data.DataLoader`,
+        `tf.Tensor`, `np.ndarray`, `torch.Tensor`.
+        For datasets with multiple columns, the first column is assumed to be the cases.
+        While the second column is assumed to be the labels, and the third the targets.
+        Warning: datasets tend to reshuffle at each iteration, ensure the datasets are
+        not reshuffle as we use index in the dataset.
+    labels_dataset
         Labels associated with the examples in the `cases_dataset`.
-        All datasets should be of the same type.
-    targets_dataset : Optional[DatasetTensor]
-        Targets associated with the `cases_dataset` for dataset projection.
-        All datasets should be of the same type.
+        It should have the same type as `cases_dataset`.
+    targets_dataset
+        Targets associated with the `cases_dataset` for dataset projection,
+        oftentimes the one-hot encoding of a model's predictions. See `projection` for detail.
+        It should have the same type as `cases_dataset`.
+        It is not be necessary for all projections.
+        Furthermore, projections which requires it compute it internally by default.
     batch_size : Optional[int]
         Number of samples treated simultaneously when using the datasets.
         It should match the batch size of the datasets if they are batched.
 
     Returns
     -------
-    cases_dataset : DatasetTensor
+    cases_dataset
         The harmonized dataset used to train the model.
-    labels_dataset : DatasetTensor
+    labels_dataset
         Harmonized labels associated with the `cases_dataset`.
-    targets_dataset : DatasetTensor
+    targets_dataset
         Harmonized targets associated with the `cases_dataset`.
     batch_size : int
         Number of samples treated simultaneously when using the datasets.
@@ -158,7 +161,7 @@ def harmonize_datasets(
                 batch_size = tf.shape(next(iter(cases_dataset)))[0].numpy()
         else:
             assert batch_size is not None, (
-                "The dataset is not batched, hence the batch size should be provided."
+                "The dataset is not batched, hence a `batch_size` should be provided."
             )
             cases_dataset = cases_dataset.batch(batch_size)
         cardinality = cases_dataset.cardinality().numpy()
@@ -208,11 +211,6 @@ def harmonize_datasets(
 
             # tensors will be converted to tf.data.Dataset via the snitize function
         elif isinstance(cases_dataset, torch.utils.data.DataLoader):
-            if batch_size is not None:
-                assert cases_dataset.batch_size == batch_size, (
-                    "The DataLoader batch size should match the provided batch size. "\
-                    + f"Got {cases_dataset.batch_size} from DataLoader and {batch_size} specified."
-                )
             batch_size = cases_dataset.batch_size
             cardinality = len(cases_dataset)
             cases_dataset, labels_dataset, targets_dataset =\
