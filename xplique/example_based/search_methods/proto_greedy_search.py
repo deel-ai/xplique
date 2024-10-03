@@ -64,7 +64,7 @@ class ProtoGreedySearch():
         if kernel_fn is None:
             # define kernel fn to default rbf kernel
             self.__set_default_kernel_fn(self.cases_dataset, gamma)
-        elif isinstance(kernel_fn, tf.types.experimental.PolymorphicFunction):
+        elif isinstance(kernel_fn, tf.python.eager.def_function.Function):
             # the kernel_fn was decorated with a tf.function
             self.kernel_fn = kernel_fn
         elif hasattr(kernel_fn, "__call__"):

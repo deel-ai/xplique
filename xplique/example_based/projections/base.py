@@ -100,7 +100,7 @@ class Projection():
         # set space_projection
         if space_projection is None:
             self.space_projection = lambda inputs: inputs
-        elif isinstance(space_projection, tf.types.experimental.PolymorphicFunction):
+        elif isinstance(space_projection, tf.python.eager.def_function.Function):
             self.space_projection = space_projection
         elif hasattr(space_projection, "__call__"):
             self.mappable = False
