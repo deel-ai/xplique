@@ -43,6 +43,8 @@ coverage.xml
 .pytest_cache/
 cover/
 *test*.sh
+tests/concepts/checkpoints/
+tests/FreeMono.ttf
 
 # Environments
 .env
