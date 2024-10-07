@@ -21,7 +21,7 @@ Here is the lists of the available tutorial for now:
 | Concept Activation Vectors      | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1iuEz46ZjgG97vTBH8p-vod3y14UETvVE)            |
 | Feature Visualization           | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1st43K9AH-UL4eZM1S4QdyrOi7Epa5K8v)            |
 | Example-Based Methods           | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1gA7mhWhWzdKholZWkTvAg4FzFnzS8NHF)            |
-| Prototypes                      | **TODO**            |
+| Prototypes                      | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1OI3oa884GwGbXlzn3Y9NH-1j4cSaQb0w)            |
 
 
 ## Attributions
@@ -82,4 +82,4 @@ Here is the lists of the available tutorial for now:
 | **Tutorial Name**                      | Notebook                                                                                                                                                |
 | :------------------------------------- | :-----------------------------------------------------------------------------------------------------------------------------------------------------: |
 | Example-Based Methods: Getting started | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1gA7mhWhWzdKholZWkTvAg4FzFnzS8NHF) |
-| Prototypes: Getting started            | **TODO**                                                                                     |
+| Example-based: Prototypes            | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1OI3oa884GwGbXlzn3Y9NH-1j4cSaQb0w) |

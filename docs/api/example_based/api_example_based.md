@@ -1,7 +1,7 @@
 # API: Example-based
 
 - [**Example-based Methods**: Getting started](https://colab.research.google.com/drive/1gA7mhWhWzdKholZWkTvAg4FzFnzS8NHF) <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1gA7mhWhWzdKholZWkTvAg4FzFnzS8NHF) </sub>
-- [**TODO: Add the Getting Started on Prototypes**]()
+- [**Example-based: Prototypes**](https://colab.research.google.com/drive/1OI3oa884GwGbXlzn3Y9NH-1j4cSaQb0w) <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1OI3oa884GwGbXlzn3Y9NH-1j4cSaQb0w) </sub>
 
 ## Context ##
 
@@ -61,9 +61,9 @@ We can broadly categorize example-based methods into four families: similar exam
     | `KLEORSimMiss` | Semi Factuals | [KLEOR](../semifactuals/kleor/) | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1gA7mhWhWzdKholZWkTvAg4FzFnzS8NHF) |
     | `KLEORGlobalSim` | Semi Factuals | [KLEOR](../semifactuals/kleor/) | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1gA7mhWhWzdKholZWkTvAg4FzFnzS8NHF) |
     ||||
-    | `ProtoGreedy` | Prototypes | [ProtoGreedy](../prototypes/proto_greedy/) | **TODO** |
-    | `ProtoDash` | Prototypes | [ProtoDash](../prototypes/proto_dash/) | **TODO** |
-    | `MMDCritic` | Prototypes | [MMDCritic](../prototypes/mmd_critic/) | **TODO** |
+    | `ProtoGreedy` | Prototypes | [ProtoGreedy](../prototypes/proto_greedy/) | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1OI3oa884GwGbXlzn3Y9NH-1j4cSaQb0w) |
+    | `ProtoDash` | Prototypes | [ProtoDash](../prototypes/proto_dash/) | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1OI3oa884GwGbXlzn3Y9NH-1j4cSaQb0w) |
+    | `MMDCritic` | Prototypes | [MMDCritic](../prototypes/mmd_critic/) | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1OI3oa884GwGbXlzn3Y9NH-1j4cSaQb0w) |
 
 ### Parameters ###
 
@@ -94,7 +94,7 @@ We can broadly categorize example-based methods into four families: similar exam
 Returns the relevant examples to explain the (inputs, targets). Projects inputs using `self.projection` and finds examples using the `self.search_method`.
 
 - **inputs** (`Union[tf.Tensor, np.ndarray]`): Input samples to be explained. Shape: (n, ...) where n is the number of samples.
-- **targets** (`Optional[Union[tf.Tensor, np.ndarray]]`): Targets associated with the `cases_dataset` for dataset projection. Shape: (n, nb_classes) where n is the number of samples and nb_classes is the number of classes.
+- **targets** (`Optional[Union[tf.Tensor, np.ndarray]]`): Targets associated with the `inputs` for projection. Shape: (n, nb_classes) where n is the number of samples and nb_classes is the number of classes. Not used in all projection. Used in contrastive methods to know the predicted classes of the provided samples.
 
 **Returns:** Dictionary with elements listed in `self.returns`.
 

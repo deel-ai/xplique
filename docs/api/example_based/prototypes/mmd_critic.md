@@ -2,7 +2,7 @@
 
 <sub>
     <img src="https://upload.wikimedia.org/wikipedia/commons/d/d0/Google_Colaboratory_SVG_Logo.svg" width="20">
-</sub>[View colab tutorial](https://colab.research.google.com/drive/1nsB7xdQbU0zeYQ1-aB_D-M67-RAnvt4X) |
+</sub>[View colab tutorial](https://colab.research.google.com/drive/1-bUvXxzWrBqLLfS_4TvErcEfyzymTVGz) |
 <sub>
     <img src="https://upload.wikimedia.org/wikipedia/commons/9/91/Octicons-mark-github.svg" width="20">
 </sub>[View source](https://github.com/deel-ai/xplique/blob/antonin/example-based-merge/xplique/example_based/search_methods/proto_greedy_search.py) |
@@ -68,9 +68,7 @@ local_prototypes = mmd.explain(test_samples)
 
 ## Notebooks
 
-- [**Prototypes**: Getting started](https://colab.research.google.com/drive
-/1XproaVxXjO9nrBSyyy7BuKJ1vy21iHs2)
-- [**MMDCritic**: Going Further](https://colab.research.google.com/drive/1nsB7xdQbU0zeYQ1-aB_D-M67-RAnvt4X)
+- [**Example-based: Prototypes**](https://colab.research.google.com/drive/1-bUvXxzWrBqLLfS_4TvErcEfyzymTVGz)
 
 
 {{xplique.example_based.prototypes.MMDCritic}}

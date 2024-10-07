@@ -360,9 +360,9 @@ Even though we are only at the early stages, we have also recently added an [Exa
     | `KLEORSimMiss` | Semi Factuals | [KLEOR](../semifactuals/kleor/) | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1gA7mhWhWzdKholZWkTvAg4FzFnzS8NHF) |
     | `KLEORGlobalSim` | Semi Factuals | [KLEOR](../semifactuals/kleor/) | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1gA7mhWhWzdKholZWkTvAg4FzFnzS8NHF) |
     ||||
-    | `ProtoGreedy` | Prototypes | [ProtoGreedy](../prototypes/proto_greedy/) | **TODO** |
-    | `ProtoDash` | Prototypes | [ProtoDash](../prototypes/proto_dash/) | **TODO** |
-    | `MMDCritic` | Prototypes | [MMDCritic](../prototypes/mmd_critic/) | **TODO** |
+    | `ProtoGreedy` | Prototypes | [ProtoGreedy](../prototypes/proto_greedy/) | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1OI3oa884GwGbXlzn3Y9NH-1j4cSaQb0w) |
+    | `ProtoDash` | Prototypes | [ProtoDash](../prototypes/proto_dash/) | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1OI3oa884GwGbXlzn3Y9NH-1j4cSaQb0w) |
+    | `MMDCritic` | Prototypes | [MMDCritic](../prototypes/mmd_critic/) | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1OI3oa884GwGbXlzn3Y9NH-1j4cSaQb0w) |
 
 ## 👍 Contributing
 
