@@ -69,7 +69,7 @@ def split_tf_dataset(cases_dataset: tf.data.Dataset,
                 "`cases_dataset` cannot have more than 3 columns, "
                 + f"{len(cases_dataset.element_spec)} were detected."
             )
-    
+
     return cases_dataset, labels_dataset, targets_dataset
 
 
@@ -122,6 +122,8 @@ def harmonize_datasets(
     batch_size : int
         Number of samples treated simultaneously when using the datasets.
     """
+    # pylint: disable=too-many-statements
+    # pylint: disable=too-many-branches
     # Ensure the datasets are of the same type
     if labels_dataset is not None:
         if isinstance(cases_dataset, tf.data.Dataset):
@@ -171,7 +173,7 @@ def harmonize_datasets(
             # split dataset if `cases_dataset` has multiple columns
             cases_dataset, labels_dataset, targets_dataset =\
                 split_tf_dataset(cases_dataset, labels_dataset, targets_dataset)
-    elif isinstance(cases_dataset, np.ndarray) or isinstance(cases_dataset, tf.Tensor):
+    elif isinstance(cases_dataset, (np.ndarray, tf.Tensor)):
         # compute batch size and cardinality
         if batch_size is None:
             # no batching, one batch encompass all the dataset
@@ -187,8 +189,8 @@ def harmonize_datasets(
                         + f"But got {type(cases_dataset)} instead."
         # try to import torch and torch.utils.data.DataLoader to treat possible input types
         try:
+            # pylint: disable=import-outside-toplevel
             import torch
-            from torch.utils.data import DataLoader
             from .convert_torch_to_tf import split_and_convert_column_dataloader
         except ImportError as exc:
             raise AttributeError(error_message) from exc
@@ -222,7 +224,7 @@ def harmonize_datasets(
     cases_dataset = sanitize_dataset(cases_dataset, batch_size, cardinality)
     labels_dataset = sanitize_dataset(labels_dataset, batch_size, cardinality)
     targets_dataset = sanitize_dataset(targets_dataset, batch_size, cardinality)
-    
+
     # Prefetch datasets
     cases_dataset = cases_dataset.prefetch(tf.data.AUTOTUNE)
     if labels_dataset is not None:

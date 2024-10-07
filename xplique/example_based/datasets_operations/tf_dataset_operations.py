@@ -103,8 +103,7 @@ def is_shuffled(dataset: Optional[tf.data.Dataset]) -> bool:
     if are_dataset_first_elems_equal(dataset, dataset):
         # test a second time to minimize the risk of false positive
         return not are_dataset_first_elems_equal(dataset, dataset)
-    else:
-        return True
+    return True
 
 
 def batch_size_matches(dataset: Optional[tf.data.Dataset], batch_size: int) -> bool:
@@ -129,7 +128,7 @@ def batch_size_matches(dataset: Optional[tf.data.Dataset], batch_size: int) -> b
     if dataset is None:
         # ignored
         return True
-    
+
     if not is_batched(dataset):
         return False
 
