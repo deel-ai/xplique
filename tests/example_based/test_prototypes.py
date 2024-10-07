@@ -96,7 +96,7 @@ def test_prototypes_global_explanations_basic():
         # for each sample
         for i in range(x_test.shape[0]):
             # check first closest prototype label is the same as the sample label
-            assert tf.reduce_all(tf.equal(labels[i], y_test[i]))
+            assert tf.reduce_all(tf.equal(labels[i, 0], y_test[i]))
 
             for j in range(k):
                 # check prototypes are in the dataset and correspond to the index
