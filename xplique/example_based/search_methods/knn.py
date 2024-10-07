@@ -399,8 +399,9 @@ class FilterKNN(BaseKNN):
         if hasattr(distance, "__call__"):
             self.distance_fn = distance
         else:
+            base_distance_fn = get_distance_function(distance)
             self.distance_fn = lambda x1, x2, m:\
-                tf.where(m, get_distance_function(distance)(x1, x2), self.fill_value)
+                tf.where(m, base_distance_fn(x1, x2), self.fill_value)
 
         if filter_fn is None:
             filter_fn = lambda x, z, y, t: tf.ones((tf.shape(x)[0], tf.shape(z)[0]), dtype=tf.bool)

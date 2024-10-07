@@ -67,7 +67,7 @@ class Projection():
                  device: Optional[str] = None,
                  mappable: bool = False,
                  requires_targets: bool = False):
-        if get_weights is not None or space_projection is not None:
+        if get_weights is None and space_projection is None:
             warnings.warn(
                 "At least one of `get_weights` and `space_projection`"
                 + "should not be `None`. Otherwise the projection is an identity function."

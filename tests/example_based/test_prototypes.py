@@ -21,9 +21,9 @@ def test_prototypes_global_explanations_basic():
     # Setup
     k = 2
     nb_prototypes = 5
-    nb_classes = 2
+    nb_classes = 3
     gamma = 0.026
-    batch_size = 8  # TODO: test avec batch_size plus petite que nb_prototypes
+    batch_size = 8
 
     x_train, y_train = get_gaussian_data(nb_classes=nb_classes, nb_samples_class=20, n_dims=3)
     x_test, y_test = get_gaussian_data(nb_classes=nb_classes, nb_samples_class=6, n_dims=3)
@@ -114,7 +114,6 @@ def test_prototypes_global_sanity_check():
            for n requested prototypes,
            there should be 1 prototype per gaussian.
     """
-    # TODO: the two first prototypes seem to always come from the same class, I should investigate
     # Setup
     k = 2
     nb_prototypes = 3
@@ -148,7 +147,7 @@ def test_prototypes_with_projection():
     nb_prototypes = 10
     nb_classes = 2
     gamma = 0.026
-    batch_size = 8  # TODO: test avec batch_size plus petite que nb_prototypes
+    batch_size = 8
 
     x_train, y_train = get_gaussian_data(nb_classes=nb_classes, nb_samples_class=20, n_dims=3)
     x_test, y_test = get_gaussian_data(nb_classes=nb_classes, nb_samples_class=6, n_dims=3)
