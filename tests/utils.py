@@ -1,7 +1,11 @@
 import signal, time
 
 import numpy as np
+import matplotlib.pyplot as plt
 from sklearn.linear_model import LinearRegression
+from sklearn.datasets import load_svmlight_file
+from pathlib import Path
+from math import ceil
 import tensorflow as tf
 from tensorflow.keras.models import Sequential, Model
 from tensorflow.keras.layers import (Dense, Conv1D, Conv2D, Activation, GlobalAveragePooling1D,
@@ -28,6 +32,14 @@ def generate_model(input_shape=(32, 32, 3), output_shape=10):
     model.add(Dense(output_shape))
     model.add(Activation('softmax'))
     model.compile(loss='categorical_crossentropy', optimizer='sgd')
+
+    return model
+
+def generate_agnostic_model(input_shape=(3,), nb_labels=3):
+    model = Sequential()
+    model.add(Input(input_shape))
+    model.add(Flatten())
+    model.add(Dense(nb_labels))
 
     return model
 
@@ -242,3 +254,21 @@ def download_file(identifier: str,
         for chunk in response.iter_content(chunk_size):
             if chunk:
                 file.write(chunk)
+
+def get_gaussian_data(nb_classes=3, nb_samples_class=20, n_dims=1):
+    tf.random.set_seed(42)
+
+    sigma = 1
+    mu = [10 * (id + 1) for id in range(nb_classes)]
+
+    X = tf.concat([
+        tf.random.normal(shape=(nb_samples_class, n_dims), mean=mu[i], stddev=sigma, dtype=tf.float32)
+        for i in range(nb_classes)
+    ], axis=0)
+
+    y = tf.concat([
+        tf.ones(shape=(nb_samples_class), dtype=tf.int32) * i
+        for i in range(nb_classes)
+    ], axis=0)
+
+    return(X, y)
