@@ -30,5 +30,7 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install tox
-    - name: Test with tox (Python ${{ matrix.python-version }} - TF ${{ matrix.tf-version }})
-      run: tox -e py$(echo ${{ matrix.python-version }}-tf${{ matrix.tf-version }} | tr -d .)
+    - name: Test with tox (Python ${{ matrix.python-version }} - TF ${{ matrix.tf-version }}(-cpu))
+      run: |
+        tox -e py$(echo ${{ matrix.python-version }}-tf${{ matrix.tf-version }} | tr -d .)
+        tox -e py$(echo ${{ matrix.python-version }}-tf${{ matrix.tf-version }}-cpu | tr -d .)

@@ -23,5 +23,10 @@ jobs:
         TWINE_USERNAME: __token__
         TWINE_PASSWORD: ${{ secrets.XPLIQUE_TOKEN }}
       run: |
+        # package classic xplique
         python setup.py sdist bdist_wheel
+        # package xplique-cpu
+        export PACKAGE_CPU=1
+        python setup.py sdist bdist_wheel
+        # publish both
         twine upload dist/*
