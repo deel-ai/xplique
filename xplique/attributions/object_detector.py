@@ -12,7 +12,7 @@ from ..types import Optional, Callable, Union
 from .base import BlackBoxExplainer, WhiteBoxExplainer
 from ..commons import get_gradient_functions
 from ..commons.operators import object_detection_operator
-from ..utils_functions.object_detection import _box_iou, _format_objects
+from ..utils_functions.object_detection.object_detection_operators import _box_iou, _format_objects
 
 
 OLD_OBJECT_DETECTION_DEPRECATION_MESSAGE = """
