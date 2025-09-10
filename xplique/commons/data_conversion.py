@@ -38,8 +38,9 @@ def tensor_sanitize(inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
         targets = [target for _, target in inputs]
         inputs  = [inp for inp, _ in inputs]
 
-    inputs = tf.cast(inputs, tf.float32)
-    targets = tf.cast(targets, tf.float32)
+    ## TODO: why do that ?
+    # inputs = tf.cast(inputs, tf.float32)
+    # targets = tf.cast(targets, tf.float32)
 
     return inputs, targets
 
