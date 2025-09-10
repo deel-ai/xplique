@@ -69,3 +69,13 @@ lab/
 
 # mac os
 .DS_Store
+
+# Ignore some files present in the root folder
+*.jpg
+*.png
+*.tgz
+*.yaml
+runs/
+tests/tests/
+*.pt
+datasets/
