@@ -104,12 +104,20 @@ def plot_attribution(explanation,
     """
     if image is not None:
         image = _normalize(image)
-        plt.imshow(image)
+        if image.shape[-1] == 1:
+            plt.imshow(image[:,:,0], cmap="Greys")
+        else:
+            plt.imshow(image)
 
     if len(explanation.shape) == 4: # images channel are reduced
         explanation = np.mean(explanation, -1)
 
     explanation = _clip_normalize(explanation, clip_percentile, absolute_value)
+
+    # resize the explanation to match the image size
+    if image is not None and image.shape[:2] != explanation.shape[:2]:
+        explanation = tf.image.resize(explanation, image.shape[:2],
+                                      method=tf.image.ResizeMethod.BILINEAR).numpy()
 
     plt.imshow(explanation, cmap=cmap, alpha=alpha, **plot_kwargs)
     plt.axis('off')
@@ -191,14 +199,14 @@ def plot_attributions(
     for i, explanation in enumerate(explanations):
         plt.subplot(rows, cols, i+1)
 
-        if images is not None:
-            img = _normalize(images[i])
-            if img.shape[-1] == 1:
-                plt.imshow(img[:,:,0], cmap="Greys")
-            else:
-                plt.imshow(img)
+        # if images is not None:
+        #     img = _normalize(images[i])
+        #     if img.shape[-1] == 1:
+        #         plt.imshow(img[:,:,0], cmap="Greys")
+        #     else:
+        #         plt.imshow(img)
 
-        plot_attribution(explanation, cmap=cmap, alpha=alpha, clip_percentile=clip_percentile,
+        plot_attribution(explanation, image=images[i], cmap=cmap, alpha=alpha, clip_percentile=clip_percentile,
                          absolute_value=absolute_value, **plot_kwargs)
 
 def plot_maco(image, alpha, percentile_image=1.0, percentile_alpha=80):
