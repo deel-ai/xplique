@@ -5,7 +5,7 @@ Sobol' total order estimators module
 from abc import ABC, abstractmethod
 
 import numpy as np
-
+from sys import float_info
 
 class SobolEstimator(ABC):
     """
@@ -138,12 +138,16 @@ class JansenEstimator(SobolEstimator):
 
         mu_a = np.mean(sampling_a)
         var = np.sum([(v - mu_a)**2 for v in sampling_a]) / (len(sampling_a) - 1)
-
-        stis = [
-            np.sum((sampling_a - replication_c[i])**2.0) / (2 * nb_design * var)
-            for i in range(nb_dim)
-        ]
-
+        if var == 0.0:
+          print("error var == 0.0 !")
+          var = 1.0
+        try:
+          stis = [
+              np.sum((sampling_a - replication_c[i])**2.0) / (2 * nb_design * var)
+              for i in range(nb_dim)
+          ]
+        except RuntimeWarning as e:
+          pass
         return self.post_process(stis, masks)
 
 

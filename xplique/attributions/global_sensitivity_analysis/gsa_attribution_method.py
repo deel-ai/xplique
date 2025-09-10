@@ -86,6 +86,7 @@ class GSABaseAttributionMethod(BlackBoxExplainer):
         sampler: Callable,
         estimator: Callable,
         grid_size: int = 7,
+        nb_channels: int = 1,
         nb_design: int = 32,
         perturbation_function: Optional[Union[Callable, str]] = "inpainting",
         batch_size=256,
@@ -107,8 +108,8 @@ class GSABaseAttributionMethod(BlackBoxExplainer):
         self.sampler = sampler
         self.estimator = estimator
 
-        self.masks = self.sampler(grid_size**2, nb_design).reshape(
-            (-1, grid_size, grid_size, 1)
+        self.masks = self.sampler(grid_size**2 * nb_channels, nb_design).reshape(
+            (-1, grid_size, grid_size, nb_channels)
         )
 
     @sanitize_input_output
