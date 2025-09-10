@@ -4,7 +4,7 @@ Test utils functions for object detection
 
 import numpy as np
 
-from xplique.utils_functions.object_detection import _box_iou
+from xplique.utils_functions.object_detection.object_detection_operators import _box_iou
 
 from ..utils import almost_equal
 
