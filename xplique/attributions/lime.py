@@ -110,7 +110,7 @@ class Lime(BlackBoxExplainer):
         distance_mode: str = "euclidean",
         kernel_width: float = 45.0,
         prob: float = 0.5
-        ): # pylint: disable=R0913
+    ):  # pylint: disable=R0913
 
         if not all(hasattr(interpretable_model, attr) for attr in ['fit', 'predict']):
             raise ValueError(
@@ -125,7 +125,7 @@ class Lime(BlackBoxExplainer):
         if pertub_func is None:
             pertub_func = Lime._get_default_pertub_function(prob)
 
-        if (nb_samples>=500) and (batch_size is None):
+        if (nb_samples >= 500) and (batch_size is None):
             warnings.warn(
                 "You set a number of perturbed samples per input >= 500 and "
                 "batch_size is set to None"
@@ -263,13 +263,20 @@ class Lime(BlackBoxExplainer):
             perturbed_targets = tf.concat(perturbed_targets, axis=0)
             similarities = tf.concat(similarities, axis=0)
 
+            # Convert to numpy for scikit-learn.
+            similarities_np = similarities.numpy()
+            # Check if the weights sum to zero; if so, fall back to uniform weights.
+            if np.sum(similarities_np) == 0:
+                warnings.warn("All similarities are zero. Falling back to uniform weights.")
+                similarities_np = np.ones_like(similarities_np)
+
             # train the interpretable model
             explain_model = self.interpretable_model
 
             explain_model.fit(
                 interpret_samples.numpy(),
                 perturbed_targets.numpy(),
-                sample_weight=similarities.numpy()
+                sample_weight=similarities_np
             )
 
             explanation = explain_model.coef_
@@ -349,7 +356,7 @@ class Lime(BlackBoxExplainer):
         pert_samples = tf.repeat(pert_samples, repeats=sample_masks.shape[0], axis=0)
 
         # if there is channels we need to expand masks dimension
-        if len(original_input.shape)==3:
+        if len(original_input.shape) == 3:
 
             sample_masks = tf.expand_dims(sample_masks, axis=-1)
             sample_masks = tf.repeat(sample_masks, repeats=original_input.shape[-1], axis=-1)
@@ -405,6 +412,7 @@ class Lime(BlackBoxExplainer):
         """
 
         prob = tf.cast(prob, dtype=tf.float32)
+
         @tf.function
         def _default_pertub_function(num_features: Union[int, tf.Tensor],
                                      nb_samples: int) -> tf.Tensor:
@@ -440,60 +448,60 @@ class Lime(BlackBoxExplainer):
 
     @staticmethod
     def _get_exp_kernel_func(
-        distance_mode: str = "euclidean", kernel_width: float = 1.0
+            distance_mode: str = "euclidean", kernel_width: float = 1.0
     ) -> Callable[[tf.Tensor, tf.Tensor, tf.Tensor], tf.Tensor]:
         """
-        This method allow to get the function which compute:
-            exp(-D(original_input,perturbed_sample)^2/kernel_width^2)
-        Where D is the distance defined by distance mode.
+        This method allows one to get a function that computes:
+            exp(-D(original_input, perturbed_sample)^2 / kernel_width^2)
+        Where D is the distance defined by distance_mode.
 
         Parameters
         ----------
         distance_mode
-            Can be either euclidian or cosine
+            Can be either "euclidean" or "cosine".
         kernel_width
-            The size of the kernel
+            The width of the kernel. Must be > 0.
 
         Returns
         -------
         similarity_kernel
-            This callable should return distances between inputs and its perturbed samples
-            (either in original space or in the interpretable space).
+            A callable that returns the similarity between the original input
+            and its perturbed samples.
         """
-        kernel_width = tf.cast(kernel_width,dtype=tf.float32)
+        # Ensure kernel_width is strictly positive to avoid division by zero.
+        if kernel_width <= 0:
+            warnings.warn(
+                "kernel_width must be > 0. Setting kernel_width to a small epsilon value for stability."
+            )
+            kernel_width = 1e-8
 
-        if distance_mode=="euclidean":
+        kernel_width = tf.cast(kernel_width, dtype=tf.float32)
+        safe_denominator = tf.maximum(kernel_width ** 2, 1e-8)  # avoid division by 0
+
+        if distance_mode == "euclidean":
             @tf.function(
-                input_signature = (
-                    tf.TensorSpec(shape=None, dtype=tf.float32),
-                    tf.TensorSpec(shape=[None, None], dtype=tf.int32),
-                    tf.TensorSpec(shape=None, dtype=tf.float32)
+                input_signature=(
+                        tf.TensorSpec(shape=None, dtype=tf.float32),
+                        tf.TensorSpec(shape=[None, None], dtype=tf.int32),
+                        tf.TensorSpec(shape=None, dtype=tf.float32),
                 )
             )
             def _euclidean_similarity_kernel(
-                original_input,
-                interp_samples,
-                perturbed_samples
+                    original_input, interp_samples, perturbed_samples
             ) -> tf.Tensor:
-            # pylint: disable=unused-argument
-
                 augmented_input = tf.expand_dims(original_input, axis=0)
-                augmented_input = tf.repeat(augmented_input, repeats=len(interp_samples), axis=0)
-
-                flatten_inputs = tf.reshape(augmented_input, [len(interp_samples),-1])
-                flatten_samples = tf.reshape(perturbed_samples, [len(interp_samples),-1])
-
+                augmented_input = tf.repeat(augmented_input, repeats=tf.shape(interp_samples)[0], axis=0)
+                flatten_inputs = tf.reshape(augmented_input, [tf.shape(interp_samples)[0], -1])
+                flatten_samples = tf.reshape(perturbed_samples, [tf.shape(interp_samples)[0], -1])
                 distances = tf.norm(flatten_inputs - flatten_samples, ord='euclidean', axis=1)
-
-                similarities = tf.exp(-1.0 * (distances**2) / (kernel_width**2))
-
+                similarities = tf.exp(-1.0 * (distances ** 2) / safe_denominator)
                 return similarities
 
             return _euclidean_similarity_kernel
 
-        if distance_mode=="cosine":
+        if distance_mode == "cosine":
             @tf.function(
-                input_signature = (
+                input_signature=(
                     tf.TensorSpec(shape=None, dtype=tf.float32),
                     tf.TensorSpec(shape=[None, None], dtype=tf.int32),
                     tf.TensorSpec(shape=None, dtype=tf.float32)
@@ -505,21 +513,17 @@ class Lime(BlackBoxExplainer):
                 perturbed_samples
             ) -> tf.Tensor:
             # pylint: disable=unused-argument
-
                 augmented_input = tf.expand_dims(original_input, axis=0)
-                augmented_input = tf.repeat(augmented_input, repeats=len(interp_samples), axis=0)
-
-                flatten_inputs = tf.reshape(augmented_input, [len(interp_samples),-1])
-                flatten_samples = tf.reshape(perturbed_samples, [len(interp_samples),-1])
-
+                augmented_input = tf.repeat(augmented_input, repeats=tf.shape(interp_samples)[0], axis=0)
+                flatten_inputs = tf.reshape(augmented_input, [tf.shape(interp_samples)[0], -1])
+                flatten_samples = tf.reshape(perturbed_samples, [tf.shape(interp_samples)[0], -1])
                 distances = 1.0 - cosine_similarity(flatten_inputs, flatten_samples, axis=1)
-                similarities = tf.exp(-1.0 * (distances**2) / (kernel_width**2))
-
+                similarities = tf.exp(-1.0 * (distances ** 2) / safe_denominator)
                 return similarities
 
             return _cosine_similarity_kernel
 
-        raise ValueError("distance_mode must be either cosine or euclidean.")
+        raise ValueError("distance_mode must be either 'cosine' or 'euclidean'.")
 
     @staticmethod
     def _default_image_map_to_interpret_space(inp: tf.Tensor) -> tf.Tensor:
