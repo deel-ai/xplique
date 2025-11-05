@@ -21,10 +21,13 @@ class TorchWrapper(tf.keras.Model):
         If we are on GPU or CPU
     is_channel_first
         A boolean that is true if the torch's model expect a channel dim and if this one come first
+    requires_grad
+        A boolean that is true if the torch's model requires gradients
     """
 
     def __init__(self, torch_model: "nn.Module", device: Union["torch.device", str],
-                 is_channel_first: Optional[bool] = None
+                 is_channel_first: Optional[bool] = None,
+                 requires_grad: bool = True,
                  ): # pylint: disable=C0415,C0103,W0719
 
         try:
@@ -56,10 +59,13 @@ class TorchWrapper(tf.keras.Model):
             self.channel_first = self._has_conv_layers()
         else:
             self.channel_first = is_channel_first
+        self.requires_grad = requires_grad
         # deactivate all tf.function
         tf.config.run_functions_eagerly(True)
         warnings.warn("TF is set to run eagerly to avoid conflict with PyTorch. Thus,\
                        TF functions might be slower")
+
+
 
     # pylint: disable=arguments-differ
     @tf.custom_gradient
@@ -85,7 +91,7 @@ class TorchWrapper(tf.keras.Model):
         """
         # transform your numpy inputs to torch
         torch_inputs = self.np_img_to_torch(inputs).to(self.device)
-        torch_inputs.requires_grad_(True)
+        torch_inputs.requires_grad_(self.requires_grad)
 
         # make predictions
         self.model.zero_grad()
@@ -109,6 +115,39 @@ class TorchWrapper(tf.keras.Model):
             return gradient
 
         return output_tensor, grad
+    
+        # # in case the model outputs a list instead of a single tensor
+        # is_list_output = isinstance(outputs, (list, tuple))
+        # if is_list_output:
+        #     inputs_list = tf.unstack(inputs)
+        #     output_tensor_gradient_pairs = [self.compute_gradient(input, output) for input, output in zip(inputs_list, outputs)]
+        #     output_tensor, grad = zip(*output_tensor_gradient_pairs)
+        #     # grad must be a callable
+        #     print("Après le zip:", len(output_tensor), len(grad))
+        # else:
+        #     output_tensor, grad = self.compute_gradient(torch_inputs, outputs)
+        # return output_tensor, grad
+      
+    # def compute_gradient(self, torch_inputs, outputs: tf.Tensor) -> tf.Tensor:
+    #     output_tensor = tf.constant(outputs.cpu().detach().numpy())
+
+    #     def grad(upstream):
+    #         self.torch.autograd.backward(
+    #             outputs,
+    #             grad_tensors=self.from_numpy(upstream.numpy()).to(self.device),
+    #             retain_graph=False
+    #         )
+    #         dx_torch = torch_inputs.grad
+
+    #         dx_np = dx_torch.cpu().detach().numpy()
+    #         if self.channel_first:
+    #             # (N, C, H, W) -> (N, H, W, C) for explainer
+    #             dx_np = np.moveaxis(dx_np, [1, 2, 3], [3, 1, 2])
+
+    #         gradient = tf.constant(dx_np)
+    #         return gradient
+
+    #     return output_tensor, grad
 
     def np_img_to_torch(self, np_inputs: np.ndarray):
         """
