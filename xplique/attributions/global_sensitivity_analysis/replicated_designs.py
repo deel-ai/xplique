@@ -6,6 +6,7 @@ from abc import ABC, abstractmethod
 
 import numpy as np
 import tensorflow as tf
+from einops import rearrange, repeat
 import scipy
 
 
@@ -15,32 +16,42 @@ class ReplicatedSampler(ABC):
     """
 
     @staticmethod
-    def build_replicated_design(sampling_a, sampling_b):
+    @tf.function
+    def build_replicated_design(sampling_a: tf.Tensor, sampling_b: tf.Tensor) -> tf.Tensor:
         """
-        Build the replicated design matrix C using A & B
+        Build the replicated design matrix C using A & B via TF and einops.
 
         Parameters
         ----------
-        sampling_a
-          The masks values for the sampling matrix A.
-        sampling_b
-          The masks values for the sampling matrix B.
+        sampling_a : tf.Tensor
+            The masks values for the sampling matrix A, shape (nb_design, d).
+        sampling_b : tf.Tensor
+            The masks values for the sampling matrix B, shape (nb_design, d).
 
         Returns
         -------
-        replication_c
-          The new replicated design matrix C generated from A & B.
+        replication_c : tf.Tensor
+            The replicated design matrix C of shape (nb_design * d, d).
         """
-        replication_c = np.array([sampling_a.copy() for _ in range(sampling_a.shape[-1])])
-        for i in range(len(replication_c)):
-            replication_c[i, :, i] = sampling_b[:, i]
-
-        replication_c = replication_c.reshape((-1, sampling_a.shape[-1]))
+        # Get the number of dimensions (d). (Works in eager or graph mode.)
+        d = tf.shape(sampling_a)[-1]
+        # Create d copies of sampling_a with shape (d, nb_design, d)
+        replication_c = repeat(sampling_a, 'b d -> i b d', i=d)
+        # Similarly, replicate sampling_b to the same shape
+        replication_b = repeat(sampling_b, 'b d -> i b d', i=d)
+        # Create a diagonal mask: shape (d, 1, d) then broadcast to (d, nb_design, d)
+        diag_mask = tf.eye(tf.cast(d, tf.int32), dtype=sampling_a.dtype)  # (d, d)
+        diag_mask = tf.expand_dims(diag_mask, axis=1)  # (d, 1, d)
+        diag_mask = tf.broadcast_to(diag_mask, tf.shape(replication_c))
+        # For each "replication" i, replace the i-th column with sampling_b
+        replication_c = replication_c * (1 - diag_mask) + replication_b * diag_mask
+        # Flatten the first two dimensions so that replication_c has shape (nb_design * d, d)
+        replication_c = rearrange(replication_c, 'i b d -> (i b) d')
 
         return replication_c
 
     @abstractmethod
-    def __call__(self, dimension, nb_design):
+    def __call__(self, dimension: int, nb_design: int) -> tf.Tensor:
         raise NotImplementedError()
 
 
@@ -63,13 +74,15 @@ class TFSobolSequenceRS(ReplicatedSampler):
     integrals (1967).
     https://www.sciencedirect.com/science/article/abs/pii/0041555367901449
     """
+    @tf.function
+    def __call__(self, dimension: int, nb_design: int) -> tf.Tensor:
+        # Generate 2*dimension numbers per design point.
+        sampling_ab = tf.math.sobol_sample(dimension * 2, nb_design, dtype=tf.float32)
+        sampling_a = sampling_ab[:, :dimension]  # (nb_design, dimension)
+        sampling_b = sampling_ab[:, dimension:]  # (nb_design, dimension)
+        replicated_c = ReplicatedSampler.build_replicated_design(sampling_a, sampling_b)
+        return tf.concat([sampling_a, sampling_b, replicated_c], axis=0)
 
-    def __call__(self, dimension, nb_design):
-        sampling_ab = tf.math.sobol_sample(dimension*2, nb_design, dtype=tf.float32).numpy()
-        sampling_a, sampling_b = sampling_ab[:, :dimension], sampling_ab[:, dimension:]
-        replicated_c = self.build_replicated_design(sampling_a, sampling_b)
-
-        return np.concatenate([sampling_a, sampling_b, replicated_c], 0)
 
 
 class ScipySobolSequenceRS(ScipyReplicatedSampler):
