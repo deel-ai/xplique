@@ -107,6 +107,7 @@ class GSABaseAttributionMethod(BlackBoxExplainer):
         masks = self.sampler(grid_size**2, nb_design)
         self.masks = tf.reshape(masks, (-1, grid_size, grid_size, 1))
 
+    @sanitize_input_output
     def explain(
         self,
         inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
