@@ -6,3 +6,4 @@ matplotlib
 scipy
 opencv-python
 deprecated
+einops
