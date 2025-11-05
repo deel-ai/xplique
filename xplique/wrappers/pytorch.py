@@ -21,10 +21,13 @@ class TorchWrapper(tf.keras.Model):
         If we are on GPU or CPU
     is_channel_first
         A boolean that is true if the torch's model expect a channel dim and if this one come first
+    requires_grad
+        A boolean that is true if the torch's model requires gradients
     """
 
     def __init__(self, torch_model: "nn.Module", device: Union["torch.device", str],
-                 is_channel_first: Optional[bool] = None
+                 is_channel_first: Optional[bool] = None,
+                 requires_grad: bool = True,
                  ): # pylint: disable=C0415,C0103,W0719
 
         try:
@@ -56,10 +59,13 @@ class TorchWrapper(tf.keras.Model):
             self.channel_first = self._has_conv_layers()
         else:
             self.channel_first = is_channel_first
+        self.requires_grad = requires_grad
         # deactivate all tf.function
         tf.config.run_functions_eagerly(True)
         warnings.warn("TF is set to run eagerly to avoid conflict with PyTorch. Thus,\
                        TF functions might be slower")
+
+
 
     # pylint: disable=arguments-differ
     @tf.custom_gradient
@@ -85,7 +91,7 @@ class TorchWrapper(tf.keras.Model):
         """
         # transform your numpy inputs to torch
         torch_inputs = self.np_img_to_torch(inputs).to(self.device)
-        torch_inputs.requires_grad_(True)
+        torch_inputs.requires_grad_(self.requires_grad)
 
         # make predictions
         self.model.zero_grad()
