@@ -54,7 +54,7 @@ class PerturbationFunction(Enum):
 class GSABaseAttributionMethod(BlackBoxExplainer):
     """
     GSA base Attribution Method.
-    Base explainer for all the attribution method based on Global Sensitivity Analysis.
+    Base explainer for attribution methods based on Global Sensitivity Analysis.
 
     Parameters
     ----------
@@ -88,30 +88,25 @@ class GSABaseAttributionMethod(BlackBoxExplainer):
         grid_size: int = 7,
         nb_design: int = 32,
         perturbation_function: Optional[Union[Callable, str]] = "inpainting",
-        batch_size=256,
+        batch_size: int = 256,
         operator: Optional[Union[Tasks, str, OperatorSignature]] = None,
     ):
-
         super().__init__(model, batch_size, operator)
 
         self.grid_size = grid_size
         self.nb_design = nb_design
 
         if isinstance(perturbation_function, str):
-            self.perturbation_function = PerturbationFunction.from_string(
-                perturbation_function
-            )
+            self.perturbation_function = PerturbationFunction.from_string(perturbation_function)
         else:
             self.perturbation_function = perturbation_function
 
         self.sampler = sampler
         self.estimator = estimator
 
-        self.masks = self.sampler(grid_size**2, nb_design).reshape(
-            (-1, grid_size, grid_size, 1)
-        )
+        masks = self.sampler(grid_size**2, nb_design)
+        self.masks = tf.reshape(masks, (-1, grid_size, grid_size, 1))
 
-    @sanitize_input_output
     def explain(
         self,
         inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
@@ -138,41 +133,28 @@ class GSABaseAttributionMethod(BlackBoxExplainer):
         attributions_maps
             GSA Attribution Method explanations, same shape as the inputs except for the channels.
         """
-        # pylint: disable=E1101
-
-        input_shape = (inputs.shape[1], inputs.shape[2])
+        input_shape = (tf.shape(inputs)[1], tf.shape(inputs)[2])
         heatmaps = None
 
         for inp, target in zip(inputs, targets):
-
             perturbator = self.perturbation_function(inp)
             outputs = None
 
             for batch_masks in batch_tensor(self.masks, self.batch_size):
-
-                batch_x, batch_y = self._batch_perturbations(
-                    batch_masks, perturbator, target, input_shape
-                )
+                batch_x, batch_y = self._batch_perturbations(batch_masks, perturbator, target, input_shape)
                 batch_outputs = self.inference_function(self.model, batch_x, batch_y)
-
-                outputs = (
-                    batch_outputs
-                    if outputs is None
-                    else tf.concat([outputs, batch_outputs], axis=0)
-                )
+                outputs = batch_outputs if outputs is None else tf.concat([outputs, batch_outputs], axis=0)
 
             heatmap = self.estimator(self.masks, outputs, self.nb_design)
+            if tf.rank(heatmap) == 2:
+                heatmap = heatmap[..., tf.newaxis]
             heatmap = tf.image.resize(heatmap, input_shape, method=tf.image.ResizeMethod.BICUBIC)
-            heatmap = heatmap[tf.newaxis]
-
-            heatmaps = (
-                heatmap if heatmaps is None else tf.concat([heatmaps, heatmap], axis=0)
-            )
+            heatmap = tf.expand_dims(heatmap, axis=0)
+            heatmaps = heatmap if heatmaps is None else tf.concat([heatmaps, heatmap], axis=0)
 
         return heatmaps
 
     @staticmethod
-    @tf.function
     def _batch_perturbations(
         masks: tf.Tensor,
         perturbator: Callable,
