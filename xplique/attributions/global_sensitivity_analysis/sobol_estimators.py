@@ -5,6 +5,57 @@ Sobol' total order estimators module
 from abc import ABC, abstractmethod
 
 import numpy as np
+import tensorflow as tf
+from einops import rearrange
+
+from ...types import Tuple
+
+
+# ----------------------------------
+# Utilities (GPU / XLA friendly)
+# ----------------------------------
+
+EPS = 1e-12
+
+
+def _to_float(x: tf.Tensor, dtype: tf.dtypes.DType = tf.float32) -> tf.Tensor:
+    return tf.cast(x, dtype)
+
+
+def _prod_int(t: tf.Tensor) -> tf.Tensor:
+    """Reduce product for shape tensors (returns int32)."""
+    return tf.reduce_prod(t)
+
+
+def _sample_var_1d(x: tf.Tensor) -> tf.Tensor:
+    """
+    Unbiased sample variance for a 1D tensor (ddof=1).
+    Returns scalar (same dtype as x).
+    """
+    x = _to_float(x)
+    n = tf.cast(tf.size(x), x.dtype)
+    mean = tf.reduce_mean(x)
+    # Sum of squared deviations
+    ssd = tf.reduce_sum(tf.square(x - mean))
+    denom = tf.maximum(n - 1.0, 1.0)  # guard for n=1
+    return ssd / denom
+
+
+def _sample_var_along_last(x: tf.Tensor) -> tf.Tensor:
+    """
+    Unbiased sample variance along the last axis (ddof=1).
+    For input (..., N) -> output (...,)
+    """
+    x = _to_float(x)
+    n = tf.cast(tf.shape(x)[-1], x.dtype)
+    mean = tf.reduce_mean(x, axis=-1, keepdims=True)
+    ssd = tf.reduce_sum(tf.square(x - mean), axis=-1)
+    denom = tf.maximum(n - 1.0, 1.0)
+    return ssd / denom
+
+
+def _mean_along_last(x: tf.Tensor) -> tf.Tensor:
+    return tf.reduce_mean(x, axis=-1)
 
 
 class SobolEstimator(ABC):
@@ -13,7 +64,8 @@ class SobolEstimator(ABC):
     """
 
     @staticmethod
-    def masks_dim(masks):
+    @tf.function(jit_compile=True)
+    def masks_dim(masks: tf.Tensor) -> tf.Tensor:
         """
         Deduce the number of dimensions using the sampling masks.
 
@@ -27,11 +79,15 @@ class SobolEstimator(ABC):
         nb_dim
           The number of dimensions under study according to the masks.
         """
-        nb_dim = np.prod(masks.shape[1:])
+        shape1p = tf.shape(masks)[1:]  # (H, W[, C])
+        nb_dim = _prod_int(shape1p)  # H*W*(C?)
         return nb_dim
 
     @staticmethod
-    def split_abc(outputs, nb_design, nb_dim):
+    @tf.function(jit_compile=True)
+    def split_abc(outputs: tf.Tensor,
+                  nb_design: tf.Tensor,
+                  nb_dim: tf.Tensor) -> Tuple[tf.Tensor, tf.Tensor, tf.Tensor]:
         """
         Split the outputs values into the 3 sampling matrices A, B and C.
 
@@ -53,14 +109,31 @@ class SobolEstimator(ABC):
         c
           The results for the sample points in matrix C.
         """
-        sampling_a = outputs[:nb_design]
-        sampling_b = outputs[nb_design:nb_design*2]
-        replication_c = np.array([outputs[nb_design*2 + nb_design*i:nb_design*2 + nb_design*(i+1)]
-                      for i in range(nb_dim)])
-        return sampling_a, sampling_b, replication_c
+        outputs = tf.convert_to_tensor(outputs)
+        nb_design = tf.cast(nb_design, tf.int32)
+        nb_dim = tf.cast(nb_dim, tf.int32)
+
+        n_total_expected = nb_design * (2 + nb_dim)
+        n_total = tf.shape(outputs)[0]
+
+        # Checks done in-graph (no Python branching):
+        tf.debugging.assert_equal(
+            n_total, n_total_expected,
+            message="outputs length must be nb_design * (2 + nb_dim)"
+        )
+
+        a = outputs[:nb_design]  # (N,)
+        b = outputs[nb_design:nb_design * 2]  # (N,)
+        c_flat = outputs[nb_design * 2:]  # (D*N,)
+
+        # Reshape C to (D, N)
+        c = rearrange(c_flat, '(d n) -> d n', d=nb_dim)
+
+        return a, b, c
 
     @staticmethod
-    def post_process(stis, masks):
+    @tf.function(jit_compile=True)
+    def post_process(stis: tf.Tensor, masks: tf.Tensor) -> tf.Tensor:
         """
         Post processing ops on the indices before sending them back. Makes sure the data
         format and shape is correct.
@@ -77,8 +150,9 @@ class SobolEstimator(ABC):
         stis
           Total order Sobol' indices after post processing.
         """
-        stis = np.array(stis, np.float32)
-        return stis.reshape(masks.shape[1:])
+        stis = tf.convert_to_tensor(stis)
+        target_shape = tf.shape(masks)[1:]  # (H, W[, C])
+        return tf.reshape(stis, target_shape)
 
     @abstractmethod
     def __call__(self, masks, outputs, nb_design):
@@ -114,7 +188,8 @@ class JansenEstimator(SobolEstimator):
     https://www.sciencedirect.com/science/article/abs/pii/S0010465598001544
     """
 
-    def __call__(self, masks, outputs, nb_design):
+    @tf.function(jit_compile=True)
+    def __call__(self, masks: tf.Tensor, outputs: tf.Tensor, nb_design: int) -> tf.Tensor:
         """
         Compute the Sobol' total order indices according to the Jansen algorithm.
 
@@ -134,17 +209,22 @@ class JansenEstimator(SobolEstimator):
           Total order Sobol' indices, one for each dimensions.
         """
         nb_dim = self.masks_dim(masks)
-        sampling_a, _, replication_c = self.split_abc(outputs, nb_design, nb_dim)
+        a, _, c = self.split_abc(outputs, nb_design, nb_dim)  # a:(N,), c:(D,N)
 
-        mu_a = np.mean(sampling_a)
-        var = np.sum([(v - mu_a)**2 for v in sampling_a]) / (len(sampling_a) - 1)
+        a = _to_float(a)
+        c = _to_float(c, a.dtype)
 
-        stis = [
-            np.sum((sampling_a - replication_c[i])**2.0) / (2 * nb_design * var)
-            for i in range(nb_dim)
-        ]
+        var_a = _sample_var_1d(a)
+        var_a = tf.maximum(var_a, tf.constant(EPS, dtype=a.dtype))
 
-        return self.post_process(stis, masks)
+        # (D, N) broadcast: a -> (1, N)
+        diff = a[None, :] - c
+        numerator = tf.reduce_sum(tf.square(diff), axis=-1)  # (D,)
+
+        N = tf.cast(tf.shape(a)[0], a.dtype)
+        st = numerator / (2.0 * N * var_a)  # (D,)
+
+        return self.post_process(st, masks)
 
 
 class HommaEstimator(SobolEstimator):
@@ -155,7 +235,8 @@ class HommaEstimator(SobolEstimator):
     https://www.sciencedirect.com/science/article/abs/pii/0951832096000026
     """
 
-    def __call__(self, masks, outputs, nb_design):
+    @tf.function(jit_compile=True)
+    def __call__(self, masks: tf.Tensor, outputs: tf.Tensor, nb_design: int) -> tf.Tensor:
         """
         Compute the Sobol' total order indices according to the Homma-Saltelli algorithm.
 
@@ -175,17 +256,21 @@ class HommaEstimator(SobolEstimator):
           Total order Sobol' indices, one for each dimensions.
         """
         nb_dim = self.masks_dim(masks)
-        sampling_a, _, replication_c = self.split_abc(outputs, nb_design, nb_dim)
+        a, _, c = self.split_abc(outputs, nb_design, nb_dim)  # a:(N,), c:(D,N)
 
-        mu_a = np.mean(sampling_a)
-        var = np.sum([(v - mu_a)**2 for v in sampling_a]) / (len(sampling_a) - 1)
+        a = _to_float(a)
+        c = _to_float(c, a.dtype)
+        N = tf.cast(tf.shape(a)[0], a.dtype)
 
-        stis = [
-            (var - (1. / nb_design) * np.sum(sampling_a * replication_c[i]) + mu_a**2.0) / var
-            for i in range(nb_dim)
-        ]
+        mu_a = tf.reduce_mean(a)
+        var_a = _sample_var_1d(a)
+        var_a = tf.maximum(var_a, tf.constant(EPS, dtype=a.dtype))
 
-        return self.post_process(stis, masks)
+        # E[A*C_i] = mean over N of elementwise product
+        e_ac = tf.reduce_mean(c * a[None, :], axis=-1)  # (D,)
+
+        st = (var_a - e_ac + tf.square(mu_a)) / var_a  # (D,)
+        return self.post_process(st, masks)
 
 
 class JanonEstimator(SobolEstimator):
@@ -196,7 +281,8 @@ class JanonEstimator(SobolEstimator):
     https://hal.inria.fr/hal-00665048v2/document
     """
 
-    def __call__(self, masks, outputs, nb_design):
+    @tf.function(jit_compile=True)
+    def __call__(self, masks: tf.Tensor, outputs: tf.Tensor, nb_design: int) -> tf.Tensor:
         """
         Compute the Sobol' total order indices according to the Janon algorithm.
 
@@ -216,19 +302,28 @@ class JanonEstimator(SobolEstimator):
           Total order Sobol' indices, one for each dimensions.
         """
         nb_dim = self.masks_dim(masks)
-        sampling_a, _, replication_c = self.split_abc(outputs, nb_design, nb_dim)
+        a, _, c = self.split_abc(outputs, nb_design, nb_dim)  # a:(N,), c:(D,N)
 
-        mu_ac = [(1. / nb_design) * np.sum(sampling_a + replication_c[i]) / 2.
-                 for i in range(nb_dim)]
-        var   = [(1. / (nb_design - 1.)) * np.sum(sampling_a**2. + replication_c[i]**2.) /
-                  2. - mu_ac[i]**2. for i in range(nb_dim)]
+        a = _to_float(a)
+        c = _to_float(c, a.dtype)
 
-        stis = [
-            1. - ((1. / nb_design) * np.sum(sampling_a * replication_c[i]) - mu_ac[i]**2.) / var[i]
-            for i in range(nb_dim)
-        ]
+        N = tf.cast(tf.shape(a)[0], a.dtype)
+        denom_cov = tf.maximum(N - 1.0, 1.0)
 
-        return self.post_process(stis, masks)
+        mu_a = tf.reduce_mean(a)  # scalar
+        mu_c = _mean_along_last(c)  # (D,)
+        mu_ac = 0.5 * (mu_a + mu_c)  # (D,)
+
+        sum_a2 = tf.reduce_sum(tf.square(a))  # scalar
+        sum_c2 = tf.reduce_sum(tf.square(c), axis=-1)  # (D,)
+
+        var = (sum_a2 + sum_c2) / (2.0 * denom_cov) - tf.square(mu_ac)  # (D,)
+        var = tf.maximum(var, tf.constant(EPS, dtype=a.dtype))
+
+        e_ac = tf.reduce_mean(c * a[None, :], axis=-1)  # (D,)
+        st = 1.0 - (e_ac - tf.square(mu_ac)) / var  # (D,)
+
+        return self.post_process(st, masks)
 
 
 class GlenEstimator(SobolEstimator):
@@ -239,7 +334,8 @@ class GlenEstimator(SobolEstimator):
     https://dl.acm.org/doi/abs/10.1016/j.envsoft.2012.03.014
     """
 
-    def __call__(self, masks, outputs, nb_design):
+    @tf.function(jit_compile=True)
+    def __call__(self, masks: tf.Tensor, outputs: tf.Tensor, nb_design: int) -> tf.Tensor:
         """
         Compute the Sobol' total order indices according to the Glen-Isaacs algorithm.
 
@@ -259,21 +355,32 @@ class GlenEstimator(SobolEstimator):
           Total order Sobol' indices, one for each dimensions.
         """
         nb_dim = self.masks_dim(masks)
-        sampling_a, _, replication_c = self.split_abc(outputs, nb_design, nb_dim)
+        a, _, c = self.split_abc(outputs, nb_design, nb_dim)  # a:(N,), c:(D,N)
 
-        mu_a = np.mean(sampling_a)
-        mu_c = [np.mean(ci) for ci in replication_c]
+        a = _to_float(a)
+        c = _to_float(c, a.dtype)
 
-        var_a = np.var(sampling_a)
-        var_c = [np.var(ci) for ci in replication_c]
+        N = tf.cast(tf.shape(a)[0], a.dtype)
+        denom = tf.maximum(N - 1.0, 1.0)
 
-        stis = [
-            1.0 - (1. / (nb_design - 1.) * np.sum((sampling_a - mu_a) *
-                  (replication_c[i] - mu_c[i])) / (var_a * var_c[i])**0.5)
-            for i in range(nb_dim)
-        ]
+        mu_a = tf.reduce_mean(a)  # scalar
+        mu_c = _mean_along_last(c)  # (D,)
 
-        return self.post_process(stis, masks)
+        a_c = a - mu_a  # (N,)
+        c_c = c - mu_c[:, None]  # (D, N)
+
+        cov = tf.reduce_sum(a_c[None, :] * c_c, axis=-1) / denom  # (D,)
+
+        var_a = _sample_var_1d(a)  # scalar
+        var_c = _sample_var_along_last(c)  # (D,)
+
+        var_a = tf.maximum(var_a, tf.constant(EPS, dtype=a.dtype))
+        var_c = tf.maximum(var_c, tf.constant(EPS, dtype=a.dtype))
+
+        corr = cov / tf.sqrt(var_a * var_c)  # (D,)
+        st = 1.0 - corr  # (D,)
+
+        return self.post_process(st, masks)
 
 
 class SaltelliEstimator(SobolEstimator):
@@ -284,7 +391,8 @@ class SaltelliEstimator(SobolEstimator):
     https://onlinelibrary.wiley.com/doi/book/10.1002/9780470725184
     """
 
-    def __call__(self, masks, outputs, nb_design):
+    @tf.function(jit_compile=True)
+    def __call__(self, masks: tf.Tensor, outputs: tf.Tensor, nb_design: int) -> tf.Tensor:
         """
         Compute the Sobol' total order indices according to the Saltelli algorithm.
 
@@ -304,14 +412,16 @@ class SaltelliEstimator(SobolEstimator):
           Total order Sobol' indices, one for each dimensions.
         """
         nb_dim = self.masks_dim(masks)
-        sampling_a, _, replication_c = self.split_abc(outputs, nb_design, nb_dim)
+        a, _, c = self.split_abc(outputs, nb_design, nb_dim)  # a:(N,), c:(D,N)
 
-        mu_a = np.mean(sampling_a)
-        var = np.sum([(v - mu_a)**2 for v in sampling_a]) / (len(sampling_a) - 1)
+        a = _to_float(a)
+        c = _to_float(c, a.dtype)
 
-        stis = [
-            1. - ((1. / nb_design) * np.sum(sampling_a * replication_c[i]) - mu_a**2.) / var
-            for i in range(nb_dim)
-        ]
+        mu_a = tf.reduce_mean(a)
+        var_a = _sample_var_1d(a)
+        var_a = tf.maximum(var_a, tf.constant(EPS, dtype=a.dtype))
 
-        return self.post_process(stis, masks)
+        e_ac = tf.reduce_mean(c * a[None, :], axis=-1)  # (D,)
+        st = 1.0 - (e_ac - tf.square(mu_a)) / var_a  # (D,)
+
+        return self.post_process(st, masks)
