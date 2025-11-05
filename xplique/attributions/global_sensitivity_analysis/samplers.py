@@ -8,35 +8,27 @@ import numpy as np
 import tensorflow as tf
 import scipy
 
+from ...types import Union
+
 
 class Sampler(ABC):
     """
     Base class for sampling.
     """
 
-    def __init__(self, binary=False):
+    def __init__(self, binary: bool = False):
         self.binary = binary
 
     @abstractmethod
-    def __call__(self, dimension, nb_design) -> np.ndarray:
+    def __call__(self, dimension, nb_design) -> Union[tf.Tensor, np.ndarray]:
         raise NotImplementedError()
 
     @staticmethod
-    def make_binary(masks):
+    def make_binary(masks: Union[tf.Tensor, np.ndarray]) -> tf.Tensor:
         """
-        Transform [0, 1]^d Masks into binary {0, 1}^d masks.
-
-        Parameters
-        ----------
-        masks
-            Low resolution masks (before upsampling).
-
-        Returns
-        -------
-        masks
-            Binary masks.
+        Transform [0, 1]^d masks into binary {0, 1}^d masks.
         """
-        return np.round(masks)
+        return tf.round(masks)
 
 
 class ScipySampler(Sampler):
@@ -58,18 +50,14 @@ class ScipySampler(Sampler):
 class TFSobolSequence(Sampler):
     """
     Tensorflow Sobol LP tau sequence sampler.
-
-    Ref. I. M. Sobol., The distribution of points in a cube and the accurate evaluation of
-    integrals (1967).
+    Ref. I. M. Sobol., The distribution of points in a cube and the accurate evaluation of integrals (1967)
     https://www.sciencedirect.com/science/article/abs/pii/0041555367901449
     """
 
-    def __call__(self, dimension, nb_design):
-
-        points = tf.math.sobol_sample(dimension, nb_design, dtype=tf.float32).numpy()
+    def __call__(self, dimension, nb_design) -> tf.Tensor:
+        points = tf.math.sobol_sample(dimension, nb_design, dtype=tf.float32)
         if self.binary:
             points = self.make_binary(points)
-
         return points
 
 
