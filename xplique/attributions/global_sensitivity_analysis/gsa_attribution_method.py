@@ -161,7 +161,7 @@ class GSABaseAttributionMethod(BlackBoxExplainer):
         perturbator: Callable,
         target: tf.Tensor,
         input_shape: Tuple[int, int],
-    ) -> Union[tf.Tensor, tf.Tensor]:
+    ) -> Tuple[tf.Tensor, tf.Tensor]:
         """
         Prepare perturbated input and replicated targets before a batch inference.
 
