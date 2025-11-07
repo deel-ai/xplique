@@ -24,9 +24,11 @@ class SobolAttributionMethod(GSABaseAttributionMethod):
         Model used for computing explanations.
     grid_size
         Cut the image in a grid of (grid_size, grid_size) to estimate an indice per cell.
+    nb_channels
+        Number of channels in the masks generation. Default is 1.
     nb_design
         Must be a power of two. Number of design, the number of forward
-        will be: nb_design * (grid_size**2 + 2). Generally not above 32.
+        will be: nb_design * (grid_size**2 * nb_channels + 2). Generally not above 32.
     sampler
         Sampler used to generate the (quasi-)monte carlo samples, QMC (sobol sequence
         recommended). For more option, see the sampler module.
@@ -48,6 +50,7 @@ class SobolAttributionMethod(GSABaseAttributionMethod):
         self,
         model,
         grid_size: int = 8,
+        nb_channels: int = 1,
         nb_design: int = 32,
         sampler: Optional[ReplicatedSampler] = None,
         estimator: Optional[SobolEstimator] = None,
@@ -75,6 +78,7 @@ class SobolAttributionMethod(GSABaseAttributionMethod):
             sampler=sampler,
             estimator=estimator,
             grid_size=grid_size,
+            nb_channels=nb_channels,
             nb_design=nb_design,
             perturbation_function=perturbation_function,
             batch_size=batch_size,
