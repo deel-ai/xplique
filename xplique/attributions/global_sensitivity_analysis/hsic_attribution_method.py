@@ -28,6 +28,8 @@ class HsicAttributionMethod(GSABaseAttributionMethod):
         Model used for computing explanations.
     grid_size
         Cut the image in a grid of (grid_size, grid_size) to estimate an indice per cell.
+    nb_channels
+        Number of channels in the masks generation. Default is 1.
     nb_design
         Number of design for the sampler.
     sampler
@@ -55,6 +57,7 @@ class HsicAttributionMethod(GSABaseAttributionMethod):
         self,
         model,
         grid_size: int = 8,
+        nb_channels: int = 1,
         nb_design: int = 500,
         sampler: Optional[Sampler] = None,
         estimator: Optional[HsicEstimator] = None,
@@ -80,6 +83,7 @@ class HsicAttributionMethod(GSABaseAttributionMethod):
             sampler=sampler,
             estimator=estimator,
             grid_size=grid_size,
+            nb_channels=nb_channels,
             nb_design=nb_design,
             perturbation_function=perturbation_function,
             batch_size=batch_size,
