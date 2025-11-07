@@ -62,9 +62,11 @@ class GSABaseAttributionMethod(BlackBoxExplainer):
         Model used for computing explanations.
     grid_size
         Cut the image in a grid of (grid_size, grid_size) to estimate an indice per cell.
+    nb_channels
+        Number of channels in the masks generation. Default is 1.
     nb_design
         Must be a power of two. Number of design, the number of forward
-        will be: nb_design * (grid_size**2 + 2). Generally not above 32.
+        will be: nb_design * (grid_size**2 * nb_channels + 2). Generally not above 32.
     sampler
         Sampler function to call to generate masks.
     estimator
@@ -86,6 +88,7 @@ class GSABaseAttributionMethod(BlackBoxExplainer):
         sampler: Callable,
         estimator: Callable,
         grid_size: int = 7,
+        nb_channels: int = 1,
         nb_design: int = 32,
         perturbation_function: Optional[Union[Callable, str]] = "inpainting",
         batch_size=256,
@@ -107,8 +110,8 @@ class GSABaseAttributionMethod(BlackBoxExplainer):
         self.sampler = sampler
         self.estimator = estimator
 
-        self.masks = self.sampler(grid_size**2, nb_design).reshape(
-            (-1, grid_size, grid_size, 1)
+        self.masks = self.sampler(grid_size**2 * nb_channels, nb_design).reshape(
+            (-1, grid_size, grid_size, nb_channels)
         )
 
     @sanitize_input_output
