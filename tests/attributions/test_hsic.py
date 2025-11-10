@@ -1,6 +1,7 @@
 import pytest
 import numpy as np
 import tensorflow as tf
+import tensorflow_probability as tfp
 
 from xplique.attributions import HsicAttributionMethod
 from xplique.attributions.global_sensitivity_analysis import (
@@ -8,6 +9,7 @@ from xplique.attributions.global_sensitivity_analysis import (
     BinaryEstimator,
     RbfEstimator,
 )
+from xplique.attributions.global_sensitivity_analysis.kernels import Kernel
 from ..utils import generate_data, generate_model, almost_equal
 
 
@@ -133,4 +135,61 @@ def test_hsic_detects_dependent_dimension(Estimator):
     scores_hw = np.transpose(scores, (1,0,2)).reshape(H)  # back to [H] order
     assert np.argmax(scores_hw) == 0
     assert scores_hw[0] > scores_hw[1] + 1e-3
+
+
+def test_output_rbf_width_tfp_matches_numpy():
+    rng = np.random.default_rng(0)
+    n = 25
+    Y_np = rng.normal(size=(n,1)).astype(np.float32)
+
+    w_np = np.percentile(Y_np, 50.0).astype(np.float32)
+    w_tf = tf.cast(tfp.stats.percentile(tf.convert_to_tensor(Y_np), 50.0, interpolation='linear'), tf.float32)
+
+    # Build same Gram using each width
+    X = tf.convert_to_tensor(Y_np)
+    G_np = Kernel.from_string("rbf")(X, tf.transpose(X), width=tf.constant(w_np))
+    G_tf = Kernel.from_string("rbf")(X, tf.transpose(X), width=w_tf)
+
+    assert np.allclose(G_np.numpy(), G_tf.numpy(), atol=1e-6)
+
+
+def test_rbf_kernel_symmetry_and_range():
+    rng = tf.random.Generator.from_seed(99)
+    n = 20
+    X = tf.expand_dims(rng.normal((n,), dtype=tf.float32), 1)  # (n,1)
+    width = tf.constant(0.7, tf.float32)
+    K = Kernel.from_string("rbf")(X, tf.transpose(X), width=width)  # (n,n)
+    assert K.shape == (n, n)
+    assert tf.reduce_all(K >= 0.0)
+    assert np.allclose(K.numpy(), K.numpy().T, atol=1e-6)
+    assert float(tf.linalg.diag_part(K).numpy().min()) <= 1.0 + 1e-6
+
+
+def test_binary_kernel_values():
+    # For x,y in {0,1}: K = 0.5 - (x - y)^2
+    X = tf.constant([[0.],[0.],[1.],[1.]], tf.float32)
+    K = Kernel.from_string("binary")(X, tf.transpose(X))  # (4,4)
+    expected = np.array([
+        [0.5, 0.5, -0.5, -0.5],
+        [0.5, 0.5, -0.5, -0.5],
+        [-0.5, -0.5, 0.5, 0.5],
+        [-0.5, -0.5, 0.5, 0.5],
+    ], dtype=np.float32)
+    assert np.allclose(K.numpy(), expected, atol=1e-6)
+
+
+def test_attributions_stable_across_estimator_batch_size():
+    input_shape = (20, 20, 3)
+    nb_labels = 5
+    x, y = generate_data(input_shape, nb_labels, samples=6)
+    model = generate_model(input_shape, nb_labels)
+
+    m_small = HsicAttributionMethod(model, grid_size=3, nb_design=12, estimator_batch_size=2)
+    m_large = HsicAttributionMethod(model, grid_size=3, nb_design=12, estimator_batch_size=10**6)
+
+    map_small = m_small.explain(x, y).numpy()
+    map_large = m_large.explain(x, y).numpy()
+
+    assert np.allclose(map_small, map_large, rtol=1e-5, atol=1e-6)
+
 
