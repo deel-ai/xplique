@@ -4,27 +4,13 @@ Sobol' total order estimators module
 
 from abc import ABC, abstractmethod
 
-import numpy as np
 import tensorflow as tf
 from einops import rearrange
 
 from ...types import Tuple
 
 
-# ----------------------------------
-# Utilities (GPU / XLA friendly)
-# ----------------------------------
-
 EPS = 1e-12
-
-
-def _to_float(x: tf.Tensor, dtype: tf.dtypes.DType = tf.float32) -> tf.Tensor:
-    return tf.cast(x, dtype)
-
-
-def _prod_int(t: tf.Tensor) -> tf.Tensor:
-    """Reduce product for shape tensors (returns int32)."""
-    return tf.reduce_prod(t)
 
 
 def _sample_var_1d(x: tf.Tensor) -> tf.Tensor:
@@ -32,7 +18,7 @@ def _sample_var_1d(x: tf.Tensor) -> tf.Tensor:
     Unbiased sample variance for a 1D tensor (ddof=1).
     Returns scalar (same dtype as x).
     """
-    x = _to_float(x)
+    x = tf.cast(x, dtype=tf.float32)
     n = tf.cast(tf.size(x), x.dtype)
     mean = tf.reduce_mean(x)
     # Sum of squared deviations
@@ -46,16 +32,12 @@ def _sample_var_along_last(x: tf.Tensor) -> tf.Tensor:
     Unbiased sample variance along the last axis (ddof=1).
     For input (..., N) -> output (...,)
     """
-    x = _to_float(x)
+    x = tf.cast(x, dtype=tf.float32)
     n = tf.cast(tf.shape(x)[-1], x.dtype)
     mean = tf.reduce_mean(x, axis=-1, keepdims=True)
     ssd = tf.reduce_sum(tf.square(x - mean), axis=-1)
     denom = tf.maximum(n - 1.0, 1.0)
     return ssd / denom
-
-
-def _mean_along_last(x: tf.Tensor) -> tf.Tensor:
-    return tf.reduce_mean(x, axis=-1)
 
 
 class SobolEstimator(ABC):
@@ -80,7 +62,7 @@ class SobolEstimator(ABC):
           The number of dimensions under study according to the masks.
         """
         shape1p = tf.shape(masks)[1:]  # (H, W[, C])
-        nb_dim = _prod_int(shape1p)  # H*W*(C?)
+        nb_dim = tf.reduce_prod(shape1p)  # H*W*(C?)
         return nb_dim
 
     @staticmethod
@@ -211,8 +193,8 @@ class JansenEstimator(SobolEstimator):
         nb_dim = self.masks_dim(masks)
         a, _, c = self.split_abc(outputs, nb_design, nb_dim)  # a:(N,), c:(D,N)
 
-        a = _to_float(a)
-        c = _to_float(c, a.dtype)
+        a = tf.cast(a, dtype=tf.float32)
+        c = tf.cast(c, dtype=tf.float32)
 
         var_a = _sample_var_1d(a)
         var_a = tf.maximum(var_a, tf.constant(EPS, dtype=a.dtype))
@@ -258,9 +240,8 @@ class HommaEstimator(SobolEstimator):
         nb_dim = self.masks_dim(masks)
         a, _, c = self.split_abc(outputs, nb_design, nb_dim)  # a:(N,), c:(D,N)
 
-        a = _to_float(a)
-        c = _to_float(c, a.dtype)
-        N = tf.cast(tf.shape(a)[0], a.dtype)
+        a = tf.cast(a, dtype=tf.float32)
+        c = tf.cast(c, dtype=tf.float32)
 
         mu_a = tf.reduce_mean(a)
         var_a = _sample_var_1d(a)
@@ -304,14 +285,14 @@ class JanonEstimator(SobolEstimator):
         nb_dim = self.masks_dim(masks)
         a, _, c = self.split_abc(outputs, nb_design, nb_dim)  # a:(N,), c:(D,N)
 
-        a = _to_float(a)
-        c = _to_float(c, a.dtype)
+        a = tf.cast(a, dtype=tf.float32)
+        c = tf.cast(c, dtype=tf.float32)
 
         N = tf.cast(tf.shape(a)[0], a.dtype)
         denom_cov = tf.maximum(N - 1.0, 1.0)
 
         mu_a = tf.reduce_mean(a)  # scalar
-        mu_c = _mean_along_last(c)  # (D,)
+        mu_c = tf.reduce_mean(c, axis=-1)  # (D,)
         mu_ac = 0.5 * (mu_a + mu_c)  # (D,)
 
         sum_a2 = tf.reduce_sum(tf.square(a))  # scalar
@@ -357,14 +338,14 @@ class GlenEstimator(SobolEstimator):
         nb_dim = self.masks_dim(masks)
         a, _, c = self.split_abc(outputs, nb_design, nb_dim)  # a:(N,), c:(D,N)
 
-        a = _to_float(a)
-        c = _to_float(c, a.dtype)
+        a = tf.cast(a, dtype=tf.float32)
+        c = tf.cast(c, dtype=tf.float32)
 
         N = tf.cast(tf.shape(a)[0], a.dtype)
         denom = tf.maximum(N - 1.0, 1.0)
 
         mu_a = tf.reduce_mean(a)  # scalar
-        mu_c = _mean_along_last(c)  # (D,)
+        mu_c = tf.reduce_mean(c, axis=-1)  # (D,)
 
         a_c = a - mu_a  # (N,)
         c_c = c - mu_c[:, None]  # (D, N)
@@ -414,8 +395,8 @@ class SaltelliEstimator(SobolEstimator):
         nb_dim = self.masks_dim(masks)
         a, _, c = self.split_abc(outputs, nb_design, nb_dim)  # a:(N,), c:(D,N)
 
-        a = _to_float(a)
-        c = _to_float(c, a.dtype)
+        a = tf.cast(a, dtype=tf.float32)
+        c = tf.cast(c, dtype=tf.float32)
 
         mu_a = tf.reduce_mean(a)
         var_a = _sample_var_1d(a)
