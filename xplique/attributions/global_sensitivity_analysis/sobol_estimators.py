@@ -7,7 +7,7 @@ from abc import ABC, abstractmethod
 import tensorflow as tf
 from einops import rearrange
 
-from ...types import Tuple
+from ...types import Tuple, Union
 
 
 EPS = 1e-12
@@ -68,7 +68,7 @@ class SobolEstimator(ABC):
     @staticmethod
     @tf.function(jit_compile=True)
     def split_abc(outputs: tf.Tensor,
-                  nb_design: tf.Tensor,
+                  nb_design: Union[tf.Tensor, int],
                   nb_dim: tf.Tensor) -> Tuple[tf.Tensor, tf.Tensor, tf.Tensor]:
         """
         Split the outputs values into the 3 sampling matrices A, B and C.
