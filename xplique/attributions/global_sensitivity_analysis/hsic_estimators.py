@@ -8,12 +8,12 @@ from functools import partial
 
 import tensorflow as tf
 import tensorflow_probability as tfp
-import numpy as np
 from einops import rearrange
 
 from .kernels import Kernel
 
 from ...commons import batch_tensor
+from ...types import Union
 
 
 class HsicEstimator(ABC):
@@ -115,7 +115,8 @@ class HsicEstimator(ABC):
             self.batch_size = batch_size
 
     # We do not decorate this with @tf.function to avoid retracing due to dynamic shapes.
-    def estimator(self, masks: tf.Tensor, L: tf.Tensor, nb_dim: tf.Tensor, nb_design: int) -> tf.Tensor:
+    def estimator(self, masks: tf.Tensor, L: tf.Tensor,
+                  nb_dim: Union[int, tf.Tensor], nb_design: Union[int, tf.Tensor]) -> tf.Tensor:
         """
         tf operations related to the estimator for performances
 
@@ -165,7 +166,7 @@ class HsicEstimator(ABC):
 
         return scores
 
-    def __call__(self, masks, outputs, nb_design):
+    def __call__(self, masks: tf.Tensor, outputs: tf.Tensor, nb_design: Union[int, tf.Tensor]) -> tf.Tensor:
         """
         Compute the test statistic using a self.output_kernel_func kernel for the output
         and self.input_kernel_func for the input, to be defined in child classes
