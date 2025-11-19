@@ -431,6 +431,7 @@ def test_latent_extractor_saliency(image_data, dataset_classes,
     operator = xplique.Tasks.OBJECT_DETECTION
     explainer = Saliency(torch_wrapped_model, operator=operator, batch_size=1)
     explanation = explainer.explain(input_tensor_tf_dim, targets=box_to_explain)
+    assert explanation.shape == (1, 800, 800, 1)
 
 @pytest.fixture(scope="session")
 def craft_data(image_data, latent_extractor_data, device_param):
