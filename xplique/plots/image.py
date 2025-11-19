@@ -72,6 +72,44 @@ def _clip_normalize(explanation: Union[tf.Tensor, np.ndarray],
     return explanation
 
 
+def generate_heatmap(explanation,
+                     size: tuple,
+                     clip_percentile: Optional[float] = 0.1,
+                     absolute_value: bool = False) -> np.ndarray:
+    """
+    Generate a heatmap from the explanation to a specified 2d size.
+
+    Parameters
+    ----------
+    explanation
+        Attribution / heatmap to plot.
+    size
+        Target size of the heatmap (height, width).
+    clip_percentile
+        Percentile value to use if clipping is needed, e.g a value of 1 will perform a clipping
+        between percentile 1 and 99. This parameter allows to avoid outliers in case of too
+        extreme values.
+    absolute_value
+        Whether an absolute value is applied to the explanations.
+
+    Returns
+    -------
+    heatmap
+        The generated heatmap as a numpy array.
+    """
+    if len(explanation.shape) == 4:
+        raise ValueError("Explanation should be 2D or 3D (with channels reduced), "
+                         f"got shape {explanation.shape}.")
+
+    heatmap = _clip_normalize(explanation, clip_percentile, absolute_value)
+
+    # resize the explanation to match the image size
+    if size is not None and size != heatmap.shape[:2]:
+        heatmap = tf.image.resize(heatmap, size,
+                                  method=tf.image.ResizeMethod.BILINEAR).numpy()
+    return heatmap
+
+
 def plot_attribution(explanation,
                       image: Optional[np.ndarray] = None,
                       cmap: str = "jet",
@@ -104,12 +142,18 @@ def plot_attribution(explanation,
     """
     if image is not None:
         image = _normalize(image)
-        plt.imshow(image)
+        if image.shape[-1] == 1:
+            plt.imshow(image[:, :, 0], cmap="Greys")
+        else:
+            plt.imshow(image)
 
     if len(explanation.shape) == 4: # images channel are reduced
         explanation = np.mean(explanation, -1)
 
-    explanation = _clip_normalize(explanation, clip_percentile, absolute_value)
+    explanation = generate_heatmap(explanation,
+                                   size=image.shape[:2] if image is not None else None,
+                                   clip_percentile=clip_percentile,
+                                   absolute_value=absolute_value)
 
     plt.imshow(explanation, cmap=cmap, alpha=alpha, **plot_kwargs)
     plt.axis('off')
@@ -190,16 +234,14 @@ def plot_attributions(
 
     for i, explanation in enumerate(explanations):
         plt.subplot(rows, cols, i+1)
-
-        if images is not None:
-            img = _normalize(images[i])
-            if img.shape[-1] == 1:
-                plt.imshow(img[:,:,0], cmap="Greys")
-            else:
-                plt.imshow(img)
-
-        plot_attribution(explanation, cmap=cmap, alpha=alpha, clip_percentile=clip_percentile,
-                         absolute_value=absolute_value, **plot_kwargs)
+        plot_attribution(
+            explanation,
+            image=images[i] if images is not None else None,
+            cmap=cmap,
+            alpha=alpha,
+            clip_percentile=clip_percentile,
+            absolute_value=absolute_value,
+            **plot_kwargs)
 
 def plot_maco(image, alpha, percentile_image=1.0, percentile_alpha=80):
     """
