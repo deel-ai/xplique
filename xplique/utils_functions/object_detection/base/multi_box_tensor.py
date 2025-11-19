@@ -5,13 +5,15 @@ This module defines the MultiBoxTensor Protocol, which provides a common interfa
 for tensors containing multiple detection boxes across different frameworks (TensorFlow, PyTorch).
 """
 
-from typing import Any, Optional, Protocol, runtime_checkable
+from typing import Any, Protocol, runtime_checkable
+
+from xplique.commons.prediction_types import StructuredPrediction
 
 # pylint: disable=unnecessary-ellipsis
 
 
 @runtime_checkable
-class BaseMultiBoxTensor(Protocol):
+class BaseMultiBoxTensor(StructuredPrediction, Protocol):
     """
     Protocol for tensors containing multiple detection boxes.
 
@@ -58,38 +60,5 @@ class BaseMultiBoxTensor(Protocol):
         -------
         tensor
             Class probabilities or one-hot encoded class predictions.
-        """
-        ...
-
-    def filter(
-        self, class_id: Optional[int] = None, confidence: Optional[float] = None
-    ) -> "BaseMultiBoxTensor":
-        """
-        Filter boxes by class_id and/or confidence threshold.
-
-        Parameters
-        ----------
-        class_id
-            Optional class ID to filter boxes by.
-        confidence
-            Optional minimum detection score threshold.
-
-        Returns
-        -------
-        MultiBoxTensor
-            Filtered tensor containing only boxes matching the criteria.
-        """
-        ...
-
-    def to_batched_tensor(self) -> Any:
-        """
-        Add batch dimension to MultiBoxTensor.
-
-        Converts (num_boxes, features) -> (1, num_boxes, features)
-
-        Returns
-        -------
-        tensor
-            Tensor with added batch dimension.
         """
         ...

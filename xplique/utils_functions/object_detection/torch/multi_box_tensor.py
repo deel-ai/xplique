@@ -2,12 +2,16 @@
 PyTorch implementation of MultiBoxTensor for object detection predictions.
 
 This module provides a PyTorch tensor subclass for multi-box detection predictions
-with a unified format.
+with a unified format. Due to metaclass conflicts with torch.Tensor, this class
+cannot explicitly inherit from the StructuredPrediction protocol but implements its
+interface via structural typing (duck typing).
 """
 
 from typing import Optional
 
 import torch
+
+from xplique.utils_functions.object_detection.base.multi_box_tensor import BaseMultiBoxTensor
 
 
 class TorchMultiBoxTensor(torch.Tensor):
@@ -19,12 +23,15 @@ class TorchMultiBoxTensor(torch.Tensor):
     and class predictions. The encoding is: 4 coordinates + 1 objectness + nb_classes.
     For example, (9, 85) represents 9 boxes with 80 classes (COCO dataset).
 
-    Methods:
+    Note: This class implements the MultiBoxTensor protocol via structural typing.
+    The class complies with the protocol by implementing:
+    - to_batched_tensor(): Adds batch dimension
+    - filter(class_id, confidence): Filters boxes by class/score
+
+    Additional object detection methods:
     - boxes(): Extract box coordinates
     - scores(): Extract objectness scores
     - probas(): Extract class probabilities
-    - filter(class_id, accuracy): Filters boxes by class/score
-    - to_batched_tensor(): Adds batch dimension
     """
 
     def __format__(self, format_spec: str) -> str:
@@ -125,3 +132,11 @@ class TorchMultiBoxTensor(torch.Tensor):
             torch.Tensor with batch dimension added
         """
         return torch.unsqueeze(self, dim=0)
+
+
+# Verify structural compliance with BaseMultiBoxTensor protocol at import time.
+# TorchMultiBoxTensor cannot explicitly inherit from BaseMultiBoxTensor due to a
+# metaclass conflict between torch.Tensor (_TensorMeta) and Protocol (_ProtocolMeta).
+assert issubclass(TorchMultiBoxTensor, BaseMultiBoxTensor), (
+    "TorchMultiBoxTensor must structurally satisfy the BaseMultiBoxTensor protocol"
+)
