@@ -4,7 +4,7 @@ Base classes for latent extraction in deep learning models.
 
 import contextlib
 from abc import ABC, abstractmethod
-from typing import Any, Callable, NamedTuple, Optional, Union
+from typing import Any, Callable, Generator, NamedTuple, Optional, Union
 
 import numpy as np
 
@@ -146,6 +146,29 @@ class LatentExtractor(ABC):
         ------
         NotImplementedError
             This method must be implemented by subclasses
+        """
+        raise NotImplementedError("This method should be implemented in subclasses.")
+
+    @abstractmethod
+    def input_to_latent_generator(
+        self, inputs, resize: Optional[tuple] = None, keep_gradients: bool = False
+    ) -> Generator[LatentData, None, None]:
+        """
+        Generator that yields latent data batch by batch.
+
+        Parameters
+        ----------
+        inputs
+            Input images as PyTorch tensors.
+        resize
+            Optional target size for resizing inputs. Default is None.
+        keep_gradients
+            If True, preserve gradients during processing. Default is False.
+
+        Yields
+        ------
+        latent_data
+            LatentData object for each batch, with automatic memory management.
         """
         raise NotImplementedError("This method should be implemented in subclasses.")
 
