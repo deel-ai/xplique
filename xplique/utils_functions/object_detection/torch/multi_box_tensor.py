@@ -2,7 +2,9 @@
 PyTorch implementation of MultiBoxTensor for object detection predictions.
 
 This module provides a PyTorch tensor subclass for multi-box detection predictions
-with a unified format.
+with a unified format. Due to metaclass conflicts with torch.Tensor, this class
+cannot explicitly inherit from the StructuredPrediction protocol but implements its
+interface via structural typing (duck typing).
 """
 
 from typing import Optional
@@ -18,13 +20,17 @@ class MultiBoxTensor(torch.Tensor):
     (B, C) where B is the number of boxes and C encodes box coordinates, objectness score,
     and class predictions. The encoding is: 4 coordinates + 1 objectness + nb_classes.
     For example, (9, 85) represents 9 boxes with 80 classes (COCO dataset).
+
+    Note: This class implements the StructuredPrediction protocol (see
+    xplique.commons.prediction_types.StructuredPrediction) via structural typing.
+    The class complies with the protocol by implementing:
+    - to_batched_tensor(): Adds batch dimension
+    - filter(class_id, accuracy): Filters boxes by class/score
     
-    Methods:
+    Additional object detection methods:
     - boxes(): Extract box coordinates
     - scores(): Extract objectness scores
     - probas(): Extract class probabilities
-    - filter(class_id, accuracy): Filters boxes by class/score
-    - to_batched_tensor(): Adds batch dimension
     """
 
     def __format__(self, format_spec: str) -> str:

@@ -9,8 +9,10 @@ from typing import Any, Optional
 
 import tensorflow as tf
 
+from xplique.commons.prediction_types import StructuredPrediction
 
-class MultiBoxTensor:
+
+class MultiBoxTensor(StructuredPrediction):
     """
     TensorFlow wrapper for multi-box detection predictions with unified format.
 
