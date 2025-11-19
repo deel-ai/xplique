@@ -8,12 +8,13 @@ import tensorflow as tf
 from xplique.utils_functions.object_detection.base.box_formatter import (
     BaseBoxFormatter,
 )
-from xplique.utils_functions.object_detection.tf.multi_box_tensor import MultiBoxTensor
+from xplique.utils_functions.object_detection.tf.multi_box_tensor import TfMultiBoxTensor
+from xplique.utils_functions.output_as_list_mixin import OutputAsListMixin
 
 from ..latent_extractor import LatentData, LatentExtractor
 
 
-class TfLatentExtractor(LatentExtractor):
+class TfLatentExtractor(OutputAsListMixin, LatentExtractor):
     """
     TensorFlow-specific latent extractor for object detection models.
 
@@ -62,25 +63,7 @@ class TfLatentExtractor(LatentExtractor):
         )
         self.output_as_list = True
 
-    def set_output_as_list(self) -> None:
-        """
-        Configure forward() to return outputs as list of MultiBoxTensor.
-
-        This is the default behavior and is useful when processing multiple
-        images with different numbers of detections.
-        """
-        self.output_as_list = True
-
-    def set_output_as_tensor(self) -> None:
-        """
-        Configure forward() to return outputs as stacked tensor.
-
-        This mode stacks all MultiBoxTensor outputs into a single tensor,
-        which requires all images to have the same number of detections.
-        """
-        self.output_as_list = False
-
-    def forward(self, samples: tf.Tensor) -> Union[List["MultiBoxTensor"], tf.Tensor]:
+    def forward(self, samples: tf.Tensor) -> Union[List["TfMultiBoxTensor"], tf.Tensor]:
         """
         Process samples through the complete model pipeline.
 
@@ -109,32 +92,6 @@ class TfLatentExtractor(LatentExtractor):
                     outputs = tf.expand_dims(outputs, axis=0)
         return outputs
 
-    def forward_batched(self, samples: tf.Tensor) -> tf.Tensor:
-        """
-        Process samples in batches through the complete model pipeline.
-
-        Useful for processing large numbers of images without exceeding memory
-        limits. Automatically splits inputs into batches and concatenates results.
-
-        Parameters
-        ----------
-        samples
-            Input images as TensorFlow tensors
-
-        Returns
-        -------
-        results
-            Concatenated predictions for all samples
-        """
-        results = []
-        for latent_data in self._input_to_latent_generator(samples):
-            output = self.latent_to_logit_model(latent_data)
-            if self.output_formatter:
-                output = self.output_formatter(output)
-            results.append(output)
-        results = tf.concat(results, axis=0)
-        return results
-
     def input_to_latent(self, inputs: tf.Tensor) -> LatentData:
         """
         Extract latent representations from input images.
@@ -157,37 +114,7 @@ class TfLatentExtractor(LatentExtractor):
         latent_data = self.input_to_latent_model(inputs)
         return latent_data
 
-    def input_to_latent_batched(
-        self,
-        inputs: tf.Tensor,
-        resize: Optional[Tuple[int, int]] = None,
-        keep_gradients: bool = False,
-    ) -> List[LatentData]:
-        """
-        Extract latent representations from batched inputs with optional resizing.
-
-        Processes inputs in batches to avoid memory issues. Optionally resizes images
-        and controls gradient computation for efficiency.
-
-        Parameters
-        ----------
-        inputs
-            Input images as TensorFlow tensor. Shape: (N, H, W, C)
-        resize
-            Target size (height, width) for resizing images before encoding.
-            If None, uses original image sizes.
-        keep_gradients
-            Whether to keep gradients during processing (for gradient-based methods)
-
-        Returns
-        -------
-        latent_data_list
-            List of LatentData objects, one for each batch processed
-        """
-        latent_data_list = list(self._input_to_latent_generator(inputs, resize, keep_gradients))
-        return latent_data_list
-
-    def _input_to_latent_generator(
+    def input_to_latent_generator(
         self,
         inputs: tf.Tensor,
         resize: Optional[Tuple[int, int]] = None,
@@ -233,7 +160,7 @@ class TfLatentExtractor(LatentExtractor):
             del batch
             yield latent_data
 
-    def latent_to_logit(self, latent_data: LatentData) -> Union[List[MultiBoxTensor], tf.Tensor]:
+    def latent_to_logit(self, latent_data: LatentData) -> Union[List[TfMultiBoxTensor], tf.Tensor]:
         """
         Decode latent representations into object detection predictions.
 
@@ -257,57 +184,3 @@ class TfLatentExtractor(LatentExtractor):
         if self.output_formatter:
             output = self.output_formatter(output)
         return output
-
-    def latent_to_logit_batched(self, latent_data: LatentData) -> tf.Tensor:
-        """
-        Decode latent representations in batches to avoid memory issues.
-
-        Processes latent data in batches through the decoder, yielding predictions
-        incrementally and concatenating results. Useful for handling large numbers
-        of latent representations.
-
-        Parameters
-        ----------
-        latent_data
-            Latent activations to decode, containing multiple samples
-
-        Returns
-        -------
-        result
-            Concatenated object detection predictions for all samples,
-            stacked along batch dimension
-        """
-        output_list = list(self._latent_to_logit_generator(latent_data))
-        result = tf.concat(output_list, axis=0)
-        return result
-
-    def _latent_to_logit_generator(self, latent_data: LatentData):
-        """
-        Generator that yields decoded predictions for batched latent data.
-
-        Internal generator method that splits latent data into batches, decodes
-        each batch to predictions, optionally formats outputs, and yields results
-        incrementally. Efficiently handles large datasets.
-
-        Parameters
-        ----------
-        latent_data
-            Latent activations to decode, containing multiple samples
-
-        Yields
-        ------
-        boxes_scores_labels
-            Object detection predictions for current batch. If output_formatter
-            is set, yields formatted MultiBoxTensor objects. Otherwise, yields
-            raw model outputs.
-        """
-        nb_batchs = ceil(len(latent_data) / self.batch_size)
-        start_ids = [i * self.batch_size for i in range(nb_batchs)]
-
-        for i in start_ids:
-            batch = latent_data[i : i + self.batch_size]
-            boxes_scores_labels = self.latent_to_logit_model(batch)
-            del batch
-            if self.output_formatter:
-                boxes_scores_labels = self.output_formatter(boxes_scores_labels)
-            yield boxes_scores_labels
