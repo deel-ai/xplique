@@ -12,6 +12,7 @@ from xplique.attributions.global_sensitivity_analysis.sobol_attribution_method i
     SobolAttributionMethod,
 )
 from xplique.attributions.gradient_input import GradientInput
+from xplique.commons.prediction_types import StructuredPrediction
 from xplique.plots.image import _clip_percentile
 
 from .craft import Factorization, Sensitivity
@@ -297,19 +298,20 @@ class HolisticCraft:
             encoded_data.append(EncodedData(latent_data, coeffs_u))
         return encoded_data
 
-    def decode(self, latent_data: LatentData, coeffs_u: Union[np.ndarray, Any]) -> Any:
+    def decode(self, latent_data: LatentData, coeffs_u: Union[np.ndarray, Any]) -> StructuredPrediction:
         """Decode concept coefficients back to predictions.
 
         This method accepts a single LatentData and returns a prediction tensor
-        (either MultiBoxTensor for object detection or ClassifierTensor for
-        classification).
+        that implements the StructuredPrediction protocol (either MultiBoxTensor for
+        object detection or ClassifierTensor for classification).
 
         The latent_extractor.latent_to_logit() method returns predictions that
         are already formatted by the output_formatter:
         - A list with 1 element (PyTorch formatters)
         - A single tensor directly (TensorFlow formatters with batch_size=1)
 
-        This method handles unwrapping single-element lists.
+        The formatter guarantees the output implements StructuredPrediction protocol.
+        This method only handles unwrapping single-element lists.
 
         Parameters
         ----------
@@ -321,9 +323,9 @@ class HolisticCraft:
         Returns
         -------
         predictions
-            Prediction tensor with filter() and to_batched_tensor() methods.
-            Concrete types are MultiBoxTensor for object detection or
-            ClassifierTensor for classification.
+            Predictions implementing StructuredPrediction protocol (has filter()
+            and to_batched_tensor() methods). Concrete types are MultiBoxTensor
+            for object detection or ClassifierTensor for classification.
 
         Raises
         ------

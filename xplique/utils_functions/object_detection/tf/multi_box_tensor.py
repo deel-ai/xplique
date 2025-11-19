@@ -9,8 +9,10 @@ from typing import Any, Optional
 
 import tensorflow as tf
 
+from xplique.commons.prediction_types import StructuredPrediction
 
-class MultiBoxTensor:
+
+class MultiBoxTensor(StructuredPrediction):
     """
     TensorFlow wrapper for multi-box detection predictions with unified format.
 
@@ -100,9 +102,9 @@ class MultiBoxTensor:
         return self[:, 5:]
 
     def filter(self, class_id: Optional[int] = None,
-               accuracy: Optional[float] = None) -> 'MultiBoxTensor':
+               confidence: Optional[float] = None) -> 'MultiBoxTensor':
         """
-        Filter boxes by class ID and/or detection accuracy threshold.
+        Filter boxes by class ID and/or detection confidence threshold.
 
         Filters the detections based on predicted class and confidence score.
         If both filters are provided, boxes must satisfy both conditions.
@@ -111,7 +113,7 @@ class MultiBoxTensor:
         ----------
         class_id
             Optional class ID to filter for specific object class.
-        accuracy
+        confidence
             Optional minimum confidence score threshold.
 
         Returns
@@ -119,15 +121,15 @@ class MultiBoxTensor:
         filtered_tensor
             New MultiBoxTensor containing only filtered detections.
         """
-        if class_id is None and accuracy is None:
+        if class_id is None and confidence is None:
             return self
         probas = self.probas()
         class_ids = tf.argmax(probas, axis=-1)
         scores = self.scores()
-        if class_id is not None and accuracy is not None:
-            keep = (class_ids == class_id) & (scores >= accuracy)
+        if class_id is not None and confidence is not None:
+            keep = (class_ids == class_id) & (scores >= confidence)
         elif class_id is None:
-            keep = scores > accuracy
+            keep = scores > confidence
         else:
             keep = class_ids == class_id
         filtered_tensor = tf.boolean_mask(self.tensor, keep)

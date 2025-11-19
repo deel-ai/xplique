@@ -63,16 +63,16 @@ class MultiBoxTensor(Protocol):
     def filter(
             self,
             class_id: Optional[int] = None,
-            accuracy: Optional[float] = None) -> 'MultiBoxTensor':
+            confidence: Optional[float] = None) -> 'MultiBoxTensor':
         """
-        Filter boxes by class_id and/or accuracy threshold.
+        Filter boxes by class_id and/or confidence threshold.
 
         Parameters
         ----------
         class_id
             Optional class ID to filter boxes by.
-        accuracy
-            Optional minimum detection score threshold.
+        confidence
+            Optional minimum detection confidence score threshold.
 
         Returns
         -------
