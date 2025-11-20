@@ -4,12 +4,13 @@ from typing import Any, Optional, Union
 
 import numpy as np
 import torch
-import torch.nn as nn
+from torch import nn
 
 from xplique.wrappers import TorchWrapper
 
 from ..holistic_craft import HolisticCraft
 from ..latent_extractor import LatentData
+from .factorizer import TorchSklearnNMFFactorizer
 from .latent_extractor import TorchLatentExtractor as LatentExtractor
 
 
@@ -28,6 +29,9 @@ class HolisticCraftTorch(HolisticCraft):
             Number of concepts to extract (default: 20)
         device
             PyTorch device ('cuda' or 'cpu') (default: 'cuda')
+        factorizer
+            Optional factorizer instance. If None, creates a TorchSklearnNMFFactorizer
+            with alpha_W=1e-2 and max_iter=200
     """
 
     def __init__(
@@ -35,6 +39,7 @@ class HolisticCraftTorch(HolisticCraft):
         latent_extractor: LatentExtractor,
         number_of_concepts: int = 20,
         device: str = "cuda",
+        factorizer: Optional[Any] = None,
     ) -> None:
         """
         Initialize the PyTorch CRAFT wrapper.
@@ -47,9 +52,19 @@ class HolisticCraftTorch(HolisticCraft):
             Number of concepts to extract (default: 20)
         device
             PyTorch device ('cuda' or 'cpu') (default: 'cuda')
+        factorizer
+            Optional factorizer instance. If None, creates a TorchSklearnNMFFactorizer
+            with alpha_W=1e-2 and max_iter=200
         """
-        
-        super().__init__(latent_extractor, number_of_concepts, device)
+        # Create PyTorch-specific factorizer if none provided
+        if factorizer is None:
+            factorizer = TorchSklearnNMFFactorizer(
+                n_components=number_of_concepts,
+                alpha_W=1e-2,
+                max_iter=200
+            )
+
+        super().__init__(latent_extractor, number_of_concepts, device, factorizer)
         self.framework = 'torch'
         self._framework_module = torch
 
@@ -95,12 +110,8 @@ class HolisticCraftTorch(HolisticCraft):
         activations_original_shape = activations.shape[:-1]
         activations_flat = activations.reshape(-1, activations.shape[-1])
 
-        # Use PyTorch's differentiable least squares solver
-        # Solve: activations_flat ≈ coeffs_u @ W
-        W_torch = torch.tensor(self.factorization.reducer.components_,
-                               dtype=activations_flat.dtype,
-                               device=activations_flat.device)
-        coeffs_u = torch.linalg.lstsq(W_torch.T, activations_flat.T).solution.T
+        # Use factorizer's differentiable encoding
+        coeffs_u = self.factorizer.encode_differentiable(activations_flat)
 
         coeffs_u = coeffs_u.reshape(*activations_original_shape, -1)
         return coeffs_u

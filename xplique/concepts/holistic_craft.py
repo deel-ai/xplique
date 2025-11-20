@@ -1,11 +1,13 @@
+"""
+Framework-agnostic CRAFT implementation for holistic model explanations.
+"""
 from functools import partial
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, List, Optional, Tuple, Union
 
 import cv2
 import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib.figure import Figure
-from sklearn.decomposition import NMF
 from sklearn.exceptions import NotFittedError
 
 from xplique.attributions.global_sensitivity_analysis.sobol_attribution_method import (
@@ -16,6 +18,7 @@ from xplique.commons.prediction_types import StructuredPrediction
 from xplique.plots.image import _clip_percentile
 
 from .craft import Factorization, Sensitivity
+from .factorizer import SklearnNMFFactorizer
 from .latent_extractor import EncodedData, LatentData, LatentExtractor
 
 
@@ -71,6 +74,10 @@ class HolisticCraft:
         Number of concepts to extract via NMF decomposition
     device
         Device specification for tensor operations (framework-specific)
+    factorizer
+        Optional factorizer instance implementing the ConceptFactorizer protocol.
+        If None, creates a default SklearnNMFFactorizer with alpha_W=1e-2 and
+        max_iter=200
 
     Attributes
     ----------
@@ -82,6 +89,8 @@ class HolisticCraft:
         Batch size inherited from latent_extractor
     factorization
         Factorization object containing NMF results, populated after fit()
+    factorizer
+        Factorizer instance used for concept extraction
     device
         Device for tensor operations
     cmaps
@@ -92,13 +101,24 @@ class HolisticCraft:
         self,
         latent_extractor: LatentExtractor,
         number_of_concepts: int = 20,
-        device: str = None
+        device: str = None,
+        factorizer: Optional[Any] = None
     ):
         self.latent_extractor = latent_extractor
         self.number_of_concepts = number_of_concepts
         self.batch_size = latent_extractor.batch_size
         self.factorization = None
         self.device = device
+
+        # Use provided factorizer or create default NMF factorizer
+        if factorizer is None:
+            self.factorizer = SklearnNMFFactorizer(
+                n_components=number_of_concepts,
+                alpha_W=1e-2,
+                max_iter=200
+            )
+        else:
+            self.factorizer = factorizer
 
         # Setup visualization colormaps
         self.cmaps = [
@@ -113,13 +133,13 @@ class HolisticCraft:
         NotFittedError
             If the factorization model has not been fitted to input data.
         """
-        if self.factorization is None:
+        if not self.factorizer.is_fitted:
             raise NotFittedError(
                 "The factorization model has not been fitted to input data yet."
             )
 
     def fit(
-        self, inputs, class_id: int = 0, max_iter: int = 200
+        self, inputs, class_id: int = 0
     ):
         """
         Fit NMF to extract concepts from latent activations.
@@ -138,8 +158,6 @@ class HolisticCraft:
             Input images to extract concepts from, as framework tensors or arrays
         class_id
             Target class ID for object detection (used in factorization metadata)
-        max_iter
-            Maximum number of iterations for NMF optimization
 
         """
         # pass the data through the 1st part of the model
@@ -152,40 +170,66 @@ class HolisticCraft:
             axis=0
         )
 
-        activations_original_shape = activations.shape[:-1]
-        # Activations are already in numpy format, reshape for NMF processing
-        activations_flat = np.reshape(activations, (-1, activations.shape[-1]))
+        needs_reshape = len(activations.shape) > 2 # (N,H,W,C) or (N,Tokens,C)
+        if needs_reshape:
+            activations_original_shape = activations.shape[:-1]
+            # Activations are already in numpy format, reshape for factorization
+            activations = np.reshape(activations, (-1, activations.shape[-1]))
 
-        # apply NMF to the activations to obtain matrices U and W
-        reducer = NMF(
-            n_components=self.number_of_concepts, alpha_W=1e-2, max_iter=max_iter
-        )
-        coeffs_u = reducer.fit_transform(activations_flat)
-        coeffs_u = np.reshape(coeffs_u, (*activations_original_shape, -1))
-        concept_bank_w = reducer.components_.astype(np.float32)
+        # Check if factorizer requires positive activations
+        if self.factorizer.requires_positive_activations and np.any(activations < 0):
+            raise ValueError(
+                "Factorizer requires non-negative activations but received negative values."
+            )
+
+        # Apply factorizer to the activations
+        concept_bank_w, coeffs_u = self.factorizer.fit(activations)
+        concept_bank_w = concept_bank_w.astype(np.float32)
+
+        # Reshape coefficients back to spatial dimensions
+        if needs_reshape:
+            coeffs_u = coeffs_u.reshape(*activations_original_shape, -1)
 
         self.factorization = Factorization(
-            class_id=class_id, reducer=reducer, concept_bank_w=concept_bank_w, crops_u=coeffs_u
+            class_id=class_id, reducer=self.factorizer, concept_bank_w=concept_bank_w,
+            crops_u=None, coeffs_u=coeffs_u
         )
 
-    def transform(self, inputs, resize=None) -> np.ndarray:
+    def transform(self, inputs=None, resize=None) -> np.ndarray:
         """Transform inputs to concept coefficients.
 
         This method encodes the inputs and returns only the concept coefficients
         as a concatenated numpy array, discarding the latent data.
 
+        If inputs is None, returns the stored coefficients from fit() if available
+        (useful for ConvexNMF which can only encode training data).
+
         Parameters
         ----------
         inputs
-            Input images to transform
+            Input images to transform. If None, returns stored coefficients from fit().
         resize
             Target size for resizing images
 
         Returns
         -------
         coeffs_u
-            Concatenated concept coefficients for all inputs
+            Concept coefficients for the inputs (or stored coefficients if inputs=None)
+
+        Raises
+        ------
+        ValueError
+            If inputs is None but no stored coefficients are available
         """
+        # If no inputs provided, return stored coefficients from fit()
+        if inputs is None:
+            self.check_if_fitted()
+            if self.factorization.coeffs_u is None:
+                raise ValueError(
+                    "No stored coefficients available, and no inputs given."
+                )
+            return self.factorization.coeffs_u
+
         # encode, but only return coeffs_u as a single tensor
         encoded_data = self.encode(inputs, resize)
         # extract coeffs_u using named attribute access for clarity
@@ -198,6 +242,8 @@ class HolisticCraft:
 
         Projects latent activations onto the learned concept space using the
         fitted NMF model. This non-differentiable transform is faster than
+        transform_latent_differentiable() but cannot be used for gradient-based
+        methods.
 
         Parameters
         ----------
@@ -223,12 +269,15 @@ class HolisticCraft:
         self.check_if_fitted()
 
         activations = latent_data.get_activations(as_numpy=True)
-        activations_original_shape = activations.shape[:-1]
-        activations_flat = np.reshape(activations, (-1, activations.shape[-1]))
+        needs_reshape = len(activations.shape) > 2 # (N,H,W,C) or (N,Tokens,C)
+        if needs_reshape:
+            activations_original_shape = activations.shape[:-1]
+            activations = np.reshape(activations, (-1, activations.shape[-1]))
 
-        # Transform activations using the fitted NMF model
-        coeffs_u = self.factorization.reducer.transform(activations_flat)
-        coeffs_u = np.reshape(coeffs_u, (*activations_original_shape, -1))
+        # Encode activations to coefficients using the factorizer
+        coeffs_u = self.factorizer.encode(activations)
+        if needs_reshape:
+            coeffs_u = np.reshape(coeffs_u, (*activations_original_shape, -1))
         return coeffs_u
 
     def transform_latent_differentiable(self, latent_data: LatentData) -> Any:
@@ -298,7 +347,8 @@ class HolisticCraft:
             encoded_data.append(EncodedData(latent_data, coeffs_u))
         return encoded_data
 
-    def decode(self, latent_data: LatentData, coeffs_u: Union[np.ndarray, Any]) -> StructuredPrediction:
+    def decode(self, latent_data: LatentData,
+               coeffs_u: Union[np.ndarray, Any]) -> StructuredPrediction:
         """Decode concept coefficients back to predictions.
 
         This method accepts a single LatentData and returns a prediction tensor
@@ -462,7 +512,8 @@ class HolisticCraft:
         Parameters
         ----------
         images
-            Input images to visualize (array of shape (N, H, W, C) for tensorflow or (N, C, H, W) for pytorch)
+            Input images to visualize (array of shape (N, H, W, C) for tensorflow
+            or (N, C, H, W) for pytorch)
         coeffs_u
             Optional pre-computed coefficients, shape (N, H, W, C) or (N, Tokens, C).
             If None, coefficients will be computed via transform(images).
@@ -504,13 +555,13 @@ class HolisticCraft:
 
         if len(coeffs_u.shape) == 3:
             # Reshape (N, Tokens, C) to (N, H, W, C)
-            N, Tokens, C = coeffs_u.shape
-            H = W = int(np.sqrt(Tokens)) # Only valid if Tokens is a perfect square
-            if H * W != Tokens:
+            num_images, num_tokens, num_concepts = coeffs_u.shape
+            height = width = int(np.sqrt(num_tokens))  # Only valid if Tokens is a perfect square
+            if height * width != num_tokens:
                 raise ValueError(
                     f"Cannot reshape coeffs_u of shape {coeffs_u.shape} to (N, H, W, C) "
                     f"because Tokens is not a perfect square.")
-            coeffs_u = coeffs_u.reshape(N, H, W, C)
+            coeffs_u = coeffs_u.reshape(num_images, height, width, num_concepts)
 
         # convert images to be displayed
         if self.framework == 'torch':
