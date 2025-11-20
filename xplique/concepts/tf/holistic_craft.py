@@ -23,12 +23,16 @@ class HolisticCraftTf(HolisticCraft):
         TensorFlow latent extractor for the model.
     number_of_concepts
         Number of concepts to extract, by default 20.
+    factorizer
+        Optional factorizer instance. If None, creates a TfSklearnNMFFactorizer
+        with alpha_W=1e-2 and max_iter=200
     """
 
     def __init__(
         self,
         latent_extractor: LatentExtractor,
         number_of_concepts: int = 20,
+        factorizer: Optional[Any] = None,
     ) -> None:
         """
         Initialize the TensorFlow CRAFT wrapper.
@@ -39,9 +43,21 @@ class HolisticCraftTf(HolisticCraft):
             TensorFlow latent extractor for the model
         number_of_concepts
             Number of concepts to extract (default: 20)
+        factorizer
+            Optional factorizer instance. If None, creates a TfSklearnNMFFactorizer
+            with alpha_W=1e-2 and max_iter=200
         """
+
+        # Create TensorFlow-specific factorizer if none provided
+        if factorizer is None:
+            from .factorizer import TfSklearnNMFFactorizer
+            factorizer = TfSklearnNMFFactorizer(
+                n_components=number_of_concepts,
+                alpha_W=1e-2,
+                max_iter=200
+            )
         
-        super().__init__(latent_extractor, number_of_concepts, device=None)
+        super().__init__(latent_extractor, number_of_concepts, device=None, factorizer=factorizer)
         self.framework = 'tf'
         self._framework_module = tf
 
@@ -85,20 +101,8 @@ class HolisticCraftTf(HolisticCraft):
         activations_original_shape = activations.shape[:-1]
         activations_flat = tf.reshape(activations, (-1, activations.shape[-1]))
 
-        # Use differentiable least squares: solve(W.T @ W, W.T @ A.T).T
-        # where A are activations and W is the concept bank
-        concept_bank_tensor = tf.convert_to_tensor(
-            self.factorization.concept_bank_w, dtype=tf.float32)
-        
-        # Solve: activations ≈ coeffs @ W
-        # coeffs = activations @ W.T @ inv(W @ W.T)
-        # Using lstsq for numerical stability: coeffs = lstsq(W.T, activations.T).T
-        coeffs_u = tf.linalg.lstsq(
-            tf.transpose(concept_bank_tensor),
-            tf.transpose(activations_flat),
-            fast=False
-        )
-        coeffs_u = tf.transpose(coeffs_u)
+        # Use factorizer's differentiable encoding
+        coeffs_u = self.factorizer.encode_differentiable(activations_flat)
 
         # Reshape back to original dimensions
         coeffs_u = tf.reshape(coeffs_u, tf.concat([activations_original_shape, [-1]], axis=0))
