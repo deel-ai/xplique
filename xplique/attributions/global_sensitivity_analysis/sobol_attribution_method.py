@@ -48,12 +48,13 @@ class SobolAttributionMethod(GSABaseAttributionMethod):
         self,
         model,
         grid_size: int = 8,
+        nb_channels: int = 1,
         nb_design: int = 32,
         sampler: Optional[ReplicatedSampler] = None,
         estimator: Optional[SobolEstimator] = None,
         perturbation_function: Optional[Union[Callable, str]] = "inpainting",
         batch_size=256,
-        operator: Optional[Union[Tasks, str, OperatorSignature]] = None,
+        operator: Optional[Union[Tasks, str, OperatorSignature]] = None
     ):
 
         assert (
@@ -76,6 +77,7 @@ class SobolAttributionMethod(GSABaseAttributionMethod):
             sampler=sampler,
             estimator=estimator,
             grid_size=grid_size,
+            nb_channels=nb_channels,
             nb_design=nb_design,
             perturbation_function=perturbation_function,
             batch_size=batch_size,
