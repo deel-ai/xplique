@@ -51,6 +51,30 @@ class BaseAttributionMetric(ABC):
         self.batch_size = batch_size
 
 
+class BaseComplexityMetric(ABC):
+    """
+    Base interface for Complexity Metrics.
+    These metrics only depend on the explanations themselves.
+    """
+    @abstractmethod
+    def evaluate(self,
+                 explanations: Union[tf.Tensor, np.ndarray]) -> float:
+        """
+        Compute the score of the given explanations.
+
+        Parameters
+        ----------
+        explanations
+            Explanation for the inputs, labels to evaluate.
+
+        Returns
+        -------
+        score
+            Score of the explanations.
+        """
+        raise NotImplementedError()
+
+
 class ExplainerMetric(BaseAttributionMetric, ABC):
     """
     Base class for Attribution Metric that require explainer.
