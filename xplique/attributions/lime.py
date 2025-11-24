@@ -471,7 +471,8 @@ class Lime(BlackBoxExplainer):
         # Ensure kernel_width is strictly positive to avoid division by zero.
         if kernel_width <= 0:
             warnings.warn(
-                "kernel_width must be > 0. Setting kernel_width to a small epsilon value for stability."
+                "kernel_width must be > 0. "
+                "Setting kernel_width to a small epsilon value for stability."
             )
             kernel_width = 1e-8
 
@@ -490,7 +491,8 @@ class Lime(BlackBoxExplainer):
                     original_input, interp_samples, perturbed_samples
             ) -> tf.Tensor:
                 augmented_input = tf.expand_dims(original_input, axis=0)
-                augmented_input = tf.repeat(augmented_input, repeats=tf.shape(interp_samples)[0], axis=0)
+                augmented_input = tf.repeat(augmented_input,
+                                            repeats=tf.shape(interp_samples)[0], axis=0)
                 flatten_inputs = tf.reshape(augmented_input, [tf.shape(interp_samples)[0], -1])
                 flatten_samples = tf.reshape(perturbed_samples, [tf.shape(interp_samples)[0], -1])
                 distances = tf.norm(flatten_inputs - flatten_samples, ord='euclidean', axis=1)
@@ -514,7 +516,8 @@ class Lime(BlackBoxExplainer):
             ) -> tf.Tensor:
             # pylint: disable=unused-argument
                 augmented_input = tf.expand_dims(original_input, axis=0)
-                augmented_input = tf.repeat(augmented_input, repeats=tf.shape(interp_samples)[0], axis=0)
+                augmented_input = tf.repeat(augmented_input,
+                                            repeats=tf.shape(interp_samples)[0], axis=0)
                 flatten_inputs = tf.reshape(augmented_input, [tf.shape(interp_samples)[0], -1])
                 flatten_samples = tf.reshape(perturbed_samples, [tf.shape(interp_samples)[0], -1])
                 distances = 1.0 - cosine_similarity(flatten_inputs, flatten_samples, axis=1)

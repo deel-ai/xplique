@@ -203,8 +203,8 @@ class JansenEstimator(SobolEstimator):
         diff = a[None, :] - c
         numerator = tf.reduce_sum(tf.square(diff), axis=-1)  # (D,)
 
-        N = tf.cast(tf.shape(a)[0], a.dtype)
-        st = numerator / (2.0 * N * var_a)  # (D,)
+        n = tf.cast(tf.shape(a)[0], a.dtype)
+        st = numerator / (2.0 * n * var_a)  # (D,)
 
         return self.post_process(st, masks)
 
@@ -288,8 +288,8 @@ class JanonEstimator(SobolEstimator):
         a = tf.cast(a, dtype=tf.float32)
         c = tf.cast(c, dtype=tf.float32)
 
-        N = tf.cast(tf.shape(a)[0], a.dtype)
-        denom_cov = tf.maximum(N - 1.0, 1.0)
+        n = tf.cast(tf.shape(a)[0], a.dtype)
+        denom_cov = tf.maximum(n - 1.0, 1.0)
 
         mu_a = tf.reduce_mean(a)  # scalar
         mu_c = tf.reduce_mean(c, axis=-1)  # (D,)
@@ -341,8 +341,8 @@ class GlenEstimator(SobolEstimator):
         a = tf.cast(a, dtype=tf.float32)
         c = tf.cast(c, dtype=tf.float32)
 
-        N = tf.cast(tf.shape(a)[0], a.dtype)
-        denom = tf.maximum(N - 1.0, 1.0)
+        n = tf.cast(tf.shape(a)[0], a.dtype)
+        denom = tf.maximum(n - 1.0, 1.0)
 
         mu_a = tf.reduce_mean(a)  # scalar
         mu_c = tf.reduce_mean(c, axis=-1)  # (D,)

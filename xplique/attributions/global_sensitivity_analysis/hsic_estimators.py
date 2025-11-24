@@ -150,18 +150,21 @@ class HsicEstimator(ABC):
             lambda: tf.cast(nb_dim, tf.int64)
         )
 
+        float_nb_design = tf.cast(nb_design, dtype=tf.float32)
         scores = tf.zeros((0,), dtype=tf.float32)
         # Batch over the mask dimensions (using batch_tensor from xplique.commons).
         for x1, x2 in batch_tensor((X1, X2), batch_size):
             K = self.input_kernel_func(x1, x2)
             # Here we reduce over axis=1 (the kernel is computed per mask dimension)
             K = tf.math.reduce_prod(1 + K, axis=1)
-            H = tf.eye(nb_design) - tf.ones((nb_design, nb_design), dtype=tf.float32) / tf.cast(nb_design, tf.float32)
+            H = tf.eye(nb_design) - tf.ones((nb_design, nb_design),
+                                            dtype=tf.float32) / float_nb_design
             HK = tf.einsum("jk,ikl->ijl", H, K)
             HL = tf.einsum("jk,kl->jl", H, L)
             Kc = tf.einsum("ijk,kl->ijl", HK, H)
             Lc = tf.einsum("jk,kl->jl", HL, H)
-            score = tf.math.reduce_sum(Kc * tf.transpose(Lc), axis=[1, 2]) / tf.cast(nb_design, tf.float32)
+            score = tf.math.reduce_sum(
+                Kc * tf.transpose(Lc), axis=[1, 2]) / float_nb_design
             scores = tf.concat([scores, score], axis=0)
 
         return scores
