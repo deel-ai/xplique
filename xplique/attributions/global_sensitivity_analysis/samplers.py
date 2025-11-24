@@ -50,7 +50,8 @@ class ScipySampler(Sampler):
 class TFSobolSequence(Sampler):
     """
     Tensorflow Sobol LP tau sequence sampler.
-    Ref. I. M. Sobol., The distribution of points in a cube and the accurate evaluation of integrals (1967)
+    Ref. I. M. Sobol., The distribution of points in a cube
+    and the accurate evaluation of integrals (1967)
     https://www.sciencedirect.com/science/article/abs/pii/0041555367901449
     """
 

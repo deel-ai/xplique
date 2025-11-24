@@ -142,9 +142,12 @@ class GSABaseAttributionMethod(BlackBoxExplainer):
             outputs = None
 
             for batch_masks in batch_tensor(self.masks, self.batch_size):
-                batch_x, batch_y = self._batch_perturbations(batch_masks, perturbator, target, input_shape)
+                batch_x, batch_y = self._batch_perturbations(
+                    batch_masks, perturbator, target, input_shape
+                )
                 batch_outputs = self.inference_function(self.model, batch_x, batch_y)
-                outputs = batch_outputs if outputs is None else tf.concat([outputs, batch_outputs], axis=0)
+                outputs = batch_outputs if outputs is None \
+                    else tf.concat([outputs, batch_outputs], axis=0)
 
             heatmap = self.estimator(self.masks, outputs, self.nb_design)
             if tf.rank(heatmap) == 2:
