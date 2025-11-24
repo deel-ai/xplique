@@ -55,7 +55,14 @@ class BaseComplexityMetric(ABC):
     """
     Base interface for Complexity Metrics.
     These metrics only depend on the explanations themselves.
+    Parameters
+    ----------
+    batch_size
+        Number of samples to evaluate at once.
     """
+    def __init__(self, batch_size: Optional[int] = 32):
+        self.batch_size = batch_size
+
     @abstractmethod
     def detailed_evaluate(self, explanations: tf.Tensor) -> np.ndarray:
         """
@@ -73,9 +80,7 @@ class BaseComplexityMetric(ABC):
         """
         raise NotImplementedError()
 
-    def evaluate(self,
-                 explanations: Union[tf.Tensor, np.ndarray],
-                 batch_size: int = 32) -> float:
+    def evaluate(self, explanations: Union[tf.Tensor, np.ndarray]) -> float:
         """
         Compute the aggregated score of the given explanations.
 
@@ -92,7 +97,7 @@ class BaseComplexityMetric(ABC):
             Score of the explanations.
         """
         aggregated_results = []
-        for exp_batch in batch_tensor(explanations, batch_size):
+        for exp_batch in batch_tensor(explanations, self.batch_size):
             batch_results = self.detailed_evaluate(exp_batch)
             aggregated_results.extend(batch_results)
         return float(np.mean(aggregated_results))
@@ -101,7 +106,7 @@ class BaseComplexityMetric(ABC):
                  explanations: Union[tf.Tensor, np.ndarray],
                  batch_size: int = 32) -> float:
         """Evaluate alias"""
-        return self.evaluate(explanations, batch_size)
+        return self.evaluate(explanations)
 
 
 class ExplainerMetric(BaseAttributionMetric, ABC):
