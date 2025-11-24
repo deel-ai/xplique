@@ -7,7 +7,7 @@ from abc import ABC, abstractmethod
 import tensorflow as tf
 import numpy as np
 
-from ..commons import Tasks, numpy_sanitize, get_inference_function
+from ..commons import Tasks, numpy_sanitize, get_inference_function, batch_tensor
 from ..types import Callable, Optional, Union, OperatorSignature
 
 
@@ -57,10 +57,9 @@ class BaseComplexityMetric(ABC):
     These metrics only depend on the explanations themselves.
     """
     @abstractmethod
-    def evaluate(self,
-                 explanations: Union[tf.Tensor, np.ndarray]) -> float:
+    def detailed_evaluate(self, explanations: tf.Tensor) -> np.ndarray:
         """
-        Compute the score of the given explanations.
+        Per-batch evaluation of explanations (no reduction).
 
         Parameters
         ----------
@@ -69,10 +68,40 @@ class BaseComplexityMetric(ABC):
 
         Returns
         -------
+        scores
+            A numpy array of shape (B,) with score per sample.
+        """
+        raise NotImplementedError()
+
+    def evaluate(self,
+                 explanations: Union[tf.Tensor, np.ndarray],
+                 batch_size: int = 32) -> float:
+        """
+        Compute the aggregated score of the given explanations.
+
+        Parameters
+        ----------
+        explanations
+            Explanation for the inputs, labels to evaluate.
+        batch_size
+            Number of samples to evaluate at once.
+
+        Returns
+        -------
         score
             Score of the explanations.
         """
-        raise NotImplementedError()
+        aggregated_results = []
+        for exp_batch in batch_tensor(explanations, batch_size):
+            batch_results = self.detailed_evaluate(exp_batch)
+            aggregated_results.extend(batch_results)
+        return float(np.mean(aggregated_results))
+
+    def __call__(self,
+                 explanations: Union[tf.Tensor, np.ndarray],
+                 batch_size: int = 32) -> float:
+        """Evaluate alias"""
+        return self.evaluate(explanations, batch_size)
 
 
 class ExplainerMetric(BaseAttributionMetric, ABC):
