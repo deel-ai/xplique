@@ -1,7 +1,7 @@
 """
 Fidelity (or Faithfulness) metrics
 """
-
+from abc import ABC, abstractmethod
 from inspect import isfunction
 
 import numpy as np
@@ -11,6 +11,9 @@ from scipy.stats import spearmanr
 from .base import ExplanationMetric
 from ..types import Union, Callable, Optional, Dict
 from ..commons import batch_tensor
+
+
+_EPS = 1e-8
 
 
 class MuFidelity(ExplanationMetric):
@@ -509,3 +512,273 @@ class Insertion(CausalFidelity):
         super().__init__(model, inputs, targets, batch_size, "insertion",
                          baseline_mode, steps, max_percentage_perturbed,
                          operator, activation)
+
+
+class BaseAverageXMetric(ExplanationMetric, ABC):
+    """
+    Base class for Average Drop / Increase / Gain metrics.
+
+    Parameters
+    ----------
+    model, inputs, targets, batch_size, operator, activation
+        See `ExplanationMetric` base class.
+
+    Returns (API)
+    -------------
+    evaluate(explanations) -> float
+        Mean metric over the dataset.
+    detailed_evaluate(explanations) -> np.ndarray
+        Vector of metric per-sample, shape (N,).
+    """
+    def __init__(self,
+                 model: tf.keras.Model,
+                 inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
+                 targets: Optional[Union[tf.Tensor, np.ndarray]] = None,
+                 batch_size: Optional[int] = 64,
+                 operator: Optional[Union[str, Callable]] = None,
+                 activation: Optional[str] = None):
+        super().__init__(model, inputs, targets, batch_size, operator, activation)
+
+    @staticmethod
+    def _perturb_with_mask(inputs: tf.Tensor, explanations: tf.Tensor) -> tf.Tensor:
+        """
+        Build a mask from explanations and multiplicatively perturb inputs: x ⊙ mask.
+        Explanations are abs(), channel-averaged if needed, min-max normalized per-sample, then broadcast.
+        """
+        # Apply average if multi-channel explanations and get absolute value
+        inp = tf.convert_to_tensor(inputs, dtype=tf.float32)
+        exp = tf.convert_to_tensor(explanations, dtype=tf.float32)
+        if exp.shape.rank == 4:
+            exp = tf.reduce_mean(exp, axis=-1)  # (B,H,W)
+        mask = tf.math.abs(exp)
+
+        # Apply min-max normalization per sample
+        axes = tf.range(1, tf.rank(mask))
+        mask_min = tf.reduce_min(mask, axis=axes, keepdims=True)
+        mask_max = tf.reduce_max(mask, axis=axes, keepdims=True)
+        mask = (mask - mask_min) / (mask_max - mask_min + _EPS)
+
+        # Broadcast mask to inputs
+        if inp.shape.rank == 4 and mask.shape.rank == 3:
+            mask = mask[..., tf.newaxis]  # (B,H,W,1)
+        if inp.shape.rank == 3 and mask.shape.rank == 2:
+            mask = mask[..., tf.newaxis]  # (B,T,1)
+
+        return tf.multiply(inp, mask)
+
+    def evaluate(self, explanations: Union[tf.Tensor, np.ndarray]) -> float:
+        """
+        Evaluate the metric over the entire dataset by iterating over batches.
+        """
+        explanations = tf.convert_to_tensor(explanations, dtype=tf.float32)
+        assert len(explanations) == len(self.inputs), \
+            "The number of explanations must match the number of inputs."
+
+        scores = []
+        for inp, tgt, phi in batch_tensor((self.inputs, self.targets, explanations),
+                                          self.batch_size or len(self.inputs)):
+            batch_scores = self.detailed_evaluate(inp, tgt, phi)
+            scores.append(batch_scores)
+
+        return float(np.mean(np.concatenate(scores, axis=0)))
+
+    @abstractmethod
+    def detailed_evaluate(
+            self,
+            inputs: tf.Tensor,
+            targets: tf.Tensor,
+            explanations: tf.Tensor
+    ) -> np.ndarray:
+        """
+        Evaluate the metric for a single batch of inputs, targets, and explanations.
+
+        Parameters
+        ----------
+        inputs
+            Batch of input samples.
+        targets
+            Batch of target labels.
+        explanations
+            Batch of explanations.
+
+        Returns
+        -------
+        scores
+            A numpy array of shape (B,) with score per sample.
+        """
+        raise NotImplementedError()
+
+
+class AverageDropMetric(BaseAverageXMetric):
+    """
+    Average Drop (AD) — measures relative decrease in the model score when the
+    input is masked by the explanation (lower AD is better).
+
+    For each sample i:
+        base_i  = g(f, x_i, y_i)              # scalar via operator/inference fn
+        after_i = g(f, x_i ⊙ M_i, y_i)        # M_i from explanation
+        AD_i    = ReLU(base_i - after_i) / (base_i + eps)
+
+    This implementation:
+    - Uses `self.batch_inference_function` to compute the scalar scores with the
+      optional `activation` applied (softmax/sigmoid) if requested at init.
+    - Builds M_i by |explanation|, channel-average (if 4D), per-sample min-max to [0,1],
+      then broadcast to input shape, and multiplicatively masks inputs.
+
+    Ref. Chattopadhay, A., Sarkar, A., Howlader, P., & Balasubramanian, V. N. (2018, March).
+    Grad-cam++: Generalized gradient-based visual explanations for deep convolutional networks.
+    In 2018 IEEE winter conference on applications of computer vision (WACV) (pp. 839-847). IEEE.
+
+    Parameters
+    ----------
+    model, inputs, targets, batch_size, operator, activation
+        See `ExplanationMetric` base class.
+
+    Returns (API)
+    -------------
+    evaluate(explanations) -> float
+        Mean AD over the dataset.
+    detailed_evaluate(explanations) -> np.ndarray
+        Vector of AD per-sample, shape (N,).
+    """
+    def __init__(self,
+                 model: tf.keras.Model,
+                 inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
+                 targets: Optional[Union[tf.Tensor, np.ndarray]] = None,
+                 batch_size: Optional[int] = 64,
+                 operator: Optional[Union[str, Callable]] = None,
+                 activation: Optional[str] = None):
+        super().__init__(model, inputs, targets, batch_size, operator, activation)
+
+    def detailed_evaluate(
+            self,
+            inputs: tf.Tensor,
+            targets: tf.Tensor,
+            explanations: tf.Tensor
+    ) -> np.ndarray:
+        """
+        Evaluate the metric for a single batch of inputs, targets, and explanations.
+        """
+        base = self.batch_inference_function(self.model, inputs, targets, self.batch_size)
+        perturbed = self._perturb_with_mask(inputs, explanations)
+        after = self.batch_inference_function(self.model, perturbed, targets, self.batch_size)
+
+        ad = tf.nn.relu(base - after) / (base + _EPS)  # per-sample
+        return ad.numpy()
+
+
+class AverageIncreaseMetric(BaseAverageXMetric):
+    """
+    Average Increase in Confidence (AIC) — fraction of samples for which the
+    masked input yields a *higher* score (higher is better).
+
+    For each sample i:
+        base_i  = g(f, x_i, y_i)
+        after_i = g(f, x_i ⊙ M_i, y_i)
+        AIC_i   = 1[after_i > base_i]
+
+    The dataset-level AIC is the mean of {AIC_i}.
+
+    Notes
+    -----
+    - Works best with probabilistic outputs; set `activation="softmax"` or `"sigmoid"`
+      if your model returns logits.
+
+    Ref. Chattopadhay, A., Sarkar, A., Howlader, P., & Balasubramanian, V. N. (2018, March).
+    Grad-cam++: Generalized gradient-based visual explanations for deep convolutional networks.
+    In 2018 IEEE winter conference on applications of computer vision (WACV) (pp. 839-847). IEEE.
+
+    Parameters
+    ----------
+    model, inputs, targets, batch_size, operator, activation
+        See `ExplanationMetric`.
+
+    Returns (API)
+    -------------
+    evaluate(explanations) -> float
+        Mean indicator over the dataset (i.e., percentage / 100).
+    detailed_evaluate(explanations) -> np.ndarray
+        Vector of binary indicators per-sample, shape (N,).
+    """
+    def __init__(self,
+                 model: tf.keras.Model,
+                 inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
+                 targets: Optional[Union[tf.Tensor, np.ndarray]] = None,
+                 batch_size: Optional[int] = 64,
+                 operator: Optional[Union[str, Callable]] = None,
+                 activation: Optional[str] = None):
+        super().__init__(model, inputs, targets, batch_size, operator, activation)
+
+    def detailed_evaluate(
+            self,
+            inputs: tf.Tensor,
+            targets: tf.Tensor,
+            explanations: tf.Tensor
+    ) -> np.ndarray:
+        """
+        Evaluate the metric for a single batch of inputs, targets, and explanations.
+        """
+        base = self.batch_inference_function(self.model, inputs, targets, self.batch_size)
+        perturbed = self._perturb_with_mask(inputs, explanations)
+        after = self.batch_inference_function(self.model, perturbed, targets, self.batch_size)
+
+        inc = tf.cast(after > base, tf.float32)  # per-sample 0/1
+        return inc.numpy()
+
+
+class AverageGainMetric(BaseAverageXMetric):
+    """
+    Average Gain (AG) — normalized relative increase when the input is masked
+    by the explanation (higher AG is better, complementary to AD).
+
+    For each sample i:
+        base_i  = g(f, x_i, y_i)
+        after_i = g(f, x_i ⊙ M_i, y_i)
+        AG_i    = ReLU(after_i - base_i) / (1 - base_i + eps)
+
+    Notes
+    -----
+    - Intended for scores in [0,1]. If your model outputs logits, use
+      `activation="softmax"` / `"sigmoid"` at construction to operate on probabilities.
+
+    Parameters
+    ----------
+    model, inputs, targets, batch_size, operator, activation
+        See `ExplanationMetric`.
+
+    Ref. Zhang, H., Torres, F., Sicre, R., Avrithis, Y., & Ayache, S. (2024).
+    Opti-CAM: Optimizing saliency maps for interpretability.
+    Computer Vision and Image Understanding, 248, 104101.
+
+    Returns (API)
+    -------------
+    evaluate(explanations) -> float
+        Mean AG over the dataset.
+    detailed_evaluate(explanations) -> np.ndarray
+        Vector of AG per-sample, shape (N,).
+    """
+
+    def __init__(self,
+                 model: tf.keras.Model,
+                 inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
+                 targets: Optional[Union[tf.Tensor, np.ndarray]] = None,
+                 batch_size: Optional[int] = 64,
+                 operator: Optional[Union[str, Callable]] = None,
+                 activation: Optional[str] = None):
+        super().__init__(model, inputs, targets, batch_size, operator, activation)
+
+    def detailed_evaluate(
+            self,
+            inputs: tf.Tensor,
+            targets: tf.Tensor,
+            explanations: tf.Tensor
+    ) -> np.ndarray:
+        """
+        Evaluate the metric for a single batch of inputs, targets, and explanations.
+        """
+        base = self.batch_inference_function(self.model, inputs, targets, self.batch_size)
+        perturbed = self._perturb_with_mask(inputs, explanations)
+        after = self.batch_inference_function(self.model, perturbed, targets, self.batch_size)
+
+        ag = tf.nn.relu(after - base) / (1.0 - base + _EPS)  # per-sample
+        return ag.numpy()
