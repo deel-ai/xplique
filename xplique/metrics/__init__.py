@@ -8,3 +8,4 @@ from .fidelity import (
 )
 from .stability import AverageStability
 from .representativity import MeGe
+from .complexity import Complexity, Sparseness
