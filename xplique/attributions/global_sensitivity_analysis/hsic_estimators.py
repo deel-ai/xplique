@@ -169,7 +169,12 @@ class HsicEstimator(ABC):
 
         return scores
 
-    def __call__(self, masks: tf.Tensor, outputs: tf.Tensor, nb_design: Union[int, tf.Tensor]) -> tf.Tensor:
+    def __call__(
+            self,
+            masks: tf.Tensor,
+            outputs: tf.Tensor,
+            nb_design: Union[int, tf.Tensor]
+    ) -> tf.Tensor:
         """
         Compute the test statistic using a self.output_kernel_func kernel for the output
         and self.input_kernel_func for the input, to be defined in child classes
