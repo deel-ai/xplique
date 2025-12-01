@@ -60,14 +60,16 @@ def _clip_percentile(tensor: Union[tf.Tensor, np.ndarray],
 
 def _clip_normalize(explanation: Union[tf.Tensor, np.ndarray],
                        clip_percentile: Optional[float] = 0.1,
-                       absolute_value: bool = False) -> Union[tf.Tensor, np.ndarray]:
+                       absolute_value: bool = False,
+                       normalize: bool = True) -> Union[tf.Tensor, np.ndarray]:
     if absolute_value:
         explanation = np.abs(explanation)
 
     if clip_percentile:
         explanation = _clip_percentile(explanation, clip_percentile)
 
-    explanation = _normalize(explanation)
+    if normalize:
+        explanation = _normalize(explanation)
 
     return explanation
 
@@ -75,7 +77,8 @@ def _clip_normalize(explanation: Union[tf.Tensor, np.ndarray],
 def generate_heatmap(explanation,
                      size: tuple,
                      clip_percentile: Optional[float] = 0.1,
-                     absolute_value: bool = False) -> np.ndarray:
+                     absolute_value: bool = False,
+                     normalize_value: bool = True) -> np.ndarray:
     """
     Generate a heatmap from the explanation to a specified 2d size.
 
@@ -91,6 +94,8 @@ def generate_heatmap(explanation,
         extreme values.
     absolute_value
         Whether an absolute value is applied to the explanations.
+    normalize_value
+        Whether an normalization is applied to the explanations.
 
     Returns
     -------
@@ -101,7 +106,7 @@ def generate_heatmap(explanation,
         raise ValueError("Explanation should be 2D or 3D (with channels reduced), "
                          f"got shape {explanation.shape}.")
 
-    heatmap = _clip_normalize(explanation, clip_percentile, absolute_value)
+    heatmap = _clip_normalize(explanation, clip_percentile, absolute_value, normalize_value)
 
     # resize the explanation to match the image size
     if size is not None and size != heatmap.shape[:2]:
@@ -116,6 +121,7 @@ def plot_attribution(explanation,
                       alpha: float = 0.5,
                       clip_percentile: Optional[float] = 0.1,
                       absolute_value: bool = False,
+                      normalize_value: bool = True,
                       **plot_kwargs):
     """
     Displays a single explanation and the associated image (if provided).
@@ -137,6 +143,8 @@ def plot_attribution(explanation,
         extreme values.
     absolute_value
         Whether an absolute value is applied to the explanations.
+    normalize_value
+        Whether an normalization is applied to the explanations.
     plot_kwargs
         Additional parameters passed to `plt.imshow()`.
     """
@@ -153,7 +161,8 @@ def plot_attribution(explanation,
     explanation = generate_heatmap(explanation,
                                    size=image.shape[:2] if image is not None else None,
                                    clip_percentile=clip_percentile,
-                                   absolute_value=absolute_value)
+                                   absolute_value=absolute_value,
+                                   normalize_value=normalize_value)
 
     plt.imshow(explanation, cmap=cmap, alpha=alpha, **plot_kwargs)
     plt.axis('off')
