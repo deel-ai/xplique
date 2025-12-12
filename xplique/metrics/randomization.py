@@ -278,6 +278,8 @@ class ProgressiveLayerRandomization(ModelRandomizationStrategy):
     def __init__(self,
                  stop_layer: Union[str, int, float, List[Union[str, int]]],
                  reverse: bool = False):
+        if not isinstance(stop_layer, (str, int, float, List[Union[str, int]])):
+            raise TypeError("`stop_layer` must be str, int, float or list of str or int.")
         if isinstance(stop_layer, float):
             if not (0.0 <= stop_layer <= 1.0):
                 raise ValueError("Fractional `stop_layer` must be in [0, 1].")
@@ -285,8 +287,6 @@ class ProgressiveLayerRandomization(ModelRandomizationStrategy):
             for elem in stop_layer:
                 if not isinstance(elem, (str, int)):
                     raise TypeError("List elements for `stop_layer` must be str or int.")
-        else:
-            raise TypeError("`stop_layer` must be str, int, float, or list of str/int.")
 
         self.stop_layer = stop_layer
         self.reverse = reverse
@@ -364,8 +364,6 @@ class RandomLogitMetric(ExplainerMetric):
         One-hot encoded labels, shape (N, C).
     batch_size
         Number of samples to evaluate at once.
-    operator
-        Unused here, kept for API symmetry with `ExplanationMetric`.
     activation
         Optional activation applied in the explainer/model, not used directly here.
     seed
@@ -493,8 +491,6 @@ class ModelRandomizationMetric(ExplainerMetric):
         Strategy to randomize the model parameters.
     batch_size
         Number of samples to evaluate at once.
-    operator
-        Unused here, kept for API symmetry.
     activation
         Optional activation, not used directly here.
     seed
@@ -511,7 +507,6 @@ class ModelRandomizationMetric(ExplainerMetric):
                  targets: Optional[Union[tf.Tensor, np.ndarray]],
                  randomization_strategy: ModelRandomizationStrategy = ProgressiveLayerRandomization(0.25),
                  batch_size: Optional[int] = 64,
-                 operator: Optional[Callable] = None,
                  activation: Optional[str] = None,
                  seed: int = 42):
         super().__init__(model=model, inputs=inputs, targets=targets, batch_size=batch_size, activation=activation)
