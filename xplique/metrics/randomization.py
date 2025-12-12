@@ -186,8 +186,9 @@ class ProgressiveLayerRandomization(ModelRandomizationStrategy):
     def __init__(self,
                  stop_layer: Union[str, int, float, List[Union[str, int]]],
                  reverse: bool = False):
-        if isinstance(stop_layer, (str, int, float)):
-            pass
+        if isinstance(stop_layer, float):
+            if not (0.0 <= stop_layer <= 1.0):
+                raise ValueError("Fractional `stop_layer` must be in [0, 1].")
         elif isinstance(stop_layer, list):
             for elem in stop_layer:
                 if not isinstance(elem, (str, int)):
@@ -213,8 +214,6 @@ class ProgressiveLayerRandomization(ModelRandomizationStrategy):
         elif isinstance(self.stop_layer, int):
             stop_index = self.stop_layer
         elif isinstance(self.stop_layer, float):
-            if not (0.0 <= self.stop_layer <= 1.0):
-                raise ValueError("Fractional `stop_layer` must be in [0, 1].")
             stop_index = int(n_layers * self.stop_layer)
         else:  # list
             resolved: List[int] = []
