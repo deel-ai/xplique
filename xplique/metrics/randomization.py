@@ -376,18 +376,16 @@ class RandomLogitMetric(ExplainerMetric):
     evaluate(explainer) -> float
         Mean SSIM over the dataset.
     """
-
     def __init__(self,
                  model: Callable,
                  inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
                  targets: Optional[Union[tf.Tensor, np.ndarray]],
                  batch_size: Optional[int] = 64,
-                 operator: Optional[Callable] = None,
                  activation: Optional[str] = None,
                  seed: int = 42):
-        super().__init__(model, inputs, targets, batch_size, operator, activation)
+        super().__init__(model=model, inputs=inputs, targets=targets, batch_size=batch_size, activation=activation)
         if self.targets is None:
-            raise ValueError("RandomLogitMetric requires classification targets (one-hot).")
+            self.targets = self.model.predict(inputs, batch_size=batch_size)
         self.seed = seed
 
         # infer number of classes from targets or model output
