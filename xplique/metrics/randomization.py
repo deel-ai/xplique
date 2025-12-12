@@ -31,7 +31,7 @@ def ssim(a: tf.Tensor,
          **kwargs) -> tf.Tensor:
     """
     Compute the Structural Similarity Index Measure (SSIM) between two images
-    (or batches of images) using pure TensorFlow (GPU compatible).
+    (or batches of images) using TensorFlow's built-in implementation.
 
     Parameters
     ----------
@@ -47,23 +47,47 @@ def ssim(a: tf.Tensor,
     Other Parameters
     ----------------
     win_size : int, default 11
-        Size of the gaussian filter.
+        Size of the gaussian filter. Will be adjusted to not exceed image dimensions.
     filter_sigma : float, default 1.5
         Standard deviation for Gaussian kernel.
     k1 : float, default 0.01
+        Algorithm parameter, K1 (small constant).
     k2 : float, default 0.03
+        Algorithm parameter, K2 (small constant).
+
+    Returns
+    -------
+    tf.Tensor
+        SSIM value(s). If `batched=True`, shape (B,); otherwise scalar.
+        Returns 1.0 when images have zero dynamic range (constant values).
 
     Notes
     -----
-    Handles the zero-dynamic-range case (images are constant) by returning 1.0.
+    - Automatically handles zero-dynamic-range cases by returning 1.0
+    - Filter size is adapted to not exceed image dimensions
+    - Uses `tf.image.ssim` internally
+    - Computes data range from min/max of both images combined
     """
-    filter_size = kwargs.get("win_size", 11)
-    filter_sigma = kwargs.get("filter_sigma", 1.5)
-    k1 = kwargs.get("k1", 0.01)
-    k2 = kwargs.get("k2", 0.03)
+
+    filter_size = int(kwargs.get("win_size", 11))
+    filter_sigma = float(kwargs.get("filter_sigma", 1.5))
+    k1 = float(kwargs.get("k1", 0.01))
+    k2 = float(kwargs.get("k2", 0.03))
+
+    def _adapt_filter_size(img: tf.Tensor, fs: int) -> int:
+        # img is (H, W, C)
+        h = img.shape[0]
+        w = img.shape[1]
+        if h is not None and w is not None:
+            fs = min(fs, h, w)
+            if fs % 2 == 0:
+                fs -= 1
+            fs = max(fs, 1)
+        return fs
 
     def _ssim_pair(image_a: tf.Tensor, image_b: tf.Tensor) -> tf.Tensor:
-        # dynamic range per pair
+        fs = _adapt_filter_size(image_a, filter_size)
+
         stacked = tf.stack([image_a, image_b], axis=0)
         max_point = tf.reduce_max(stacked)
         min_point = tf.reduce_min(stacked)
@@ -77,11 +101,11 @@ def ssim(a: tf.Tensor,
         )
 
         ssim_val = tf.image.ssim(
-            image_a, image_b, max_val=safe_data_range,
-            filter_size=filter_size,
+            image_a, image_b,
+            max_val=safe_data_range,
+            filter_size=fs,
             filter_sigma=filter_sigma,
-            k1=k1,
-            k2=k2,
+            k1=k1, k2=k2,
         )
         # if original dynamic range was zero -> SSIM = 1
         return tf.where(
@@ -189,9 +213,6 @@ def batched_spearman(a: tf.Tensor, b: tf.Tensor) -> tf.Tensor:
         Tensor of shape (B,), Spearman correlation per row.
     """
     # ranks via argsort(argsort(.)) but handling ties with average ranks
-    rank_a = tf.argsort(tf.argsort(a, axis=1), axis=1)
-    rank_b = tf.argsort(tf.argsort(b, axis=1), axis=1)
-
     rank_a = _rankdata_average_ties(a)
     rank_b = _rankdata_average_ties(b)
 
