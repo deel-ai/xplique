@@ -253,32 +253,12 @@ class ModelRandomizationStrategy(ABC):
 
 
 class ProgressiveLayerRandomization(ModelRandomizationStrategy):
-    """
-    Randomizes model parameters layer by layer.
-
-    Parameters
-    ----------
-    stop_layer
-        Layer at which to stop randomizing. Can be:
-          - str: layer name (first match in the traversal order),
-          - int: layer index in the traversal order,
-          - float: fraction of layers to randomize in [0, 1],
-          - list: list of layer names or indices; randomization stops at
-            the minimum of the resolved indices.
-    reverse
-        If True, traverse layers from first to last; otherwise last to first.
-
-    Notes
-    -----
-    The traversal order is:
-      - `model.layers[::-1]` if `reverse=False` (from last to first),
-      - `model.layers`       if `reverse=True` (from first to last).
-    """
-
     def __init__(self,
                  stop_layer: Union[str, int, float, List[Union[str, int]]],
-                 reverse: bool = False):
-        if not isinstance(stop_layer, (str, int, float, List[Union[str, int]])):
+                 reverse: bool = True):
+        if isinstance(stop_layer, tuple):
+            stop_layer = list(stop_layer)
+        if not isinstance(stop_layer, (str, int, float, list)):
             raise TypeError("`stop_layer` must be str, int, float or list of str or int.")
         if isinstance(stop_layer, float):
             if not (0.0 <= stop_layer <= 1.0):
@@ -292,9 +272,9 @@ class ProgressiveLayerRandomization(ModelRandomizationStrategy):
         self.reverse = reverse
 
     def randomize(self, model: tf.keras.Model) -> tf.keras.Model:
-        layers = model.layers
-        # traversal order
-        layer_list = layers if self.reverse else layers[::-1]
+        # Only count layers that actually have weights (matches your unit tests)
+        weight_layers = [l for l in model.layers if l.get_weights()]
+        layer_list = weight_layers[::-1] if self.reverse else weight_layers
         n_layers = len(layer_list)
 
         # resolve stop_index in this order
@@ -321,13 +301,14 @@ class ProgressiveLayerRandomization(ModelRandomizationStrategy):
 
         stop_index = max(0, min(stop_index, n_layers))
 
-        # randomize weights up to stop_index (exclusive)
+        # Randomize weights UP TO (but excluding) stop_index in traversal order
         for layer in layer_list[:stop_index]:
             current_weights = layer.get_weights()
             if not current_weights:
                 continue
             new_weights = [
-                tf.random.uniform(tf.shape(w), dtype=w.dtype) for w in current_weights
+                tf.random.uniform(shape=w.shape, dtype=tf.as_dtype(w.dtype)).numpy()
+                for w in current_weights
             ]
             layer.set_weights(new_weights)
 
