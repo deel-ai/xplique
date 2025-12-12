@@ -514,9 +514,9 @@ class ModelRandomizationMetric(ExplainerMetric):
                  operator: Optional[Callable] = None,
                  activation: Optional[str] = None,
                  seed: int = 42):
-        super().__init__(model, inputs, targets, batch_size, operator, activation)
+        super().__init__(model=model, inputs=inputs, targets=targets, batch_size=batch_size, activation=activation)
         if self.targets is None:
-            raise ValueError("ModelRandomizationMetric requires classification targets.")
+            self.targets = self.model.predict(inputs, batch_size=batch_size)
 
         self.randomization_strategy = randomization_strategy
         self.seed = seed
@@ -526,7 +526,7 @@ class ModelRandomizationMetric(ExplainerMetric):
         self.randomized_model.set_weights(self.model.get_weights())
 
         # infer number of classes from targets or model output
-        if self.targets.dtype.is_integer:
+        if self._is_integer_dtype(self.targets):
             sample_input = tf.convert_to_tensor(self.inputs[:1])
             sample_pred = tf.convert_to_tensor(self.model(sample_input))
             self.n_classes = int(sample_pred.shape[-1])
@@ -540,6 +540,15 @@ class ModelRandomizationMetric(ExplainerMetric):
         if targets.dtype.is_integer:
             return tf.one_hot(targets, depth=self.n_classes, dtype=tf.float32)
         return tf.cast(targets, tf.float32)
+
+    @staticmethod
+    def _is_integer_dtype(x) -> bool:
+        """Check if x has integer dtype (Tensor or numpy array)."""
+        if isinstance(x, tf.Tensor):
+            return x.dtype.is_integer
+        if isinstance(x, np.ndarray):
+            return np.issubdtype(x.dtype, np.integer)
+        return False
 
     def _batch_scores(
             self,
