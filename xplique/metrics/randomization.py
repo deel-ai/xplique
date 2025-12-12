@@ -101,6 +101,77 @@ def ssim(a: tf.Tensor,
     return _ssim_pair(a, b)
 
 
+def _rankdata_average_ties(x: tf.Tensor) -> tf.Tensor:
+    """
+    Compute average ranks for tied values in batched data.
+
+    This function assigns ranks to elements in each row of a batch, where tied
+    (equal) values receive the average of the positions they occupy. This is
+    commonly used in computing Spearman correlation with tie handling.
+
+    Parameters
+    ----------
+    x : tf.Tensor
+        Input tensor of shape (B, F), where B is the batch size and F is the
+        number of features per sample.
+
+    Returns
+    -------
+    tf.Tensor
+        Tensor of shape (B, F) containing the average ranks for each element.
+        Ranks are 0-indexed (range [0, F-1]).
+
+    Notes
+    -----
+    The ranking process handles ties by averaging positions:
+
+    1. Values are sorted within each batch
+    2. Tied values (equal elements) are grouped together
+    3. Each group receives the average position of all its members
+    4. Ranks are mapped back to the original order
+
+    Examples
+    --------
+    >>> x = tf.constant([[30, 10, 20, 20, 10]], dtype=tf.float32)
+    >>> _rankdata_average_ties(x)
+    <tf.Tensor: shape=(1, 5), dtype=float32, numpy=
+    array([[4.0, 0.5, 2.5, 2.5, 0.5]], dtype=float32)>
+
+    The input [30, 10, 20, 20, 10] has:
+    - Two 10s at positions 0-1 (sorted) → average rank 0.5
+    - Two 20s at positions 2-3 (sorted) → average rank 2.5
+    - One 30 at position 4 (sorted) → rank 4.0
+    """
+    # x: (B, F)
+    x = tf.convert_to_tensor(x)
+    B = tf.shape(x)[0]
+    F = tf.shape(x)[1]
+
+    idx = tf.argsort(x, axis=1, stable=True)                        # (B, F)
+    x_sorted = tf.gather(x, idx, batch_dims=1)                      # (B, F)
+
+    # group boundaries where value changes (ties -> same group)
+    change = tf.not_equal(x_sorted[:, 1:], x_sorted[:, :-1])        # (B, F-1)
+    boundary = tf.concat([tf.zeros((B, 1), tf.bool), change], axis=1)  # (B, F)
+    group_id = tf.cumsum(tf.cast(boundary, tf.int32), axis=1)       # (B, F), starts at 0
+
+    pos = tf.tile(tf.range(F)[None, :], [B, 1])                     # (B, F)
+    pos_f = tf.cast(pos, tf.float32)
+
+    # unique segment ids across batch
+    seg_id = tf.range(B)[:, None] * F + group_id                    # (B, F)
+    seg_id_flat = tf.reshape(seg_id, [-1])
+    pos_flat = tf.reshape(pos_f, [-1])
+
+    num_segments = B * F
+    mean_per_seg = tf.math.unsorted_segment_mean(pos_flat, seg_id_flat, num_segments)
+    ranks_sorted = tf.reshape(tf.gather(mean_per_seg, seg_id_flat), (B, F))
+
+    inv = tf.argsort(idx, axis=1)                                   # inverse perm
+    ranks = tf.gather(ranks_sorted, inv, batch_dims=1)              # back to original order
+    return ranks
+
+
 def batched_spearman(a: tf.Tensor, b: tf.Tensor) -> tf.Tensor:
     """
     Compute the Spearman rank correlation coefficient in batch.
@@ -117,12 +188,12 @@ def batched_spearman(a: tf.Tensor, b: tf.Tensor) -> tf.Tensor:
     tf.Tensor
         Tensor of shape (B,), Spearman correlation per row.
     """
-    # ranks via argsort(argsort(.))
+    # ranks via argsort(argsort(.)) but handling ties with average ranks
     rank_a = tf.argsort(tf.argsort(a, axis=1), axis=1)
     rank_b = tf.argsort(tf.argsort(b, axis=1), axis=1)
 
-    rank_a = tf.cast(rank_a, tf.float32)
-    rank_b = tf.cast(rank_b, tf.float32)
+    rank_a = _rankdata_average_ties(a)
+    rank_b = _rankdata_average_ties(b)
 
     mean_a = tf.reduce_mean(rank_a, axis=1, keepdims=True)
     mean_b = tf.reduce_mean(rank_b, axis=1, keepdims=True)
