@@ -250,6 +250,60 @@ class ModelRandomizationStrategy(ABC):
 
 
 class ProgressiveLayerRandomization(ModelRandomizationStrategy):
+    """
+        Progressive layer randomization strategy for model parameter perturbation.
+
+        Randomizes model weights layer-by-layer, starting from the output layers
+        (by default) and progressing toward the input layers up to a specified
+        stopping point. This implements the cascading randomization approach
+        described in Adebayo et al. (2018).
+
+        Only layers with trainable weights are considered for randomization.
+
+        Parameters
+        ----------
+        stop_layer : str, int, float, or list of str/int
+            Specifies where to stop randomization in the layer traversal:
+            - str: Name of the layer to stop before.
+            - int: Index of the layer to stop before (in traversal order).
+            - float: Fraction of layers to randomize (must be in [0, 1]).
+            - list: Multiple layer names or indices; stops at the earliest match.
+        reverse : bool, default True
+            If True, traverse layers from output to input (top-down randomization).
+            If False, traverse from input to output (bottom-up randomization).
+
+        Raises
+        ------
+        TypeError
+            If `stop_layer` is not str, int, float, or list of str/int.
+        ValueError
+            If `stop_layer` is a float outside [0, 1], or if a specified
+            layer name is not found in the model.
+
+        Examples
+        --------
+        Randomize the top 25% of layers (by weight count):
+
+        >>> strategy = ProgressiveLayerRandomization(stop_layer=0.25)
+        >>> randomized_model = strategy.randomize(model)
+
+        Randomize all layers up to (but excluding) 'conv2':
+
+        >>> strategy = ProgressiveLayerRandomization(stop_layer='conv2')
+        >>> randomized_model = strategy.randomize(model)
+
+        Randomize layers from input toward output, stopping at index 3:
+
+        >>> strategy = ProgressiveLayerRandomization(stop_layer=3, reverse=False)
+        >>> randomized_model = strategy.randomize(model)
+
+        References
+        ----------
+        Adebayo, J., Gilmer, J., Muelly, M., Goodfellow, I., Hardt, M., & Kim, B. (2018).
+        Sanity checks for saliency maps. Advances in neural information processing systems, 31.
+        https://arxiv.org/abs/1810.03292
+        """
+
     def __init__(self,
                  stop_layer: Union[str, int, float, List[Union[str, int]]],
                  reverse: bool = True):
@@ -269,6 +323,44 @@ class ProgressiveLayerRandomization(ModelRandomizationStrategy):
         self.reverse = reverse
 
     def randomize(self, model: tf.keras.Model) -> tf.keras.Model:
+        """
+        Randomize model weights progressively up to the specified stopping point.
+
+        Traverses layers with trainable weights in the specified order (output-to-input
+        by default) and replaces their weights with uniformly distributed random values.
+        Randomization stops before reaching the layer specified by `stop_layer`.
+
+        Parameters
+        ----------
+        model : tf.keras.Model
+            The Keras model whose weights will be randomized in-place.
+
+        Returns
+        -------
+        tf.keras.Model
+            The same model instance with randomized weights. Note that the original
+            model is modified in-place.
+
+        Raises
+        ------
+        ValueError
+            If a layer name specified in `stop_layer` is not found among the
+            model's layers with trainable weights.
+
+        Notes
+        -----
+        - Only layers with weights (e.g., Dense, Conv2D) are considered; layers
+          without weights (e.g., Activation, Flatten) are skipped.
+        - New weights are drawn from a uniform distribution over the same shape
+          and dtype as the original weights.
+        - The model is modified in-place; clone the model beforehand if the
+          original weights must be preserved.
+
+        Examples
+        --------
+        >>> strategy = ProgressiveLayerRandomization(stop_layer=0.5)
+        >>> randomized_model = strategy.randomize(model)  # Randomizes top 50% of layers
+        """
         # Only count layers that actually have weights (matches your unit tests)
         weight_layers = [l for l in model.layers if l.get_weights()]
         layer_list = weight_layers[::-1] if self.reverse else weight_layers
