@@ -315,7 +315,112 @@ class ProgressiveLayerRandomization(ModelRandomizationStrategy):
         return model
 
 
-class RandomLogitMetric(ExplainerMetric):
+class BaseRandomizationMetric(ExplainerMetric, ABC):
+    """
+    Base class for randomization-based sanity check metrics.
+
+    These metrics compare explanations before and after some perturbation
+    (to targets, model, or inputs) to verify explainer sensitivity.
+
+    Parameters
+    ----------
+    model
+        Model used for computing explanations.
+    inputs
+        Input samples to be explained.
+    targets
+        One-hot encoded labels or regression targets.
+    batch_size
+        Number of samples to evaluate at once.
+    activation
+        Optional activation layer to add after model.
+    seed
+        Random seed for reproducibility.
+    """
+
+    def __init__(self,
+                 model: Callable,
+                 inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
+                 targets: Optional[Union[tf.Tensor, np.ndarray]],
+                 batch_size: Optional[int] = 64,
+                 activation: Optional[str] = None,
+                 seed: int = 42):
+        super().__init__(model=model, inputs=inputs, targets=targets,
+                         batch_size=batch_size, activation=activation)
+        self.seed = seed
+        tf.random.set_seed(self.seed)
+
+        if self.targets is None:
+            self.targets = self.model.predict(inputs, batch_size=batch_size)
+        self.n_classes = int(self.targets.shape[-1])
+
+    @abstractmethod
+    def _get_perturbed_context(self,
+                               inputs: tf.Tensor,
+                               targets: tf.Tensor,
+                               explainer: Callable) -> tuple:
+        """
+        Prepare perturbed inputs/targets/explainer for comparison.
+
+        Returns
+        -------
+        tuple
+            (perturbed_inputs, perturbed_targets, perturbed_explainer)
+        """
+        raise NotImplementedError()
+
+    @abstractmethod
+    def _compute_similarity(self,
+                            exp_original: tf.Tensor,
+                            exp_perturbed: tf.Tensor) -> tf.Tensor:
+        """
+        Compute similarity metric between original and perturbed explanations.
+
+        Returns
+        -------
+        tf.Tensor
+            Per-sample similarity scores of shape (B,).
+        """
+        raise NotImplementedError()
+
+    def _preprocess_explanation(self, exp: tf.Tensor) -> tf.Tensor:
+        """Ensure consistent explanation shape."""
+        exp = tf.convert_to_tensor(exp, dtype=tf.float32)
+        if exp.shape.rank == 3:
+            exp = exp[..., tf.newaxis]
+        return exp
+
+    def _batch_scores(self,
+                      inputs: tf.Tensor,
+                      targets: tf.Tensor,
+                      explainer: Callable) -> tf.Tensor:
+        """Compute per-sample scores for a batch."""
+        # Original explanations
+        exp_original = explainer.explain(inputs=inputs, targets=targets)
+        exp_original = self._preprocess_explanation(exp_original)
+
+        # Get perturbed context and compute explanations
+        p_inputs, p_targets, p_explainer = self._get_perturbed_context(
+            inputs, targets, explainer)
+        exp_perturbed = p_explainer.explain(inputs=p_inputs, targets=p_targets)
+        exp_perturbed = self._preprocess_explanation(exp_perturbed)
+
+        return self._compute_similarity(exp_original, exp_perturbed)
+
+    def evaluate(self, explainer: Callable) -> float:
+        """Compute mean similarity score over the dataset."""
+        scores = None
+        for inp_batch, tgt_batch in batch_tensor(
+                (self.inputs, self.targets), self.batch_size or len(self.inputs)):
+            batch_scores = self._batch_scores(
+                tf.convert_to_tensor(inp_batch, dtype=tf.float32),
+                tf.convert_to_tensor(tgt_batch, dtype=tf.float32),
+                explainer)
+            scores = batch_scores if scores is None else tf.concat([scores, batch_scores], axis=0)
+        return float(tf.reduce_mean(scores))
+
+
+class RandomLogitMetric(BaseRandomizationMetric):
     """
     Random Logit Invariance metric.
 
@@ -362,82 +467,32 @@ class RandomLogitMetric(ExplainerMetric):
                  batch_size: Optional[int] = 64,
                  activation: Optional[str] = None,
                  seed: int = 42):
-        super().__init__(model=model, inputs=inputs, targets=targets, batch_size=batch_size, activation=activation)
-        if self.targets is None:
-            self.targets = self.model.predict(inputs, batch_size=batch_size)
-        self.seed = seed
+        super().__init__(model=model, inputs=inputs, targets=targets,
+                         batch_size=batch_size, activation=activation,
+                         seed=seed)
 
-        # infer number of classes from targets or model output
-        self.n_classes = int(self.targets.shape[-1])
-        tf.random.set_seed(self.seed)
-
-    def _batch_scores(
-            self,
-            inputs: tf.Tensor,
-            targets: tf.Tensor,
-            explainer: Union[WhiteBoxExplainer, BlackBoxExplainer]
-    ) -> tf.Tensor:
-        """
-        Compute per-sample SSIM scores for a batch.
-        """
+    def _get_perturbed_context(self,
+                               inputs: tf.Tensor,
+                               targets: tf.Tensor,
+                               explainer: Callable) -> tuple:
         batch_size = tf.shape(inputs)[0]
-        true_class = tf.argmax(targets, axis=-1, output_type=tf.int32)  # (B,)
+        true_class = tf.argmax(targets, axis=-1, output_type=tf.int32)
 
-        # sample off-class uniformly in {0, ..., C-1} \ {true_class}
+        # Sample off-class uniformly in {0, ..., C-1} \ {true_class}
         k = self.n_classes - 1
         rnd = tf.random.uniform(shape=(batch_size,), minval=0, maxval=k, dtype=tf.int32)
         off_class = tf.where(rnd >= true_class, rnd + 1, rnd)
-
-        true_one_hot = tf.cast(targets, tf.float32)
         off_one_hot = tf.one_hot(off_class, depth=self.n_classes, dtype=tf.float32)
 
-        # explanations for true class and random off-class
-        exp_true = explainer.explain(inputs=inputs, targets=true_one_hot)
-        exp_off = explainer.explain(inputs=inputs, targets=off_one_hot)
+        return inputs, off_one_hot, explainer
 
-        # ensure 4D shape (B, H, W, C_attr)
-        exp_true = tf.convert_to_tensor(exp_true, dtype=tf.float32)
-        exp_off = tf.convert_to_tensor(exp_off, dtype=tf.float32)
-
-        if exp_true.shape.rank == 3:
-            exp_true = exp_true[..., tf.newaxis]
-        if exp_off.shape.rank == 3:
-            exp_off = exp_off[..., tf.newaxis]
-
-        # SSIM per-sample
-        scores = ssim(exp_true, exp_off, batched=True)
-        return scores
-
-    def evaluate(self,
-                 explainer: Union[WhiteBoxExplainer, BlackBoxExplainer]) -> float:
-        """
-        Compute the Random Logit Invariance score over the dataset.
-
-        Parameters
-        ----------
-        explainer
-            Attribution method implementing `explain(inputs, targets)`.
-
-        Returns
-        -------
-        float
-            Mean SSIM over the dataset.
-        """
-        scores = None
-        for inp_batch, tgt_batch in batch_tensor(
-                (self.inputs, self.targets),
-                self.batch_size or len(self.inputs)):
-            batch_scores = self._batch_scores(
-                tf.convert_to_tensor(inp_batch, dtype=tf.float32),
-                tf.convert_to_tensor(tgt_batch, dtype=tf.float32),
-                explainer
-            )
-            scores = batch_scores if scores is None else tf.concat([scores, batch_scores], axis=0)
-
-        return float(tf.reduce_mean(scores))
+    def _compute_similarity(self,
+                            exp_original: tf.Tensor,
+                            exp_perturbed: tf.Tensor) -> tf.Tensor:
+        return ssim(exp_original, exp_perturbed, batched=True)
 
 
-class ModelRandomizationMetric(ExplainerMetric):
+class ModelRandomizationMetric(BaseRandomizationMetric):
     """
     Model Randomization metric.
 
@@ -482,107 +537,70 @@ class ModelRandomizationMetric(ExplainerMetric):
     evaluate(explainer) -> float
         Mean Spearman correlation over the dataset.
     """
+
     def __init__(self,
                  model: Callable,
                  inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
                  targets: Optional[Union[tf.Tensor, np.ndarray]],
-                 randomization_strategy: ModelRandomizationStrategy = ProgressiveLayerRandomization(0.25),
+                 randomization_strategy: ModelRandomizationStrategy = None,
                  batch_size: Optional[int] = 64,
                  activation: Optional[str] = None,
                  seed: int = 42):
-        super().__init__(model=model, inputs=inputs, targets=targets, batch_size=batch_size, activation=activation)
-        if self.targets is None:
-            self.targets = self.model.predict(inputs, batch_size=batch_size)
+        super().__init__(model=model, inputs=inputs, targets=targets,
+                         batch_size=batch_size, activation=activation, seed=seed)
 
-        self.randomization_strategy = randomization_strategy
-        self.seed = seed
+        self.randomization_strategy = randomization_strategy or ProgressiveLayerRandomization(0.25)
 
-        # Clone the model for randomization
+        # Clone model for randomization
         self.randomized_model = tf.keras.models.clone_model(self.model)
         self.randomized_model.set_weights(self.model.get_weights())
+        self._randomized_explainer = None
 
-        # infer number of classes from targets or model output
-        if self._is_integer_dtype(self.targets):
-            sample_input = tf.convert_to_tensor(self.inputs[:1])
-            sample_pred = tf.convert_to_tensor(self.model(sample_input))
-            self.n_classes = int(sample_pred.shape[-1])
-        else:
-            self.n_classes = int(self.targets.shape[-1])
-
-        tf.random.set_seed(self.seed)
-
-    def _to_one_hot(self, targets: tf.Tensor) -> tf.Tensor:
-        """Convert targets to one-hot if needed."""
-        if targets.dtype.is_integer:
-            return tf.one_hot(targets, depth=self.n_classes, dtype=tf.float32)
-        return tf.cast(targets, tf.float32)
-
-    @staticmethod
-    def _is_integer_dtype(x) -> bool:
-        """Check if x has integer dtype (Tensor or numpy array)."""
-        if isinstance(x, tf.Tensor):
-            return x.dtype.is_integer
-        if isinstance(x, np.ndarray):
-            return np.issubdtype(x.dtype, np.integer)
-        return False
-
-    def _batch_scores(
-            self,
-            inputs: tf.Tensor,
-            targets: tf.Tensor,
-            explainer: Union[WhiteBoxExplainer, BlackBoxExplainer]
-    ) -> tf.Tensor:
-        """
-        Compute per-sample Spearman scores for a batch.
-        """
-        one_hot = self._to_one_hot(targets)
-
-        # explanations under original model
-        exp_original = explainer.explain(inputs=inputs, targets=one_hot)
-        exp_original = tf.convert_to_tensor(exp_original, dtype=tf.float32)
-        if exp_original.shape.rank == 3:
-            exp_original = exp_original[..., tf.newaxis]
-
-        # randomize the cloned model
+    def _get_perturbed_context(self,
+                               inputs: tf.Tensor,
+                               targets: tf.Tensor,
+                               explainer: Callable) -> tuple:
+        # Randomize the cloned model
         self.randomization_strategy.randomize(self.randomized_model)
 
-        # temporarily swap models in explainer
+        # Create explainer with randomized model by swapping temporarily
         original_model = explainer.model
         explainer.model = self.randomized_model
 
-        exp_rand = explainer.explain(inputs=inputs, targets=one_hot)
-        exp_rand = tf.convert_to_tensor(exp_rand, dtype=tf.float32)
-        if exp_rand.shape.rank == 3:
-            exp_rand = exp_rand[..., tf.newaxis]
+        # Store reference to restore later
+        self._original_model_ref = original_model
 
-        # restore original model in explainer
-        explainer.model = original_model
+        return inputs, targets, explainer
 
-        # channel-average if needed, flatten to (B, F)
+    def _compute_similarity(self,
+                            exp_original: tf.Tensor,
+                            exp_perturbed: tf.Tensor) -> tf.Tensor:
+        # Channel-average if 4D, then flatten
         if exp_original.shape.rank == 4:
             exp_original = tf.reduce_mean(exp_original, axis=-1)
-            exp_rand = tf.reduce_mean(exp_rand, axis=-1)
+            exp_perturbed = tf.reduce_mean(exp_perturbed, axis=-1)
 
-        exp_original = tf.reshape(exp_original, (tf.shape(inputs)[0], -1))
-        exp_rand = tf.reshape(exp_rand, (tf.shape(inputs)[0], -1))
+        batch_size = tf.shape(exp_original)[0]
+        exp_original = tf.reshape(exp_original, (batch_size, -1))
+        exp_perturbed = tf.reshape(exp_perturbed, (batch_size, -1))
 
-        scores = batched_spearman(exp_original, exp_rand)
-        return scores
+        return batched_spearman(exp_original, exp_perturbed)
 
-    def evaluate(self,
-                 explainer: Union[WhiteBoxExplainer, BlackBoxExplainer]) -> float:
-        """
-        Compute the Model Randomization score over the dataset.
-        """
-        scores = None
-        for inp_batch, tgt_batch in batch_tensor(
-                (self.inputs, self.targets),
-                self.batch_size or len(self.inputs)):
-            batch_scores = self._batch_scores(
-                tf.convert_to_tensor(inp_batch, dtype=tf.float32),
-                tf.convert_to_tensor(tgt_batch),
-                explainer
-            )
-            scores = batch_scores if scores is None else tf.concat([scores, batch_scores], axis=0)
+    def _batch_scores(self,
+                      inputs: tf.Tensor,
+                      targets: tf.Tensor,
+                      explainer: Callable) -> tf.Tensor:
+        # Compute original explanations
+        exp_original = explainer.explain(inputs=inputs, targets=targets)
+        exp_original = self._preprocess_explanation(exp_original)
 
-        return float(tf.reduce_mean(scores))
+        # Get perturbed context
+        p_inputs, p_targets, p_explainer = self._get_perturbed_context(
+            inputs, targets, explainer)
+        exp_perturbed = p_explainer.explain(inputs=p_inputs, targets=p_targets)
+        exp_perturbed = self._preprocess_explanation(exp_perturbed)
+
+        # Restore original model
+        explainer.model = self._original_model_ref
+
+        return self._compute_similarity(exp_original, exp_perturbed)
