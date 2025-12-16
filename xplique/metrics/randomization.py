@@ -390,10 +390,10 @@ class BaseRandomizationMetric(ExplainerMetric, ABC):
             exp = exp[..., tf.newaxis]
         return exp
 
-    def _batch_scores(self,
-                      inputs: tf.Tensor,
-                      targets: tf.Tensor,
-                      explainer: Callable) -> tf.Tensor:
+    def _batch_evaluate(self,
+                        inputs: tf.Tensor,
+                        targets: tf.Tensor,
+                        explainer: Callable) -> tf.Tensor:
         """Compute per-sample scores for a batch."""
         # Original explanations
         exp_original = explainer.explain(inputs=inputs, targets=targets)
@@ -412,7 +412,7 @@ class BaseRandomizationMetric(ExplainerMetric, ABC):
         scores = None
         for inp_batch, tgt_batch in batch_tensor(
                 (self.inputs, self.targets), self.batch_size or len(self.inputs)):
-            batch_scores = self._batch_scores(
+            batch_scores = self._batch_evaluate(
                 tf.convert_to_tensor(inp_batch, dtype=tf.float32),
                 tf.convert_to_tensor(tgt_batch, dtype=tf.float32),
                 explainer)
@@ -586,10 +586,10 @@ class ModelRandomizationMetric(BaseRandomizationMetric):
 
         return batched_spearman(exp_original, exp_perturbed)
 
-    def _batch_scores(self,
-                      inputs: tf.Tensor,
-                      targets: tf.Tensor,
-                      explainer: Callable) -> tf.Tensor:
+    def _batch_evaluate(self,
+                        inputs: tf.Tensor,
+                        targets: tf.Tensor,
+                        explainer: Callable) -> tf.Tensor:
         # Compute original explanations
         exp_original = explainer.explain(inputs=inputs, targets=targets)
         exp_original = self._preprocess_explanation(exp_original)
