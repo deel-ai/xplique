@@ -293,6 +293,10 @@ class BaseRandomizationMetric(ExplainerMetric, ABC):
             exp = exp[..., tf.newaxis]
         return exp
 
+    def _cleanup_perturbed_context(self, explainer, *args):
+        """Hook for cleanup after perturbed context usage. Override if needed."""
+        pass
+
     def _batch_evaluate(self,
                         inputs: tf.Tensor,
                         targets: tf.Tensor,
@@ -307,6 +311,9 @@ class BaseRandomizationMetric(ExplainerMetric, ABC):
             inputs, targets, explainer)
         exp_perturbed = p_explainer.explain(inputs=p_inputs, targets=p_targets)
         exp_perturbed = self._preprocess_explanation(exp_perturbed)
+
+        # Cleanup if necessary (eg restore model weights in model randomization)
+        self._cleanup_perturbed_context(p_explainer, inputs, targets, explainer)
 
         return self._compute_similarity(exp_original, exp_perturbed)
 
