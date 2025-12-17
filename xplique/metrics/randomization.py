@@ -672,21 +672,6 @@ class ModelRandomizationMetric(BaseRandomizationMetric):
 
         return batched_spearman(exp_original, exp_perturbed)
 
-    def _batch_evaluate(self,
-                        inputs: tf.Tensor,
-                        targets: tf.Tensor,
-                        explainer: Callable) -> tf.Tensor:
-        # Compute original explanations
-        exp_original = explainer.explain(inputs=inputs, targets=targets)
-        exp_original = self._preprocess_explanation(exp_original)
-
-        # Get perturbed context
-        p_inputs, p_targets, p_explainer = self._get_perturbed_context(
-            inputs, targets, explainer)
-        exp_perturbed = p_explainer.explain(inputs=p_inputs, targets=p_targets)
-        exp_perturbed = self._preprocess_explanation(exp_perturbed)
-
-        # Restore original model
-        explainer.model = self._original_model_ref
-
-        return self._compute_similarity(exp_original, exp_perturbed)
+    def _cleanup_perturbed_context(self, p_explainer, inputs, targets, original_explainer):
+        """Restore original model after computing perturbed explanations."""
+        original_explainer.model = self._original_model_ref
