@@ -33,12 +33,35 @@ class Complexity(BaseComplexityMetric):
     """
     def detailed_evaluate(self, explanations: tf.Tensor) -> np.ndarray:
         """
-        Per-sample entropy of explanations (no reduction).
+        Compute the Shannon entropy for each explanation in the batch.
+
+        The entropy is calculated after taking absolute values of attributions,
+        flattening spatial dimensions, and normalizing to form a probability
+        distribution. Higher entropy values (approaching log(n) where n is the
+        number of features) indicate more uniform/diffuse explanations, while
+        lower values indicate concentrated/sparse explanations.
+
+        Parameters
+        ----------
+        explanations : tf.Tensor
+            Attribution maps of shape (B, H, W) or (B, H, W, C) where:
+            - B: batch size
+            - H, W: spatial dimensions
+            - C: channels (optional, will be averaged if present)
 
         Returns
         -------
-        entropies
-            A numpy array of shape (B,) with entropy per sample.
+        np.ndarray
+            Entropy values of shape (B,), one per sample. Values are non-negative,
+            with theoretical maximum of log(H*W) for uniform distributions.
+
+        Examples
+        --------
+        >>> complexity = Complexity()
+        >>> explanations = tf.random.uniform((4, 28, 28, 1))
+        >>> entropies = complexity.detailed_evaluate(explanations)
+        >>> entropies.shape
+        (4,)
         """
         x = tf.convert_to_tensor(explanations, dtype=tf.float32)
 
@@ -83,12 +106,36 @@ class Sparseness(BaseComplexityMetric):
     """
     def detailed_evaluate(self, explanations: tf.Tensor) -> np.ndarray:
         """
-        Per-sample Gini index of explanations (no reduction).
+        Compute the Gini coefficient for each explanation in the batch.
+
+        The Gini index measures inequality/concentration in the attribution
+        distribution after L1-normalization. Values range from 0 (uniform
+        distribution) to ~1 (maximally concentrated). Higher values indicate
+        sparser explanations where importance is concentrated in fewer features.
+
+        Parameters
+        ----------
+        explanations : tf.Tensor
+            Attribution maps of shape (B, H, W) or (B, H, W, C) where:
+            - B: batch size
+            - H, W: spatial dimensions
+            - C: channels (optional, will be averaged if present)
 
         Returns
         -------
-        ginis
-            A numpy array of shape (B,) with Gini per sample.
+        np.ndarray
+            Gini coefficients of shape (B,), one per sample. Values are in the
+            range [0, 1] where:
+            - 0: perfectly uniform distribution (low sparseness)
+            - 1: maximally concentrated distribution (high sparseness)
+
+        Examples
+        --------
+        >>> sparseness = Sparseness()
+        >>> explanations = tf.random.uniform((4, 28, 28))
+        >>> ginis = sparseness.detailed_evaluate(explanations)
+        >>> ginis.shape
+        (4,)
         """
         x = tf.convert_to_tensor(explanations, dtype=tf.float32)
 
