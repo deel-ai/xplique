@@ -165,28 +165,28 @@ def _rankdata_average_ties(x: tf.Tensor) -> tf.Tensor:
     """
     # x: (B, F)
     x = tf.convert_to_tensor(x)
-    B = tf.shape(x)[0]
-    F = tf.shape(x)[1]
+    b = tf.shape(x)[0]
+    f = tf.shape(x)[1]
 
     idx = tf.argsort(x, axis=1, stable=True)                        # (B, F)
     x_sorted = tf.gather(x, idx, batch_dims=1)                      # (B, F)
 
     # group boundaries where value changes (ties -> same group)
     change = tf.not_equal(x_sorted[:, 1:], x_sorted[:, :-1])        # (B, F-1)
-    boundary = tf.concat([tf.zeros((B, 1), tf.bool), change], axis=1)  # (B, F)
+    boundary = tf.concat([tf.zeros((b, 1), tf.bool), change], axis=1)  # (B, F)
     group_id = tf.cumsum(tf.cast(boundary, tf.int32), axis=1)       # (B, F), starts at 0
 
-    pos = tf.tile(tf.range(F)[None, :], [B, 1])                     # (B, F)
+    pos = tf.tile(tf.range(f)[None, :], [b, 1])                     # (B, F)
     pos_f = tf.cast(pos, tf.float32)
 
     # unique segment ids across batch
-    seg_id = tf.range(B)[:, None] * F + group_id                    # (B, F)
+    seg_id = tf.range(b)[:, None] * f + group_id                    # (B, F)
     seg_id_flat = tf.reshape(seg_id, [-1])
     pos_flat = tf.reshape(pos_f, [-1])
 
-    num_segments = B * F
+    num_segments = b * f
     mean_per_seg = tf.math.unsorted_segment_mean(pos_flat, seg_id_flat, num_segments)
-    ranks_sorted = tf.reshape(tf.gather(mean_per_seg, seg_id_flat), (B, F))
+    ranks_sorted = tf.reshape(tf.gather(mean_per_seg, seg_id_flat), (b, f))
 
     inv = tf.argsort(idx, axis=1)                                   # inverse perm
     ranks = tf.gather(ranks_sorted, inv, batch_dims=1)              # back to original order
@@ -312,7 +312,7 @@ class ProgressiveLayerRandomization(ModelRandomizationStrategy):
         if not isinstance(stop_layer, (str, int, float, list)):
             raise TypeError("`stop_layer` must be str, int, float or list of str or int.")
         if isinstance(stop_layer, float):
-            if not (0.0 <= stop_layer <= 1.0):
+            if not 0.0 <= stop_layer <= 1.0:
                 raise ValueError("Fractional `stop_layer` must be in [0, 1].")
         elif isinstance(stop_layer, list):
             for elem in stop_layer:
@@ -483,7 +483,7 @@ class RandomLogitMetric(BaseRandomizationMetric):
 
         Notes
         -----
-        The off-class is sampled uniformly from {0, ..., C-1} \ {true_class}.
+        The off-class is sampled uniformly from {0, ..., C-1} - {true_class}.
         This ensures the perturbed target is always different from the original.
         """
         batch_size = tf.shape(inputs)[0]
