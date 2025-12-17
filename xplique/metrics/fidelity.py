@@ -542,7 +542,8 @@ class BaseAverageXMetric(ExplanationMetric, ABC):
     @staticmethod
     def _perturb_with_mask(inputs: tf.Tensor, explanations: tf.Tensor) -> tf.Tensor:
         """
-        Build a normalized mask from explanations and apply element-wise multiplication to inputs.
+        Build a normalized mask from explanations and apply
+        element-wise multiplication to inputs.
 
         This method processes explanations into a [0, 1] mask by:
         1. Taking the absolute value of explanation scores
@@ -676,14 +677,6 @@ class AverageDropMetric(BaseAverageXMetric):
     detailed_evaluate(explanations) -> np.ndarray
         Vector of AD per-sample, shape (N,).
     """
-    def __init__(self,
-                 model: tf.keras.Model,
-                 inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
-                 targets: Optional[Union[tf.Tensor, np.ndarray]] = None,
-                 batch_size: Optional[int] = 64,
-                 operator: Optional[Union[str, Callable]] = None,
-                 activation: Optional[str] = None):
-        super().__init__(model, inputs, targets, batch_size, operator, activation)
 
     def detailed_evaluate(
             self,
@@ -773,14 +766,6 @@ class AverageIncreaseMetric(BaseAverageXMetric):
     detailed_evaluate(explanations) -> np.ndarray
         Vector of binary indicators per-sample, shape (N,).
     """
-    def __init__(self,
-                 model: tf.keras.Model,
-                 inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
-                 targets: Optional[Union[tf.Tensor, np.ndarray]] = None,
-                 batch_size: Optional[int] = 64,
-                 operator: Optional[Union[str, Callable]] = None,
-                 activation: Optional[str] = None):
-        super().__init__(model, inputs, targets, batch_size, operator, activation)
 
     def detailed_evaluate(
             self,
@@ -869,15 +854,6 @@ class AverageGainMetric(BaseAverageXMetric):
     detailed_evaluate(explanations) -> np.ndarray
         Vector of AG per-sample, shape (N,).
     """
-
-    def __init__(self,
-                 model: tf.keras.Model,
-                 inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
-                 targets: Optional[Union[tf.Tensor, np.ndarray]] = None,
-                 batch_size: Optional[int] = 64,
-                 operator: Optional[Union[str, Callable]] = None,
-                 activation: Optional[str] = None):
-        super().__init__(model, inputs, targets, batch_size, operator, activation)
 
     def detailed_evaluate(
             self,
