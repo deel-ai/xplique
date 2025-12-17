@@ -542,8 +542,43 @@ class BaseAverageXMetric(ExplanationMetric, ABC):
     @staticmethod
     def _perturb_with_mask(inputs: tf.Tensor, explanations: tf.Tensor) -> tf.Tensor:
         """
-        Build a mask from explanations and multiplicatively perturb inputs: x ⊙ mask.
-        Explanations are abs(), channel-averaged if needed, min-max normalized per-sample, then broadcast.
+        Build a normalized mask from explanations and apply element-wise multiplication to inputs.
+
+        This method processes explanations into a [0, 1] mask by:
+        1. Taking the absolute value of explanation scores
+        2. Averaging across channels if explanations are multi-channel (4D)
+        3. Applying per-sample min-max normalization to [0, 1]
+        4. Broadcasting the mask to match input dimensions
+        5. Performing element-wise multiplication: x ⊙ mask
+
+        The resulting perturbed inputs retain features with high attribution scores
+        while suppressing features with low scores.
+
+        Parameters
+        ----------
+        inputs : tf.Tensor
+            Input samples to perturb. Shape can be:
+            - (B, H, W, C) for images
+            - (B, T, F) for time series
+            - (B, ...) for other data types
+        explanations : tf.Tensor
+            Attribution scores for each input. Shape can be:
+            - (B, H, W, C) or (B, H, W) for images
+            - (B, T, F) or (B, T) for time series
+            Must have same batch size B as inputs.
+
+        Returns
+        -------
+        perturbed_inputs : tf.Tensor
+            Element-wise product of inputs and normalized mask, same shape as inputs.
+            Values range from 0 (fully masked) to original input value (unmasked).
+
+        Notes
+        -----
+        - Multi-channel explanations are averaged to a single channel before normalization
+        - Min-max normalization is applied independently per sample to ensure each mask
+          spans the full [0, 1] range
+        - The mask is broadcast to match input shape, preserving spatial/temporal structure
         """
         # Apply average if multi-channel explanations and get absolute value
         inp = tf.convert_to_tensor(inputs, dtype=tf.float32)
@@ -657,7 +692,45 @@ class AverageDropMetric(BaseAverageXMetric):
             explanations: tf.Tensor
     ) -> np.ndarray:
         """
-        Evaluate the metric for a single batch of inputs, targets, and explanations.
+        Compute Average Drop scores for a batch of samples.
+
+        This method evaluates how much the model's confidence decreases when inputs
+        are masked according to their explanation-based importance. For each sample:
+
+        1. Compute base score: f(x_i, y_i)
+        2. Create normalized mask M_i from explanation
+        3. Compute perturbed score: f(x_i ⊙ M_i, y_i)
+        4. Calculate AD_i = max(0, base_i - perturbed_i) / (base_i + ε)
+
+        A lower Average Drop indicates that important features (according to the
+        explanation) are correctly identified, as masking them causes significant
+        performance degradation.
+
+        Parameters
+        ----------
+        inputs : tf.Tensor
+            Batch of input samples. Shape: (B, H, W, C) for images,
+            (B, T, F) for time series, or (B, ...) for other data types.
+        targets : tf.Tensor
+            Batch of target labels. Shape: (B, num_classes) for one-hot encoded,
+            or (B,) for class indices/regression targets.
+        explanations : tf.Tensor
+            Batch of attribution maps. Shape must be compatible with inputs
+            (same spatial/temporal dimensions, optionally without channel dimension).
+
+        Returns
+        -------
+        scores : np.ndarray
+            Per-sample Average Drop scores, shape (B,).
+            Values range from 0 (no drop or increase) to ~1 (complete drop).
+            Lower values indicate better explanations.
+
+        Notes
+        -----
+        - Uses ReLU to ignore cases where masking increases confidence
+        - Normalization by base score makes the metric scale-invariant
+        - The mask is constructed via `_perturb_with_mask`, which applies
+          absolute value, channel averaging, and min-max normalization
         """
         base = self.batch_inference_function(self.model, inputs, targets, self.batch_size)
         perturbed = self._perturb_with_mask(inputs, explanations)
@@ -716,7 +789,46 @@ class AverageIncreaseMetric(BaseAverageXMetric):
             explanations: tf.Tensor
     ) -> np.ndarray:
         """
-        Evaluate the metric for a single batch of inputs, targets, and explanations.
+        Compute Average Increase indicators for a batch of samples.
+
+        This method evaluates whether masking inputs according to their explanation-based
+        importance *increases* the model's confidence. For each sample:
+
+        1. Compute base score: f(x_i, y_i)
+        2. Create normalized mask M_i from explanation
+        3. Compute perturbed score: f(x_i ⊙ M_i, y_i)
+        4. Calculate AIC_i = 1 if after_i > base_i, else 0
+
+        A higher Average Increase indicates that the explanation highlights features
+        which, when isolated, are sufficient or even more predictive than the full input.
+        This can reveal whether explanations capture truly discriminative features.
+
+        Parameters
+        ----------
+        inputs : tf.Tensor
+            Batch of input samples. Shape: (B, H, W, C) for images,
+            (B, T, F) for time series, or (B, ...) for other data types.
+        targets : tf.Tensor
+            Batch of target labels. Shape: (B, num_classes) for one-hot encoded,
+            or (B,) for class indices/regression targets.
+        explanations : tf.Tensor
+            Batch of attribution maps. Shape must be compatible with inputs
+            (same spatial/temporal dimensions, optionally without channel dimension).
+
+        Returns
+        -------
+        scores : np.ndarray
+            Per-sample binary indicators, shape (B,).
+            Values are 0 (no increase) or 1 (confidence increased).
+            Higher mean values indicate better explanations.
+
+        Notes
+        -----
+        - Returns binary indicators; dataset-level metric is the mean (i.e., proportion)
+        - Best used with probabilistic outputs; consider `activation="softmax"` or
+          `"sigmoid"` if the model returns logits
+        - The mask is constructed via `_perturb_with_mask`, which applies
+          absolute value, channel averaging, and min-max normalization
         """
         base = self.batch_inference_function(self.model, inputs, targets, self.batch_size)
         perturbed = self._perturb_with_mask(inputs, explanations)
@@ -774,7 +886,48 @@ class AverageGainMetric(BaseAverageXMetric):
             explanations: tf.Tensor
     ) -> np.ndarray:
         """
-        Evaluate the metric for a single batch of inputs, targets, and explanations.
+        Compute Average Gain scores for a batch of samples.
+
+        This method evaluates the relative increase in model confidence when inputs
+        are masked according to their explanation-based importance. For each sample:
+
+        1. Compute base score: f(x_i, y_i)
+        2. Create normalized mask M_i from explanation
+        3. Compute perturbed score: f(x_i ⊙ M_i, y_i)
+        4. Calculate AG_i = max(0, after_i - base_i) / (1 - base_i + ε)
+
+        A higher Average Gain indicates that the explanation successfully identifies
+        features which, when isolated, are sufficient to maintain or increase the
+        model's confidence. This is complementary to Average Drop and measures the
+        explanation's ability to capture discriminative features.
+
+        Parameters
+        ----------
+        inputs : tf.Tensor
+            Batch of input samples. Shape: (B, H, W, C) for images,
+            (B, T, F) for time series, or (B, ...) for other data types.
+        targets : tf.Tensor
+            Batch of target labels. Shape: (B, num_classes) for one-hot encoded,
+            or (B,) for class indices/regression targets.
+        explanations : tf.Tensor
+            Batch of attribution maps. Shape must be compatible with inputs
+            (same spatial/temporal dimensions, optionally without channel dimension).
+
+        Returns
+        -------
+        scores : np.ndarray
+            Per-sample Average Gain scores, shape (B,).
+            Values range from 0 (no gain or decrease) to potentially > 1.
+            Higher values indicate better explanations.
+
+        Notes
+        -----
+        - Uses ReLU to ignore cases where masking decreases confidence
+        - Normalization by (1 - base_i) accounts for the remaining headroom to score=1
+        - Designed for probabilistic outputs in [0, 1]; use `activation="softmax"` or
+          `"sigmoid"` if the model returns logits
+        - The mask is constructed via `_perturb_with_mask`, which applies
+          absolute value, channel averaging, and min-max normalization
         """
         base = self.batch_inference_function(self.model, inputs, targets, self.batch_size)
         perturbed = self._perturb_with_mask(inputs, explanations)

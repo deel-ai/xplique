@@ -459,6 +459,33 @@ class RandomLogitMetric(BaseRandomizationMetric):
                                inputs: tf.Tensor,
                                targets: tf.Tensor,
                                explainer: Callable) -> tuple:
+        """
+        Generate perturbed context by randomly sampling off-class targets.
+
+        For each input sample with true class y, randomly selects a different
+        class y_pertubed != y from the uniform distribution over all other classes.
+
+        Parameters
+        ----------
+        inputs : tf.Tensor
+            Input samples, shape (B, ...).
+        targets : tf.Tensor
+            One-hot encoded true labels, shape (B, C).
+        explainer : Callable
+            Attribution method (passed through unchanged).
+
+        Returns
+        -------
+        tuple of (tf.Tensor, tf.Tensor, Callable)
+            - inputs: Original input samples (unchanged).
+            - off_one_hot: One-hot encoded off-class targets, shape (B, C).
+            - explainer: Original explainer (unchanged).
+
+        Notes
+        -----
+        The off-class is sampled uniformly from {0, ..., C-1} \ {true_class}.
+        This ensures the perturbed target is always different from the original.
+        """
         batch_size = tf.shape(inputs)[0]
         true_class = tf.argmax(targets, axis=-1, output_type=tf.int32)
 
@@ -473,6 +500,26 @@ class RandomLogitMetric(BaseRandomizationMetric):
     def _compute_similarity(self,
                             exp_original: tf.Tensor,
                             exp_perturbed: tf.Tensor) -> tf.Tensor:
+        """
+        Compute SSIM similarity between original and perturbed explanations.
+
+        Measures the Structural Similarity Index between explanations generated
+        for the true class and a randomly selected off-class. Lower SSIM values
+        indicate greater sensitivity to the target label.
+
+        Parameters
+        ----------
+        exp_original : tf.Tensor
+            Explanations for true class targets, shape (B, H, W, C).
+        exp_perturbed : tf.Tensor
+            Explanations for off-class targets, shape (B, H, W, C).
+
+        Returns
+        -------
+        tf.Tensor
+            SSIM values per sample, shape (B,). Values in range [-1, 1],
+            where lower values indicate greater dissimilarity.
+        """
         return ssim(exp_original, exp_perturbed, batched=True)
 
 
@@ -544,6 +591,35 @@ class ModelRandomizationMetric(BaseRandomizationMetric):
                                inputs: tf.Tensor,
                                targets: tf.Tensor,
                                explainer: Callable) -> tuple:
+        """
+        Generate perturbed context by randomizing the model parameters.
+
+        Creates a randomized version of the model using the specified randomization
+        strategy and temporarily assigns it to the explainer. The original model
+        reference is stored for later restoration.
+
+        Parameters
+        ----------
+        inputs : tf.Tensor
+            Input samples, shape (B, ...).
+        targets : tf.Tensor
+            One-hot encoded true labels, shape (B, C).
+        explainer : Callable
+            Attribution method whose model will be temporarily replaced.
+
+        Returns
+        -------
+        tuple of (tf.Tensor, tf.Tensor, Callable)
+            - inputs: Original input samples (unchanged).
+            - targets: Original targets (unchanged).
+            - explainer: Explainer with randomized model assigned.
+
+        Notes
+        -----
+        The explainer's model is temporarily replaced with a randomized clone.
+        The original model reference is stored in `self._original_model_ref`
+        and must be restored after computing perturbed explanations.
+        """
         # Randomize the cloned model
         self.randomization_strategy.randomize(self.randomized_model)
 
@@ -559,6 +635,32 @@ class ModelRandomizationMetric(BaseRandomizationMetric):
     def _compute_similarity(self,
                             exp_original: tf.Tensor,
                             exp_perturbed: tf.Tensor) -> tf.Tensor:
+        """
+        Compute Spearman rank correlation between original and perturbed explanations.
+
+        Measures the rank correlation between explanations generated with the
+        original model and a randomized model. Lower correlation values indicate
+        greater sensitivity to model parameters.
+
+        Parameters
+        ----------
+        exp_original : tf.Tensor
+            Explanations from original model, shape (B, H, W, C) or (B, ...).
+        exp_perturbed : tf.Tensor
+            Explanations from randomized model, shape (B, H, W, C) or (B, ...).
+
+        Returns
+        -------
+        tf.Tensor
+            Spearman correlation values per sample, shape (B,). Values in range
+            [-1, 1], where lower values indicate greater dissimilarity.
+
+        Notes
+        -----
+        For 4D tensors (B, H, W, C), channels are averaged before computing
+        correlation. All tensors are flattened to (B, F) before correlation
+        computation, where F is the total number of features per sample.
+        """
         # Channel-average if 4D, then flatten
         if exp_original.shape.rank == 4:
             exp_original = tf.reduce_mean(exp_original, axis=-1)
