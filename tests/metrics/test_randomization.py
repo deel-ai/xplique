@@ -476,3 +476,15 @@ def test_model_randomization_metric_with_integer_targets():
 
     score = metric.evaluate(explainer)
     assert np.isfinite(score)
+
+
+def test_model_randomization_restores_original_model():
+    """Verify explainer.model is restored after evaluation."""
+    model = _make_simple_cnn(num_classes=4)
+    inputs, targets = _make_dummy_data(num_samples=4, num_classes=4)
+    explainer = InputOnlyExplainer(model)
+
+    metric = ModelRandomizationMetric(model=model, inputs=inputs, targets=targets)
+    metric.evaluate(explainer)
+
+    assert explainer.model is model
