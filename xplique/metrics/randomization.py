@@ -586,6 +586,7 @@ class ModelRandomizationMetric(BaseRandomizationMetric):
         self.randomized_model = tf.keras.models.clone_model(self.model)
         self.randomized_model.set_weights(self.model.get_weights())
         self._randomized_explainer = None
+        self._original_model_ref = None
 
     def _get_perturbed_context(self,
                                inputs: tf.Tensor,
@@ -672,6 +673,6 @@ class ModelRandomizationMetric(BaseRandomizationMetric):
 
         return batched_spearman(exp_original, exp_perturbed)
 
-    def _cleanup_perturbed_context(self, p_explainer, inputs, targets, original_explainer):
+    def _cleanup_perturbed_context(self, explainer, *args):
         """Restore original model after computing perturbed explanations."""
-        original_explainer.model = self._original_model_ref
+        explainer.model = self._original_model_ref
