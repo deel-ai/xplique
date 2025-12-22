@@ -32,6 +32,13 @@ nav:
         - Insertion: api/attributions/metrics/insertion.md
         - MuFidelity: api/attributions/metrics/mu_fidelity.md
         - AverageStability: api/attributions/metrics/avg_stability.md
+        - AverageDropMetric: api/attributions/metrics/average_drop.md
+        - AverageGainMetric: api/attributions/metrics/average_gain.md
+        - AverageIncreaseMetric: api/attributions/metrics/average_increase.md
+        - Complexity: api/attributions/metrics/complexity.md
+        - Sparseness: api/attributions/metrics/sparseness.md
+        - RandomLogitMetric: api/attributions/metrics/random_logit.md
+        - ModelRandomizationMetric: api/attributions/metrics/model_randomization.md
       - PyTorch: api/attributions/pytorch.md
       - Callable: api/attributions/callable.md
       - Classification: api/attributions/classification.md
