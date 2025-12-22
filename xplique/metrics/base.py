@@ -293,9 +293,8 @@ class BaseRandomizationMetric(ExplainerMetric, ABC):
             exp = exp[..., tf.newaxis]
         return exp
 
-    def _cleanup_perturbed_context(self, explainer, *args):
+    def _cleanup_perturbed_context(self, explainer, *args):  # pylint: disable=unused-argument
         """Hook for cleanup after perturbed context usage. Override if needed."""
-        pass
 
     def _batch_evaluate(self,
                         inputs: tf.Tensor,
