@@ -34,8 +34,12 @@ All metrics inherit from the base class `BaseAttributionMetric` which has the fo
 
 Then we can distinguish two category of metrics:
 
-- Those which only need the attribution outputs of an explainer: `ExplanationMetric`, namely those which evaluate Fidelity ([MuFidelity](../mu_fidelity), [Deletion](../deletion), [Insertion](../insertion))
-- Those which need the explainer: `ExplainerMetric` ([AverageStability](../avg_stability))
+- Those which only need the attribution outputs of an explainer: `ExplanationMetric`, namely:
+    - **Fidelity metrics**: [MuFidelity](../mu_fidelity), [Deletion](../deletion), [Insertion](../insertion), [AverageDropMetric](../average_drop), [AverageGainMetric](../average_gain), [AverageIncreaseMetric](../average_increase)
+    - **Complexity metrics**: [Complexity](../complexity), [Sparseness](../sparseness)
+- Those which need the explainer: `ExplainerMetric`:
+    - **Stability metrics**: [AverageStability](../avg_stability)
+    - **Randomization metrics**: [RandomLogitMetric](../random_logit), [ModelRandomizationMetric](../model_randomization)
 
 
 
@@ -93,9 +97,43 @@ The default behavior is to compute the metric without adding any activation laye
 
 
 
+## Other Fidelity Metrics
+
+Other fidelity metrics that are much less computationally expensive:
+
+- [**AverageDropMetric**](../average_drop): Measures the relative drop in confidence when masking inputs with the explanation.
+- [**AverageGainMetric**](../average_gain): Measures the relative increase in confidence (complementary to Average Drop).
+- [**AverageIncreaseMetric**](../average_increase): Binary indicator for whether masking increases confidence.
+
+
+
+
+## Complexity Metrics
+
+These metrics evaluate the interpretability of explanations based on their structure and complexity:
+
+- [**Complexity**](../complexity): Entropy-based measure of how diffuse/concentrated explanations are.
+- [**Sparseness**](../sparseness): Gini-index-based measure of attribution concentration.
+
+
+
+
+## Randomization Metrics (Sanity Checks)
+
+These metrics implement sanity checks to verify that explainers are sensitive to the model and target labels:
+
+- [**RandomLogitMetric**](../random_logit): Tests whether explanations change when the target class is randomized.
+- [**ModelRandomizationMetric**](../model_randomization): Tests whether explanations degrade when model parameters are randomized.
+
+!!!tip
+    These metrics are based on the sanity checks proposed by [Adebayo et al. (2018)](https://arxiv.org/abs/1810.03292). Low similarity scores indicate faithful explainers.
+
+
+
+
 ## Other Metrics
 
-A Representatibity metric: [MeGe](https://arxiv.org/abs/2009.04521) is also available. Documentation about it should be added soon.
+A Representativity metric: [MeGe](https://arxiv.org/abs/2009.04521) is also available. Documentation about it should be added soon.
 
 
 
