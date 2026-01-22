@@ -65,12 +65,15 @@ class Complexity(BaseComplexityMetric):
         """
         x = tf.convert_to_tensor(explanations, dtype=tf.float32)
 
+
+        # |attribution|
+        x = tf.math.abs(x)
+
         # Channel handling: average across channels if present
         if x.shape.rank == 4:  # (B, H, W, C)
             x = tf.reduce_mean(x, axis=-1)
 
-        # |attribution| and flatten
-        x = tf.math.abs(x)
+        # Flatten spatial dimensions
         b = tf.shape(x)[0]
         x = tf.reshape(x, (b, -1))
 
@@ -139,12 +142,14 @@ class Sparseness(BaseComplexityMetric):
         """
         x = tf.convert_to_tensor(explanations, dtype=tf.float32)
 
+        # |attribution| and flatten
+        x = tf.math.abs(x)
+
         # Channel handling: average across channels if present
         if x.shape.rank == 4:  # (B, H, W, C)
             x = tf.reduce_mean(x, axis=-1)
 
-        # |attribution| and flatten
-        x = tf.math.abs(x)
+        # Flatten spatial dimensions
         b = tf.shape(x)[0]
         x = tf.reshape(x, (b, -1))  # (B, n)
 
