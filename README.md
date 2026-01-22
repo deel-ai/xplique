@@ -327,9 +327,16 @@ OD : [Object Detection](https://deel-ai.github.io/xplique/latest/api/attribution
 | MuFidelity              | TF, PyTorch** | Fidelity         | [Paper](https://arxiv.org/abs/2005.00631) |
 | Deletion                | TF, PyTorch** | Fidelity         | [Paper](https://arxiv.org/abs/1806.07421) |
 | Insertion               | TF, PyTorch** | Fidelity         | [Paper](https://arxiv.org/abs/1806.07421) |
+| AverageDropMetric       | TF, PyTorch** | Fidelity         | [Paper](https://arxiv.org/abs/1710.11063) |
+| AverageIncreaseMetric   | TF, PyTorch** | Fidelity         | [Paper](https://arxiv.org/abs/1710.11063) |
+| AverageGainMetric       | TF, PyTorch** | Fidelity         | [Paper](https://arxiv.org/abs/2301.07002) |
 | Average Stability       | TF, PyTorch** | Stability        | [Paper](https://arxiv.org/abs/2005.00631) |
 | MeGe                    | TF, PyTorch** | Representativity | [Paper](https://arxiv.org/abs/2009.04521) |
 | ReCo                    | TF, PyTorch** | Consistency      | [Paper](https://arxiv.org/abs/2009.04521) |
+| Complexity              | TF, PyTorch** | Complexity       | [Paper](https://arxiv.org/abs/2005.00631) |
+| Sparseness              | TF, PyTorch** | Complexity       | [Paper](https://proceedings.mlr.press/v119/chalasani20a.html) |
+| RandomLogitMetric       | TF, PyTorch** | Randomization    | [Paper](https://arxiv.org/abs/1810.03292) |
+| ModelRandomizationMetric| TF, PyTorch** | Randomization    | [Paper](https://arxiv.org/abs/1810.03292) |
 | (WIP) e-robustness      |
 
 TF : Tensorflow compatible
