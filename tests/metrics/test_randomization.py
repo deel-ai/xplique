@@ -33,8 +33,10 @@ def _make_simple_cnn(num_classes: int = 4,
 
 def _make_dummy_data(num_samples: int = 8,
                      num_classes: int = 4,
-                     input_shape=(16, 16, 3)):
+                     input_shape=(16, 16, 3),
+                     seed: int = 42):
     """Random images + one-hot labels."""
+    tf.random.set_seed(seed)
     x = tf.random.normal((num_samples,) + tuple(input_shape), dtype=tf.float32)
     y_indices = tf.random.uniform(
         (num_samples,), minval=0, maxval=num_classes, dtype=tf.int32
@@ -87,7 +89,6 @@ class ModelBasedExplainer:
 
     def explain(self, inputs, targets):
         logits = self.model(tf.convert_to_tensor(inputs, dtype=tf.float32))
-        # (B, F) OK: metric will flatten to (B, F) anyway
         return logits
 
 
@@ -103,6 +104,7 @@ class IdentityRandomization(ModelRandomizationStrategy):
 # ---------------------------------------------------------------------------
 
 def test_ssim_identical_images_is_one():
+    tf.random.set_seed(42)
     img = tf.random.uniform((32, 32, 3), dtype=tf.float32)
     score = ssim(img, img)
     score_val = float(score.numpy())
@@ -118,6 +120,7 @@ def test_ssim_zero_dynamic_range_returns_one():
 
 
 def test_ssim_batched_matches_unbatched():
+    tf.random.set_seed(42)
     imgs1 = tf.random.uniform((4, 8, 8, 3), dtype=tf.float32)
     imgs2 = tf.random.uniform((4, 8, 8, 3), dtype=tf.float32)
 
@@ -139,6 +142,7 @@ def test_ssim_different_images_lower_than_one():
 
 def test_ssim_small_image_adapts_filter_size():
     """Test SSIM works with images smaller than default filter size (11)."""
+    tf.random.set_seed(42)
     img = tf.random.uniform((5, 5, 1), dtype=tf.float32)
     score = ssim(img, img)
     assert float(score.numpy()) == pytest.approx(1.0, rel=1e-5)
@@ -149,6 +153,7 @@ def test_ssim_small_image_adapts_filter_size():
 # ---------------------------------------------------------------------------
 
 def test_batched_spearman_perfect_positive_correlation():
+    tf.random.set_seed(42)
     a = tf.random.normal((5, 10), dtype=tf.float32)
     b = tf.identity(a)
     corr = batched_spearman(a, b).numpy()
@@ -158,6 +163,7 @@ def test_batched_spearman_perfect_positive_correlation():
 
 
 def test_batched_spearman_perfect_negative_correlation():
+    tf.random.set_seed(42)
     a = tf.random.normal((5, 10), dtype=tf.float32)
     b = -a
     corr = batched_spearman(a, b).numpy()
@@ -167,12 +173,25 @@ def test_batched_spearman_perfect_negative_correlation():
 
 def test_batched_spearman_handles_constant_vectors():
     # constant vector -> zero variance -> correlation should be finite (near 0)
+    tf.random.set_seed(42)
     a = tf.zeros((3, 10), dtype=tf.float32)
     b = tf.random.normal((3, 10), dtype=tf.float32)
     corr = batched_spearman(a, b).numpy()
     assert np.all(np.isfinite(corr))
     # With zero variance in ranks for a, expect something ~0
     assert np.all(np.abs(corr) < 1e-3)
+
+
+def test_batched_spearman_random_vectors_bounded():
+    """Test that Spearman correlation of two random vectors is in [-1, 1]."""
+    tf.random.set_seed(42)
+    a = tf.random.normal((10, 50), dtype=tf.float32)
+    b = tf.random.normal((10, 50), dtype=tf.float32)
+    corr = batched_spearman(a, b).numpy()
+    assert corr.shape == (10,)
+    assert np.all(np.isfinite(corr))
+    assert np.all(corr >= -1.0)
+    assert np.all(corr <= 1.0)
 
 
 def test_rankdata_average_ties_simple_ties():
@@ -194,6 +213,7 @@ def test_rankdata_average_ties_simple_ties():
 # ---------------------------------------------------------------------------
 
 def test_progressive_layer_randomization_by_name_and_reverse():
+    tf.random.set_seed(42)
     model = _make_simple_cnn(num_classes=4)
     conv1 = model.get_layer("conv1")
     conv2 = model.get_layer("conv2")
@@ -247,6 +267,7 @@ def test_progressive_layer_randomization_layer_not_found():
 
 
 def test_progressive_layer_randomization_with_int_stop_layer():
+    tf.random.set_seed(42)
     model = _make_simple_cnn(num_classes=4)
     # Store original weights for layers with trainable weights
     original_weights = {l.name: [w.copy() for w in l.get_weights()]
@@ -284,6 +305,7 @@ def test_progressive_layer_randomization_with_int_stop_layer():
 # ---------------------------------------------------------------------------
 
 def test_random_logit_metric_requires_targets():
+    tf.random.set_seed(42)
     model = _make_simple_cnn(num_classes=4)
     inputs, _ = _make_dummy_data(num_samples=4, num_classes=4)
 
@@ -298,6 +320,7 @@ def test_random_logit_metric_requires_targets():
 
 
 def test_random_logit_metric_runs_and_outputs_in_0_1():
+    tf.random.set_seed(42)
     num_classes = 5
     model = _make_simple_cnn(num_classes=num_classes)
     inputs, targets = _make_dummy_data(num_samples=6, num_classes=num_classes)
@@ -322,6 +345,7 @@ def test_random_logit_metric_invariant_explainer_gives_high_ssim():
     If the explainer ignores targets and always returns the same attribution,
     then explanations for true and random classes coincide and SSIM ≈ 1.
     """
+    tf.random.set_seed(42)
     num_classes = 4
     model = _make_simple_cnn(num_classes=num_classes)
     inputs, targets = _make_dummy_data(num_samples=5, num_classes=num_classes)
@@ -344,6 +368,7 @@ def test_random_logit_metric_invariant_explainer_gives_high_ssim():
 # ---------------------------------------------------------------------------
 
 def test_model_randomization_metric_requires_targets():
+    tf.random.set_seed(42)
     model = _make_simple_cnn(num_classes=4)
     inputs, _ = _make_dummy_data(num_samples=4, num_classes=4)
 
@@ -360,6 +385,7 @@ def test_model_randomization_metric_with_invariant_explainer_corr_one():
     If the explainer ignores the model parameters, randomization should not
     change explanations and Spearman ≈ 1.
     """
+    tf.random.set_seed(42)
     num_classes = 4
     model = _make_simple_cnn(num_classes=num_classes)
     inputs, targets = _make_dummy_data(num_samples=6, num_classes=num_classes)
@@ -386,6 +412,7 @@ def test_model_randomization_metric_with_identity_strategy_behaves_like_no_rando
     Using an IdentityRandomization strategy is equivalent to comparing explanations from the
     same model twice; correlation should be ≈ 1 even if explainer depends on the model.
     """
+    tf.random.set_seed(42)
     num_classes = 3
     model = _make_simple_cnn(num_classes=num_classes)
     inputs, targets = _make_dummy_data(num_samples=5, num_classes=num_classes)
@@ -410,6 +437,7 @@ def test_model_randomization_metric_scores_are_finite_and_bounded():
     With a model-dependent explainer and an actual randomization strategy,
     Spearman correlations should remain finite and in [-1, 1].
     """
+    tf.random.set_seed(42)
     num_classes = 4
     model = _make_simple_cnn(num_classes=num_classes)
     inputs, targets = _make_dummy_data(num_samples=8, num_classes=num_classes)
@@ -432,6 +460,7 @@ def test_model_randomization_metric_scores_are_finite_and_bounded():
 
 def test_model_randomization_metric_with_integer_targets():
     """Test that integer labels are correctly converted to one-hot."""
+    tf.random.set_seed(42)
     num_classes = 4
     model = _make_simple_cnn(num_classes=num_classes)
     inputs, _ = _make_dummy_data(num_samples=6, num_classes=num_classes)
