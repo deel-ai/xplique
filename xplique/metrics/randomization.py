@@ -11,7 +11,7 @@ Thus, a low similarity (SSIM or Spearman correlation) between explanations
 before and after randomization indicates a faithful explainer.
 """
 from abc import ABC, abstractmethod
-from typing import List, Callable, Union, Optional
+from typing import Callable, Union, Optional
 
 import numpy as np
 import tensorflow as tf
@@ -261,12 +261,11 @@ class ProgressiveLayerRandomization(ModelRandomizationStrategy):
 
         Parameters
         ----------
-        stop_layer : str, int, float, or list of str/int
+        stop_layer : str, int, or float
             Specifies where to stop randomization in the layer traversal:
             - str: Name of the layer to stop before.
             - int: Index of the layer to stop before (in traversal order).
             - float: Fraction of layers to randomize (must be in [0, 1]).
-            - list: Multiple layer names or indices; stops at the earliest match.
             Note: The stop layer itself is not randomized, it just defines the cutoff point.
         reverse : bool, default True
             If True, traverse layers from output to input (top-down randomization).
@@ -275,7 +274,7 @@ class ProgressiveLayerRandomization(ModelRandomizationStrategy):
         Raises
         ------
         TypeError
-            If `stop_layer` is not str, int, float, or list of str/int.
+            If `stop_layer` is not str, int, or float.
         ValueError
             If `stop_layer` is a float outside [0, 1], or if a specified
             layer name is not found in the model.
@@ -305,19 +304,13 @@ class ProgressiveLayerRandomization(ModelRandomizationStrategy):
         """
 
     def __init__(self,
-                 stop_layer: Union[str, int, float, List[Union[str, int]]],
+                 stop_layer: Union[str, int, float],
                  reverse: bool = True):
-        if isinstance(stop_layer, tuple):
-            stop_layer = list(stop_layer)
-        if not isinstance(stop_layer, (str, int, float, list)):
-            raise TypeError("`stop_layer` must be str, int, float or list of str or int.")
+        if not isinstance(stop_layer, (str, int, float)):
+            raise TypeError("`stop_layer` must be str, int, or float.")
         if isinstance(stop_layer, float):
             if not 0.0 <= stop_layer <= 1.0:
                 raise ValueError("Fractional `stop_layer` must be in [0, 1].")
-        elif isinstance(stop_layer, list):
-            for elem in stop_layer:
-                if not isinstance(elem, (str, int)):
-                    raise TypeError("List elements for `stop_layer` must be str or int.")
 
         self.stop_layer = stop_layer
         self.reverse = reverse
@@ -374,19 +367,8 @@ class ProgressiveLayerRandomization(ModelRandomizationStrategy):
             stop_index = indices[0]
         elif isinstance(self.stop_layer, int):
             stop_index = self.stop_layer
-        elif isinstance(self.stop_layer, float):
+        else:  # float
             stop_index = int(n_layers * self.stop_layer)
-        else:  # list
-            resolved: List[int] = []
-            for elem in self.stop_layer:
-                if isinstance(elem, str):
-                    idxs = [i for i, l in enumerate(layer_list) if l.name == elem]
-                    if not idxs:
-                        raise ValueError(f"Layer '{elem}' not found in model.")
-                    resolved.append(idxs[0])
-                else:
-                    resolved.append(elem)
-            stop_index = min(resolved)
 
         stop_index = max(0, min(stop_index, n_layers))
 

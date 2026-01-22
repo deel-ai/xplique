@@ -279,35 +279,6 @@ def test_progressive_layer_randomization_with_int_stop_layer():
         "Expected exactly 2 layers to be randomized"
 
 
-def test_progressive_layer_randomization_with_list_stop_layer():
-    model = _make_simple_cnn(num_classes=4)
-    original_weights = {l.name: [w.copy() for w in l.get_weights()]
-                        for l in model.layers if l.get_weights()}
-
-    # With reverse=False, should stop at the first encountered layer from the list
-    # conv1 comes before conv2, so it should stop at conv1 (not randomize conv1 or later)
-    strategy = ProgressiveLayerRandomization(stop_layer=["conv1", "conv2"], reverse=False)
-    strategy.randomize(model)
-
-    # Check that conv1 and conv2 are NOT randomized (stop happens at/before conv1)
-    conv1 = model.get_layer("conv1")
-    conv2 = model.get_layer("conv2")
-
-    conv1_unchanged = all(
-        np.allclose(o, n)
-        for o, n in zip(original_weights["conv1"], conv1.get_weights())
-    )
-    conv2_unchanged = all(
-        np.allclose(o, n)
-        for o, n in zip(original_weights["conv2"], conv2.get_weights())
-    )
-
-    # With reverse=False and stop_layer=["conv1", "conv2"],
-    # it should stop at the minimum index (conv1), so conv1 and later are unchanged
-    assert conv1_unchanged, "conv1 should not be randomized when it's in stop_layer list"
-    assert conv2_unchanged, "conv2 should not be randomized (comes after stop point)"
-
-
 # ---------------------------------------------------------------------------
 # RandomLogitMetric tests
 # ---------------------------------------------------------------------------
