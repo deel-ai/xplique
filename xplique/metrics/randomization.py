@@ -577,13 +577,7 @@ class ModelRandomizationMetric(BaseRandomizationMetric):
                  seed: int = 42):
         super().__init__(model=model, inputs=inputs, targets=targets,
                          batch_size=batch_size, activation=activation, seed=seed)
-
         self.randomization_strategy = randomization_strategy or ProgressiveLayerRandomization(0.25)
-
-        # Clone model for randomization
-        self.randomized_model = tf.keras.models.clone_model(self.model)
-        self.randomized_model.set_weights(self.model.get_weights())
-        self._randomized_explainer = None
         self._original_model_ref = None
 
     def _get_perturbed_context(self,
@@ -619,15 +613,16 @@ class ModelRandomizationMetric(BaseRandomizationMetric):
         The original model reference is stored in `self._original_model_ref`
         and must be restored after computing perturbed explanations.
         """
-        # Randomize the cloned model
-        self.randomization_strategy.randomize(self.randomized_model)
+        # Store original model reference for restoration
+        self._original_model_ref = explainer.model
 
-        # Create explainer with randomized model by swapping temporarily
-        original_model = explainer.model
-        explainer.model = self.randomized_model
+        # Clone and randomize the explainer's model (not self.model)
+        randomized_model = tf.keras.models.clone_model(explainer.model)
+        randomized_model.set_weights(explainer.model.get_weights())
+        self.randomization_strategy.randomize(randomized_model)
 
-        # Store reference to restore later
-        self._original_model_ref = original_model
+        # Temporarily swap the explainer's model
+        explainer.model = randomized_model
 
         return inputs, targets, explainer
 
