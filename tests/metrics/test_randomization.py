@@ -131,6 +131,7 @@ def test_ssim_batched_matches_unbatched():
 
     assert batched_scores.shape == (4,)
     assert batched_scores == pytest.approx(unbatched_scores, rel=1e-5, abs=1e-5)
+    assert -1.0 <= batched_scores.min() <= batched_scores.max() <= 1.0
 
 
 def test_ssim_different_images_lower_than_one():
