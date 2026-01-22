@@ -11,13 +11,16 @@ Thus, a low similarity (SSIM or Spearman correlation) between explanations
 before and after randomization indicates a faithful explainer.
 """
 from abc import ABC, abstractmethod
-from typing import List
+from typing import List, Callable, Union, Optional
 
 import numpy as np
 import tensorflow as tf
 
+from .base import ExplainerMetric
+from ..attributions.base import WhiteBoxExplainer, BlackBoxExplainer
+from ..commons import batch_tensor
+
 from ..types import Callable, Optional, Union
-from .base import BaseRandomizationMetric
 
 _EPS = 1e-8
 
@@ -399,6 +402,117 @@ class ProgressiveLayerRandomization(ModelRandomizationStrategy):
             layer.set_weights(new_weights)
 
         return model
+
+
+class BaseRandomizationMetric(ExplainerMetric, ABC):
+    """
+    Base class for randomization-based sanity check metrics.
+
+    These metrics compare explanations before and after some perturbation
+    (to targets, model, or inputs) to verify explainer sensitivity.
+
+    Parameters
+    ----------
+    model
+        Model used for computing explanations.
+    inputs
+        Input samples to be explained.
+    targets
+        One-hot encoded labels or regression targets.
+    batch_size
+        Number of samples to evaluate at once.
+    activation
+        Optional activation layer to add after model.
+    seed
+        Random seed for reproducibility.
+    """
+
+    def __init__(self,
+                 model: Callable,
+                 inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
+                 targets: Optional[Union[tf.Tensor, np.ndarray]],
+                 batch_size: Optional[int] = 64,
+                 activation: Optional[str] = None,
+                 seed: int = 42):
+        super().__init__(model=model, inputs=inputs, targets=targets,
+                         batch_size=batch_size, activation=activation)
+        self.seed = seed
+        tf.random.set_seed(self.seed)
+
+        if self.targets is None:
+            self.targets = self.model.predict(inputs, batch_size=batch_size)
+        self.n_classes = int(self.targets.shape[-1])
+
+    @abstractmethod
+    def _get_perturbed_context(self,
+                               inputs: tf.Tensor,
+                               targets: tf.Tensor,
+                               explainer: Union[WhiteBoxExplainer, BlackBoxExplainer]) -> tuple:
+        """
+        Prepare perturbed inputs/targets/explainer for comparison.
+
+        Returns
+        -------
+        tuple
+            (perturbed_inputs, perturbed_targets, perturbed_explainer)
+        """
+        raise NotImplementedError()
+
+    @abstractmethod
+    def _compute_similarity(self,
+                            exp_original: tf.Tensor,
+                            exp_perturbed: tf.Tensor) -> tf.Tensor:
+        """
+        Compute similarity metric between original and perturbed explanations.
+
+        Returns
+        -------
+        tf.Tensor
+            Per-sample similarity scores of shape (B,).
+        """
+        raise NotImplementedError()
+
+    def _preprocess_explanation(self, exp: tf.Tensor) -> tf.Tensor:
+        """Ensure consistent explanation shape."""
+        exp = tf.convert_to_tensor(exp, dtype=tf.float32)
+        if exp.shape.rank == 3:
+            exp = exp[..., tf.newaxis]
+        return exp
+
+    def _cleanup_perturbed_context(self, explainer, *args):  # pylint: disable=unused-argument
+        """Hook for cleanup after perturbed context usage. Override if needed."""
+
+    def _batch_evaluate(self,
+                        inputs: tf.Tensor,
+                        targets: tf.Tensor,
+                        explainer: Union[WhiteBoxExplainer, BlackBoxExplainer]) -> tf.Tensor:
+        """Compute per-sample scores for a batch."""
+        # Original explanations
+        exp_original = explainer.explain(inputs=inputs, targets=targets)
+        exp_original = self._preprocess_explanation(exp_original)
+
+        # Get perturbed context and compute explanations
+        p_inputs, p_targets, p_explainer = self._get_perturbed_context(
+            inputs, targets, explainer)
+        exp_perturbed = p_explainer.explain(inputs=p_inputs, targets=p_targets)
+        exp_perturbed = self._preprocess_explanation(exp_perturbed)
+
+        # Cleanup if necessary (eg restore model weights in model randomization)
+        self._cleanup_perturbed_context(p_explainer, inputs, targets, explainer)
+
+        return self._compute_similarity(exp_original, exp_perturbed)
+
+    def evaluate(self, explainer: Union[WhiteBoxExplainer, BlackBoxExplainer]) -> float:
+        """Compute mean similarity score over the dataset."""
+        scores = None
+        for inp_batch, tgt_batch in batch_tensor(
+                (self.inputs, self.targets), self.batch_size or len(self.inputs)):
+            batch_scores = self._batch_evaluate(
+                tf.convert_to_tensor(inp_batch, dtype=tf.float32),
+                tf.convert_to_tensor(tgt_batch, dtype=tf.float32),
+                explainer)
+            scores = batch_scores if scores is None else tf.concat([scores, batch_scores], axis=0)
+        return float(tf.reduce_mean(scores))
 
 
 class RandomLogitMetric(BaseRandomizationMetric):
