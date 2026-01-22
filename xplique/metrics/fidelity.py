@@ -584,9 +584,11 @@ class BaseAverageXMetric(ExplanationMetric, ABC):
         # Apply average if multi-channel explanations and get absolute value
         inp = tf.convert_to_tensor(inputs, dtype=tf.float32)
         exp = tf.convert_to_tensor(explanations, dtype=tf.float32)
+
+        # Absolute value and channel averaging
+        exp = tf.math.abs(exp)
         if exp.shape.rank == 4:
-            exp = tf.reduce_mean(exp, axis=-1)  # (B,H,W)
-        mask = tf.math.abs(exp)
+            mask = tf.reduce_mean(exp, axis=-1)  # (B,H,W)
 
         # Apply min-max normalization per sample
         axes = tf.range(1, tf.rank(mask))
