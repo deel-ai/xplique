@@ -25,7 +25,11 @@ _EPS = 1e-8
 def ssim(a: tf.Tensor,
          b: tf.Tensor,
          batched: bool = False,
-         **kwargs) -> tf.Tensor:
+         win_size: int = 11,
+         filter_sigma: float = 1.5,
+         k1: float = 0.01,
+         k2: float = 0.03,
+         ) -> tf.Tensor:
     """
     Compute the Structural Similarity Index Measure (SSIM) between two images
     (or batches of images) using TensorFlow's built-in implementation.
@@ -40,17 +44,14 @@ def ssim(a: tf.Tensor,
     batched
         If True, compute SSIM per-sample (return shape (B,)),
         otherwise return a scalar.
-
-    Other Parameters
-    ----------------
     win_size : int, default 11
         Size of the gaussian filter. Will be adjusted to not exceed image dimensions.
     filter_sigma : float, default 1.5
         Standard deviation for Gaussian kernel.
     k1 : float, default 0.01
-        Algorithm parameter, K1 (small constant).
+        SSIM algorithm parameter, K1 (small constant).
     k2 : float, default 0.03
-        Algorithm parameter, K2 (small constant).
+        SSIM algorithm parameter, K2 (small constant).
 
     Returns
     -------
@@ -66,11 +67,6 @@ def ssim(a: tf.Tensor,
     - Computes data range from min/max of both images combined
     """
 
-    filter_size = int(kwargs.get("win_size", 11))
-    filter_sigma = float(kwargs.get("filter_sigma", 1.5))
-    k1 = float(kwargs.get("k1", 0.01))
-    k2 = float(kwargs.get("k2", 0.03))
-
     def _adapt_filter_size(img: tf.Tensor, fs: int) -> int:
         # img is (H, W, C)
         h = img.shape[0]
@@ -83,7 +79,7 @@ def ssim(a: tf.Tensor,
         return fs
 
     def _ssim_pair(image_a: tf.Tensor, image_b: tf.Tensor) -> tf.Tensor:
-        fs = _adapt_filter_size(image_a, filter_size)
+        fs = _adapt_filter_size(image_a, win_size)
 
         stacked = tf.stack([image_a, image_b], axis=0)
         max_point = tf.reduce_max(stacked)
@@ -268,6 +264,7 @@ class ProgressiveLayerRandomization(ModelRandomizationStrategy):
             - int: Index of the layer to stop before (in traversal order).
             - float: Fraction of layers to randomize (must be in [0, 1]).
             - list: Multiple layer names or indices; stops at the earliest match.
+            Note: The stop layer itself is not randomized, it just defines the cutoff point.
         reverse : bool, default True
             If True, traverse layers from output to input (top-down randomization).
             If False, traverse from input to output (bottom-up randomization).
@@ -555,7 +552,8 @@ class ModelRandomizationMetric(BaseRandomizationMetric):
     explainer
         Attribution method implementing `explain(inputs, targets)`.
     randomization_strategy
-        Strategy to randomize the model parameters.
+        Strategy to randomize the model parameters. If None, a progressive
+        randomization of top 25% layers is used.
     batch_size
         Number of samples to evaluate at once.
     activation
