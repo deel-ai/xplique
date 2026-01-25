@@ -2,7 +2,7 @@ import numpy as np
 import tensorflow as tf
 
 from xplique.attributions import (Saliency, GradientInput, IntegratedGradients, SmoothGrad, VarGrad,
-                                  SquareGrad, GradCAM, Occlusion, Rise, GuidedBackprop, DeconvNet,
+                                  SquareGrad, GradCAM, FEM, Occlusion, Rise, GuidedBackprop, DeconvNet,
                                   GradCAMPP)
 from xplique.metrics import MuFidelity, Deletion, Insertion, AverageStability
 from xplique.metrics.base import ExplanationMetric, ExplainerMetric
@@ -18,6 +18,7 @@ def _default_methods(model, output_layer_index=-2):
         SquareGrad(model, output_layer_index),
         IntegratedGradients(model, output_layer_index, steps=5),
         GradCAM(model, output_layer_index),
+        FEM(model, output_layer_index),
         Occlusion(model, patch_size=4, patch_stride=4),
         Rise(model, nb_samples=10),
         GuidedBackprop(model, output_layer_index),
