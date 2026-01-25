@@ -51,7 +51,7 @@
 > [!IMPORTANT]  
 > With the release of Keras 3.X since TensorFlow 2.16, some methods may not function as expected. We are actively working on a fix. In the meantime, we recommend using TensorFlow 2.15 or earlier versions for optimal compatibility.
 
-The library is composed of several modules, the _Attributions Methods_ module implements various methods (e.g Saliency, Grad-CAM, Integrated-Gradients...), with explanations, examples and links to official papers.
+The library is composed of several modules, the _Attributions Methods_ module implements various methods (e.g Saliency, Grad-CAM, FEM, Integrated-Gradients...), with explanations, examples and links to official papers.
 The _Feature Visualization_ module allows to see how neural networks build their understanding of images by finding inputs that maximize neurons, channels, layers or compositions of these elements.
 The _Concepts_ module allows you to extract human concepts from a model and to test their usefulness with respect to a class.
 Finally, the _Metrics_ module covers the current metrics used in explainability. Used in conjunction with the _Attribution Methods_ module, it allows you to test the different methods or evaluate the explanations of a model.
@@ -291,6 +291,7 @@ There are 4 modules in Xplique, [Attribution methods](https://deel-ai.github.io/
 | Deconvolution          | TF                       | [Paper](https://arxiv.org/abs/1311.2901)  | C✔️ OD❌ SS❌ | C✔️ R✔️ | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/19eB3uwAtCKZgkoWtMzrF0LTJ-htF_KE7) |
 | Grad-CAM               | TF                       | [Paper](https://arxiv.org/abs/1610.02391) | C✔️ OD❌ SS❌ | ❌      | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1nsB7xdQbU0zeYQ1-aB_D-M67-RAnvt4X) |
 | Grad-CAM++             | TF                       | [Paper](https://arxiv.org/abs/1710.11063) | C✔️ OD❌ SS❌ | ❌      | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1nsB7xdQbU0zeYQ1-aB_D-M67-RAnvt4X) |
+| FEM                    | TF                       | [Paper](https://hal.science/hal-02963298/document) | C✔️ OD❌ SS❌ | ❌      | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1nsB7xdQbU0zeYQ1-aB_D-M67-RAnvt4X) |
 | Gradient Input         | TF, PyTorch**            | [Paper](https://arxiv.org/abs/1704.02685) | C✔️ OD✔️ SS✔️ | C✔️ R✔️ | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/19eB3uwAtCKZgkoWtMzrF0LTJ-htF_KE7) |
 | Guided Backprop        | TF                       | [Paper](https://arxiv.org/abs/1412.6806)  | C✔️ OD❌ SS❌ | C✔️ R✔️ | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/19eB3uwAtCKZgkoWtMzrF0LTJ-htF_KE7) |
 | Integrated Gradients   | TF, PyTorch**            | [Paper](https://arxiv.org/abs/1703.01365) | C✔️ OD✔️ SS✔️ | C✔️ R✔️ | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1UXJYVebDVIrkTOaOl-Zk6pHG3LWkPcLo) |

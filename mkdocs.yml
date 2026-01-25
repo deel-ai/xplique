@@ -13,6 +13,7 @@ nav:
         - ForGRad: api/attributions/methods/forgrad.md
         - Grad-CAM: api/attributions/methods/grad_cam.md
         - Grad-CAM++: api/attributions/methods/grad_cam_pp.md
+        - FEM: api/attributions/methods/fem.md
         - Gradient Input: api/attributions/methods/gradient_input.md
         - Guided Backprop: api/attributions/methods/guided_backpropagation.md
         - Hsic Attribution Method: api/attributions/methods/hsic.md
