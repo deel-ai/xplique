@@ -59,6 +59,11 @@ class BlackBoxExplainer(ABC):
 
         if isinstance(model, TorchWrapper):
             self.model = model
+        elif isinstance(model, tf.keras.models.Sequential):
+            model_key = (id(model.inputs[0]), id(model.outputs[0]))
+            if model_key not in BlackBoxExplainer._cache_models:
+                BlackBoxExplainer._cache_models[model_key] = model
+            self.model = BlackBoxExplainer._cache_models[model_key]
         elif isinstance(model, tf.keras.Model):
             model_key = (id(model.input), id(model.output))
             if model_key not in BlackBoxExplainer._cache_models:
