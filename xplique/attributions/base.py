@@ -2,16 +2,21 @@
 Module related to abstract explainer
 """
 
-from abc import ABC, abstractmethod
 import warnings
+from abc import ABC, abstractmethod
 
-import tensorflow as tf
 import numpy as np
+import tensorflow as tf
 
-from ..types import Callable, Dict, Tuple, Union, Optional, OperatorSignature
-from ..commons import Tasks
-from ..commons import (find_layer, tensor_sanitize, get_inference_function,
-                      get_gradient_functions, no_gradients_available)
+from ..commons import (
+    Tasks,
+    find_layer,
+    get_gradient_functions,
+    get_inference_function,
+    no_gradients_available,
+    tensor_sanitize,
+)
+from ..types import Callable, Dict, OperatorSignature, Optional, Tuple, Union
 from ..wrappers import TorchWrapper
 
 
@@ -23,9 +28,13 @@ def sanitize_input_output(explanation_method: Callable):
     explanation_method
         Function to wrap, should return an tf.tensor.
     """
-    def sanitize(self, inputs: Union[tf.data.Dataset, tf.Tensor, np.array],
-                 targets: Optional[Union[tf.Tensor, np.array]],
-                 *args):
+
+    def sanitize(
+        self,
+        inputs: Union[tf.data.Dataset, tf.Tensor, np.array],
+        targets: Optional[Union[tf.Tensor, np.array]],
+        *args,
+    ):
         # ensure we have tf.tensor
         inputs, targets = tensor_sanitize(inputs, targets)
         # then enter the explanation function
@@ -54,18 +63,16 @@ class BlackBoxExplainer(ABC):
     # share the reconfigured models between the methods if possible
     _cache_models: Dict[Tuple[int, int], tf.keras.Model] = {}
 
-    def __init__(self, model: Callable, batch_size: Optional[int] = 64,
-                operator: Optional[Union[Tasks, str, OperatorSignature]] = None):
-
+    def __init__(
+        self,
+        model: Callable,
+        batch_size: Optional[int] = 64,
+        operator: Optional[Union[Tasks, str, OperatorSignature]] = None,
+    ):
         if isinstance(model, TorchWrapper):
             self.model = model
-        elif isinstance(model, tf.keras.models.Sequential):
-            model_key = (id(model.inputs[0]), id(model.outputs[0]))
-            if model_key not in BlackBoxExplainer._cache_models:
-                BlackBoxExplainer._cache_models[model_key] = model
-            self.model = BlackBoxExplainer._cache_models[model_key]
         elif isinstance(model, tf.keras.Model):
-            model_key = (id(model.input), id(model.output))
+            model_key = (id(model.inputs), id(model.outputs))
             if model_key not in BlackBoxExplainer._cache_models:
                 BlackBoxExplainer._cache_models[model_key] = model
             self.model = BlackBoxExplainer._cache_models[model_key]
@@ -75,18 +82,20 @@ class BlackBoxExplainer(ABC):
         self.batch_size = batch_size
 
         # define the inference function according to the model type
-        self.inference_function, self.batch_inference_function = \
-            get_inference_function(model, operator)
+        self.inference_function, self.batch_inference_function = get_inference_function(
+            model, operator
+        )
 
         # black box method don't have access to the model's gradients
         self.gradient = no_gradients_available
         self.batch_gradient = no_gradients_available
 
-
     @abstractmethod
-    def explain(self,
-                inputs: Union[tf.data.Dataset, tf.Tensor, np.array],
-                targets: Optional[Union[tf.Tensor, np.array]] = None) -> tf.Tensor:
+    def explain(
+        self,
+        inputs: Union[tf.data.Dataset, tf.Tensor, np.array],
+        targets: Optional[Union[tf.Tensor, np.array]] = None,
+    ) -> tf.Tensor:
         """
         Compute the explanations of the given inputs.
         Accept Tensor, numpy array or tf.data.Dataset (in that case targets is None)
@@ -111,9 +120,7 @@ class BlackBoxExplainer(ABC):
         """
         raise NotImplementedError()
 
-    def __call__(self,
-                 inputs: tf.Tensor,
-                 labels: tf.Tensor) -> tf.Tensor:
+    def __call__(self, inputs: tf.Tensor, labels: tf.Tensor) -> tf.Tensor:
         """Explain alias"""
         return self.explain(inputs, labels)
 
@@ -142,25 +149,27 @@ class WhiteBoxExplainer(BlackBoxExplainer, ABC):
         Used only for images to obtain explanation with shape (n, h, w, 1).
     """
 
-    def __init__(self,
-                model: tf.keras.Model,
-                output_layer: Optional[Union[str, int]] = None,
-                batch_size: Optional[int] = 64,
-                operator: Optional[OperatorSignature] = None,
-                reducer: Optional[str] = "mean",):
-
+    def __init__(
+        self,
+        model: tf.keras.Model,
+        output_layer: Optional[Union[str, int]] = None,
+        batch_size: Optional[int] = 64,
+        operator: Optional[OperatorSignature] = None,
+        reducer: Optional[str] = "mean",
+    ):
         super().__init__(model, batch_size, operator)
 
         if output_layer is not None:
             # reconfigure the model (e.g skip softmax to target logits)
             target_layer = find_layer(model, output_layer)
-            model = tf.keras.Model(model.input, target_layer.output)
+            model = tf.keras.Model(model.inputs, target_layer.output)
 
             # sanity check, output layer before softmax
             try:
                 if target_layer.activation.__name__ == tf.keras.activations.softmax.__name__:
-                    warnings.warn("Output is after softmax, it is recommended to " +\
-                                  "use the layer before.")
+                    warnings.warn(
+                        "Output is after softmax, it is recommended to " + "use the layer before."
+                    )
             except AttributeError:
                 pass
 
@@ -186,8 +195,9 @@ class WhiteBoxExplainer(BlackBoxExplainer, ABC):
             try:
                 self.reduce = getattr(tf, "reduce_" + reducer)
             except AttributeError as exc:
-                raise ValueError("reducer should be either 'min', 'mean', 'max', 'sum' or None.")\
-                    from exc
+                raise ValueError(
+                    "reducer should be either 'min', 'mean', 'max', 'sum' or None."
+                ) from exc
 
     @staticmethod
     def _harmonize_channel_dimension(explain_method: Callable):
@@ -198,9 +208,12 @@ class WhiteBoxExplainer(BlackBoxExplainer, ABC):
             Function to wrap, should return an tf.tensor.
             Explain method from WhiteBoxExplainers.
         """
-        def explain(self,
-                    inputs: Union[tf.data.Dataset, tf.Tensor, np.array],
-                    targets: Optional[Union[tf.Tensor, np.array]] = None) -> tf.Tensor:
+
+        def explain(
+            self,
+            inputs: Union[tf.data.Dataset, tf.Tensor, np.array],
+            targets: Optional[Union[tf.Tensor, np.array]] = None,
+        ) -> tf.Tensor:
             """
             Compute the explanations of the given inputs.
             Accept Tensor, numpy array or tf.data.Dataset (in that case targets is None)

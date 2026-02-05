@@ -2,12 +2,12 @@
 Module related to Integrated Gradients method
 """
 
-import tensorflow as tf
 import numpy as np
+import tensorflow as tf
 
+from ..commons import Tasks, batch_tensor, repeat_labels
+from ..types import OperatorSignature, Optional, Tuple, Union
 from .base import WhiteBoxExplainer, sanitize_input_output
-from ..commons import repeat_labels, batch_tensor, Tasks
-from ..types import Tuple, Union, Optional, OperatorSignature
 
 
 class IntegratedGradients(WhiteBoxExplainer):
@@ -51,23 +51,27 @@ class IntegratedGradients(WhiteBoxExplainer):
         Scalar used to create the the baseline point.
     """
 
-    def __init__(self,
-                 model: tf.keras.Model,
-                 output_layer: Optional[Union[str, int]] = None,
-                 batch_size: Optional[int] = 32,
-                 operator: Optional[Union[Tasks, str, OperatorSignature]] = None,
-                 reducer: Optional[str] = "mean",
-                 steps: int = 50,
-                 baseline_value: float = .0):
+    def __init__(
+        self,
+        model: tf.keras.Model,
+        output_layer: Optional[Union[str, int]] = None,
+        batch_size: Optional[int] = 32,
+        operator: Optional[Union[Tasks, str, OperatorSignature]] = None,
+        reducer: Optional[str] = "mean",
+        steps: int = 50,
+        baseline_value: float = 0.0,
+    ):
         super().__init__(model, output_layer, batch_size, operator, reducer)
         self.steps = steps
         self.baseline_value = baseline_value
 
     @sanitize_input_output
     @WhiteBoxExplainer._harmonize_channel_dimension
-    def explain(self,
-                inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
-                targets: Optional[Union[tf.Tensor, np.ndarray]] = None) -> tf.Tensor:
+    def explain(
+        self,
+        inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
+        targets: Optional[Union[tf.Tensor, np.ndarray]] = None,
+    ) -> tf.Tensor:
         """
         Compute Integrated Gradients for a batch of samples.
 
@@ -91,34 +95,37 @@ class IntegratedGradients(WhiteBoxExplainer):
         """
         integrated_gradients = None
         batch_size = self.batch_size or len(inputs)
-        baseline = IntegratedGradients._get_baseline((*inputs.shape[1:],),
-                                                     self.baseline_value)
+        baseline = IntegratedGradients._get_baseline((*inputs.shape[1:],), self.baseline_value)
 
-        for x_batch, y_batch in batch_tensor((inputs, targets),
-                                             max(batch_size // self.steps, 1)):
+        for x_batch, y_batch in batch_tensor((inputs, targets), max(batch_size // self.steps, 1)):
             # create the paths for every sample (interpolated points from baseline to sample)
             interpolated_inputs = IntegratedGradients._get_interpolated_points(
-                x_batch, self.steps, baseline)
+                x_batch, self.steps, baseline
+            )
             repeated_targets = repeat_labels(y_batch, self.steps)
 
             # compute the gradient for each paths
-            interpolated_gradients = self.batch_gradient(self.model, interpolated_inputs,
-                                                         repeated_targets, batch_size)
-            interpolated_gradients = tf.reshape(interpolated_gradients,
-                                                (-1, self.steps, *interpolated_gradients.shape[1:]))
+            interpolated_gradients = self.batch_gradient(
+                self.model, interpolated_inputs, repeated_targets, batch_size
+            )
+            interpolated_gradients = tf.reshape(
+                interpolated_gradients, (-1, self.steps, *interpolated_gradients.shape[1:])
+            )
 
             # average the gradient using trapezoidal rule
             averaged_gradients = IntegratedGradients._average_gradients(interpolated_gradients)
             batch_integrated_gradients = (x_batch - baseline) * averaged_gradients
 
-            integrated_gradients = batch_integrated_gradients if integrated_gradients is None else \
-                tf.concat([integrated_gradients, batch_integrated_gradients], axis=0)
+            integrated_gradients = (
+                batch_integrated_gradients
+                if integrated_gradients is None
+                else tf.concat([integrated_gradients, batch_integrated_gradients], axis=0)
+            )
 
         return integrated_gradients
 
     @staticmethod
-    def _get_baseline(shape: Tuple,
-                      baseline_value: float) -> tf.Tensor:
+    def _get_baseline(shape: Tuple, baseline_value: float) -> tf.Tensor:
         """
         Create the baseline point using a scalar value to fill the desired shape.
 
@@ -138,9 +145,7 @@ class IntegratedGradients(WhiteBoxExplainer):
 
     @staticmethod
     @tf.function
-    def _get_interpolated_points(inputs: tf.Tensor,
-                                 steps: int,
-                                 baseline: tf.Tensor) -> tf.Tensor:
+    def _get_interpolated_points(inputs: tf.Tensor, steps: int, baseline: tf.Tensor) -> tf.Tensor:
         """
         Create a path from baseline to sample for every samples.
 

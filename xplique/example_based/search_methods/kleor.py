@@ -1,16 +1,17 @@
 """
 Define the KLEOR search method.
 """
-from abc import abstractmethod, ABC
+
+from abc import ABC, abstractmethod
 
 import numpy as np
 import tensorflow as tf
 
+from ...types import Callable, List, Optional, Tuple, Union
 from ..datasets_operations.tf_dataset_operations import dataset_gather
-from ...types import Callable, List, Union, Optional, Tuple
-
 from .base import ORDER
 from .knn import FilterKNN
+
 
 class BaseKLEORSearch(FilterKNN, ABC):
     """
@@ -21,7 +22,7 @@ class BaseKLEORSearch(FilterKNN, ABC):
     of the NUN that have the same prediction as the query.
 
     Depending on the KLEOR method some additional condition for the search are added.
-    See the specific KLEOR method for more details. 
+    See the specific KLEOR method for more details.
 
     Parameters
     ----------
@@ -49,6 +50,7 @@ class BaseKLEORSearch(FilterKNN, ABC):
         {"manhattan", "euclidean", "cosine", "chebyshev", "inf"}, or a Callable,
         by default "euclidean".
     """
+
     def __init__(
         self,
         cases_dataset: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
@@ -59,7 +61,7 @@ class BaseKLEORSearch(FilterKNN, ABC):
         distance: Union[int, str, Callable] = "euclidean",
     ):
         super().__init__(
-            cases_dataset = cases_dataset,
+            cases_dataset=cases_dataset,
             targets_dataset=targets_dataset,
             k=k,
             search_returns=search_returns,
@@ -77,13 +79,15 @@ class BaseKLEORSearch(FilterKNN, ABC):
             search_returns=["indices", "distances"],
             batch_size=batch_size,
             distance=distance,
-            order = ORDER.ASCENDING,
+            order=ORDER.ASCENDING,
             filter_fn=self._filter_fn_nun,
         )
 
-    def find_examples(self,
-                      inputs: Union[tf.Tensor, np.ndarray],
-                      targets: Optional[Union[tf.Tensor, np.ndarray]] = None) -> dict:
+    def find_examples(
+        self,
+        inputs: Union[tf.Tensor, np.ndarray],
+        targets: Optional[Union[tf.Tensor, np.ndarray]] = None,
+    ) -> dict:
         """
         Search the samples to return as examples. Called by the explain methods.
         It may also return the indices corresponding to the samples,
@@ -104,11 +108,12 @@ class BaseKLEORSearch(FilterKNN, ABC):
             Dictionary containing the elements to return which are specified in `self.returns`.
         """
         # compute neighbors
-        examples_distances, examples_indices, nuns, nuns_indices, nuns_sf_distances =\
+        examples_distances, examples_indices, nuns, nuns_indices, nuns_sf_distances = (
             self.kneighbors(inputs, targets)
+        )
 
         # build return dict
-        return_dict = self._build_return_dict(inputs,  examples_distances, examples_indices)
+        return_dict = self._build_return_dict(inputs, examples_distances, examples_indices)
 
         # add the nuns if needed
         if "nuns" in self.returns:
@@ -144,15 +149,15 @@ class BaseKLEORSearch(FilterKNN, ABC):
         # get the labels predicted by the model
         # (n, )
         predicted_labels = tf.argmax(targets, axis=-1)
-        label_targets = tf.argmax(cases_targets, axis=-1) # (bs,)
+        label_targets = tf.argmax(cases_targets, axis=-1)  # (bs,)
         # for each input, if the target label is the same as the predicted label
         # the mask as a False value and True otherwise
-        mask = tf.not_equal(tf.expand_dims(predicted_labels, axis=1), label_targets) #(n, bs)
+        mask = tf.not_equal(tf.expand_dims(predicted_labels, axis=1), label_targets)  # (n, bs)
         return mask
 
-    def _get_nuns(self,
-                  inputs: Union[tf.Tensor, np.ndarray],
-                  targets: Union[tf.Tensor, np.ndarray]) -> Tuple[tf.Tensor, tf.Tensor]:
+    def _get_nuns(
+        self, inputs: Union[tf.Tensor, np.ndarray], targets: Union[tf.Tensor, np.ndarray]
+    ) -> Tuple[tf.Tensor, tf.Tensor]:
         """
         Get the Nearest Unlike Neighbors and their distance to the related input.
         """
@@ -161,10 +166,9 @@ class BaseKLEORSearch(FilterKNN, ABC):
         nuns = dataset_gather(self.cases_dataset, nuns_indices)
         return nuns, nuns_indices, nuns_distances
 
-    def kneighbors(self,
-                   inputs: Union[tf.Tensor, np.ndarray],
-                   targets: Union[tf.Tensor, np.ndarray]
-                   ) -> Tuple[tf.Tensor, tf.Tensor]:
+    def kneighbors(
+        self, inputs: Union[tf.Tensor, np.ndarray], targets: Union[tf.Tensor, np.ndarray]
+    ) -> Tuple[tf.Tensor, tf.Tensor]:
         """
         Compute the k SF to each tensor of `inputs` in `self.cases_dataset`.
         Here `self.cases_dataset` is a `tf.data.Dataset`, hence, computations are done by batches.
@@ -208,12 +212,14 @@ class BaseKLEORSearch(FilterKNN, ABC):
         nuns, nuns_indices, nuns_input_distances = self._get_nuns(inputs, targets)
 
         # initialize the search for the KLEOR semi-factual methods
-        sf_indices, input_sf_distances, nun_sf_distances, batch_indices =\
-            self._initialize_search(inputs)
+        sf_indices, input_sf_distances, nun_sf_distances, batch_indices = self._initialize_search(
+            inputs
+        )
 
         # iterate on batches
-        for batch_index, (cases, cases_targets) in\
-                enumerate(zip(self.cases_dataset, self.targets_dataset)):
+        for batch_index, (cases, cases_targets) in enumerate(
+            zip(self.cases_dataset, self.targets_dataset)
+        ):
             # add new elements
             # (n, current_bs, 2)
             indices = batch_indices[:, : tf.shape(cases)[0]]
@@ -239,12 +245,10 @@ class BaseKLEORSearch(FilterKNN, ABC):
             concatenated_indices = tf.concat([sf_indices, new_indices], axis=1)
             # (n, k+curent_bs)
             concatenated_nun_sf_distances = tf.concat(
-                [nun_sf_distances, b_nun_sf_distances],
-                axis=1
+                [nun_sf_distances, b_nun_sf_distances], axis=1
             )
             concatenated_input_sf_distances = tf.concat(
-                [input_sf_distances, b_input_sf_distances],
-                axis=1
+                [input_sf_distances, b_input_sf_distances], axis=1
             )
 
             # sort according to the smallest distances between sf and nun
@@ -253,9 +257,7 @@ class BaseKLEORSearch(FilterKNN, ABC):
                 concatenated_nun_sf_distances, axis=1, direction=self.order.name.upper()
             )[:, : self.k]
 
-            sf_indices.assign(
-                tf.gather(concatenated_indices, sort_order, axis=1, batch_dims=1)
-            )
+            sf_indices.assign(tf.gather(concatenated_indices, sort_order, axis=1, batch_dims=1))
             nun_sf_distances.assign(
                 tf.gather(concatenated_nun_sf_distances, sort_order, axis=1, batch_dims=1)
             )
@@ -265,9 +267,9 @@ class BaseKLEORSearch(FilterKNN, ABC):
 
         return input_sf_distances, sf_indices, nuns, nuns_indices, nun_sf_distances
 
-    def _initialize_search(self,
-                           inputs: Union[tf.Tensor, np.ndarray]
-        ) -> Tuple[tf.Variable, tf.Variable, tf.Variable, tf.Tensor]:
+    def _initialize_search(
+        self, inputs: Union[tf.Tensor, np.ndarray]
+    ) -> Tuple[tf.Variable, tf.Variable, tf.Variable, tf.Tensor]:
         """
         Initialize the search for the KLEOR semi-factual methods.
         """
@@ -284,14 +286,17 @@ class BaseKLEORSearch(FilterKNN, ABC):
         return sf_indices, input_sf_distances, nun_sf_distances, batch_indices
 
     @abstractmethod
-    def _additional_filtering(self,
-                              nun_sf_distances: tf.Tensor,
-                              input_sf_distances: tf.Tensor,
-                              nuns_input_distances: tf.Tensor) -> Tuple[tf.Tensor, tf.Tensor]:
+    def _additional_filtering(
+        self,
+        nun_sf_distances: tf.Tensor,
+        input_sf_distances: tf.Tensor,
+        nuns_input_distances: tf.Tensor,
+    ) -> Tuple[tf.Tensor, tf.Tensor]:
         """
         Additional filtering to apply to the distances.
         """
         raise NotImplementedError
+
 
 class KLEORSimMissSearch(BaseKLEORSearch):
     """
@@ -301,14 +306,18 @@ class KLEORSimMissSearch(BaseKLEORSearch):
     Then, the method search for the K-Nearest Neighbors (KNN)
     of the NUN that have the same prediction as the query.
     """
-    def _additional_filtering(self,
-                              nun_sf_distances: tf.Tensor,
-                              input_sf_distances: tf.Tensor,
-                              nuns_input_distances: tf.Tensor) -> Tuple[tf.Tensor, tf.Tensor]:
+
+    def _additional_filtering(
+        self,
+        nun_sf_distances: tf.Tensor,
+        input_sf_distances: tf.Tensor,
+        nuns_input_distances: tf.Tensor,
+    ) -> Tuple[tf.Tensor, tf.Tensor]:
         """
         No additional filtering for the KLEORSimMiss method.
         """
         return nun_sf_distances, input_sf_distances
+
 
 class KLEORGlobalSimSearch(BaseKLEORSearch):
     """
@@ -323,10 +332,13 @@ class KLEORGlobalSimSearch(BaseKLEORSearch):
     (i.e. the SF should be 'between' the input and its NUN).
     This condition is added to the search.
     """
-    def _additional_filtering(self,
-                              nun_sf_distances: tf.Tensor,
-                              input_sf_distances: tf.Tensor,
-                              nuns_input_distances: tf.Tensor) -> Tuple[tf.Tensor, tf.Tensor]:
+
+    def _additional_filtering(
+        self,
+        nun_sf_distances: tf.Tensor,
+        input_sf_distances: tf.Tensor,
+        nuns_input_distances: tf.Tensor,
+    ) -> Tuple[tf.Tensor, tf.Tensor]:
         """
         Filter the distances to keep only the SF that are 'between' the input and its NUN.
 

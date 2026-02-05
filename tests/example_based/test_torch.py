@@ -2,28 +2,34 @@
 Test example-based methods with PyTorch models and datasets.
 """
 
-import pytest
-
 import numpy as np
+import pytest
 import tensorflow as tf
 import torch
-from torch import nn
 import torch.nn.functional as F
-from torch.utils.data import TensorDataset, DataLoader
-
-from xplique.example_based import (
-    SimilarExamples, Cole, MMDCritic, ProtoDash, ProtoGreedy,
-    NaiveCounterFactuals, LabelAwareCounterFactuals, KLEORGlobalSim, KLEORSimMiss,
-)
-from xplique.example_based.projections import Projection, LatentSpaceProjection, HadamardProjection
-from xplique.example_based.projections.commons import model_splitting
-
-from xplique.example_based.datasets_operations.tf_dataset_operations import are_dataset_first_elems_equal
-from xplique.example_based.datasets_operations.harmonize import harmonize_datasets
+from torch import nn
+from torch.utils.data import DataLoader, TensorDataset
 
 from tests.utils import almost_equal
+from xplique.example_based import (
+    Cole,
+    KLEORGlobalSim,
+    KLEORSimMiss,
+    LabelAwareCounterFactuals,
+    MMDCritic,
+    NaiveCounterFactuals,
+    ProtoDash,
+    ProtoGreedy,
+    SimilarExamples,
+)
+from xplique.example_based.datasets_operations.harmonize import harmonize_datasets
+from xplique.example_based.datasets_operations.tf_dataset_operations import (
+    are_dataset_first_elems_equal,
+)
+from xplique.example_based.projections import HadamardProjection, LatentSpaceProjection, Projection
+from xplique.example_based.projections.commons import model_splitting
 
-    
+
 def get_setup(input_shape, nb_samples=10, nb_labels=10):
     """
     Generate data and model for SimilarExamples
@@ -34,7 +40,7 @@ def get_setup(input_shape, nb_samples=10, nb_labels=10):
     )
     y_train = torch.arange(len(x_train), dtype=torch.int64) % nb_labels
     train_targets = F.one_hot(y_train, num_classes=nb_labels).to(torch.float32)
-    
+
     x_test = x_train[1:-1]  # Exclude the first and last elements
     test_targets = train_targets[1:-1]  # Exclude the first and last elements
 
@@ -47,7 +53,7 @@ def create_cnn_model(input_shape, output_shape):
     kernel_size = 3
     padding = 1
     stride = 1
-    
+
     # Calculate the flattened size after the convolutional layers and pooling
     def conv_output_size(in_size):
         return (in_size - kernel_size + 2 * padding) // stride + 1
@@ -58,28 +64,30 @@ def create_cnn_model(input_shape, output_shape):
     width_after_conv1 = conv_output_size(width) // 2  # After first conv and pooling
     width_after_conv2 = conv_output_size(width_after_conv1) // 2  # After second conv and pooling
 
-    flat_size = 8 * height_after_conv2 * width_after_conv2  # 8 is the number of filters in the last conv layer
+    flat_size = (
+        8 * height_after_conv2 * width_after_conv2
+    )  # 8 is the number of filters in the last conv layer
 
     model = nn.Sequential(
         # Convolutional layer 1
-        nn.Conv2d(in_channels=in_channels, out_channels=4, kernel_size=kernel_size, padding=padding),  # 4 filters
+        nn.Conv2d(
+            in_channels=in_channels, out_channels=4, kernel_size=kernel_size, padding=padding
+        ),  # 4 filters
         nn.ReLU(),
         nn.MaxPool2d(kernel_size=2, stride=2),  # Pooling layer (2x2)
-        
         # Convolutional layer 2
-        nn.Conv2d(in_channels=4, out_channels=8, kernel_size=kernel_size, padding=padding),  # 8 filters
+        nn.Conv2d(
+            in_channels=4, out_channels=8, kernel_size=kernel_size, padding=padding
+        ),  # 8 filters
         nn.ReLU(),
         nn.MaxPool2d(kernel_size=2, stride=2),  # Pooling layer (2x2)
-        
         # Flatten layer
         nn.Flatten(),
-        
         # Fully connected layer 1
         nn.Linear(flat_size, 16),
         nn.ReLU(),
-        
         # Output layer
-        nn.Linear(16, output_shape)
+        nn.Linear(16, output_shape),
     )
 
     # Initialize all weights to ones
@@ -94,19 +102,25 @@ def create_cnn_model(input_shape, output_shape):
 
 def test_harmonize_datasets_with_torch():
     import torch
-    
+
     cases = torch.rand(100, 10)
     labels = torch.randint(0, 2, (100, 1))
     batch_size = 10
-    
-    cases_out, labels_out, targets_out, batch_size_out = harmonize_datasets(cases, labels, batch_size=batch_size)
-    
+
+    cases_out, labels_out, targets_out, batch_size_out = harmonize_datasets(
+        cases, labels, batch_size=batch_size
+    )
+
     assert targets_out is None, "Targets should be None when not provided."
     assert batch_size_out == batch_size, "Output batch size should match the input batch size."
 
     for case, label in zip(cases_out, labels_out):
-        assert case.shape == (batch_size, cases.shape[1]), "Each case should have the same shape as the input cases."
-        assert label.shape == (batch_size, labels.shape[1]), "Each label should have the same shape as the input labels."
+        assert case.shape == (batch_size, cases.shape[1]), (
+            "Each case should have the same shape as the input cases."
+        )
+        assert label.shape == (batch_size, labels.shape[1]), (
+            "Each label should have the same shape as the input labels."
+        )
         break
 
 
@@ -132,34 +146,37 @@ def test_inputs_combinations():
     torch_zipped3_dataloader_b3 = DataLoader(zipped3, batch_size=3, shuffle=False)
 
     # Method initialization that should work
-    cases_dataset, labels_dataset, targets_dataset, batch_size =\
-        harmonize_datasets(torch_dataloader_b3, None, torch_dataloader_b3)
+    cases_dataset, labels_dataset, targets_dataset, batch_size = harmonize_datasets(
+        torch_dataloader_b3, None, torch_dataloader_b3
+    )
     assert are_dataset_first_elems_equal(cases_dataset, tf_dataset_b3)
     assert are_dataset_first_elems_equal(labels_dataset, None)
     assert are_dataset_first_elems_equal(targets_dataset, tf_dataset_b3)
     assert batch_size == 3
 
-    cases_dataset, labels_dataset, targets_dataset, batch_size =\
-        harmonize_datasets(torch_tensor, torch_tensor, None, batch_size=5)
+    cases_dataset, labels_dataset, targets_dataset, batch_size = harmonize_datasets(
+        torch_tensor, torch_tensor, None, batch_size=5
+    )
     assert are_dataset_first_elems_equal(cases_dataset, tf_dataset_b5)
     assert are_dataset_first_elems_equal(labels_dataset, tf_dataset_b5)
     assert are_dataset_first_elems_equal(targets_dataset, None)
     assert batch_size == 5
 
-    cases_dataset, labels_dataset, targets_dataset, batch_size =\
-        harmonize_datasets(torch_zipped2_dataloader_b5, None, torch_dataloader_b5)
+    cases_dataset, labels_dataset, targets_dataset, batch_size = harmonize_datasets(
+        torch_zipped2_dataloader_b5, None, torch_dataloader_b5
+    )
     assert are_dataset_first_elems_equal(cases_dataset, tf_dataset_b5)
     assert are_dataset_first_elems_equal(labels_dataset, tf_dataset_b5)
     assert are_dataset_first_elems_equal(targets_dataset, tf_dataset_b5)
     assert batch_size == 5
 
-    cases_dataset, labels_dataset, targets_dataset, batch_size =\
-        harmonize_datasets(torch_zipped3_dataloader_b3, batch_size=3)
+    cases_dataset, labels_dataset, targets_dataset, batch_size = harmonize_datasets(
+        torch_zipped3_dataloader_b3, batch_size=3
+    )
     assert are_dataset_first_elems_equal(cases_dataset, tf_dataset_b3)
     assert are_dataset_first_elems_equal(labels_dataset, tf_dataset_b3)
     assert are_dataset_first_elems_equal(targets_dataset, tf_dataset_b3)
     assert batch_size == 3
-
 
 
 def test_error_raising():
@@ -188,7 +205,6 @@ def test_error_raising():
     too_long_torch_dataset = TensorDataset(too_long_torch_tensor)
     too_long_torch_dataloader_b10 = DataLoader(too_long_torch_dataset, batch_size=10, shuffle=False)
 
-
     # Method initialization that should not work
 
     # not input
@@ -197,38 +213,74 @@ def test_error_raising():
 
     # shuffled
     with pytest.raises(AssertionError):
-            harmonize_datasets(torch_shuffled,)
+        harmonize_datasets(
+            torch_shuffled,
+        )
 
     # mismatching types
     with pytest.raises(AssertionError):
-            harmonize_datasets(torch_dataloader_b3, torch_tensor,)
+        harmonize_datasets(
+            torch_dataloader_b3,
+            torch_tensor,
+        )
     with pytest.raises(AssertionError):
-            harmonize_datasets(torch_tensor, tf_tensor,)
+        harmonize_datasets(
+            torch_tensor,
+            tf_tensor,
+        )
     with pytest.raises(AssertionError):
-            harmonize_datasets(np_array, torch_tensor,)
+        harmonize_datasets(
+            np_array,
+            torch_tensor,
+        )
     with pytest.raises(AssertionError):
-            harmonize_datasets(np_array, torch_dataloader_b3,)
+        harmonize_datasets(
+            np_array,
+            torch_dataloader_b3,
+        )
     with pytest.raises(AssertionError):
-            harmonize_datasets(tf_dataset, torch_dataloader_b3,)
+        harmonize_datasets(
+            tf_dataset,
+            torch_dataloader_b3,
+        )
     with pytest.raises(AssertionError):
-            harmonize_datasets(torch_zipped2_dataloader_b5, tf_tensor,)
+        harmonize_datasets(
+            torch_zipped2_dataloader_b5,
+            tf_tensor,
+        )
 
     # labels or targets zipped
     with pytest.raises(AssertionError):
-            harmonize_datasets(torch_dataloader_b5, torch_zipped2_dataloader_b5,)
+        harmonize_datasets(
+            torch_dataloader_b5,
+            torch_zipped2_dataloader_b5,
+        )
     with pytest.raises(AssertionError):
-            harmonize_datasets(torch_dataloader_b3, None, torch_zipped3_dataloader_b3,)
+        harmonize_datasets(
+            torch_dataloader_b3,
+            None,
+            torch_zipped3_dataloader_b3,
+        )
 
     # not batched and no batch size provided
     with pytest.raises(AssertionError):
-            harmonize_datasets(torch_dataloader,)
+        harmonize_datasets(
+            torch_dataloader,
+        )
 
     # not matching batch sizes
     with pytest.raises(AssertionError):
-            harmonize_datasets(torch_dataloader_b3, torch_dataloader_b5,)
+        harmonize_datasets(
+            torch_dataloader_b3,
+            torch_dataloader_b5,
+        )
     with pytest.raises(AssertionError):
-            harmonize_datasets(torch_zipped2_dataloader_b5, None, torch_dataloader_b3,)
-    
+        harmonize_datasets(
+            torch_zipped2_dataloader_b5,
+            None,
+            torch_dataloader_b3,
+        )
+
     with pytest.raises(AssertionError):
         harmonize_datasets(
             too_long_torch_dataloader_b10,
@@ -238,13 +290,19 @@ def test_error_raising():
 
     # multiple datasets for labels or targets
     with pytest.raises(AssertionError):
-            harmonize_datasets(torch_zipped2_dataloader_b5, torch_dataloader_b5,)
+        harmonize_datasets(
+            torch_zipped2_dataloader_b5,
+            torch_dataloader_b5,
+        )
     with pytest.raises(AssertionError):
-            harmonize_datasets(torch_zipped3_dataloader_b3, None, torch_dataloader_b3,)
+        harmonize_datasets(
+            torch_zipped3_dataloader_b3,
+            None,
+            torch_dataloader_b3,
+        )
 
 
 def test_torch_model_splitting():
-
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
     n_sample = 10
@@ -264,7 +322,7 @@ def test_torch_model_splitting():
     with torch.no_grad():
         torch_channel_first_data = torch_data.permute(0, 3, 1, 2)
         np_predictions_1 = model(torch_channel_first_data).cpu().numpy()
-    
+
     assert np_predictions_1.shape == (n_sample, nb_labels)
 
     # test splitting support different types
@@ -274,7 +332,6 @@ def test_torch_model_splitting():
 
     assert isinstance(features_extractor, tf.keras.Model)
     assert isinstance(predictor, tf.keras.Model)
-
 
     # inference with the splitted model
     tf_data = tf.convert_to_tensor(np_data)
@@ -299,9 +356,7 @@ def test_similar_examples_basic():
     torch_dataset = TensorDataset(x_train, y_train)
     torch_dataloader = DataLoader(torch_dataset, batch_size=batch_size, shuffle=False)
 
-    identity_projection = Projection(
-        space_projection=lambda inputs, targets=None: inputs
-    )
+    identity_projection = Projection(space_projection=lambda inputs, targets=None: inputs)
 
     # Method initialization
     method = SimilarExamples(
@@ -325,17 +380,21 @@ def test_similar_examples_basic():
     for i in range(len(x_test)):
         # test examples:
         assert almost_equal(np.array(examples[i, 0]), np.array(x_train[i + 1]))
-        assert almost_equal(np.array(examples[i, 1]), np.array(x_train[i + 2]))\
-            or almost_equal(np.array(examples[i, 1]), np.array(x_train[i]))
-        assert almost_equal(np.array(examples[i, 2]), np.array(x_train[i]))\
-            or almost_equal(np.array(examples[i, 2]), np.array(x_train[i + 2]))
-        
+        assert almost_equal(np.array(examples[i, 1]), np.array(x_train[i + 2])) or almost_equal(
+            np.array(examples[i, 1]), np.array(x_train[i])
+        )
+        assert almost_equal(np.array(examples[i, 2]), np.array(x_train[i])) or almost_equal(
+            np.array(examples[i, 2]), np.array(x_train[i + 2])
+        )
+
         # test labels:
         assert almost_equal(np.array(labels[i, 0]), np.array(y_train[i + 1]))
-        assert almost_equal(np.array(labels[i, 1]), np.array(y_train[i + 2]))\
-            or almost_equal(np.array(labels[i, 1]), np.array(y_train[i]))
-        assert almost_equal(np.array(labels[i, 2]), np.array(y_train[i]))\
-            or almost_equal(np.array(labels[i, 2]), np.array(y_train[i + 2]))
+        assert almost_equal(np.array(labels[i, 1]), np.array(y_train[i + 2])) or almost_equal(
+            np.array(labels[i, 1]), np.array(y_train[i])
+        )
+        assert almost_equal(np.array(labels[i, 2]), np.array(y_train[i])) or almost_equal(
+            np.array(labels[i, 2]), np.array(y_train[i + 2])
+        )
 
 
 def test_similar_examples_with_splitting():
@@ -381,17 +440,21 @@ def test_similar_examples_with_splitting():
     for i in range(len(x_test)):
         # test examples:
         assert almost_equal(np.array(examples[i, 0]), np.array(x_train[i + 1]))
-        assert almost_equal(np.array(examples[i, 1]), np.array(x_train[i + 2]))\
-            or almost_equal(np.array(examples[i, 1]), np.array(x_train[i]))
-        assert almost_equal(np.array(examples[i, 2]), np.array(x_train[i]))\
-            or almost_equal(np.array(examples[i, 2]), np.array(x_train[i + 2]))
-        
+        assert almost_equal(np.array(examples[i, 1]), np.array(x_train[i + 2])) or almost_equal(
+            np.array(examples[i, 1]), np.array(x_train[i])
+        )
+        assert almost_equal(np.array(examples[i, 2]), np.array(x_train[i])) or almost_equal(
+            np.array(examples[i, 2]), np.array(x_train[i + 2])
+        )
+
         # test labels:
         assert almost_equal(np.array(labels[i, 0]), np.array(y_train[i + 1]))
-        assert almost_equal(np.array(labels[i, 1]), np.array(y_train[i + 2]))\
-            or almost_equal(np.array(labels[i, 1]), np.array(y_train[i]))
-        assert almost_equal(np.array(labels[i, 2]), np.array(y_train[i]))\
-            or almost_equal(np.array(labels[i, 2]), np.array(y_train[i + 2]))
+        assert almost_equal(np.array(labels[i, 1]), np.array(y_train[i + 2])) or almost_equal(
+            np.array(labels[i, 1]), np.array(y_train[i])
+        )
+        assert almost_equal(np.array(labels[i, 2]), np.array(y_train[i])) or almost_equal(
+            np.array(labels[i, 2]), np.array(y_train[i + 2])
+        )
 
 
 def test_all_methods_with_torch():
@@ -404,16 +467,29 @@ def test_all_methods_with_torch():
     nb_labels = 5
     batch_size = 4
 
-    x_train, x_test, y_train, train_targets, test_targets = get_setup(input_shape, nb_samples, nb_labels)
+    x_train, x_test, y_train, train_targets, test_targets = get_setup(
+        input_shape, nb_samples, nb_labels
+    )
     torch_dataset = TensorDataset(x_train, y_train)
     torch_dataloader = DataLoader(torch_dataset, batch_size=batch_size, shuffle=False)
-    targets_dataloader = DataLoader(TensorDataset(train_targets), batch_size=batch_size, shuffle=False)
+    targets_dataloader = DataLoader(
+        TensorDataset(train_targets), batch_size=batch_size, shuffle=False
+    )
 
     model = create_cnn_model(input_shape=torch_input_shape, output_shape=nb_labels)
     projection = HadamardProjection(model, "last_conv", device=device)
 
-    methods = [SimilarExamples, Cole, MMDCritic, ProtoDash, ProtoGreedy,
-               NaiveCounterFactuals, LabelAwareCounterFactuals, KLEORGlobalSim, KLEORSimMiss,]
+    methods = [
+        SimilarExamples,
+        Cole,
+        MMDCritic,
+        ProtoDash,
+        ProtoGreedy,
+        NaiveCounterFactuals,
+        LabelAwareCounterFactuals,
+        KLEORGlobalSim,
+        KLEORSimMiss,
+    ]
 
     for method_class in methods:
         if method_class == Cole:

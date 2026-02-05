@@ -1,11 +1,16 @@
-import tensorflow as tf
 import numpy as np
+import tensorflow as tf
 
-from tests.utils import (generate_model, generate_regression_model, generate_timeseries_model, 
-                     generate_data, almost_equal)
-from xplique.attributions import Saliency, GradCAM, Occlusion
-from xplique.metrics import (Insertion, Deletion, MuFidelity,
-                             AverageDropMetric, AverageIncreaseMetric, AverageGainMetric)
+from tests.utils import almost_equal, generate_data, generate_model, generate_regression_model
+from xplique.attributions import GradCAM, Occlusion, Saliency
+from xplique.metrics import (
+    AverageDropMetric,
+    AverageGainMetric,
+    AverageIncreaseMetric,
+    Deletion,
+    Insertion,
+    MuFidelity,
+)
 from xplique.metrics.base import ExplanationMetric
 from xplique.metrics.fidelity import BaseAverageXMetric
 
@@ -17,15 +22,20 @@ def test_mu_fidelity():
     model = generate_model(input_shape, nb_labels)
     explanations = np.random.uniform(0, 1, x.shape[:-1] + (1,)).astype(np.float32)
 
-    nb_estimation = 10 # number of samples to test correlation for each samples
+    nb_estimation = 10  # number of samples to test correlation for each samples
 
     for grid_size in [None, 5]:
         for subset_percent in [0.1, 0.9]:
-            for baseline_mode in [0.0, lambda x : x-0.5]:
-                score = MuFidelity(model, x, y, grid_size=grid_size,
-                                   subset_percent=subset_percent,
-                                   baseline_mode=baseline_mode,
-                                   nb_samples=nb_estimation)(explanations)
+            for baseline_mode in [0.0, lambda x: x - 0.5]:
+                score = MuFidelity(
+                    model,
+                    x,
+                    y,
+                    grid_size=grid_size,
+                    subset_percent=subset_percent,
+                    baseline_mode=baseline_mode,
+                    nb_samples=nb_estimation,
+                )(explanations)
                 assert -1.0 < score < 1.0
 
 
@@ -37,13 +47,13 @@ def test_causal_metrics():
     explanations = np.random.uniform(0, 1, x.shape[:-1] + (1,)).astype(np.float32)
 
     for step in [-1, 5, 10]:
-        for baseline_mode in [0.0, lambda x: x-0.5]:
-            score_insertion = Insertion(model, x, y,
-                                        baseline_mode=baseline_mode,
-                                        steps=step)(explanations)
-            score_deletion = Deletion(model, x, y,
-                                      baseline_mode=baseline_mode,
-                                      steps=step)(explanations)
+        for baseline_mode in [0.0, lambda x: x - 0.5]:
+            score_insertion = Insertion(model, x, y, baseline_mode=baseline_mode, steps=step)(
+                explanations
+            )
+            score_deletion = Deletion(model, x, y, baseline_mode=baseline_mode, steps=step)(
+                explanations
+            )
 
             for score in [score_insertion, score_deletion]:
                 assert 0.0 <= score <= 1.0
@@ -58,13 +68,15 @@ def test_perfect_correlation():
 
     input_shape, nb_labels, nb_samples = ((32, 32, 1), nb_classes, 20)
     x, y = generate_data(input_shape, nb_labels, nb_samples)
-    model = lambda x: tf.repeat(tf.reduce_sum(x, axis=(1, 2, 3))[:, None], nb_classes, -1)
+
+    def model(x):
+        return tf.repeat(tf.reduce_sum(x, axis=(1, 2, 3))[:, None], nb_classes, -1)
+
     explanations = x
-    
-    perfect_score = MuFidelity(model, x, y, grid_size=None,
-                               subset_percent=0.1,
-                               baseline_mode=0.0,
-                               nb_samples=200)(explanations)
+
+    perfect_score = MuFidelity(
+        model, x, y, grid_size=None, subset_percent=0.1, baseline_mode=0.0, nb_samples=200
+    )(explanations)
     assert almost_equal(perfect_score, 1.0)
 
 
@@ -77,13 +89,15 @@ def test_worst_correlation():
 
     input_shape, nb_labels, nb_samples = ((32, 32, 1), nb_classes, 20)
     x, y = generate_data(input_shape, nb_labels, nb_samples)
-    model = lambda x: tf.repeat(tf.reduce_sum(x, axis=(1, 2, 3))[:, None], nb_classes, -1)
+
+    def model(x):
+        return tf.repeat(tf.reduce_sum(x, axis=(1, 2, 3))[:, None], nb_classes, -1)
+
     explanations = -x
 
-    perfect_score = MuFidelity(model, x, y, grid_size=None,
-                               subset_percent=0.1,
-                               baseline_mode=0.0,
-                               nb_samples=200)(explanations)
+    perfect_score = MuFidelity(
+        model, x, y, grid_size=None, subset_percent=0.1, baseline_mode=0.0, nb_samples=200
+    )(explanations)
     assert almost_equal(perfect_score, -1.0)
 
 
@@ -97,7 +111,9 @@ def test_perfect_deletion():
     input_shape, nb_labels, nb_samples = ((dim, dim, 1), 2, 20)
     x, y = generate_data(input_shape, nb_labels, nb_samples)
 
-    model = lambda x: 1.0 - tf.reduce_max(tf.cast(x == 0.0, tf.float32), (1, 2))
+    def model(x):
+        return 1.0 - tf.reduce_max(tf.cast(x == 0.0, tf.float32), (1, 2))
+
     explanations = x
 
     perfect_score = Deletion(model, x, y, steps=steps)(explanations)
@@ -114,7 +130,9 @@ def test_perfect_insertion():
     input_shape, nb_labels, nb_samples = ((dim, dim, 1), 2, 20)
     x, y = generate_data(input_shape, nb_labels, nb_samples)
 
-    model = lambda x: tf.reduce_max(tf.cast(x != 0.0, tf.float32), (1, 2))
+    def model(x):
+        return tf.reduce_max(tf.cast(x != 0.0, tf.float32), (1, 2))
+
     explanations = x
 
     perfect_score = Insertion(model, x, y, steps=steps)(explanations)
@@ -128,17 +146,27 @@ def test_MuFidelity_batch_size():
     # to do so we define f(x) -> sum(x) and phi = x
     for batch_size in [1, 4, 9, None]:
         input_shape, nb_labels, nb_samples = ((5, 5, 1), 2, 3)
-        x = tf.reshape(tf.range(nb_samples * np.prod(input_shape), dtype=tf.float32),
-                       (nb_samples, *input_shape))
+        x = tf.reshape(
+            tf.range(nb_samples * np.prod(input_shape), dtype=tf.float32),
+            (nb_samples, *input_shape),
+        )
         y = tf.concat([tf.zeros((nb_samples, nb_labels - 1)), tf.ones((nb_samples, 1))], axis=1)
-        model = lambda x: tf.repeat(tf.reduce_sum(x, axis=(1, 2, 3))[:, None], nb_labels, -1)
+
+        def model(x):
+            return tf.repeat(tf.reduce_sum(x, axis=(1, 2, 3))[:, None], nb_labels, -1)
+
         explanations = x
 
-        perfect_score = MuFidelity(model, x, y, grid_size=None,
-                                subset_percent=0.2,
-                                baseline_mode=0.0,
-                                batch_size=batch_size,
-                                nb_samples=7)(explanations)
+        perfect_score = MuFidelity(
+            model,
+            x,
+            y,
+            grid_size=None,
+            subset_percent=0.2,
+            baseline_mode=0.0,
+            batch_size=batch_size,
+            nb_samples=7,
+        )(explanations)
         assert almost_equal(perfect_score, 1.0)
 
 
@@ -316,6 +344,7 @@ def test_average_metrics_constant_operator_yields_zero():
     Using an operator that is constant w.r.t. inputs should give identically zero scores
     for Drop / Increase / Gain (base == after for all samples).
     """
+
     def constant_operator(model, inputs, targets):
         # returns a constant scalar per sample, independent of inputs/targets
         batch_size = tf.shape(inputs)[0]

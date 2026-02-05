@@ -7,10 +7,10 @@ from enum import Enum
 import numpy as np
 import tensorflow as tf
 
-from ...types import Callable, Union, Optional, Tuple, OperatorSignature
-from ...commons import batch_tensor, repeat_labels, Tasks
+from ...commons import Tasks, batch_tensor, repeat_labels
+from ...types import Callable, OperatorSignature, Optional, Tuple, Union
 from ..base import BlackBoxExplainer, sanitize_input_output
-from .perturbations import amplitude, inpainting, blurring
+from .perturbations import amplitude, blurring, inpainting
 
 
 class PerturbationFunction(Enum):
@@ -146,8 +146,11 @@ class GSABaseAttributionMethod(BlackBoxExplainer):
                     batch_masks, perturbator, target, input_shape
                 )
                 batch_outputs = self.inference_function(self.model, batch_x, batch_y)
-                outputs = batch_outputs if outputs is None \
+                outputs = (
+                    batch_outputs
+                    if outputs is None
                     else tf.concat([outputs, batch_outputs], axis=0)
+                )
 
             heatmap = self.estimator(self.masks, outputs, self.nb_design)
             if tf.rank(heatmap) == 2:

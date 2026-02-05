@@ -2,14 +2,37 @@
 Explanations Metrics module
 """
 
-from .fidelity import (
-    MuFidelity, Deletion, Insertion,
-    AverageDropMetric, AverageGainMetric, AverageIncreaseMetric
-)
-from .stability import AverageStability
-from .representativity import MeGe
 from .complexity import Complexity, Sparseness
-from .randomization import (
-    RandomLogitMetric, ModelRandomizationMetric,
-    ProgressiveLayerRandomization, ModelRandomizationStrategy
+from .fidelity import (
+    AverageDropMetric,
+    AverageGainMetric,
+    AverageIncreaseMetric,
+    Deletion,
+    Insertion,
+    MuFidelity,
 )
+from .randomization import (
+    ModelRandomizationMetric,
+    ModelRandomizationStrategy,
+    ProgressiveLayerRandomization,
+    RandomLogitMetric,
+)
+from .representativity import MeGe
+from .stability import AverageStability
+
+__all__ = [
+    "Complexity",
+    "Sparseness",
+    "AverageDropMetric",
+    "AverageGainMetric",
+    "AverageIncreaseMetric",
+    "Deletion",
+    "Insertion",
+    "MuFidelity",
+    "ModelRandomizationMetric",
+    "ModelRandomizationStrategy",
+    "ProgressiveLayerRandomization",
+    "RandomLogitMetric",
+    "MeGe",
+    "AverageStability",
+]

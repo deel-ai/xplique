@@ -4,11 +4,10 @@ Stochastic transformations
 
 import tensorflow as tf
 
-from ..types import Tuple, Callable, List
+from ..types import Callable, List, Tuple
 
 
-def random_blur(sigma_range: Tuple[float, float] = (1.0, 2.0),
-                kernel_size: int = 10) -> Callable:
+def random_blur(sigma_range: Tuple[float, float] = (1.0, 2.0), kernel_size: int = 10) -> Callable:
     """
     Generate a function that apply a random gaussian blur to the batch.
 
@@ -24,8 +23,7 @@ def random_blur(sigma_range: Tuple[float, float] = (1.0, 2.0),
     blur
         Transformation function applying random blur.
     """
-    uniform = tf.linspace(-(kernel_size - 1) / 2., (kernel_size - 1) / 2.,
-                          kernel_size)
+    uniform = tf.linspace(-(kernel_size - 1) / 2.0, (kernel_size - 1) / 2.0, kernel_size)
     uniform_xx, uniform_yy = tf.meshgrid(uniform, uniform)
 
     kernel_size = tf.cast(kernel_size, tf.float32)
@@ -33,23 +31,22 @@ def random_blur(sigma_range: Tuple[float, float] = (1.0, 2.0),
     sigma_max = tf.cast(max(sigma_range[1], 0.1), tf.float32)
 
     def blur(images: tf.Tensor) -> tf.Tensor:
-        sigma = tf.random.uniform([], minval=sigma_min, maxval=sigma_max,
-                                  dtype=tf.float32)
+        sigma = tf.random.uniform([], minval=sigma_min, maxval=sigma_max, dtype=tf.float32)
 
-        kernel = tf.exp(-0.5 * (uniform_xx ** 2 + uniform_yy ** 2) / sigma ** 2)
+        kernel = tf.exp(-0.5 * (uniform_xx**2 + uniform_yy**2) / sigma**2)
         kernel /= tf.reduce_sum(kernel)
 
         kernel = tf.reshape(kernel, (kernel_size, kernel_size, 1, 1))
         kernel = tf.tile(kernel, [1, 1, 3, 1])
 
-        return tf.nn.depthwise_conv2d(images, kernel, strides=[1, 1, 1, 1],
-                                      padding='SAME')
+        return tf.nn.depthwise_conv2d(images, kernel, strides=[1, 1, 1, 1], padding="SAME")
 
     return blur
 
 
-def random_blur_grayscale(sigma_range: Tuple[float, float] = (1.0, 2.0),
-                          kernel_size: int = 10) -> Callable:
+def random_blur_grayscale(
+    sigma_range: Tuple[float, float] = (1.0, 2.0), kernel_size: int = 10
+) -> Callable:
     """
     Generate a function that apply a random gaussian blur to a batch of
     grayscale (1 channel) images.
@@ -66,8 +63,7 @@ def random_blur_grayscale(sigma_range: Tuple[float, float] = (1.0, 2.0),
     blur
         Transformation function applying random blur.
     """
-    uniform = tf.linspace(-(kernel_size - 1) / 2., (kernel_size - 1) / 2.,
-                          kernel_size)
+    uniform = tf.linspace(-(kernel_size - 1) / 2.0, (kernel_size - 1) / 2.0, kernel_size)
     uniform_xx, uniform_yy = tf.meshgrid(uniform, uniform)
 
     kernel_size = tf.cast(kernel_size, tf.float32)
@@ -75,15 +71,13 @@ def random_blur_grayscale(sigma_range: Tuple[float, float] = (1.0, 2.0),
     sigma_max = tf.cast(max(sigma_range[1], 0.1), tf.float32)
 
     def blur(images: tf.Tensor) -> tf.Tensor:
-        sigma = tf.random.uniform([], minval=sigma_min, maxval=sigma_max,
-                                  dtype=tf.float32)
+        sigma = tf.random.uniform([], minval=sigma_min, maxval=sigma_max, dtype=tf.float32)
 
-        kernel = tf.exp(-0.5 * (uniform_xx ** 2 + uniform_yy ** 2) / sigma ** 2)
+        kernel = tf.exp(-0.5 * (uniform_xx**2 + uniform_yy**2) / sigma**2)
         kernel /= tf.reduce_sum(kernel)
         kernel = tf.reshape(kernel, (kernel_size, kernel_size, 1, 1))
 
-        return tf.nn.depthwise_conv2d(images, kernel, strides=[1, 1, 1, 1],
-                                      padding='SAME')
+        return tf.nn.depthwise_conv2d(images, kernel, strides=[1, 1, 1, 1], padding="SAME")
 
     return blur
 
@@ -106,8 +100,9 @@ def random_jitter(delta: int = 6) -> Callable:
 
     def jitter(images: tf.Tensor) -> tf.Tensor:
         shape = tf.shape(images)
-        images = tf.image.random_crop(images, (shape[0], shape[1] - delta, shape[2] - delta,
-                                               shape[-1]))
+        images = tf.image.random_crop(
+            images, (shape[0], shape[1] - delta, shape[2] - delta, shape[-1])
+        )
         return images
 
     return jitter
@@ -133,10 +128,10 @@ def random_scale(scale_range: Tuple[float, float] = (0.95, 1.05)) -> Callable:
 
     def scale(images: tf.Tensor) -> tf.Tensor:
         _, width, height, _ = images.shape
-        scale_factor = tf.random.uniform([], minval=min_scale, maxval=max_scale,
-                                         dtype=tf.float32)
-        return tf.image.resize(images, tf.cast([width * scale_factor,
-                                                height * scale_factor], tf.int32))
+        scale_factor = tf.random.uniform([], minval=min_scale, maxval=max_scale, dtype=tf.float32)
+        return tf.image.resize(
+            images, tf.cast([width * scale_factor, height * scale_factor], tf.int32)
+        )
 
     return scale
 
@@ -238,7 +233,24 @@ def generate_standard_transformations(size: int, channels: int = 3) -> Callable:
     unit = int(size / 16)
 
     if channels == 1:
-        return compose_transformations([
+        return compose_transformations(
+            [
+                pad(unit * 4, 0.0),
+                random_jitter(unit * 2),
+                random_jitter(unit * 2),
+                random_jitter(unit * 4),
+                random_jitter(unit * 4),
+                random_jitter(unit * 4),
+                random_scale((0.92, 0.96)),
+                random_blur_grayscale(sigma_range=(1.0, 1.1)),
+                random_jitter(unit),
+                random_jitter(unit),
+                random_flip(),
+            ]
+        )
+
+    return compose_transformations(
+        [
             pad(unit * 4, 0.0),
             random_jitter(unit * 2),
             random_jitter(unit * 2),
@@ -246,22 +258,9 @@ def generate_standard_transformations(size: int, channels: int = 3) -> Callable:
             random_jitter(unit * 4),
             random_jitter(unit * 4),
             random_scale((0.92, 0.96)),
-            random_blur_grayscale(sigma_range=(1.0, 1.1)),
+            random_blur(sigma_range=(1.0, 1.1)),
             random_jitter(unit),
             random_jitter(unit),
-            random_flip()
-        ])
-
-    return compose_transformations([
-        pad(unit * 4, 0.0),
-        random_jitter(unit * 2),
-        random_jitter(unit * 2),
-        random_jitter(unit * 4),
-        random_jitter(unit * 4),
-        random_jitter(unit * 4),
-        random_scale((0.92, 0.96)),
-        random_blur(sigma_range=(1.0, 1.1)),
-        random_jitter(unit),
-        random_jitter(unit),
-        random_flip()
-    ])
+            random_flip(),
+        ]
+    )

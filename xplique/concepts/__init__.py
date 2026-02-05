@@ -3,10 +3,25 @@ Concept based methods
 """
 
 from .cav import Cav
-from .tcav import Tcav
 from .craft import DisplayImportancesOrder
-from .craft_tf import CraftTf, CraftManagerTf
+from .craft_tf import CraftManagerTf, CraftTf
+from .tcav import Tcav
+
 try:
-    from .craft_torch import CraftTorch, CraftManagerTorch
+    from .craft_torch import CraftManagerTorch, CraftTorch
+
+    __all__ = [
+        "CraftManagerTorch",
+        "CraftTorch",
+    ]
 except ImportError:
+    __all__ = []
     pass
+
+__all__ += [
+    "Cav",
+    "DisplayImportancesOrder",
+    "CraftManagerTf",
+    "CraftTf",
+    "Tcav",
+]

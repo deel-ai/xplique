@@ -5,9 +5,9 @@ Sampling methods for replicated designs
 from abc import ABC, abstractmethod
 
 import numpy as np
+import scipy
 import tensorflow as tf
 from einops import rearrange, repeat
-import scipy
 
 
 class ReplicatedSampler(ABC):
@@ -36,9 +36,9 @@ class ReplicatedSampler(ABC):
         # Get the number of dimensions (d). (Works in eager or graph mode.)
         d = tf.shape(sampling_a)[-1]
         # Create d copies of sampling_a with shape (d, nb_design, d)
-        replication_c = repeat(sampling_a, 'b d -> i b d', i=d)
+        replication_c = repeat(sampling_a, "b d -> i b d", i=d)
         # Similarly, replicate sampling_b to the same shape
-        replication_b = repeat(sampling_b, 'b d -> i b d', i=d)
+        replication_b = repeat(sampling_b, "b d -> i b d", i=d)
         # Create a diagonal mask: shape (d, 1, d) then broadcast to (d, nb_design, d)
         diag_mask = tf.eye(tf.cast(d, tf.int32), dtype=sampling_a.dtype)  # (d, d)
         diag_mask = tf.expand_dims(diag_mask, axis=1)  # (d, 1, d)
@@ -46,7 +46,7 @@ class ReplicatedSampler(ABC):
         # For each "replication" i, replace the i-th column with sampling_b
         replication_c = replication_c * (1 - diag_mask) + replication_b * diag_mask
         # Flatten the first two dimensions so that replication_c has shape (nb_design * d, d)
-        replication_c = rearrange(replication_c, 'i b d -> (i b) d')
+        replication_c = rearrange(replication_c, "i b d -> (i b) d")
 
         return replication_c
 
@@ -62,7 +62,7 @@ class ScipyReplicatedSampler(ReplicatedSampler):
 
     def __init__(self):
         try:
-            self.qmc = scipy.stats.qmc # pylint: disable=E1101
+            self.qmc = scipy.stats.qmc  # pylint: disable=E1101
         except AttributeError as err:
             raise ModuleNotFoundError("Xplique need scipy>=1.7 to use this sampling.") from err
 
@@ -74,6 +74,7 @@ class TFSobolSequenceRS(ReplicatedSampler):
     integrals (1967).
     https://www.sciencedirect.com/science/article/abs/pii/0041555367901449
     """
+
     @tf.function
     def __call__(self, dimension: int, nb_design: int) -> tf.Tensor:
         # Generate 2*dimension numbers per design point.
@@ -82,7 +83,6 @@ class TFSobolSequenceRS(ReplicatedSampler):
         sampling_b = sampling_ab[:, dimension:]  # (nb_design, dimension)
         replicated_c = ReplicatedSampler.build_replicated_design(sampling_a, sampling_b)
         return tf.concat([sampling_a, sampling_b, replicated_c], axis=0)
-
 
 
 class ScipySobolSequenceRS(ScipyReplicatedSampler):
@@ -95,7 +95,7 @@ class ScipySobolSequenceRS(ScipyReplicatedSampler):
     """
 
     def __call__(self, dimension, nb_design):
-        sampler = self.qmc.Sobol(dimension*2, scramble=False)
+        sampler = self.qmc.Sobol(dimension * 2, scramble=False)
         sampling_ab = sampler.random(nb_design).astype(np.float32)
         sampling_a, sampling_b = sampling_ab[:, :dimension], sampling_ab[:, dimension:]
         replicated_c = self.build_replicated_design(sampling_a, sampling_b)
@@ -113,7 +113,7 @@ class HaltonSequenceRS(ScipyReplicatedSampler):
     """
 
     def __call__(self, dimension, nb_design):
-        sampler = self.qmc.Halton(dimension*2, scramble=False)
+        sampler = self.qmc.Halton(dimension * 2, scramble=False)
         sampling_ab = sampler.random(nb_design).astype(np.float32)
         sampling_a, sampling_b = sampling_ab[:, :dimension], sampling_ab[:, dimension:]
         replicated_c = self.build_replicated_design(sampling_a, sampling_b)
@@ -131,7 +131,7 @@ class LatinHypercubeRS(ScipyReplicatedSampler):
     """
 
     def __call__(self, dimension, nb_design):
-        sampler = self.qmc.LatinHypercube(dimension*2)
+        sampler = self.qmc.LatinHypercube(dimension * 2)
         sampling_ab = sampler.random(nb_design).astype(np.float32)
         sampling_a, sampling_b = sampling_ab[:, :dimension], sampling_ab[:, dimension:]
         replicated_c = self.build_replicated_design(sampling_a, sampling_b)

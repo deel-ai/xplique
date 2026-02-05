@@ -2,12 +2,12 @@
 Module related to Saliency maps method
 """
 
-import tensorflow as tf
 import numpy as np
+import tensorflow as tf
 
-from .base import WhiteBoxExplainer, sanitize_input_output
-from ..types import Optional, Union, OperatorSignature
 from ..commons import Tasks
+from ..types import OperatorSignature, Optional, Union
+from .base import WhiteBoxExplainer, sanitize_input_output
 
 
 class Saliency(WhiteBoxExplainer):
@@ -47,19 +47,24 @@ class Saliency(WhiteBoxExplainer):
         Used only for images to obtain explanation with shape (n, h, w, 1).
         Maximum is taking by default to match the initial paper.
     """
-    def __init__(self,
-                 model: tf.keras.Model,
-                 output_layer: Optional[Union[str, int]] = None,
-                 batch_size: Optional[int] = 32,
-                 operator: Optional[Union[Tasks, str, OperatorSignature]] = None,
-                 reducer: Optional[str] = "max",):
+
+    def __init__(
+        self,
+        model: tf.keras.Model,
+        output_layer: Optional[Union[str, int]] = None,
+        batch_size: Optional[int] = 32,
+        operator: Optional[Union[Tasks, str, OperatorSignature]] = None,
+        reducer: Optional[str] = "max",
+    ):
         super().__init__(model, output_layer, batch_size, operator, reducer)
 
     @sanitize_input_output
     @WhiteBoxExplainer._harmonize_channel_dimension
-    def explain(self,
-                inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
-                targets: Optional[Union[tf.Tensor, np.ndarray]] = None) -> tf.Tensor:
+    def explain(
+        self,
+        inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
+        targets: Optional[Union[tf.Tensor, np.ndarray]] = None,
+    ) -> tf.Tensor:
         """
         Compute saliency maps for a batch of samples.
 

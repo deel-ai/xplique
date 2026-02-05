@@ -5,7 +5,8 @@ import numpy as np
 import tensorflow as tf
 
 from xplique.attributions import Rise
-from ..utils import generate_data, generate_model, almost_equal
+
+from ..utils import almost_equal, generate_data, generate_model
 
 
 def test_output_shape():
@@ -28,10 +29,10 @@ def test_output_shape():
 
 
 def reset_random_seed(seed: int = 0):
-   os.environ['PYTHONHASHSEED'] = str(seed)
-   tf.random.set_seed(seed)
-   np.random.seed(seed)
-   random.seed(seed)
+    os.environ["PYTHONHASHSEED"] = str(seed)
+    tf.random.set_seed(seed)
+    np.random.seed(seed)
+    random.seed(seed)
 
 
 def test_polymorphic_parameters():
@@ -54,13 +55,15 @@ def test_polymorphic_parameters():
 
         reset_random_seed(0)
         mask_int = tf.cast(
-            rise_int._get_masks(features.shape, nb_samples, grid_size, preservation_probability), 
-            tf.int32)
-            
+            rise_int._get_masks(features.shape, nb_samples, grid_size, preservation_probability),
+            tf.int32,
+        )
+
         reset_random_seed(0)
         mask_tuple = tf.cast(
-            rise_tuple._get_masks(features.shape, nb_samples, grid_size, preservation_probability), 
-            tf.int32)
+            rise_tuple._get_masks(features.shape, nb_samples, grid_size, preservation_probability),
+            tf.int32,
+        )
 
         rise_int(features, targets)
         rise_tuple(features, targets)

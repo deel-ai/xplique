@@ -7,7 +7,8 @@ import numpy as np
 import tensorflow as tf
 
 from xplique.attributions import KernelShap, Lime, Occlusion
-from ..utils import generate_dataset, generate_linear_model, almost_equal
+
+from ..utils import almost_equal, generate_dataset, generate_linear_model
 
 
 def test_wrapper():
@@ -17,7 +18,7 @@ def test_wrapper():
     We expect the explanations on those models to be close as well.
     """
     nb_samples = 100
-    epsilon = 1.e-4 * nb_samples
+    epsilon = 1.0e-4 * nb_samples
     dataset, _, features_coef = generate_dataset(nb_samples)
 
     libraries = [
@@ -25,10 +26,7 @@ def test_wrapper():
         "keras",
     ]
 
-    models = {
-        lib: generate_linear_model(features_coef, lib)
-        for lib in libraries
-    }
+    models = {lib: generate_linear_model(features_coef, lib) for lib in libraries}
 
     # we want both models to be close enough
     y_preds = [np.array(model(dataset)).reshape((nb_samples,)) for model in models.values()]
@@ -42,7 +40,7 @@ def test_wrapper():
                 model,
                 nb_samples=200,  # 2000
                 ref_value=0.0,
-                batch_size=nb_samples
+                batch_size=nb_samples,
             ),
             "Lime": Lime(
                 model,
@@ -50,14 +48,10 @@ def test_wrapper():
                 ref_value=0.0,
                 distance_mode="cosine",
                 kernel_width=1.0,
-                batch_size=nb_samples
+                batch_size=nb_samples,
             ),
             "Occlusion": Occlusion(
-                model,
-                patch_size=1,
-                patch_stride=1,
-                occlusion_value=0.0,
-                batch_size=nb_samples
+                model, patch_size=1, patch_stride=1, occlusion_value=0.0, batch_size=nb_samples
             ),
         }
 

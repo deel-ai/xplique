@@ -5,7 +5,7 @@ help:
 	@echo "make prepare-dev"
 	@echo "       create and prepare development environment, use only once"
 	@echo "make test"
-	@echo "       run tests and linting on py36, py37, py38"
+	@echo "       run tests and linting in current env"
 	@echo "make test-disable-gpu"
 	@echo "       run test with gpu disabled"
 	@echo "make pc_check"
@@ -18,27 +18,27 @@ help:
 	@echo "       build mkdocs documentation"
 
 prepare-dev:
-	python3 -m pip install virtualenv
-	python3 -m venv xplique_dev_env
-	. xplique_dev_env/bin/activate && pip install -r requirements.txt
-	. xplique_dev_env/bin/activate && pip install -r requirements_dev.txt
-	. xplique_dev_env/bin/activate && pre-commit install
-	. xplique_dev_env/bin/activate && pre-commit install-hooks
+	@command -v uv >/dev/null 2>&1 || curl -LsSf https://astral.sh/uv/install.sh | sh;
+	uv venv
+	. .venv/bin/activate && uv sync
+	. .venv/bin/activate && pre-commit autoupdate --repo https://github.com/pre-commit/pre-commit-hooks
+	. .venv/bin/activate && pre-commit install
+	. .venv/bin/activate && pre-commit install-hooks
 
 test:
-	. xplique_dev_env/bin/activate && tox
+	. .venv/bin/activate && UV_CACHE_DIR="$(uv cache dir)" nohup tox > tox.out &
 
 test-disable-gpu:
-	. xplique_dev_env/bin/activate && CUDA_VISIBLE_DEVICES=-1 tox
+	. .venv/bin/activate && CUDA_VISIBLE_DEVICES=-1 tox
 
 pc_check:
-	. xplique_dev_env/bin/activate && pre-commit run --all-files
+	. .venv/bin/activate && pre-commit run --all-files
 
 pc_update:
-	. xplique_dev_env/bin/activate && pre-commit autoupdate
+	. .venv/bin/activate && pre-commit autoupdate
 
 doc:
-	. xplique_dev_env/bin/activate && mkdocs build
+	. .venv/bin/activate && mkdocs build
 
 serve-doc:
-	. xplique_dev_env/bin/activate && CUDA_VISIBLE_DEVICES=-1 mkdocs serve
+	. .venv/bin/activate && CUDA_VISIBLE_DEVICES=-1 mkdocs serve

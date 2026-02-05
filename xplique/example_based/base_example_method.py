@@ -2,20 +2,18 @@
 Base model for example-based
 """
 
-from abc import ABC, abstractmethod
 import warnings
+from abc import ABC, abstractmethod
 
-import tensorflow as tf
 import numpy as np
-
-from ..types import Callable, Dict, List, Optional, Type, Union, DatasetOrTensor
+import tensorflow as tf
 
 from ..commons import sanitize_inputs_targets
+from ..types import Callable, DatasetOrTensor, Dict, List, Optional, Type, Union
 from .datasets_operations.harmonize import harmonize_datasets
 from .datasets_operations.tf_dataset_operations import dataset_gather
-from .search_methods import BaseSearchMethod
 from .projections import Projection
-
+from .search_methods import BaseSearchMethod
 from .search_methods.base import _sanitize_returns
 
 
@@ -74,6 +72,7 @@ class BaseExampleMethod(ABC):
         Ignored if `cases_dataset` is a batched `tf.data.Dataset` or
         a batched `torch.utils.data.DataLoader` is provided.
     """
+
     # pylint: disable=too-many-instance-attributes
     _returns_possibilities = ["examples", "distances", "labels", "include_inputs"]
 
@@ -88,8 +87,9 @@ class BaseExampleMethod(ABC):
         batch_size: Optional[int] = None,
     ):
         # set attributes
-        self.cases_dataset, self.labels_dataset, self.targets_dataset, self.batch_size =\
+        self.cases_dataset, self.labels_dataset, self.targets_dataset, self.batch_size = (
             harmonize_datasets(cases_dataset, labels_dataset, targets_dataset, batch_size)
+        )
 
         self._search_returns = ["indices", "distances"]
 
@@ -100,7 +100,7 @@ class BaseExampleMethod(ABC):
             self.projection = Projection(get_weights=None, space_projection=projection)
         elif projection is None:
             warnings.warn(
-                "Example-based methods without projection will not explain the model."\
+                "Example-based methods without projection will not explain the model."
                 + "To explain the model, consider using projections like the LatentSpaceProjection."
             )
             self.projection = Projection(get_weights=None, space_projection=None)
@@ -110,16 +110,16 @@ class BaseExampleMethod(ABC):
             )
 
         # project dataset
-        self.projected_cases_dataset = self.projection.project_dataset(self.cases_dataset,
-                                                                       self.targets_dataset)
+        self.projected_cases_dataset = self.projection.project_dataset(
+            self.cases_dataset, self.targets_dataset
+        )
 
         # set properties
         self.k = k
-        if self.labels_dataset is None\
-                and ("labels" in case_returns or case_returns in ["all", "labels"]):
-            raise AttributeError(
-                "The method cannot return labels without a label dataset."
-            )
+        if self.labels_dataset is None and (
+            "labels" in case_returns or case_returns in ["all", "labels"]
+        ):
+            raise AttributeError("The method cannot return labels without a label dataset.")
         self.returns = case_returns
 
         # temporary value for the search method
@@ -270,9 +270,10 @@ class BaseExampleMethod(ABC):
         if "distances" in self.returns:
             return_dict["distances"] = search_output["distances"]
         if "labels" in self.returns:
-            assert (examples_labels is not None),\
-                "The method cannot return labels without a label dataset. "\
+            assert examples_labels is not None, (
+                "The method cannot return labels without a label dataset. "
                 + "Either remove 'labels' from `case_returns` or provide a `labels_dataset`."
+            )
             return_dict["labels"] = examples_labels
 
         return return_dict

@@ -4,7 +4,7 @@ Custom tensorflow operations
 
 import tensorflow as tf
 
-from ..types import Optional, Union, Tuple
+from ..types import Optional, Tuple, Union
 
 
 def repeat_labels(labels: tf.Tensor, nb_repetitions: int) -> tf.Tensor:
@@ -32,8 +32,7 @@ def repeat_labels(labels: tf.Tensor, nb_repetitions: int) -> tf.Tensor:
     return repeated_labels
 
 
-def batch_tensor(tensors: Union[Tuple, tf.Tensor],
-                 batch_size: Optional[int] = None):
+def batch_tensor(tensors: Union[Tuple, tf.Tensor], batch_size: Optional[int] = None):
     """
     Create a tensorflow dataset of tensors or series of tensors.
 
@@ -75,7 +74,7 @@ def get_device(device: Optional[str] = None) -> str:
     if device is not None:
         return device
 
-    physical_devices = tf.config.list_physical_devices('GPU')
+    physical_devices = tf.config.list_physical_devices("GPU")
     if physical_devices is None or len(physical_devices) == 0:
-        return 'cpu:0'
-    return 'GPU:0'
+        return "cpu:0"
+    return "GPU:0"

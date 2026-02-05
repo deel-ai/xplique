@@ -1,0 +1,97 @@
+[project]
+name = "xplique"
+version = "1.4.2"
+description = "Explanations toolbox for TensorFlow 2"
+readme = "README.md"
+requires-python = ">=3.10,<3.14"
+license = { text = "MIT" }
+authors = [
+  { name = "Thomas FEL", email = "thomas_fel@brown.edu" }
+]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3",
+  "Operating System :: OS Independent"
+]
+
+dependencies = [
+    "deprecated>=1.1.0",
+    "einops>=0.1.0",
+    "matplotlib>=1.4.3",
+    "numpy>=2.0.0",
+    "opencv-python>=3.4.11.39",
+    "ruff>=0.15.0",
+    "scikit-image>=0.14.1,<=0.25.2",
+    "scikit-learn>=0.14.1,<=1.7.2",
+    "scipy>=1.0.0,<=1.15.3",
+    "tensorflow>=2.16.1,<=2.20.0; sys_platform != 'linux'",
+    "tensorflow[and-cuda]>=2.16.1,<=2.20.0; sys_platform == 'linux'",
+    "tensorflow-probability[tf]>=0.20.1,<=0.25.0",
+]
+
+[dependency-groups]
+dev = [
+    "bump2version",
+    "docutils",
+    "markdown",
+    "mkdocs",
+    "mkdocs-material",
+    "mypy",
+    "mypy-extensions",
+    "numkdoc",
+    "pre-commit",
+    "pygments",
+    "ruff",
+    "pymdown-extensions",
+    "pytest",
+    "pytest-cov",
+    "tox",
+    "tox-uv",
+]
+pytorch = [
+    "torch>=2.5.0,<=2.10.0",
+]
+
+[tool.bumpversion]
+current_version = "1.4.2"
+commit = true
+tag = false
+
+[[tool.bumpversion.files]]
+filename = "pyproject.toml"
+
+[[tool.bumpversion.files]]
+filename = "xplique/__init__.py"
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F"]
+ignore = [
+    "PLR0904",
+    "PLR0914",
+    "PLR0917",
+]
+# Add the `line-too-long` E501 rule to the enforced rule set. By default, Ruff omits
+# rules that overlap with the use of a formatter, like Black, but we can override this
+# behavior by explicitly adding the rule.
+# Add the `I` rule to enforce import sorting.
+extend-select = ["E501", "I"]
+
+[tool.ruff.lint.pycodestyle]
+max-line-length = 100
+
+[tool.ruff.lint.pylint]
+max-args = 12
+
+[tool.mypy]
+check_untyped_defs = true
+warn_unused_configs = true
+
+[[tool.mypy.overrides]]
+module = ["numpy.*",
+          "sklearn.*"]
+ignore_missing_imports = true

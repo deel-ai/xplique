@@ -46,8 +46,7 @@ class GradCAMPP(GradCAM):
 
     @staticmethod
     @tf.function
-    def _compute_weights(feature_maps_gradients: tf.Tensor,
-                         feature_maps: tf.Tensor) -> tf.Tensor:
+    def _compute_weights(feature_maps_gradients: tf.Tensor, feature_maps: tf.Tensor) -> tf.Tensor:
         """
         Compute the weights according to Grad-CAM++ procedure.
 
@@ -69,14 +68,13 @@ class GradCAMPP(GradCAM):
         feature_map_avg = tf.reduce_mean(feature_maps, axis=(1, 2), keepdims=True)
 
         nominator = feature_maps_gradients_square
-        denominator = 2.0 * feature_maps_gradients_square + \
-                      feature_maps_gradients_cube * feature_map_avg
+        denominator = (
+            2.0 * feature_maps_gradients_square + feature_maps_gradients_cube * feature_map_avg
+        )
         denominator += tf.cast(denominator == 0, tf.float32) * GradCAMPP.EPSILON
 
         feature_map_alphas = nominator / denominator * tf.nn.relu(feature_maps_gradients)
         weights = tf.reduce_mean(feature_map_alphas, axis=(1, 2))
-        weights = tf.reshape(weights,
-                             (weights.shape[0], 1, 1,
-                              weights.shape[-1]))
+        weights = tf.reshape(weights, (weights.shape[0], 1, 1, weights.shape[-1]))
 
         return weights

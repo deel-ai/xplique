@@ -1,14 +1,16 @@
 """
 Base search method for example-based module
 """
-from enum import Enum
+
 from abc import ABC, abstractmethod
+from enum import Enum
 
-import tensorflow as tf
 import numpy as np
+import tensorflow as tf
 
-from ...types import Union, Optional, List
+from ...types import List, Optional, Union
 from ..datasets_operations.tf_dataset_operations import sanitize_dataset
+
 
 class ORDER(Enum):
     """
@@ -16,14 +18,16 @@ class ORDER(Enum):
     ASCENDING puts the elements with the smallest value first.
     DESCENDING puts the elements with the largest value first.
     """
+
     ASCENDING = 1
     DESCENDING = 2
 
+
 def _sanitize_returns(
-        returns: Optional[Union[List[str], str]] = None,
-        possibilities: List[str] = None,
-        default: Union[List[str], str] = None
-    ) -> List[str]:
+    returns: Optional[Union[List[str], str]] = None,
+    possibilities: List[str] = None,
+    default: Union[List[str], str] = None,
+) -> List[str]:
     """
     It cleans the `returns` parameter.
     Results is either a sublist of possibilities or a value among possibilities.
@@ -87,6 +91,7 @@ class BaseSearchMethod(ABC):
         Number of samples treated simultaneously.
         It should match the batch size of the cases_dataset in the case of a `tf.data.Dataset`.
     """
+
     _returns_possibilities = ["examples", "indices", "distances", "include_inputs"]
 
     def __init__(
@@ -96,7 +101,6 @@ class BaseSearchMethod(ABC):
         search_returns: Optional[Union[List[str], str]] = None,
         batch_size: Optional[int] = 32,
     ):
-
         # set batch size
         if isinstance(cases_dataset, tf.data.Dataset):
             self.batch_size = tf.shape(next(iter(cases_dataset)))[0].numpy()
@@ -147,9 +151,11 @@ class BaseSearchMethod(ABC):
         self._returns = _sanitize_returns(returns, self._returns_possibilities, default)
 
     @abstractmethod
-    def find_examples(self,
-                      inputs: Union[tf.Tensor, np.ndarray],
-                      targets: Optional[Union[tf.Tensor, np.ndarray]] = None) -> dict:
+    def find_examples(
+        self,
+        inputs: Union[tf.Tensor, np.ndarray],
+        targets: Optional[Union[tf.Tensor, np.ndarray]] = None,
+    ) -> dict:
         """
         Search the samples to return as examples. Called by the explain methods.
         It may also return the indices corresponding to the samples,
@@ -170,8 +176,10 @@ class BaseSearchMethod(ABC):
         """
         raise NotImplementedError()
 
-    def __call__(self,
-                 inputs: Union[tf.Tensor, np.ndarray],
-                 targets: Optional[Union[tf.Tensor, np.ndarray]] = None) -> dict:
+    def __call__(
+        self,
+        inputs: Union[tf.Tensor, np.ndarray],
+        targets: Optional[Union[tf.Tensor, np.ndarray]] = None,
+    ) -> dict:
         """find_samples() alias"""
         return self.find_examples(inputs, targets)

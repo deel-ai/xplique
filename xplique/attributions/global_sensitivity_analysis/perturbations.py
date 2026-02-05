@@ -1,7 +1,7 @@
 """
 Sobol Attribution Perturbation functions
 """
-#pylint: disable=C0103,E1101
+# pylint: disable=C0103,E1101
 
 import cv2
 import numpy as np
@@ -41,10 +41,11 @@ def inpainting(x: tf.Tensor) -> Callable:
 
     def f(masks):
         return _baseline_ponderation(x, masks, x0)
+
     return f
 
 
-def blurring(x : tf.Tensor, sigma : Optional[int] = 10) -> Callable:
+def blurring(x: tf.Tensor, sigma: Optional[int] = 10) -> Callable:
     """
     Tensorflow blur perturbation function.
 
@@ -70,10 +71,11 @@ def blurring(x : tf.Tensor, sigma : Optional[int] = 10) -> Callable:
 
     def f(masks):
         return _baseline_ponderation(x, masks, x0)
+
     return f
 
 
-def amplitude(x : tf.Tensor, sigma : int = 1.0) -> Callable:
+def amplitude(x: tf.Tensor, sigma: int = 1.0) -> Callable:
     """
     Tensorflow amplitude perturbation function.
 
@@ -94,4 +96,5 @@ def amplitude(x : tf.Tensor, sigma : int = 1.0) -> Callable:
 
     def f(masks):
         return _amplitude_operator(x, masks, sigma)
+
     return f

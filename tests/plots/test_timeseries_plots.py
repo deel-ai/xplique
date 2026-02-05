@@ -1,6 +1,6 @@
-import matplotlib
-import numpy as np
 import os
+
+import numpy as np
 
 from xplique.plots.timeseries import plot_timeseries_attributions
 

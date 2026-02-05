@@ -6,13 +6,17 @@ The goal of Xplique is to provide a simple interface to the latest explanation
 techniques
 """
 
-__version__ = '1.5.2'
+__version__ = "1.5.2"
 
-from . import attributions
-from . import commons
-from . import concepts
-from . import example_based
-from . import features_visualizations
-from . import plots
-
+from . import attributions, commons, concepts, example_based, features_visualizations, plots
 from .commons import Tasks
+
+__all__ = [
+    "attributions",
+    "commons",
+    "concepts",
+    "example_based",
+    "features_visualizations",
+    "plots",
+    "Tasks",
+]

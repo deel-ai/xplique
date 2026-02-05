@@ -1,6 +1,7 @@
 """
 Test Cole
 """
+
 import os
 import sys
 
@@ -8,14 +9,12 @@ sys.path.append(os.getcwd())
 
 import tensorflow as tf
 
-from xplique.attributions import Occlusion
-
-from xplique.example_based import Cole
-from xplique.plots.image import plot_examples
-
 from tests.utils import (
     generate_model,
 )
+from xplique.attributions import Occlusion
+from xplique.example_based import Cole
+from xplique.plots.image import plot_examples
 
 
 def get_setup(input_shape, nb_samples=10, nb_labels=10):
@@ -23,9 +22,7 @@ def get_setup(input_shape, nb_samples=10, nb_labels=10):
     Generate data and model for Cole
     """
     # Data generation
-    x_train = tf.stack(
-        [i * tf.ones(input_shape, tf.float32) for i in range(nb_samples)]
-    )
+    x_train = tf.stack([i * tf.ones(input_shape, tf.float32) for i in range(nb_samples)])
     x_test = x_train[1:-1]
     y_train = tf.one_hot(tf.range(len(x_train)) % nb_labels, depth=nb_labels)
 
@@ -82,7 +79,5 @@ def test_plot_cole_spliting():
 
     # test plot
     plot_examples(
-        test_labels=tf.argmax(y_test, axis=1),
-        predicted_labels=predicted_labels,
-        **outputs
+        test_labels=tf.argmax(y_test, axis=1), predicted_labels=predicted_labels, **outputs
     )

@@ -1,6 +1,7 @@
 """
 Fidelity (or Faithfulness) metrics
 """
+
 from abc import ABC, abstractmethod
 from inspect import isfunction
 
@@ -8,10 +9,9 @@ import numpy as np
 import tensorflow as tf
 from scipy.stats import spearmanr
 
-from .base import ExplanationMetric
-from ..types import Union, Callable, Optional, Dict
 from ..commons import batch_tensor
-
+from ..types import Callable, Dict, Optional, Union
+from .base import ExplanationMetric
 
 _EPS = 1e-8
 
@@ -63,19 +63,22 @@ class MuFidelity(ExplanationMetric):
         if you want to measure a 'drop of probability' by adding a sigmoid or softmax
         after getting your logits. If None does not add a layer to your model.
     """
+
     # pylint: disable=too-many-instance-attributes
 
-    def __init__(self,
-                 model: Callable,
-                 inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
-                 targets: Optional[Union[tf.Tensor, np.ndarray]] = None,
-                 batch_size: Optional[int] = 64,
-                 grid_size: Optional[int] = 9,
-                 subset_percent: float = 0.2,
-                 baseline_mode: Union[Callable, float] = 0.0,
-                 nb_samples: int = 200,
-                 operator: Optional[Callable] = None,
-                 activation: Optional[str] = None):
+    def __init__(
+        self,
+        model: Callable,
+        inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
+        targets: Optional[Union[tf.Tensor, np.ndarray]] = None,
+        batch_size: Optional[int] = 64,
+        grid_size: Optional[int] = 9,
+        subset_percent: float = 0.2,
+        baseline_mode: Union[Callable, float] = 0.0,
+        nb_samples: int = 200,
+        operator: Optional[Callable] = None,
+        activation: Optional[str] = None,
+    ):
         # pylint: disable=too-many-arguments
         super().__init__(model, inputs, targets, batch_size, operator, activation)
         self.grid_size = grid_size
@@ -91,12 +94,12 @@ class MuFidelity(ExplanationMetric):
         # if unspecified use the original equation (pixel-wise modification)
         self.grid_size = grid_size or self.inputs.shape[1]
 
-        self.base_predictions = self.batch_inference_function(self.model, self.inputs,
-                                                              self.targets, self.batch_size)
+        self.base_predictions = self.batch_inference_function(
+            self.model, self.inputs, self.targets, self.batch_size
+        )
         self.base_predictions = tf.expand_dims(self.base_predictions, axis=1)
 
-    def evaluate(self,
-                 explanations: Union[tf.Tensor, np.ndarray]) -> float:
+    def evaluate(self, explanations: Union[tf.Tensor, np.ndarray]) -> float:
         """
         Evaluate the fidelity score.
 
@@ -113,14 +116,16 @@ class MuFidelity(ExplanationMetric):
             explanations.
         """
         explanations = np.array(explanations)
-        assert len(explanations) == len(self.inputs), "The number of explanations must be the " \
-                                            f"same as the number of inputs: {len(explanations)}"\
-                                            f" vs {len(self.inputs)}"
+        assert len(explanations) == len(self.inputs), (
+            "The number of explanations must be the "
+            f"same as the number of inputs: {len(explanations)}"
+            f" vs {len(self.inputs)}"
+        )
 
         correlations = []
-        for inp, label, phi, base in batch_tensor((self.inputs, self.targets,
-                                                   explanations, self.base_predictions),
-                                                  self.inputs_batch_size):
+        for inp, label, phi, base in batch_tensor(
+            (self.inputs, self.targets, explanations, self.base_predictions), self.inputs_batch_size
+        ):
             # reshape the explanations to align with future mask multiplications
             if len(inp.shape) > len(phi.shape):
                 phi = tf.expand_dims(phi, axis=-1)
@@ -130,8 +135,9 @@ class MuFidelity(ExplanationMetric):
             preds, attrs = None, None
             # loop over perturbations (a single pass if batch_size > nb_samples, batched otherwise)
             while total_perturbed_samples < self.nb_samples:
-                nb_perturbations = min(self.perturbation_batch_size,
-                                       self.nb_samples - total_perturbed_samples)
+                nb_perturbations = min(
+                    self.perturbation_batch_size, self.nb_samples - total_perturbed_samples
+                )
                 total_perturbed_samples += nb_perturbations
 
                 degraded_inputs, subset_masks = self._perturb_samples(inp, nb_perturbations)
@@ -139,19 +145,21 @@ class MuFidelity(ExplanationMetric):
 
                 # compute the predictions for a batch of perturbed inputs
                 perturbed_predictions = self.batch_inference_function(
-                    self.model, degraded_inputs, repeated_label, self.batch_size)
+                    self.model, degraded_inputs, repeated_label, self.batch_size
+                )
 
                 # reshape the predictions to align with the inputs
-                perturbed_predictions = tf.reshape(perturbed_predictions,
-                           (inp.shape[0], nb_perturbations))
-
+                perturbed_predictions = tf.reshape(
+                    perturbed_predictions, (inp.shape[0], nb_perturbations)
+                )
 
                 # measure the two terms that should be correlated
                 pred = base - perturbed_predictions
                 preds = pred if preds is None else tf.concat([preds, pred], axis=1)
 
-                attr = tf.reduce_sum(phi * (1.0 - subset_masks),
-                                     axis=list(range(2, len(subset_masks.shape))))
+                attr = tf.reduce_sum(
+                    phi * (1.0 - subset_masks), axis=list(range(2, len(subset_masks.shape)))
+                )
                 attrs = attr if attrs is None else tf.concat([attrs, attr], axis=1)
 
             # iterate over samples of the batch
@@ -171,9 +179,7 @@ class MuFidelity(ExplanationMetric):
         return float(fidelity_score)
 
     @tf.function
-    def _perturb_samples(self,
-                         inputs: tf.Tensor,
-                         nb_perturbations: int) -> tf.Tensor:
+    def _perturb_samples(self, inputs: tf.Tensor, nb_perturbations: int) -> tf.Tensor:
         """
         Duplicate the samples and apply a noisy mask to each of them.
 
@@ -204,33 +210,46 @@ class MuFidelity(ExplanationMetric):
 
         elif len(inputs.shape) == 3:  # time series
             # prepare the random masks
-            subset_masks = tf.random.uniform((nb_perturbations, self.grid_size * inputs.shape[2]),
-                                             minval=0, maxval=1, dtype=tf.float32)
+            subset_masks = tf.random.uniform(
+                (nb_perturbations, self.grid_size * inputs.shape[2]),
+                minval=0,
+                maxval=1,
+                dtype=tf.float32,
+            )
             subset_masks = subset_masks > self.subset_percent
 
             # and interpolate them if needed
-            subset_masks = tf.reshape(tf.cast(subset_masks, tf.float32),
-                                      (nb_perturbations, self.grid_size, inputs.shape[2], 1))
+            subset_masks = tf.reshape(
+                tf.cast(subset_masks, tf.float32),
+                (nb_perturbations, self.grid_size, inputs.shape[2], 1),
+            )
             subset_masks = tf.image.resize(subset_masks, self.inputs.shape[1:], method="nearest")
             subset_masks = tf.squeeze(subset_masks, axis=-1)
 
         elif len(inputs.shape) == 4:  # image data
             # prepare the random masks
-            subset_masks = tf.random.uniform(shape=(nb_perturbations, self.grid_size ** 2),
-                                             minval=0, maxval=1, dtype=tf.float32)
+            subset_masks = tf.random.uniform(
+                shape=(nb_perturbations, self.grid_size**2), minval=0, maxval=1, dtype=tf.float32
+            )
             subset_masks = subset_masks > self.subset_percent
 
             # and interpolate them if needed
-            subset_masks = tf.reshape(tf.cast(subset_masks, tf.float32),
-                                      (nb_perturbations, self.grid_size, self.grid_size, 1))
+            subset_masks = tf.reshape(
+                tf.cast(subset_masks, tf.float32),
+                (nb_perturbations, self.grid_size, self.grid_size, 1),
+            )
             subset_masks = tf.image.resize(subset_masks, self.inputs.shape[1:-1], method="nearest")
 
         # (n, nb_perturbations, ...)
-        subset_masks = tf.repeat(subset_masks[tf.newaxis],
-                                 repeats=perturbed_inputs.shape[0], axis=0)
+        subset_masks = tf.repeat(
+            subset_masks[tf.newaxis], repeats=perturbed_inputs.shape[0], axis=0
+        )
 
-        baseline = self.baseline_mode(perturbed_inputs) if isfunction(self.baseline_mode) else \
-                self.baseline_mode
+        baseline = (
+            self.baseline_mode(perturbed_inputs)
+            if isfunction(self.baseline_mode)
+            else self.baseline_mode
+        )
 
         perturbed_inputs = perturbed_inputs * subset_masks + (1.0 - subset_masks) * baseline
 
@@ -274,18 +293,19 @@ class CausalFidelity(ExplanationMetric):
         after getting your logits. If None does not add a layer to your model.
     """
 
-    def __init__(self,
-                 model: tf.keras.Model,
-                 inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
-                 targets: Optional[Union[tf.Tensor, np.ndarray]] = None,
-                 batch_size: Optional[int] = 64,
-                 causal_mode: str = "deletion",
-                 baseline_mode: Union[float, Callable] = 0.0,
-                 steps: int = 10,
-                 max_percentage_perturbed: float = 1.0,
-                 operator: Optional[Callable] = None,
-                 activation: Optional[str] = None
-                 ):
+    def __init__(
+        self,
+        model: tf.keras.Model,
+        inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
+        targets: Optional[Union[tf.Tensor, np.ndarray]] = None,
+        batch_size: Optional[int] = 64,
+        causal_mode: str = "deletion",
+        baseline_mode: Union[float, Callable] = 0.0,
+        steps: int = 10,
+        max_percentage_perturbed: float = 1.0,
+        operator: Optional[Callable] = None,
+        activation: Optional[str] = None,
+    ):
         # pylint: disable=R0913
         super().__init__(model, inputs, targets, batch_size, operator, activation)
         self.causal_mode = causal_mode
@@ -297,21 +317,22 @@ class CausalFidelity(ExplanationMetric):
         if self.has_channels:
             self.nb_features = np.prod(self.inputs.shape[1:-1])
             self.inputs_flatten = self.inputs.reshape(
-                (len(self.inputs), self.nb_features, self.inputs.shape[-1]))
+                (len(self.inputs), self.nb_features, self.inputs.shape[-1])
+            )
         else:
             self.nb_features = np.prod(self.inputs.shape[1:])
             self.inputs_flatten = self.inputs.reshape((len(self.inputs), self.nb_features, 1))
 
-        assert 0.0 < max_percentage_perturbed <= 1.0, \
+        assert 0.0 < max_percentage_perturbed <= 1.0, (
             "`max_percentage_perturbed` must be in ]0, 1]."
+        )
         self.max_nb_perturbed = int(np.floor(self.nb_features * max_percentage_perturbed))
 
         if steps == -1:
             steps = self.max_nb_perturbed
         self.steps = steps
 
-    def evaluate(self,
-                 explanations: Union[tf.Tensor, np.ndarray]) -> float:
+    def evaluate(self, explanations: Union[tf.Tensor, np.ndarray]) -> float:
         """
         Evaluate the causal score.
 
@@ -334,8 +355,7 @@ class CausalFidelity(ExplanationMetric):
 
         return auc
 
-    def detailed_evaluate(self,
-                          explanations: Union[tf.Tensor, np.ndarray]) -> Dict[int, float]:
+    def detailed_evaluate(self, explanations: Union[tf.Tensor, np.ndarray]) -> Dict[int, float]:
         """
         Evaluate model performance for successive perturbations of an input.
         Used to compute causal score.
@@ -362,9 +382,11 @@ class CausalFidelity(ExplanationMetric):
                 on the inputs with the corresponding number of features perturbed
         """
         explanations = np.array(explanations)
-        assert len(explanations) == len(self.inputs), "The number of explanations must be the " \
-                                            f"same as the number of inputs: {len(explanations)}"\
-                                            f"vs {len(self.inputs)}"
+        assert len(explanations) == len(self.inputs), (
+            "The number of explanations must be the "
+            f"same as the number of inputs: {len(explanations)}"
+            f"vs {len(self.inputs)}"
+        )
 
         # the reference does not specify how to manage the channels of the explanations
         if len(explanations.shape) == 4:
@@ -375,8 +397,11 @@ class CausalFidelity(ExplanationMetric):
         # for each sample, sort by most important features according to the explanation
         most_important_features = np.argsort(explanations_flatten, axis=-1)[:, ::-1]
 
-        baselines = self.baseline_mode(self.inputs) if isfunction(self.baseline_mode) else \
-            np.ones_like(self.inputs, dtype=np.float32) * self.baseline_mode
+        baselines = (
+            self.baseline_mode(self.inputs)
+            if isfunction(self.baseline_mode)
+            else np.ones_like(self.inputs, dtype=np.float32) * self.baseline_mode
+        )
         baselines_flatten = baselines.reshape(self.inputs_flatten.shape)
 
         steps = np.linspace(0, self.max_nb_perturbed, self.steps + 1, dtype=np.int32)
@@ -388,7 +413,7 @@ class CausalFidelity(ExplanationMetric):
             start = baselines_flatten
             end = self.inputs_flatten
         else:
-            raise NotImplementedError(f'Unknown causal mode `{self.causal_mode}`.')
+            raise NotImplementedError(f"Unknown causal mode `{self.causal_mode}`.")
 
         scores_dict = {}
         for step in steps:
@@ -400,8 +425,9 @@ class CausalFidelity(ExplanationMetric):
 
             batch_inputs = batch_inputs.reshape((-1, *self.inputs.shape[1:]))
 
-            predictions = self.batch_inference_function(self.model, batch_inputs,
-                                                        self.targets, self.batch_size)
+            predictions = self.batch_inference_function(
+                self.model, batch_inputs, self.targets, self.batch_size
+            )
 
             scores_dict[step] = np.mean(predictions)
 
@@ -445,20 +471,30 @@ class Deletion(CausalFidelity):
         after getting your logits. If None does not add a layer to your model.
     """
 
-    def __init__(self,
-                 model: tf.keras.Model,
-                 inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
-                 targets: Optional[Union[tf.Tensor, np.ndarray]] = None,
-                 batch_size: Optional[int] = 64,
-                 baseline_mode: Union[float, Callable] = 0.0,
-                 steps: int = 10,
-                 max_percentage_perturbed: float = 1.0,
-                 operator: Optional[Callable] = None,
-                 activation: Optional[str] = None
-                 ):
-        super().__init__(model, inputs, targets, batch_size, "deletion",
-                         baseline_mode, steps, max_percentage_perturbed,
-                         operator, activation)
+    def __init__(
+        self,
+        model: tf.keras.Model,
+        inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
+        targets: Optional[Union[tf.Tensor, np.ndarray]] = None,
+        batch_size: Optional[int] = 64,
+        baseline_mode: Union[float, Callable] = 0.0,
+        steps: int = 10,
+        max_percentage_perturbed: float = 1.0,
+        operator: Optional[Callable] = None,
+        activation: Optional[str] = None,
+    ):
+        super().__init__(
+            model,
+            inputs,
+            targets,
+            batch_size,
+            "deletion",
+            baseline_mode,
+            steps,
+            max_percentage_perturbed,
+            operator,
+            activation,
+        )
 
 
 class Insertion(CausalFidelity):
@@ -498,20 +534,30 @@ class Insertion(CausalFidelity):
         after getting your logits. If None does not add a layer to your model.
     """
 
-    def __init__(self,
-                 model: tf.keras.Model,
-                 inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
-                 targets: Optional[Union[tf.Tensor, np.ndarray]] = None,
-                 batch_size: Optional[int] = 64,
-                 baseline_mode: Union[float, Callable] = 0.0,
-                 steps: int = 10,
-                 max_percentage_perturbed: float = 1.0,
-                 operator: Optional[Callable] = None,
-                 activation: Optional[str] = None
-                 ):
-        super().__init__(model, inputs, targets, batch_size, "insertion",
-                         baseline_mode, steps, max_percentage_perturbed,
-                         operator, activation)
+    def __init__(
+        self,
+        model: tf.keras.Model,
+        inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
+        targets: Optional[Union[tf.Tensor, np.ndarray]] = None,
+        batch_size: Optional[int] = 64,
+        baseline_mode: Union[float, Callable] = 0.0,
+        steps: int = 10,
+        max_percentage_perturbed: float = 1.0,
+        operator: Optional[Callable] = None,
+        activation: Optional[str] = None,
+    ):
+        super().__init__(
+            model,
+            inputs,
+            targets,
+            batch_size,
+            "insertion",
+            baseline_mode,
+            steps,
+            max_percentage_perturbed,
+            operator,
+            activation,
+        )
 
 
 class BaseAverageXMetric(ExplanationMetric, ABC):
@@ -542,13 +588,16 @@ class BaseAverageXMetric(ExplanationMetric, ABC):
     - `evaluate(explanations) -> float`
     - `detailed_evaluate(inputs, targets, explanations) -> np.ndarray`
     """
-    def __init__(self,
-                 model: tf.keras.Model,
-                 inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
-                 targets: Optional[Union[tf.Tensor, np.ndarray]] = None,
-                 batch_size: Optional[int] = 64,
-                 operator: Optional[Union[str, Callable]] = None,
-                 activation: Optional[str] = None):
+
+    def __init__(
+        self,
+        model: tf.keras.Model,
+        inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
+        targets: Optional[Union[tf.Tensor, np.ndarray]] = None,
+        batch_size: Optional[int] = 64,
+        operator: Optional[Union[str, Callable]] = None,
+        activation: Optional[str] = None,
+    ):
         super().__init__(model, inputs, targets, batch_size, operator, activation)
 
     @staticmethod
@@ -621,12 +670,14 @@ class BaseAverageXMetric(ExplanationMetric, ABC):
         Evaluate the metric over the entire dataset by iterating over batches.
         """
         explanations = tf.convert_to_tensor(explanations, dtype=tf.float32)
-        assert len(explanations) == len(self.inputs), \
+        assert len(explanations) == len(self.inputs), (
             "The number of explanations must match the number of inputs."
+        )
 
         scores = []
-        for inp, tgt, phi in batch_tensor((self.inputs, self.targets, explanations),
-                                          self.batch_size or len(self.inputs)):
+        for inp, tgt, phi in batch_tensor(
+            (self.inputs, self.targets, explanations), self.batch_size or len(self.inputs)
+        ):
             batch_scores = self.detailed_evaluate(inp, tgt, phi)
             scores.append(batch_scores)
 
@@ -634,10 +685,7 @@ class BaseAverageXMetric(ExplanationMetric, ABC):
 
     @abstractmethod
     def detailed_evaluate(
-            self,
-            inputs: tf.Tensor,
-            targets: tf.Tensor,
-            explanations: tf.Tensor
+        self, inputs: tf.Tensor, targets: tf.Tensor, explanations: tf.Tensor
     ) -> np.ndarray:
         """
         Evaluate the metric for a single batch of inputs, targets, and explanations.
@@ -705,10 +753,7 @@ class AverageDropMetric(BaseAverageXMetric):
     """
 
     def detailed_evaluate(
-            self,
-            inputs: tf.Tensor,
-            targets: tf.Tensor,
-            explanations: tf.Tensor
+        self, inputs: tf.Tensor, targets: tf.Tensor, explanations: tf.Tensor
     ) -> np.ndarray:
         """
         Compute Average Drop scores for a batch of samples.
@@ -804,10 +849,7 @@ class AverageIncreaseMetric(BaseAverageXMetric):
     """
 
     def detailed_evaluate(
-            self,
-            inputs: tf.Tensor,
-            targets: tf.Tensor,
-            explanations: tf.Tensor
+        self, inputs: tf.Tensor, targets: tf.Tensor, explanations: tf.Tensor
     ) -> np.ndarray:
         """
         Compute Average Increase indicators for a batch of samples.
@@ -902,10 +944,7 @@ class AverageGainMetric(BaseAverageXMetric):
     """
 
     def detailed_evaluate(
-            self,
-            inputs: tf.Tensor,
-            targets: tf.Tensor,
-            explanations: tf.Tensor
+        self, inputs: tf.Tensor, targets: tf.Tensor, explanations: tf.Tensor
     ) -> np.ndarray:
         """
         Compute Average Gain scores for a batch of samples.

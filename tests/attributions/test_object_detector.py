@@ -1,8 +1,10 @@
 """
 Test object detection BoundingBoxesExplainer
 """
+
 import os
 import sys
+
 sys.path.append(os.getcwd())
 
 import unittest
@@ -10,9 +12,8 @@ import unittest
 import tensorflow as tf
 
 from tests.utils import generate_data, generate_object_detection_model
-
-from xplique.commons.exceptions import InvalidModelException
 from xplique.attributions import BoundingBoxesExplainer, Rise, Saliency
+from xplique.commons.exceptions import InvalidModelException
 
 
 def test_object_detector():
@@ -22,15 +23,20 @@ def test_object_detector():
     nb_labels = 2
     max_nb_boxes = 4
     x, _ = generate_data(input_shape, nb_labels, nb_samples)
-    model = generate_object_detection_model(input_shape, max_nb_boxes=max_nb_boxes, nb_labels=nb_labels)
+    model = generate_object_detection_model(
+        input_shape, max_nb_boxes=max_nb_boxes, nb_labels=nb_labels
+    )
 
     method = Rise(model, nb_samples=10)
 
-    obj_ref = tf.cast([
-                [0, 0, 100, 100, 0.9, 1.0, 0.0],
-                [50, 50, 150, 150, 0.5, 1.0, 0.0],
-                [0, 10, 20, 30, 0.7, 0.0, 1.0],
-            ], tf.float32)
+    obj_ref = tf.cast(
+        [
+            [0, 0, 100, 100, 0.9, 1.0, 0.0],
+            [50, 50, 150, 150, 0.5, 1.0, 0.0],
+            [0, 10, 20, 30, 0.7, 0.0, 1.0],
+        ],
+        tf.float32,
+    )
 
     explainer = BoundingBoxesExplainer(method)
 
@@ -50,15 +56,20 @@ def test_gradient_object_detector():
     nb_labels = 2
     max_nb_boxes = 4
     x, _ = generate_data(input_shape, nb_labels, nb_samples)
-    model = generate_object_detection_model(input_shape, max_nb_boxes=max_nb_boxes, nb_labels=nb_labels)
+    model = generate_object_detection_model(
+        input_shape, max_nb_boxes=max_nb_boxes, nb_labels=nb_labels
+    )
 
     method = Saliency(model)
 
-    obj_ref = tf.cast([
-                [0, 0, 100, 100, 0.9, 1.0, 0.0],
-                [50, 50, 150, 150, 0.5, 1.0, 0.0],
-                [0, 10, 20, 30, 0.7, 0.0, 1.0],
-            ], tf.float32)
+    obj_ref = tf.cast(
+        [
+            [0, 0, 100, 100, 0.9, 1.0, 0.0],
+            [50, 50, 150, 150, 0.5, 1.0, 0.0],
+            [0, 10, 20, 30, 0.7, 0.0, 1.0],
+        ],
+        tf.float32,
+    )
 
     explainer = BoundingBoxesExplainer(method)
 

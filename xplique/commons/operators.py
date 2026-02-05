@@ -2,18 +2,15 @@
 Custom tensorflow operator for Attributions
 """
 
+import tensorflow as tf
 from deprecated import deprecated
 
-import tensorflow as tf
-
 from ..types import Callable, Optional
-from ..utils_functions.object_detection import _box_iou, _format_objects, _EPSILON
+from ..utils_functions.object_detection import _EPSILON, _box_iou, _format_objects
 
 
 @tf.function
-def predictions_operator(model: Callable,
-                         inputs: tf.Tensor,
-                         targets: tf.Tensor) -> tf.Tensor:
+def predictions_operator(model: Callable, inputs: tf.Tensor, targets: tf.Tensor) -> tf.Tensor:
     """
     Compute predictions scores, only for the label class, for a batch of samples.
 
@@ -34,11 +31,10 @@ def predictions_operator(model: Callable,
     scores = tf.reduce_sum(model(inputs) * targets, axis=-1)
     return scores
 
+
 @tf.function
 @deprecated(version="1.0.0", reason="Gradient-based explanations are zeros with this operator.")
-def regression_operator(model: Callable,
-                        inputs: tf.Tensor,
-                        targets: tf.Tensor) -> tf.Tensor:
+def regression_operator(model: Callable, inputs: tf.Tensor, targets: tf.Tensor) -> tf.Tensor:
     """
     Compute the the mean absolute error between model prediction and the target.
     Target should the model prediction on non-perturbed input.
@@ -93,17 +89,20 @@ def semantic_segmentation_operator(model, inputs, targets):
     scores = model(inputs) * targets
 
     # take mean over the zone and channel of interest
-    return tf.reduce_sum(scores, axis=(1, 2, 3)) /\
-        tf.reduce_sum(tf.cast(tf.not_equal(targets, 0), tf.float32), axis=(1, 2, 3))
+    return tf.reduce_sum(scores, axis=(1, 2, 3)) / tf.reduce_sum(
+        tf.cast(tf.not_equal(targets, 0), tf.float32), axis=(1, 2, 3)
+    )
 
 
 @tf.function
-def object_detection_operator(model: Callable,
-                              inputs: tf.Tensor,
-                              targets: tf.Tensor,
-                              intersection_score_fn: Optional[Callable]  = _box_iou,
-                              include_detection_probability: Optional[bool] = True,
-                              include_classification_score: Optional[bool] = True,) -> tf.Tensor:
+def object_detection_operator(
+    model: Callable,
+    inputs: tf.Tensor,
+    targets: tf.Tensor,
+    intersection_score_fn: Optional[Callable] = _box_iou,
+    include_detection_probability: Optional[bool] = True,
+    include_classification_score: Optional[bool] = True,
+) -> tf.Tensor:
     """
     Compute the object detection scores for a batch of samples.
 
@@ -160,6 +159,7 @@ def object_detection_operator(model: Callable,
         Object detection scores computed following DRise definition:
         intersection_score * proba_detection * classification_similarity
     """
+
     def batch_loop(args):
         # function to loop on for `tf.map_fn`
         obj, obj_ref = args
@@ -189,27 +189,30 @@ def object_detection_operator(model: Callable,
         detection_probability = tf.squeeze(proba_detection, axis=1)
 
         # set detection probability to 1 if it should be included
-        detection_probability = tf.cond(tf.cast(include_detection_probability, tf.bool),
-                                        true_fn=lambda: detection_probability,
-                                        false_fn=lambda: tf.ones_like(detection_probability))
+        detection_probability = tf.cond(
+            tf.cast(include_detection_probability, tf.bool),
+            true_fn=lambda: detection_probability,
+            false_fn=lambda: tf.ones_like(detection_probability),
+        )
 
         # (nb_box_ref, nb_box_pred, nb_classes)
         class_refs = tf.repeat(tf.expand_dims(class_refs, axis=1), repeats=size, axis=1)
 
         # (nb_box_ref, nb_box_pred)
-        classification_score = tf.reduce_sum(class_refs * classification, axis=-1) \
-                / (tf.norm(classification, axis=-1) * tf.norm(class_refs, axis=-1)+ _EPSILON)
+        classification_score = tf.reduce_sum(class_refs * classification, axis=-1) / (
+            tf.norm(classification, axis=-1) * tf.norm(class_refs, axis=-1) + _EPSILON
+        )
 
         # set classification score to 1 if it should be included
-        classification_score = tf.cond(tf.cast(include_classification_score, tf.bool),
-                                        true_fn=lambda: classification_score,
-                                        false_fn=lambda: tf.ones_like(classification_score))
+        classification_score = tf.cond(
+            tf.cast(include_classification_score, tf.bool),
+            true_fn=lambda: classification_score,
+            false_fn=lambda: tf.ones_like(classification_score),
+        )
 
         # Compute score as defined in DRise for all possible pair of boxes
         # (nb_box_ref, nb_box_pred)
-        boxes_pairwise_scores = intersection_score \
-                                * detection_probability \
-                                * classification_score
+        boxes_pairwise_scores = intersection_score * detection_probability * classification_score
 
         # select for a reference box the most similar predicted box score
         # (nb_box_ref,)

@@ -2,22 +2,19 @@
 Module related to Object detector method
 """
 
-from deprecated import deprecated
-
 import numpy as np
 import tensorflow as tf
+from deprecated import deprecated
 
-from ..types import Optional, Callable, Union
-
-from .base import BlackBoxExplainer, WhiteBoxExplainer
 from ..commons import get_gradient_functions
 from ..commons.operators import object_detection_operator
+from ..types import Callable, Optional, Union
 from ..utils_functions.object_detection import _box_iou, _format_objects
-
+from .base import BlackBoxExplainer, WhiteBoxExplainer
 
 OLD_OBJECT_DETECTION_DEPRECATION_MESSAGE = """
 \n
-The method to compute attribution explanation explanations changed drastically after version 1.0.0. 
+The method to compute attribution explanation explanations changed drastically after version 1.0.0.
 For more information please refer to the documentation:
 https://deel-ai.github.io/xplique/latest/api/attributions/object_detection/
 
@@ -56,13 +53,15 @@ class BoundingBoxesExplainer(BlackBoxExplainer):
     """
 
     @deprecated(version="1.0.0", reason=OLD_OBJECT_DETECTION_DEPRECATION_MESSAGE)
-    def __init__(self,
-                 explainer: BlackBoxExplainer,
-                 _: Optional[Callable] = _format_objects,
-                 intersection_score: Optional[Callable]  = _box_iou):
+    def __init__(
+        self,
+        explainer: BlackBoxExplainer,
+        _: Optional[Callable] = _format_objects,
+        intersection_score: Optional[Callable] = _box_iou,
+    ):
         # make operator function based on arguments
-        operator = lambda model, inputs, targets: \
-            object_detection_operator(model, inputs, targets, intersection_score)
+        def operator(model, inputs, targets):
+            return object_detection_operator(model, inputs, targets, intersection_score)
 
         # BlackBoxExplainer init to set operator
         super().__init__(model=explainer.model, batch_size=explainer.batch_size, operator=operator)
@@ -78,9 +77,11 @@ class BoundingBoxesExplainer(BlackBoxExplainer):
             self.explainer.gradient = self.gradient
             self.explainer.batch_gradient = self.batch_gradient
 
-    def explain(self,
-                inputs: Union[tf.data.Dataset, tf.Tensor, np.array],
-                targets: Optional[Union[tf.Tensor, np.array]] = None) -> tf.Tensor:
+    def explain(
+        self,
+        inputs: Union[tf.data.Dataset, tf.Tensor, np.array],
+        targets: Optional[Union[tf.Tensor, np.array]] = None,
+    ) -> tf.Tensor:
         """
         Compute the explanation of the object detection through the explainer
 

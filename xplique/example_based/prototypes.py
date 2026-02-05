@@ -4,17 +4,14 @@ Base model for prototypes
 
 from abc import ABC, abstractmethod
 
-import tensorflow as tf
 import numpy as np
+import tensorflow as tf
 
-from ..types import Callable, Dict, List, Optional, Type, Union, DatasetOrTensor
-
-from .datasets_operations.tf_dataset_operations import dataset_gather
-
-from .search_methods import ProtoGreedySearch, MMDCriticSearch, ProtoDashSearch
-from .search_methods import KNN, ORDER
-from .projections import Projection
+from ..types import Callable, DatasetOrTensor, Dict, List, Optional, Type, Union
 from .base_example_method import BaseExampleMethod
+from .datasets_operations.tf_dataset_operations import dataset_gather
+from .projections import Projection
+from .search_methods import KNN, ORDER, MMDCriticSearch, ProtoDashSearch, ProtoGreedySearch
 
 
 class Prototypes(BaseExampleMethod, ABC):
@@ -85,6 +82,7 @@ class Prototypes(BaseExampleMethod, ABC):
     gamma : float, optional
         Parameter that determines the spread of the rbf kernel, defaults to 1.0 / n_features.
     """
+
     # pylint: disable=duplicate-code
 
     def __init__(
@@ -99,7 +97,7 @@ class Prototypes(BaseExampleMethod, ABC):
         batch_size: Optional[int] = None,
         distance: Optional[Union[int, str, Callable]] = None,
         kernel_fn: callable = None,
-        gamma: float = None
+        gamma: float = None,
     ):
         # set common example-based parameters
         super().__init__(
@@ -118,7 +116,7 @@ class Prototypes(BaseExampleMethod, ABC):
             batch_size=self.batch_size,
             nb_prototypes=nb_global_prototypes,
             kernel_fn=kernel_fn,
-            gamma=gamma
+            gamma=gamma,
         )
 
         # get global prototypes through the indices found by the search method
@@ -143,7 +141,7 @@ class Prototypes(BaseExampleMethod, ABC):
         """
         Provide the global prototypes computed at the initialization.
         Prototypes and their labels are extracted from the indices.
-        The weights of the prototypes and their indices are also returned. 
+        The weights of the prototypes and their indices are also returned.
 
         Returns
         -------
@@ -214,8 +212,9 @@ class Prototypes(BaseExampleMethod, ABC):
 
         # indices in the list of prototypes
         # (n, k)
-        flatten_indices = search_output["indices"][:, :, 0] * self.batch_size\
-                          + search_output["indices"][:, :, 1]
+        flatten_indices = (
+            search_output["indices"][:, :, 0] * self.batch_size + search_output["indices"][:, :, 1]
+        )
         flatten_indices = tf.reshape(flatten_indices, [-1])
 
         # add examples and weights
@@ -240,9 +239,9 @@ class Prototypes(BaseExampleMethod, ABC):
         if "distances" in self.returns:
             return_dict["distances"] = search_output["distances"]
         if "labels" in self.returns:
-            assert (
-                self.prototypes_labels is not None
-            ), "The method cannot return labels without a label dataset."
+            assert self.prototypes_labels is not None, (
+                "The method cannot return labels without a label dataset."
+            )
 
             # (n * k,)
             labels = tf.gather(params=self.prototypes_labels, indices=flatten_indices)

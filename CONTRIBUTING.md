@@ -13,7 +13,7 @@ work is not in vain.
 - Clone the repo `git clone https://github.com/deel-ai/xplique.git`.
 - Go to your freshly downloaded repo `cd xplique`
 - Create a virtual environment and install the necessary dependencies for development `make prepare-dev && source xplique_dev_env/bin/activate`.
-- You are ready to install the library `pip install -e .` or run the test suite `make test`.
+- You are ready to install the library `uv pip install -e .` or run the test suite `make test`.
 
 Welcome to the team 🔥🚀 !
 
@@ -21,9 +21,9 @@ Welcome to the team 🔥🚀 !
 
 - Clone the repo `git clone https://github.com/deel-ai/xplique.git`.
 - Go to your freshly downloaded repo `cd xplique`
-- Install virtualenv with `pip`:
+- Install virtualenv with `uv`:
 ```
-pip install virtualenv
+uv venv xplique_dev_env
 ```
 Or with `conda`:
 ```
@@ -51,8 +51,7 @@ Anyway, if you suceed you should see your virtual environment name in front of a
 ```
 - You can now install all necessary packages, with pip:
 ```
-pip install -r requirements.txt
-pip install -r requirements_dev.txt
+uv pip install -r pyproject.toml --group dev --group pytorch
 ```
 Or with conda:
 ```
@@ -60,6 +59,10 @@ conda install --file requirements.txt
 conda install --file requirements_dev.txt
 ```
 - You are ready to install the library:
+```
+uv pip install -e .
+```
+Or with conda
 ```
 pip install -e .
 ```
@@ -79,15 +82,15 @@ So basically, if you do not succeed to use `make` just activate your virtual env
 `tox` on the otherhand will do the following:
 - run pytest on the tests folder with python 3.6, python 3.7 and python 3.8
 > Note: If you do not have those 3 interpreters the tests would be only performs with your current interpreter
-- run pylint on the xplique main files, also with python 3.6, python 3.7 and python 3.8
-> Note: It is possible that pylint throw false-positive errors. If the linting test failed please check first pylint output to point out the reasons.
+- run `ruff check` and `ruff format` on the xplique main files, also with python 3.6, python 3.7 and python 3.8
+> Note: It is possible that ruff throw false-positive errors. If the linting test failed please check first ruff output to point out the reasons.
 
 Please, make sure you run all the tests at least once before opening a pull request.
 
-A word toward [Pylint](https://pypi.org/project/pylint/) for those that don't know it:
-> Pylint is a Python static code analysis tool which looks for programming errors, helps enforcing a coding standard, sniffs for code smells and offers simple refactoring suggestions.
+A word toward [Ruff](https://pypi.org/project/ruff/) for those that don't know it:
+> Ruff is a Python static code analysis tool which looks for programming errors, helps enforcing a coding standard, sniffs for code smells and offers simple refactoring suggestions.
 
-Basically, it will check that your code follow a certain number of convention. Any Pull Request will go through a Github workflow ensuring that your code respect the Pylint conventions (most of them at least).
+Basically, it will check that your code follow a certain number of convention. Any Pull Request will go through a Github workflow ensuring that your code respect the Ruff conventions (most of them at least).
 
 ## Submitting Changes 🔃
 
@@ -104,7 +107,6 @@ Something that will increase the chance that your pull request is accepted:
 - For a major fix/feature make sure your PR has an issue and if it doesn't, please create one. This would help discussion with the community, and polishing ideas in case of a new feature.
 
 ## Documentation 📚
-
 Xplique is a small library but documentation is often a huge time sink for
 users. That's why we greatly appreciate any time spent fixing typos or
 clarifying sections in the documentation. To setup a local live-server to update

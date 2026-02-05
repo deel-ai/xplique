@@ -1,20 +1,27 @@
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras.layers import (
-    Dense,
-    Conv2D,
-    Conv1D,
     Activation,
+    Conv2D,
+    Dense,
     Dropout,
     Flatten,
-    MaxPooling2D,
     Input,
+    MaxPooling2D,
 )
 
-from xplique.commons.operators import predictions_operator
 from xplique.attributions import Saliency
-from xplique.example_based.projections import Projection, AttributionProjection, LatentSpaceProjection, HadamardProjection
-from xplique.example_based.projections.commons import model_splitting, target_free_classification_operator
+from xplique.commons.operators import predictions_operator
+from xplique.example_based.projections import (
+    AttributionProjection,
+    HadamardProjection,
+    LatentSpaceProjection,
+    Projection,
+)
+from xplique.example_based.projections.commons import (
+    model_splitting,
+    target_free_classification_operator,
+)
 
 from ..utils import almost_equal
 
@@ -24,9 +31,7 @@ def get_setup(input_shape, nb_samples=10, nb_labels=2):
     Generate data and model for SimilarExamples
     """
     # Data generation
-    x_train = tf.stack(
-        [i * tf.ones(input_shape, tf.float32) for i in range(nb_samples)]
-    )
+    x_train = tf.stack([i * tf.ones(input_shape, tf.float32) for i in range(nb_samples)])
     x_test = x_train[1:-1]
     y_train = tf.one_hot(tf.range(len(x_train)) % nb_labels, nb_labels)
 
@@ -60,7 +65,8 @@ def test_simple_projection_mapping():
 
     weights = tf.random.uniform((input_shape[0], input_shape[1], 1), minval=0, maxval=1)
 
-    space_projection = lambda x, y=None: tf.nn.max_pool2d(x, ksize=3, strides=1, padding="SAME")
+    def space_projection(x, y=None):
+        return tf.nn.max_pool2d(x, ksize=3, strides=1, padding="SAME")
 
     projection = Projection(get_weights=weights, space_projection=space_projection, mappable=True)
 
@@ -69,11 +75,11 @@ def test_simple_projection_mapping():
     targets_dataset = tf.data.Dataset.from_tensor_slices(y_train).batch(3)
 
     # Apply the projection by mapping the dataset
-    projected_train_dataset = projection.project_dataset(train_dataset, targets_dataset)
+    projection.project_dataset(train_dataset, targets_dataset)
 
     # Apply the projection by iterating over the dataset
     projection.mappable = False
-    projected_train_dataset = projection.project_dataset(train_dataset, targets_dataset)
+    projection.project_dataset(train_dataset, targets_dataset)
 
 
 def test_model_splitting():
@@ -88,7 +94,9 @@ def test_model_splitting():
     model.add(Dense(1, name="dense2"))
     model.compile(loss="categorical_crossentropy", optimizer="sgd")
 
-    model.get_layer("dense1").set_weights([np.eye(10) * np.sign(np.arange(-4.5, 5.5)), np.zeros(10)])
+    model.get_layer("dense1").set_weights(
+        [np.eye(10) * np.sign(np.arange(-4.5, 5.5)), np.zeros(10)]
+    )
     model.get_layer("dense2").set_weights([np.ones((10, 1)), np.zeros(1)])
 
     # Split the model
@@ -118,9 +126,9 @@ def test_latent_space_projection_mapping():
     targets_dataset = tf.data.Dataset.from_tensor_slices(y_train).batch(3)
 
     # Apply the projection by mapping the dataset
-    projected_train_dataset = projection.project_dataset(train_dataset, targets_dataset)
-    projected_train_dataset = projection._map_project_dataset(train_dataset, targets_dataset)
-    projected_train_dataset = projection._loop_project_dataset(train_dataset, targets_dataset)
+    projection.project_dataset(train_dataset, targets_dataset)
+    projection._map_project_dataset(train_dataset, targets_dataset)
+    projection._loop_project_dataset(train_dataset, targets_dataset)
 
 
 def test_hadamard_projection_mapping():
@@ -142,9 +150,9 @@ def test_hadamard_projection_mapping():
     targets_dataset = tf.data.Dataset.from_tensor_slices(y_train).batch(3)
 
     # Apply the projection by mapping the dataset
-    projected_train_dataset = projection.project_dataset(train_dataset, targets_dataset)
-    projected_train_dataset = projection._map_project_dataset(train_dataset, targets_dataset)
-    projected_train_dataset = projection._loop_project_dataset(train_dataset, targets_dataset)
+    projection.project_dataset(train_dataset, targets_dataset)
+    projection._map_project_dataset(train_dataset, targets_dataset)
+    projection._loop_project_dataset(train_dataset, targets_dataset)
 
 
 def test_attribution_projection_mapping():
@@ -166,7 +174,7 @@ def test_attribution_projection_mapping():
     targets_dataset = tf.data.Dataset.from_tensor_slices(y_train).batch(3)
 
     # Apply the projection by mapping the dataset
-    projected_train_dataset = projection.project_dataset(train_dataset, targets_dataset)
+    projection.project_dataset(train_dataset, targets_dataset)  # projected_train_dataset
 
 
 def test_from_splitted_model():
@@ -178,7 +186,7 @@ def test_from_splitted_model():
     input_features = 10
     output_features = 3
     x_train = np.reshape(np.arange(0, nb_samples * input_features), (nb_samples, input_features))
-    tf_x_train = tf.convert_to_tensor(x_train, dtype=tf.float32)
+    tf.convert_to_tensor(x_train, dtype=tf.float32)  # tf_x_train
 
     train_dataset = tf.data.Dataset.from_tensor_slices(x_train).batch(3)
 
@@ -197,11 +205,11 @@ def test_from_splitted_model():
 
     # test LatentSpaceProjection from splitted model
     projection = LatentSpaceProjection(model=model1, latent_layer=None, mappable=True)
-    projected_train_dataset = projection.project_dataset(train_dataset)
+    projection.project_dataset(train_dataset)
 
     # test HadamardProjection from splitted model
     projection = HadamardProjection(features_extractor=model1, predictor=model2, mappable=True)
-    projected_train_dataset = projection.project_dataset(train_dataset)
+    projection.project_dataset(train_dataset)
 
 
 def test_target_free_classification_operator():

@@ -5,7 +5,6 @@ MMDCritic search method in example-based module
 import tensorflow as tf
 
 from ...types import Tuple
-
 from .proto_greedy_search import ProtoGreedySearch
 
 
@@ -14,7 +13,7 @@ class MMDCriticSearch(ProtoGreedySearch):
     MMDCritic method to search prototypes.
 
     References:
-    .. [#] `Been Kim, Rajiv Khanna, Oluwasanmi Koyejo, 
+    .. [#] `Been Kim, Rajiv Khanna, Oluwasanmi Koyejo,
         "Examples are not enough, learn to criticize! criticism for interpretability"
         <https://proceedings.neurips.cc/paper_files/paper/2016/file/5680522b8e2bb01943234bce7bf84534-Paper.pdf>`_
 
@@ -35,28 +34,29 @@ class MMDCriticSearch(ProtoGreedySearch):
         Parameter that determines the spread of the rbf kernel, defaults to 1.0 / n_features.
     """
 
-    def _compute_batch_objectives(self,
-                                  candidates_kernel_diag: tf.Tensor,
-                                  candidates_kernel_col_means: tf.Tensor,
-                                  selection_kernel_col_means: tf.Tensor,
-                                  candidates_selection_kernel: tf.Tensor,
-                                  selection_selection_kernel: tf.Tensor
-                                  ) -> Tuple[tf.Tensor, tf.Tensor]:
+    def _compute_batch_objectives(
+        self,
+        candidates_kernel_diag: tf.Tensor,
+        candidates_kernel_col_means: tf.Tensor,
+        selection_kernel_col_means: tf.Tensor,
+        candidates_selection_kernel: tf.Tensor,
+        selection_selection_kernel: tf.Tensor,
+    ) -> Tuple[tf.Tensor, tf.Tensor]:
         """
         Compute the objective function and corresponding weights
         for a given set of selected prototypes and a candidate.
 
-        Here, we have a special case of protogreedy where we give equal weights to all prototypes, 
+        Here, we have a special case of protogreedy where we give equal weights to all prototypes,
         the objective here is simplified to speed up processing
-        
+
         Find argmax_{c} F(S ∪ c) - F(S)
         ≡
         Find argmax_{c} F(S ∪ c)
         ≡
         Find argmax_{c} (sum1 - sum2)
-        where: sum1 = (2 / n) * ∑[i=1 to n] κ(x_i, c) 
+        where: sum1 = (2 / n) * ∑[i=1 to n] κ(x_i, c)
                sum2 = 1/(|S|+1) [κ(c, c) + 2 * ∑[j=1 to |S|] κ(x_j, c)]
-            
+
         Parameters
         ----------
         candidates_kernel_diag : Tensor

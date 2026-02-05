@@ -2,13 +2,14 @@
 Module related to Kernel SHAP method
 """
 
-import tensorflow as tf
 import numpy as np
+import tensorflow as tf
 from sklearn import linear_model
 
-from .lime import Lime
 from ..commons import Tasks
-from ..types import Callable, Union, Optional, OperatorSignature
+from ..types import Callable, OperatorSignature, Optional, Union
+from .lime import Lime
+
 
 class KernelShap(Lime):
     """
@@ -48,33 +49,34 @@ class KernelShap(Lime):
         The default ref value is set to (0.5,0.5,0.5) for inputs with 3 channels (corresponding
         to a grey pixel when inputs are normalized by 255) and to 0 otherwise.
     """
-    def __init__(self,
-                 model: Callable,
-                 batch_size: int = 64,
-                 operator: Optional[Union[Tasks, str, OperatorSignature]] = None,
-                 map_to_interpret_space: Optional[Callable] = None,
-                 nb_samples: int = 800,
-                 ref_value: Optional[np.ndarray] = None):
 
+    def __init__(
+        self,
+        model: Callable,
+        batch_size: int = 64,
+        operator: Optional[Union[Tasks, str, OperatorSignature]] = None,
+        map_to_interpret_space: Optional[Callable] = None,
+        nb_samples: int = 800,
+        ref_value: Optional[np.ndarray] = None,
+    ):
         Lime.__init__(
             self,
             model,
             batch_size,
             operator,
-            interpretable_model = linear_model.LinearRegression(),
-            similarity_kernel = KernelShap._kernel_shap_similarity_kernel,
-            pertub_func = KernelShap._kernel_shap_pertub_func,
-            ref_value = ref_value,
-            map_to_interpret_space = map_to_interpret_space,
-            nb_samples = nb_samples,
-            )
+            interpretable_model=linear_model.LinearRegression(),
+            similarity_kernel=KernelShap._kernel_shap_similarity_kernel,
+            pertub_func=KernelShap._kernel_shap_pertub_func,
+            ref_value=ref_value,
+            map_to_interpret_space=map_to_interpret_space,
+            nb_samples=nb_samples,
+        )
 
     # No need to redifine the explain method (herited from Lime)
 
     @staticmethod
     @tf.function
-    def _kernel_shap_pertub_func(nb_features: Union[int, tf.Tensor],
-                                 nb_samples: int) -> tf.Tensor:
+    def _kernel_shap_pertub_func(nb_features: Union[int, tf.Tensor], nb_samples: int) -> tf.Tensor:
         """
         The perturbed instances are sampled that way:
          - We choose a number of selected features k, considering the distribution
@@ -94,14 +96,14 @@ class KernelShap(Lime):
         probs_nb_selected_feature = KernelShap._get_probs_nb_selected_feature(
             tf.cast(nb_features, dtype=tf.int32)
         )
-        nb_selected_features = tf.random.categorical(tf.math.log([probs_nb_selected_feature]),
-                                                     nb_samples,
-                                                     dtype=tf.int32)
+        nb_selected_features = tf.random.categorical(
+            tf.math.log([probs_nb_selected_feature]), nb_samples, dtype=tf.int32
+        )
         nb_selected_features = tf.reshape(nb_selected_features, [nb_samples])
         nb_selected_features = tf.one_hot(nb_selected_features, nb_features, dtype=tf.int32)
 
         rand_vals = tf.random.normal([nb_samples, nb_features])
-        idx_sorted_values = tf.argsort(rand_vals, axis=1, direction='DESCENDING')
+        idx_sorted_values = tf.argsort(rand_vals, axis=1, direction="DESCENDING")
 
         threshold_idx = idx_sorted_values * nb_selected_features
         threshold_idx = tf.reduce_sum(threshold_idx, axis=1)
@@ -132,11 +134,9 @@ class KernelShap(Lime):
 
     @staticmethod
     def _kernel_shap_similarity_kernel(
-        original_input,
-        interpret_samples,
-        perturbed_samples
+        original_input, interpret_samples, perturbed_samples
     ) -> tf.Tensor:
-    # pylint: disable=unused-argument
+        # pylint: disable=unused-argument
         """
         This method compute the similarity between interpretable perturbed samples and
         the original input (i.e a tf.ones(num_features)). The trick used for computation

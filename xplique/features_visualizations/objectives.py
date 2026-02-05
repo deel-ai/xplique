@@ -4,11 +4,11 @@ Objective wrapper and utils to build a function to be optimized
 
 import itertools
 
-import tensorflow as tf
 import numpy as np
+import tensorflow as tf
 
 from ..commons import find_layer
-from ..types import Union, List, Callable, Tuple, Optional
+from ..types import Callable, List, Optional, Tuple, Union
 from .losses import dot_cossim
 
 
@@ -45,13 +45,15 @@ class Objective:
         A list of name for each sub-objectives
     """
 
-    def __init__(self,
-                 model: tf.keras.Model,
-                 layers: List[tf.keras.layers.Layer],
-                 masks: List[tf.Tensor],
-                 funcs: List[Callable],
-                 multipliers: List[float],
-                 names: List[str]):
+    def __init__(
+        self,
+        model: tf.keras.Model,
+        layers: List[tf.keras.layers.Layer],
+        masks: List[tf.Tensor],
+        funcs: List[Callable],
+        multipliers: List[float],
+        names: List[str],
+    ):
         self.model = model
         self.layers = layers
         self.masks = masks
@@ -63,12 +65,12 @@ class Objective:
         if not isinstance(term, Objective):
             raise ValueError(f"{term} is not an objective.")
         return Objective(
-                self.model,
-                layers=self.layers + term.layers,
-                masks=self.masks + term.masks,
-                funcs=self.funcs + term.funcs,
-                multipliers=self.multipliers + term.multipliers,
-                names=self.names + term.names
+            self.model,
+            layers=self.layers + term.layers,
+            masks=self.masks + term.masks,
+            funcs=self.funcs + term.funcs,
+            multipliers=self.multipliers + term.multipliers,
+            names=self.names + term.names,
         )
 
     def __sub__(self, term):
@@ -109,12 +111,10 @@ class Objective:
 
         # re-arrange to match the different objectives with the model outputs
         masks = np.array([np.array(m, dtype=object) for m in itertools.product(*self.masks)])
-        masks = [tf.cast(tf.stack(list(masks[:, i])), tf.float32) for i in
-                 range(nb_sub_objectives)]
+        masks = [tf.cast(tf.stack(list(masks[:, i])), tf.float32) for i in range(nb_sub_objectives)]
 
         # the name of each combination is the concatenation of each objectives
-        names = np.array([' & '.join(names) for names in
-                           itertools.product(*self.names)])
+        names = np.array([" & ".join(names) for names in itertools.product(*self.names)])
         # one multiplier by sub-objective
         multipliers = tf.constant(self.multipliers)
 
@@ -123,7 +123,8 @@ class Objective:
             for output_index in range(0, nb_sub_objectives):
                 outputs = model_outputs[output_index]
                 loss += self.funcs[output_index](
-                    outputs, tf.cast(masks[output_index], outputs.dtype))
+                    outputs, tf.cast(masks[output_index], outputs.dtype)
+                )
                 loss *= multipliers[output_index]
             return loss
 
@@ -131,18 +132,23 @@ class Objective:
         model_reconfigured = tf.keras.Model(self.model.inputs, [*self.layers])
 
         nb_combinations = masks[0].shape[0]
-        model_input_shape = model_reconfigured.input[0].shape[1:] if isinstance(
-            model_reconfigured.input, list) else model_reconfigured.input.shape[1:]
+        model_input_shape = (
+            model_reconfigured.input[0].shape[1:]
+            if isinstance(model_reconfigured.input, list)
+            else model_reconfigured.input.shape[1:]
+        )
         input_shape = (nb_combinations, *model_input_shape)
 
         return model_reconfigured, objective_function, names, input_shape
 
     @staticmethod
-    def layer(model: tf.keras.Model,
-              layer: Union[str, int],
-              reducer: str = "magnitude",
-              multiplier: float = 1.0,
-              name: Optional[str] = None):
+    def layer(
+        model: tf.keras.Model,
+        layer: Union[str, int],
+        reducer: str = "magnitude",
+        multiplier: float = 1.0,
+        name: Optional[str] = None,
+    ):
         """
         Util to build an objective to maximise a layer.
 
@@ -180,12 +186,14 @@ class Objective:
         return Objective(model, [layer.output], [mask], [optim_func], [multiplier], [name])
 
     @staticmethod
-    def direction(model: tf.keras.Model,
-                  layer: Union[str, int],
-                  vectors: Union[tf.Tensor, List[tf.Tensor]],
-                  multiplier: float = 1.0,
-                  cossim_pow: float = 2.0,
-                  names: Optional[Union[str, List[str]]] = None):
+    def direction(
+        model: tf.keras.Model,
+        layer: Union[str, int],
+        vectors: Union[tf.Tensor, List[tf.Tensor]],
+        multiplier: float = 1.0,
+        cossim_pow: float = 2.0,
+        names: Optional[Union[str, List[str]]] = None,
+    ):
         """
         Util to build an objective to maximise a direction of a layer.
 
@@ -222,11 +230,13 @@ class Objective:
         return Objective(model, [layer.output], [masks], [optim_func], [multiplier], [names])
 
     @staticmethod
-    def channel(model: tf.keras.Model,
-                layer: Union[str, int],
-                channel_ids: Union[int, List[int]],
-                multiplier: float = 1.0,
-                names: Optional[Union[str, List[str]]] = None):
+    def channel(
+        model: tf.keras.Model,
+        layer: Union[str, int],
+        channel_ids: Union[int, List[int]],
+        multiplier: float = 1.0,
+        names: Optional[Union[str, List[str]]] = None,
+    ):
         """
         Util to build an objective to maximise a channel.
 
@@ -269,11 +279,13 @@ class Objective:
         return Objective(model, [layer.output], [masks], [optim_func], [multiplier], [names])
 
     @staticmethod
-    def neuron(model: tf.keras.Model,
-               layer: Union[str, int],
-               neurons_ids: Union[int, List[int]],
-               multiplier: float = 1.0,
-               names: Optional[Union[str, List[str]]] = None):
+    def neuron(
+        model: tf.keras.Model,
+        layer: Union[str, int],
+        neurons_ids: Union[int, List[int]],
+        multiplier: float = 1.0,
+        names: Optional[Union[str, List[str]]] = None,
+    ):
         """
         Util to build an objective to maximise a neuron.
 
@@ -311,7 +323,7 @@ class Objective:
         if names is None:
             names = [f"Neuron#{layer.name}_{neuron_id}" for neuron_id in neurons_ids]
 
-        axis_to_reduce = list(range(1, len(layer_shape)+1))
+        axis_to_reduce = list(range(1, len(layer_shape) + 1))
 
         def optim_func(output, target):
             return tf.reduce_mean(output * target, axis=axis_to_reduce)

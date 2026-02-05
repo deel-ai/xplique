@@ -2,20 +2,24 @@
 CRAFT Module for Pytorch
 """
 
-from typing import Callable, Optional, Tuple
 from math import ceil
+from typing import Callable, Optional, Tuple
+
+import numpy as np
 import torch
 from torch import nn
-import numpy as np
 
 from .craft import BaseCraft
 from .craft_manager import BaseCraftManager
 
-def _batch_inference(model: torch.nn.Module,
-                     dataset: torch.Tensor,
-                     batch_size: int = 128,
-                     resize: Optional[int] = None,
-                     device: str='cuda') -> torch.Tensor:
+
+def _batch_inference(
+    model: torch.nn.Module,
+    dataset: torch.Tensor,
+    batch_size: int = 128,
+    resize: Optional[int] = None,
+    device: str = "cuda",
+) -> torch.Tensor:
     """
     Compute the model predictions of the input images.
 
@@ -39,18 +43,19 @@ def _batch_inference(model: torch.nn.Module,
     """
     # dataset: (N, C, H, W)
     nb_batchs = ceil(len(dataset) / batch_size)
-    start_ids = [i*batch_size for i in range(nb_batchs)]
+    start_ids = [i * batch_size for i in range(nb_batchs)]
 
     results = []
 
     with torch.no_grad():
         for i in start_ids:
-            batch = dataset[i:i+batch_size]
+            batch = dataset[i : i + batch_size]
             batch = batch.to(device)
 
             if resize:
-                batch = torch.nn.functional.interpolate(batch, size=resize, mode='bilinear',
-                                                        align_corners=False)
+                batch = torch.nn.functional.interpolate(
+                    batch, size=resize, mode="bilinear", align_corners=False
+                )
 
             results.append(model(batch).cpu())
 
@@ -84,23 +89,29 @@ class CraftTorch(BaseCraft):
         The device to use. Default is 'cuda'.
     """
 
-    def __init__(self, input_to_latent_model: Callable,
-                       latent_to_logit_model: Callable,
-                       number_of_concepts: int = 20,
-                       batch_size: int = 64,
-                       patch_size: int = 64,
-                       device : str = 'cuda'):
-        super().__init__(input_to_latent_model, latent_to_logit_model,
-                         number_of_concepts, batch_size)
+    def __init__(
+        self,
+        input_to_latent_model: Callable,
+        latent_to_logit_model: Callable,
+        number_of_concepts: int = 20,
+        batch_size: int = 64,
+        patch_size: int = 64,
+        device: str = "cuda",
+    ):
+        super().__init__(
+            input_to_latent_model, latent_to_logit_model, number_of_concepts, batch_size
+        )
         self.patch_size = patch_size
         self.device = device
 
         # Check model type
-        is_torch_model = issubclass(type(input_to_latent_model), torch.nn.modules.module.Module) & \
-                         issubclass(type(latent_to_logit_model), torch.nn.modules.module.Module)
+        is_torch_model = issubclass(
+            type(input_to_latent_model), torch.nn.modules.module.Module
+        ) & issubclass(type(latent_to_logit_model), torch.nn.modules.module.Module)
         if not is_torch_model:
-            raise TypeError('input_to_latent_model and latent_to_logit_model are not ' \
-                            'Pytorch modules')
+            raise TypeError(
+                "input_to_latent_model and latent_to_logit_model are not Pytorch modules"
+            )
 
     def _latent_predict(self, inputs: torch.Tensor, resize=None) -> torch.Tensor:
         """
@@ -118,10 +129,11 @@ class CraftTorch(BaseCraft):
         """
         # inputs: (N, C, H, W)
         if len(inputs.shape) == 3:
-            inputs = inputs.unsqueeze(0) # add an extra dim in case we get only 1 image to predict
+            inputs = inputs.unsqueeze(0)  # add an extra dim in case we get only 1 image to predict
 
-        activations = _batch_inference(self.input_to_latent_model, inputs,
-                                       self.batch_size, resize, device=self.device)
+        activations = _batch_inference(
+            self.input_to_latent_model, inputs, self.batch_size, resize, device=self.device
+        )
         if len(activations.shape) == 4:
             # activations: (N, C, H, W) -> (N, H, W, C)
             activations = activations.permute(0, 2, 3, 1)
@@ -149,8 +161,13 @@ class CraftTorch(BaseCraft):
             # activations_perturbated: (N, H, W, C) -> (N, C, H, W)
             activations_perturbated = activations_perturbated.permute(0, 3, 1, 2)
 
-        y_pred = _batch_inference(self.latent_to_logit_model, activations_perturbated,
-                                  self.batch_size, resize, device=self.device)
+        y_pred = _batch_inference(
+            self.latent_to_logit_model,
+            activations_perturbated,
+            self.batch_size,
+            resize,
+            device=self.device,
+        )
         return self._to_np_array(y_pred)
 
     def _extract_patches(self, inputs: torch.Tensor) -> Tuple[torch.Tensor, np.ndarray]:
@@ -177,8 +194,11 @@ class CraftTorch(BaseCraft):
         strides = int(self.patch_size * 0.80)
 
         patches = torch.nn.functional.unfold(inputs, kernel_size=self.patch_size, stride=strides)
-        patches = patches.transpose(1, 2).contiguous().view(-1, num_channels,
-                                                            self.patch_size, self.patch_size)
+        patches = (
+            patches.transpose(1, 2)
+            .contiguous()
+            .view(-1, num_channels, self.patch_size, self.patch_size)
+        )
 
         # encode the patches and obtain the activations
         activations = self._latent_predict(patches, resize=image_size)
@@ -234,25 +254,35 @@ class CraftManagerTorch(BaseCraftManager):
     patch_size
         The size of the patches (crops) to extract from the input data. Default is 64.
     """
-    def __init__(self, input_to_latent_model : Callable,
-                    latent_to_logit_model : Callable,
-                    inputs : np.ndarray,
-                    labels : np.ndarray,
-                    list_of_class_of_interest : list = None,
-                    number_of_concepts: int = 20,
-                    batch_size: int = 64,
-                    patch_size: int = 64,
-                    device : str = 'cuda'):
 
-        super().__init__(input_to_latent_model, latent_to_logit_model,
-                         inputs, labels, list_of_class_of_interest)
+    def __init__(
+        self,
+        input_to_latent_model: Callable,
+        latent_to_logit_model: Callable,
+        inputs: np.ndarray,
+        labels: np.ndarray,
+        list_of_class_of_interest: list = None,
+        number_of_concepts: int = 20,
+        batch_size: int = 64,
+        patch_size: int = 64,
+        device: str = "cuda",
+    ):
+        super().__init__(
+            input_to_latent_model, latent_to_logit_model, inputs, labels, list_of_class_of_interest
+        )
 
         self.batch_size = batch_size
         self.device = device
         self.craft_instances = {}
         for class_of_interest in self.list_of_class_of_interest:
-            craft = CraftTorch(input_to_latent_model, latent_to_logit_model,
-                               number_of_concepts, batch_size, patch_size, device)
+            craft = CraftTorch(
+                input_to_latent_model,
+                latent_to_logit_model,
+                number_of_concepts,
+                batch_size,
+                patch_size,
+                device,
+            )
             self.craft_instances[class_of_interest] = craft
 
     def compute_predictions(self):
@@ -266,7 +296,8 @@ class CraftManagerTorch(BaseCraftManager):
             the predictions
         """
         model = nn.Sequential(self.input_to_latent_model, self.latent_to_logit_model)
-        activations = _batch_inference(model, self.inputs, self.batch_size, None,
-                                       device=self.device)
+        activations = _batch_inference(
+            model, self.inputs, self.batch_size, None, device=self.device
+        )
         y_preds = np.array(torch.argmax(activations, -1))  # pylint disable=no-member
         return y_preds

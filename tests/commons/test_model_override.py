@@ -1,8 +1,13 @@
-import tensorflow as tf
 import numpy as np
+import tensorflow as tf
 
-from xplique.commons import guided_relu_policy, deconv_relu_policy, override_relu_gradient, \
-    open_relu_policy
+from xplique.commons import (
+    deconv_relu_policy,
+    guided_relu_policy,
+    open_relu_policy,
+    override_relu_gradient,
+)
+
 from ..utils import almost_equal
 
 
@@ -11,17 +16,17 @@ def test_guided_policy():
 
     model1 = tf.keras.models.Sequential()
     model1.add(tf.keras.layers.Activation(tf.nn.relu, input_shape=(4,)))
-    model1.add(tf.keras.layers.Lambda(lambda x: -x ** 2))
+    model1.add(tf.keras.layers.Lambda(lambda x: -(x**2)))
     model1_guided = override_relu_gradient(model1, guided_relu_policy)
 
     model2 = tf.keras.models.Sequential()
     model2.add(tf.keras.layers.ReLU(input_shape=(4,)))
-    model2.add(tf.keras.layers.Lambda(lambda x: -x ** 2))
+    model2.add(tf.keras.layers.Lambda(lambda x: -(x**2)))
     model2_guided = override_relu_gradient(model2, guided_relu_policy)
 
     model3 = tf.keras.models.Sequential()
-    model3.add(tf.keras.layers.ReLU(max_value=3, input_shape=(4,))) # relu with params
-    model3.add(tf.keras.layers.Lambda(lambda x: -x ** 2))
+    model3.add(tf.keras.layers.ReLU(max_value=3, input_shape=(4,)))  # relu with params
+    model3.add(tf.keras.layers.Lambda(lambda x: -(x**2)))
     model3_guided = override_relu_gradient(model3, guided_relu_policy)
 
     x = tf.constant(np.expand_dims([5.0, 0.0, -5.0, 10.0], axis=0))
@@ -59,17 +64,17 @@ def test_deconv_policy():
 
     model1 = tf.keras.models.Sequential()
     model1.add(tf.keras.layers.Activation(tf.nn.relu, input_shape=(4,)))
-    model1.add(tf.keras.layers.Lambda(lambda x: x ** 2))
+    model1.add(tf.keras.layers.Lambda(lambda x: x**2))
     model1_deconv = override_relu_gradient(model1, deconv_relu_policy)
 
     model2 = tf.keras.models.Sequential()
     model2.add(tf.keras.layers.ReLU(input_shape=(4,)))
-    model2.add(tf.keras.layers.Lambda(lambda x: x ** 2))
+    model2.add(tf.keras.layers.Lambda(lambda x: x**2))
     model2_deconv = override_relu_gradient(model2, deconv_relu_policy)
 
     model3 = tf.keras.models.Sequential()
-    model3.add(tf.keras.layers.ReLU(max_value=3, input_shape=(4,))) # relu with params
-    model3.add(tf.keras.layers.Lambda(lambda x: x ** 2))
+    model3.add(tf.keras.layers.ReLU(max_value=3, input_shape=(4,)))  # relu with params
+    model3.add(tf.keras.layers.Lambda(lambda x: x**2))
     model3_deconv = override_relu_gradient(model3, deconv_relu_policy)
 
     x = tf.constant(np.expand_dims([5.0, 0.0, -5.0, 10.0], axis=0))
@@ -95,7 +100,6 @@ def test_deconv_policy():
     assert almost_equal(deconv_grads_1, deconv_grads_2)
     assert almost_equal(deconv_grads_1, np.array([10.0, 0.0, 0.0, 20.0]))
 
-
     with tf.GradientTape() as tape:
         tape.watch(x)
         y3d = model3_deconv(x)
@@ -108,18 +112,22 @@ def test_open_relu():
     """Ensure the backward pass let all the gradient flow"""
 
     model1 = tf.keras.models.Sequential()
-    model1.add(tf.keras.layers.Lambda(lambda x: x ** 3, input_shape=(4,)))
+    model1.add(tf.keras.layers.Lambda(lambda x: x**3, input_shape=(4,)))
     model1.add(tf.keras.layers.Activation(tf.nn.relu))
     model1_open = override_relu_gradient(model1, open_relu_policy)
 
     model2 = tf.keras.models.Sequential()
-    model2.add(tf.keras.layers.Lambda(lambda x: x ** 3, input_shape=(4,)))
+    model2.add(tf.keras.layers.Lambda(lambda x: x**3, input_shape=(4,)))
     model2.add(tf.keras.layers.ReLU())
     model2_open = override_relu_gradient(model2, open_relu_policy)
 
     model3 = tf.keras.models.Sequential()
-    model3.add(tf.keras.layers.Lambda(lambda x: x ** 3, input_shape=(4,)))
-    model3.add(tf.keras.layers.ReLU(max_value=3,)) # relu with params
+    model3.add(tf.keras.layers.Lambda(lambda x: x**3, input_shape=(4,)))
+    model3.add(
+        tf.keras.layers.ReLU(
+            max_value=3,
+        )
+    )  # relu with params
     model3_open = override_relu_gradient(model3, open_relu_policy)
 
     x = tf.constant(np.expand_dims([5.0, 0.0, -5.0, 10.0], axis=0))
@@ -143,12 +151,11 @@ def test_open_relu():
     open_grads_2 = tape.gradient(y2d, x).numpy()[0]
 
     assert almost_equal(open_grads_1, open_grads_2)
-    assert almost_equal(open_grads_1, 3.0 * x ** 2.0) # dx**3/dx = 3x**2
-
+    assert almost_equal(open_grads_1, 3.0 * x**2.0)  # dx**3/dx = 3x**2
 
     with tf.GradientTape() as tape:
         tape.watch(x)
         y3d = model3_open(x)
     open_grads_3 = tape.gradient(y3d, x).numpy()[0]
 
-    assert almost_equal(open_grads_3, 3.0 * x ** 2.0)
+    assert almost_equal(open_grads_3, 3.0 * x**2.0)

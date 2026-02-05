@@ -1,17 +1,15 @@
 """
 Implementation of semi factuals methods for classification tasks.
 """
+
 import numpy as np
 import tensorflow as tf
 
-from ..types import Callable, List, Optional, Union, Dict, DatasetOrTensor
-
-from .datasets_operations.tf_dataset_operations import dataset_gather
-
+from ..types import Callable, DatasetOrTensor, Dict, List, Optional, Union
 from .base_example_method import BaseExampleMethod
-from .search_methods import KLEORSimMissSearch, KLEORGlobalSimSearch
+from .datasets_operations.tf_dataset_operations import dataset_gather
 from .projections import Projection
-
+from .search_methods import KLEORGlobalSimSearch, KLEORSimMissSearch
 from .search_methods.base import _sanitize_returns
 
 
@@ -21,8 +19,8 @@ class KLEORBase(BaseExampleMethod):
     In those methods, one should first retrieve the Nearest Unlike Neighbor (NUN)
     which is the closest example to the query that has a different prediction than the query.
     Then, the method search for the K-Nearest Neighbors (KNN) of the NUN
-    that have the same prediction as the query. 
-    
+    that have the same prediction as the query.
+
     All the searches are done in a projection space where distances are relevant for the model.
     The projection space is defined by the `projection` method.
 
@@ -79,11 +77,19 @@ class KLEORBase(BaseExampleMethod):
         {"manhattan", "euclidean", "cosine", "chebyshev", "inf"}, or a Callable,
         by default "euclidean".
     """
+
     # pylint: disable=duplicate-code
 
     _returns_possibilities = [
-        "examples", "weights", "distances", "labels", "include_inputs",
-        "nuns", "nuns_indices", "dist_to_nuns", "nuns_labels"
+        "examples",
+        "weights",
+        "distances",
+        "labels",
+        "include_inputs",
+        "nuns",
+        "nuns_indices",
+        "dist_to_nuns",
+        "nuns_labels",
     ]
 
     def __init__(
@@ -97,7 +103,6 @@ class KLEORBase(BaseExampleMethod):
         batch_size: Optional[int] = None,
         distance: Union[int, str, Callable] = "euclidean",
     ):
-
         super().__init__(
             cases_dataset=cases_dataset,
             labels_dataset=labels_dataset,
@@ -176,8 +181,9 @@ class KLEORBase(BaseExampleMethod):
         if "nuns" in self.returns:
             return_dict["nuns"] = dataset_gather(self.cases_dataset, search_output["nuns_indices"])
         if "nuns_labels" in self.returns:
-            return_dict["nuns_labels"] = dataset_gather(self.labels_dataset,
-                                                        search_output["nuns_indices"])
+            return_dict["nuns_labels"] = dataset_gather(
+                self.labels_dataset, search_output["nuns_indices"]
+            )
         if "nuns_indices" in self.returns:
             return_dict["nuns_indices"] = search_output["nuns_indices"]
         if "dist_to_nuns" in self.returns:
@@ -196,6 +202,7 @@ class KLEORSimMiss(KLEORBase):
     The search is done in a projection space where distances are relevant for the model.
     The projection space is defined by the `projection` method.
     """
+
     @property
     def search_method_class(self):
         """
@@ -203,6 +210,7 @@ class KLEORSimMiss(KLEORBase):
         In this case, it is the KLEORSimMissSearch.
         """
         return KLEORSimMissSearch
+
 
 class KLEORGlobalSim(KLEORBase):
     """
@@ -220,6 +228,7 @@ class KLEORGlobalSim(KLEORBase):
     The search is done in a projection space where distances are relevant for the model.
     The projection space is defined by the `projection` method.
     """
+
     @property
     def search_method_class(self):
         """

@@ -81,8 +81,10 @@ class VarGrad(GradientStatistic):
             The variance computed online.
         """
         # compute coefficient for an unbiased variance
-        assert self._elements_counter >= 2, "Variance cannot be computed with only one element." +\
-            "In the case of `VarGrad`, increase `nb_samples`."
+        assert self._elements_counter >= 2, (
+            "Variance cannot be computed with only one element."
+            + "In the case of `VarGrad`, increase `nb_samples`."
+        )
         unbiased_coefficient = self._elements_counter / (self._elements_counter - 1)
 
         # compute the online mean and square mean
