@@ -2,14 +2,15 @@
 Numpy from/to Tensorflow manipulation
 """
 
-import tensorflow as tf
 import numpy as np
+import tensorflow as tf
 
-from ..types import Union, Optional, Tuple, Callable
+from ..types import Callable, Optional, Tuple, Union
 
 
-def tensor_sanitize(inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
-                    targets: Union[tf.Tensor, np.ndarray]) -> Tuple[tf.Tensor, tf.Tensor]:
+def tensor_sanitize(
+    inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray], targets: Union[tf.Tensor, np.ndarray]
+) -> Tuple[tf.Tensor, tf.Tensor]:
     """
     Ensure the output as tf.Tensor, accept various inputs format including:
     tf.Tensor, List, numpy array, tf.data.Dataset (when label = None).
@@ -32,11 +33,11 @@ def tensor_sanitize(inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
     # deal with tf.data.Dataset
     if isinstance(inputs, tf.data.Dataset):
         # try to know if the dataset is batched, if it is the case we unbatch
-        if hasattr(inputs, '_batch_size'):
+        if hasattr(inputs, "_batch_size"):
             inputs = inputs.unbatch()
         # unpack the dataset, assume we have tuple of (input, target)
         targets = [target for _, target in inputs]
-        inputs  = [inp for inp, _ in inputs]
+        inputs = [inp for inp, _ in inputs]
 
     inputs = tf.cast(inputs, tf.float32)
     targets = tf.cast(targets, tf.float32)
@@ -44,8 +45,10 @@ def tensor_sanitize(inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
     return inputs, targets
 
 
-def numpy_sanitize(inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
-                   targets: Optional[Union[tf.Tensor, np.ndarray]]) -> Tuple[tf.Tensor, tf.Tensor]:
+def numpy_sanitize(
+    inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
+    targets: Optional[Union[tf.Tensor, np.ndarray]],
+) -> Tuple[tf.Tensor, tf.Tensor]:
     """
     Ensure the output as np.ndarray, accept various inputs format including:
     tf.Tensor, List, numpy array, tf.data.Dataset (when label = None).
@@ -76,12 +79,14 @@ def sanitize_inputs_targets(explanation_method: Callable):
     explanation_method
         Function to wrap, should return an tf.tensor.
     """
-    def sanitize(self,
-                 inputs: Union[tf.Tensor, np.array],
-                 targets: Optional[Union[tf.Tensor, np.array]] = None,
-                 *args,
-                 **kwargs
-                 ):
+
+    def sanitize(
+        self,
+        inputs: Union[tf.Tensor, np.array],
+        targets: Optional[Union[tf.Tensor, np.array]] = None,
+        *args,
+        **kwargs,
+    ):
         # pylint: disable=keyword-arg-before-vararg
         # ensure we have tf.tensor
         inputs = tf.cast(inputs, tf.float32)

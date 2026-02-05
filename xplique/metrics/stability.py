@@ -5,8 +5,8 @@ Stability (or Sensitivity) metrics
 import numpy as np
 import tensorflow as tf
 
-from .base import ExplainerMetric
 from ..types import Callable, Optional, Union
+from .base import ExplainerMetric
 
 
 class AverageStability(ExplainerMetric):
@@ -38,36 +38,38 @@ class AverageStability(ExplainerMetric):
         Number of different neighbors points to try on each input to measure the stability.
     """
 
-    def __init__(self,
-                 model: Callable,
-                 inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
-                 targets: Optional[Union[tf.Tensor, np.ndarray]] = None,
-                 batch_size: Optional[int] = 64,
-                 radius: float = 0.1,
-                 distance: Union[str, Callable] = 'l2',
-                 nb_samples: int = 20):
+    def __init__(
+        self,
+        model: Callable,
+        inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
+        targets: Optional[Union[tf.Tensor, np.ndarray]] = None,
+        batch_size: Optional[int] = 64,
+        radius: float = 0.1,
+        distance: Union[str, Callable] = "l2",
+        nb_samples: int = 20,
+    ):
         # pylint: disable=R0913
         super().__init__(model, inputs, targets, batch_size)
         self.radius = radius
         self.nb_samples = nb_samples
 
-        if distance == 'l1':
+        if distance == "l1":
             self.distance = lambda x, y: tf.reduce_sum(tf.abs(x - y))
-        elif distance == 'l2':
-            self.distance = lambda x, y: tf.sqrt(tf.reduce_sum((x - y)**2.0))
-        elif hasattr(distance, '__call__'):
+        elif distance == "l2":
+            self.distance = lambda x, y: tf.sqrt(tf.reduce_sum((x - y) ** 2.0))
+        elif hasattr(distance, "__call__"):
             self.distance = distance
         else:
             raise ValueError(f"{distance} is not a valid distance.")
 
         # prepare the noisy masks that will be used to generate the neighbors
-        self.noisy_masks = tf.random.uniform((nb_samples, *self.inputs.shape[1:]), 0,
-                                             self.radius)
+        self.noisy_masks = tf.random.uniform((nb_samples, *self.inputs.shape[1:]), 0, self.radius)
 
-    def evaluate(self,
-                 explainer: Callable,
-                 base_explanations: Optional[Union[tf.Tensor, np.ndarray]] = None,
-        ) -> float:
+    def evaluate(
+        self,
+        explainer: Callable,
+        base_explanations: Optional[Union[tf.Tensor, np.ndarray]] = None,
+    ) -> float:
         # pylint: disable=W0221
         """
         Evaluate the fidelity score.

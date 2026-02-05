@@ -1,7 +1,9 @@
 """
 Operator for object detection
 """
+
 from typing import Tuple
+
 import tensorflow as tf
 
 _EPSILON = 1e-4
@@ -27,10 +29,10 @@ def _box_iou(boxes_a: tf.Tensor, boxes_b: tf.Tensor) -> tf.Tensor:
     """
 
     # determine the intersection rectangle
-    left   = tf.maximum(boxes_a[..., 0], boxes_b[..., 0])
+    left = tf.maximum(boxes_a[..., 0], boxes_b[..., 0])
     bottom = tf.maximum(boxes_a[..., 1], boxes_b[..., 1])
-    right  = tf.minimum(boxes_a[..., 2], boxes_b[..., 2])
-    top    = tf.minimum(boxes_a[..., 3], boxes_b[..., 3])
+    right = tf.minimum(boxes_a[..., 2], boxes_b[..., 2])
+    top = tf.minimum(boxes_a[..., 3], boxes_b[..., 3])
 
     intersection_area = tf.math.maximum(right - left, 0) * tf.math.maximum(top - bottom, 0)
 
@@ -67,6 +69,7 @@ def _format_objects(predictions: tf.Tensor) -> Tuple[tf.Tensor, tf.Tensor, tf.Te
     one_hots_classifications
         A Tensor of shape (nb_boxes, nc) encoding the class predictions.
     """
-    boxes_coordinates, proba_detection, one_hots_classifications = \
-        tf.split(predictions, [4, 1, tf.shape(predictions[0])[0] - 5], 1)
+    boxes_coordinates, proba_detection, one_hots_classifications = tf.split(
+        predictions, [4, 1, tf.shape(predictions[0])[0] - 5], 1
+    )
     return boxes_coordinates, proba_detection, one_hots_classifications

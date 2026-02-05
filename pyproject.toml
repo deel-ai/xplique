@@ -1,0 +1,144 @@
+[project]
+name = "xplique"
+version = "1.4.2"
+description = "Explanations toolbox for TensorFlow 2"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [
+  { name = "Thomas FEL", email = "thomas_fel@brown.edu" }
+]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3",
+  "Operating System :: OS Independent"
+]
+
+dependencies = [
+    "deprecated>=1.3.1",
+    "einops>=0.8.2",
+    "matplotlib>=3.10.8",
+    "numpy>=1.24.6",
+    "opencv-python>=4.11.0.86",
+    "ruff>=0.15.0",
+    "scikit-image>=0.25.2",
+    "scikit-learn>=1.7.2",
+    "scipy>=1.15.3",
+    "tensorflow>=2.1.0",
+    "tensorflow-probability[tf]>=0.25.0",
+]
+
+[dependency-groups]
+dev = [
+    "bump2version>=1.0.1",
+    "docutils>=0.22.4",
+    "markdown>=3.10.1",
+    "mkdocs>=1.6.1",
+    "mkdocs-material>=9.7.1",
+    "mypy>=1.19.1",
+    "mypy-extensions>=1.1.0",
+    "numkdoc>=0.4.3",
+    "pre-commit>=4.5.1",
+    "pygments>=2.19.2",
+    "ruff>=0.9.0",
+    "pymdown-extensions>=10.20.1",
+    "pytest>=9.0.2",
+    "pytest-cov>=7.0.0",
+    "tox>=4.34.1",
+    "tox-uv>=1.29.0",
+]
+pytorch = [
+    "torch>=2.10.0",
+]
+
+[tool.bumpversion]
+current_version = "1.4.2"
+commit = true
+tag = false
+
+[[tool.bumpversion.files]]
+filename = "pyproject.toml"
+
+[[tool.bumpversion.files]]
+filename = "xplique/__init__.py"
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F"]
+ignore = [
+    "PLR0904",
+    "PLR0914",
+    "PLR0917",
+]
+# Add the `line-too-long` E501 rule to the enforced rule set. By default, Ruff omits
+# rules that overlap with the use of a formatter, like Black, but we can override this
+# behavior by explicitly adding the rule.
+# Add the `I` rule to enforce import sorting.
+extend-select = ["E501", "I"]
+
+[tool.ruff.lint.pycodestyle]
+max-line-length = 100
+
+[tool.ruff.lint.pylint]
+max-args = 12
+
+[tool.mypy]
+check_untyped_defs = true
+warn_unused_configs = true
+
+[[tool.mypy.overrides]]
+module = ["numpy.*",
+          "sklearn.*"]
+ignore_missing_imports = true
+
+[tool.tox]
+requires = ["tox>=4", "tox-uv"]
+envlist = [
+  "py{37,38,39,310}-lint",
+  "py{37,38,39,310}-tf{22,25,28,211}",
+  "py{38,39,310}-tf{25,28,211}-torch{111,113,200}"
+]
+
+[tool.tox.env."py{37,38,39,310}-lint"]
+deps = [
+  "ruff",
+  "-rrequirements.txt"
+]
+commands = ["ruff check xplique"]
+
+[tool.tox.env."py{37,38,39,310}-tf{22,25,28,211}"]
+deps = [
+  "pytest",
+  "pytest-cov",
+  "tf22: tensorflow ~= 2.2.0,<2.16",
+  "tf22: tensorflow-probability == 0.10.0",
+  "tf25: tensorflow ~= 2.5.0,<2.16",
+  "tf25: tensorflow-probability == 0.13.0",
+  "tf28: tensorflow ~= 2.8.0,<2.16",
+  "tf28: tensorflow-probability == 0.16.0",
+  "tf211: tensorflow ~= 2.11.0,<2.16",
+  "tf211: tensorflow-probability == 0.19.0",
+  "-rrequirements.txt"
+]
+
+[tool.tox.env."py{38,39,310}-tf{25,28,211}-torch{111,113,200}"]
+deps = [
+  "pytest",
+  "pytest-cov",
+  "tf25: tensorflow ~= 2.5.0,<2.16",
+  "tf25: tensorflow-probability == 0.13.0",
+  "tf28: tensorflow ~= 2.8.0,<2.16",
+  "tf28: tensorflow-probability == 0.16.0",
+  "tf211: tensorflow ~= 2.11.0,<2.16",
+  "tf211: tensorflow-probability == 0.19.0",
+  "torch111: torch == 1.11.0",
+  "torch113: torch == 1.13.0",
+  "torch200: torch == 2.0.0",
+  "-rrequirements.txt"
+]
+
+

@@ -21,8 +21,10 @@ def l1_reg(factor: float = 1.0) -> Callable:
     reg
         Mean L1 of the images.
     """
+
     def reg(images: tf.Tensor) -> tf.Tensor:
         return factor * tf.reduce_mean(tf.abs(images), (1, 2, 3))
+
     return reg
 
 
@@ -40,8 +42,10 @@ def l2_reg(factor: float = 1.0) -> Callable:
     reg
         Mean L2 of the images.
     """
+
     def reg(images: tf.Tensor) -> tf.Tensor:
         return factor * tf.sqrt(tf.reduce_mean(images**2, (1, 2, 3)))
+
     return reg
 
 
@@ -59,8 +63,10 @@ def l_inf_reg(factor: float = 1.0) -> Callable:
     l_inf
         Max of the images.
     """
+
     def l_inf(images: tf.Tensor) -> tf.Tensor:
         return factor * tf.reduce_max(tf.abs(images), (1, 2, 3))
+
     return l_inf
 
 
@@ -78,6 +84,8 @@ def total_variation_reg(factor: float = 1.0) -> Callable:
     tv_reg
         Total variation of the images.
     """
+
     def tv_reg(images: tf.Tensor) -> tf.Tensor:
         return factor * tf.image.total_variation(images)
+
     return tv_reg

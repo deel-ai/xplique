@@ -2,11 +2,11 @@
 Sobol Attribution Method explainer
 """
 
-from ...types import Callable, Union, Optional, OperatorSignature
 from ...commons import Tasks
+from ...types import Callable, OperatorSignature, Optional, Union
 from .gsa_attribution_method import GSABaseAttributionMethod
-from .sobol_estimators import SobolEstimator, JansenEstimator
 from .replicated_designs import ReplicatedSampler, TFSobolSequenceRS
+from .sobol_estimators import JansenEstimator, SobolEstimator
 
 
 class SobolAttributionMethod(GSABaseAttributionMethod):
@@ -55,19 +55,18 @@ class SobolAttributionMethod(GSABaseAttributionMethod):
         batch_size=256,
         operator: Optional[Union[Tasks, str, OperatorSignature]] = None,
     ):
-
-        assert (
-            nb_design & (nb_design - 1) == 0
-        ) and nb_design != 0, "The number of design must be a power of two."
+        assert (nb_design & (nb_design - 1) == 0) and nb_design != 0, (
+            "The number of design must be a power of two."
+        )
 
         sampler = sampler if sampler is not None else TFSobolSequenceRS()
         estimator = estimator if estimator is not None else JansenEstimator()
 
         assert isinstance(sampler, ReplicatedSampler), (
-            "The sampler must be a" " valid Replicated Sampler."
+            "The sampler must be a valid Replicated Sampler."
         )
         assert isinstance(estimator, SobolEstimator), (
-            "The estimator must be a" " valid Sobol estimator."
+            "The estimator must be a valid Sobol estimator."
         )
 
         super().__init__(

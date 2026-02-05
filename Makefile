@@ -5,7 +5,7 @@ help:
 	@echo "make prepare-dev"
 	@echo "       create and prepare development environment, use only once"
 	@echo "make test"
-	@echo "       run tests and linting on py36, py37, py38"
+	@echo "       run tests and linting in current env"
 	@echo "make test-disable-gpu"
 	@echo "       run test with gpu disabled"
 	@echo "make pc_check"
@@ -18,10 +18,9 @@ help:
 	@echo "       build mkdocs documentation"
 
 prepare-dev:
-	python3 -m pip install virtualenv
-	python3 -m venv xplique_dev_env
-	. xplique_dev_env/bin/activate && pip install -r requirements.txt
-	. xplique_dev_env/bin/activate && pip install -r requirements_dev.txt
+	@command -v uv >/dev/null 2>&1 || curl -LsSf https://astral.sh/uv/install.sh | sh;
+	uv venv xplique_dev_env
+	. xplique_dev_env/bin/activate && uv pip install -r requirements.txt -r requirements_dev.txt
 	. xplique_dev_env/bin/activate && pre-commit install
 	. xplique_dev_env/bin/activate && pre-commit install-hooks
 

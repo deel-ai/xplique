@@ -4,20 +4,25 @@ Custom tensorflow operator for Attributions
 
 import inspect
 from enum import Enum
+from functools import wraps
 
 import tensorflow as tf
 
-from ..types import Callable, Optional, Union, OperatorSignature
-from .exceptions import raise_invalid_operator, no_gradients_available
+from ..types import Callable, OperatorSignature, Optional, Union
 from .callable_operations import predictions_one_hot_callable
-from .operators import (predictions_operator,  # regression_operator,
-                        semantic_segmentation_operator, object_detection_operator)
+from .exceptions import no_gradients_available, raise_invalid_operator
+from .operators import (  # regression_operator,
+    object_detection_operator,
+    predictions_operator,
+    semantic_segmentation_operator,
+)
 
 
 class Tasks(Enum):
     """
     Enumeration of different tasks for which we have defined operators
     """
+
     CLASSIFICATION = predictions_operator
     # `regression_operator` do not work for gradient-based method
     # the problem is its use for multi output regression
@@ -27,24 +32,36 @@ class Tasks(Enum):
     OBJECT_DETECTION = object_detection_operator
 
     # object detection operator limited to box position explanation
-    OBJECT_DETECTION_BOX_POSITION = lambda model, inputs, targets:(
-        object_detection_operator(model, inputs, targets,
-                                  include_detection_probability=False,
-                                  include_classification_score=False)
+    OBJECT_DETECTION_BOX_POSITION = lambda model, inputs, targets: (
+        object_detection_operator(
+            model,
+            inputs,
+            targets,
+            include_detection_probability=False,
+            include_classification_score=False,
+        )
     )
 
     # object detection operator limited to box proba and position explanation
-    OBJECT_DETECTION_BOX_PROBA = lambda model, inputs, targets:(
-        object_detection_operator(model, inputs, targets,
-                                  include_detection_probability=True,
-                                  include_classification_score=False)
+    OBJECT_DETECTION_BOX_PROBA = lambda model, inputs, targets: (
+        object_detection_operator(
+            model,
+            inputs,
+            targets,
+            include_detection_probability=True,
+            include_classification_score=False,
+        )
     )
 
     # object detection operator limited to box class and position explanation
-    OBJECT_DETECTION_BOX_CLASS = lambda model, inputs, targets:(
-        object_detection_operator(model, inputs, targets,
-                                  include_detection_probability=False,
-                                  include_classification_score=True)
+    OBJECT_DETECTION_BOX_CLASS = lambda model, inputs, targets: (
+        object_detection_operator(
+            model,
+            inputs,
+            targets,
+            include_detection_probability=False,
+            include_classification_score=True,
+        )
     )
 
     @staticmethod
@@ -74,9 +91,10 @@ class Tasks(Enum):
             "object detection box class": Tasks.OBJECT_DETECTION_BOX_CLASS,
         }
 
-        assert operator_name in string_to_tasks,\
-            f"Only `operator` value among {string_to_tasks.keys()} are supported,\n "+\
-            f"but {operator_name} was given."
+        assert operator_name in string_to_tasks, (
+            f"Only `operator` value among {string_to_tasks.keys()} are supported,\n "
+            + f"but {operator_name} was given."
+        )
 
         return string_to_tasks[operator_name]
 
@@ -98,11 +116,11 @@ def check_operator(operator: Callable):
     """
     # handle tf functions
     # pylint: disable=protected-access
-    if hasattr(operator, '_python_function'):
+    if hasattr(operator, "_python_function"):
         return check_operator(operator._python_function)
 
     # the operator must be callable
-    if not hasattr(operator, '__call__'):
+    if not hasattr(operator, "__call__"):
         raise_invalid_operator()
 
     # the operator should take at least three arguments
@@ -113,8 +131,7 @@ def check_operator(operator: Callable):
     return True
 
 
-def get_operator(
-        operator: Optional[Union[Tasks, str, OperatorSignature]]):
+def get_operator(operator: Optional[Union[Tasks, str, OperatorSignature]]):
     """
     This function allows to retrieve an operator from: a Tasks, a task name. If the operator
     is a custom one, we simply check if its signature is correct
@@ -161,6 +178,7 @@ def get_gradient_of_operator(operator):
     gradient
         Gradient of the operator.
     """
+
     @tf.function
     def gradient(model, inputs, targets):
         with tf.GradientTape() as tape:
@@ -190,10 +208,9 @@ def operator_batching(operator: OperatorSignature) -> tf.Tensor:
     def batched_operator(model, inputs, targets, batch_size=None):
         if batch_size is not None:
             dataset = tf.data.Dataset.from_tensor_slices((inputs, targets))
-            results = tf.concat([
-                operator(model, x, y)
-                for x, y in dataset.batch(batch_size)
-            ], axis=0)
+            results = tf.concat(
+                [operator(model, x, y) for x, y in dataset.batch(batch_size)], axis=0
+            )
         else:
             results = operator(model, inputs, targets)
 
@@ -208,9 +225,7 @@ batch_gradients_predictions = operator_batching(gradients_predictions)
 batch_predictions_one_hot_callable = operator_batching(predictions_one_hot_callable)
 
 
-def get_inference_function(
-        model: Callable,
-        operator: Optional[OperatorSignature] = None):
+def get_inference_function(model: Callable, operator: Optional[OperatorSignature] = None):
     """
     Define the inference function according to the model type
 
@@ -251,9 +266,7 @@ def get_inference_function(
     return inference_function, batch_inference_function
 
 
-def get_gradient_functions(
-        model: Callable,
-        operator: Optional[OperatorSignature] = None):
+def get_gradient_functions(model: Callable, operator: Optional[OperatorSignature] = None):
     """
     Define the gradient function according to the model type
 
@@ -293,4 +306,34 @@ def get_gradient_functions(
         batch_gradient = no_gradients_available
 
     return gradient, batch_gradient
-    
+
+
+def watch_layer(
+    layer: tf.keras.layers.Layer, tape: tf.GradientTape = None
+) -> tf.keras.layers.Layer:
+    """
+    Make an intermediate layer's output watchable by the tape to compute gradients.
+    """
+
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            # Store the layer's output
+            layer.result = func(*args, **kwargs)
+            # Watch the output tensor
+            tape.watch(layer.result)
+            return layer.result
+
+        return wrapper
+
+    layer.call = decorator(layer.call)
+    return layer
+
+
+def unwatch_layer(layer: tf.keras.layers.Layer) -> tf.keras.layers.Layer:
+    """
+    Remove the watch decorator from a layer's call method.
+    """
+    del layer.result  # clear stored result
+    layer.call = layer.call.__wrapped__  # undecorate call method
+    return layer

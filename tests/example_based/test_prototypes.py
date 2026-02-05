@@ -1,6 +1,7 @@
 """
 Test Prototypes
 """
+
 import os
 import sys
 
@@ -8,10 +9,9 @@ sys.path.append(os.getcwd())
 
 import tensorflow as tf
 
-from xplique.example_based import Prototypes, ProtoGreedy, ProtoDash, MMDCritic
-from xplique.example_based.projections import Projection, LatentSpaceProjection
-
-from tests.utils import almost_equal, get_gaussian_data, generate_model
+from tests.utils import get_gaussian_data
+from xplique.example_based import MMDCritic, ProtoDash, ProtoGreedy
+from xplique.example_based.projections import Projection
 
 
 def test_prototypes_global_explanations_basic():
@@ -70,10 +70,10 @@ def test_prototypes_global_explanations_basic():
 
             # check indices are in the dataset
             assert flatten_indices[i] >= 0 and flatten_indices[i] < x_train.shape[0]
-        
+
         # =====================
         # Test local prototypes
-            
+
         # compute local explanations
         outputs = method.explain(x_test)
         examples = outputs["examples"]
@@ -109,7 +109,7 @@ def test_prototypes_global_explanations_basic():
 def test_prototypes_global_sanity_check():
     """
     Test prototypes global explanations sanity checks.
-    
+
     Check: For n separated gaussians,
            for n requested prototypes,
            there should be 1 prototype per gaussian.
@@ -155,14 +155,16 @@ def test_prototypes_with_projection():
     # [10, 10, 10] -> [15, 15]
     # [20, 20, 20] -> [30, 30]
     # [30, 30, 30] -> [45, 45]
-    weights = tf.constant([[1.0, 0.0],
-                           [0.5, 0.5],
-                           [0.0, 1.0],],
-                          dtype=tf.float32)
-
-    weighted_projection = Projection(
-        space_projection=lambda inputs, targets=None: inputs @ weights
+    weights = tf.constant(
+        [
+            [1.0, 0.0],
+            [0.5, 0.5],
+            [0.0, 1.0],
+        ],
+        dtype=tf.float32,
     )
+
+    weighted_projection = Projection(space_projection=lambda inputs, targets=None: inputs @ weights)
 
     for method_class in [ProtoGreedy, ProtoDash, MMDCritic]:
         # compute general prototypes
@@ -206,10 +208,10 @@ def test_prototypes_with_projection():
 
             # check indices are in the dataset
             assert flatten_indices[i] >= 0 and flatten_indices[i] < x_train.shape[0]
-        
+
         # =====================
         # Test local prototypes
-            
+
         # compute local explanations
         outputs = method.explain(x_test)
         examples = outputs["examples"]

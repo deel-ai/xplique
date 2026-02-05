@@ -5,16 +5,16 @@ Plots for metric
 import matplotlib
 import matplotlib.pyplot as plt
 
-from ..types import Optional, Union, Dict, Any
+from ..types import Any, Dict, Optional, Union
 
 
 def barplot(
-        scores: Dict[str, Dict[str, float]],
-        sort_metric: str = None,
-        ascending: bool = False,
-        title: str = "",
-        filepath: str = None,
-        methods_colors: Optional[Union[Dict[str, Any], str]] = None
+    scores: Dict[str, Dict[str, float]],
+    sort_metric: str = None,
+    ascending: bool = False,
+    title: str = "",
+    filepath: str = None,
+    methods_colors: Optional[Union[Dict[str, Any], str]] = None,
 ):
     """
     Make a bar chart gathering the score of each method for the different metrics used.
@@ -44,8 +44,10 @@ def barplot(
     # sort values
     if sort_metric is not None:
         methods = [
-            k for k, _ in
-            sorted(scores[sort_metric].items(), key=lambda item: item[1], reverse=not ascending)
+            k
+            for k, _ in sorted(
+                scores[sort_metric].items(), key=lambda item: item[1], reverse=not ascending
+            )
         ]
     else:
         # get methods from a metric (order do not import)
@@ -69,8 +71,7 @@ def barplot(
             # methods_color is a string linking to a cmap
             cmap = matplotlib.cm.get_cmap(methods_colors)
 
-        methods_colors = {methods[i]: cmap((i + 1) / len(methods))
-                          for i in range(len(methods))}
+        methods_colors = {methods[i]: cmap((i + 1) / len(methods)) for i in range(len(methods))}
 
     _, ax = plt.subplots(figsize=(4 + 2 * len(metrics), 4))
     handles = {}
@@ -81,7 +82,7 @@ def barplot(
                 scores[metric][method],
                 color=methods_colors[method],
                 align="center",
-                width=width
+                width=width,
             )
 
     ax.set_title(title)
@@ -100,10 +101,10 @@ def barplot(
 
 
 def fidelity_curves(
-        detailed_scores: Dict[str, Dict[int, float]],
-        title: str = "",
-        filepath: Optional[str] = None,
-        methods_colors: Optional[Union[Dict[str, Any], str]] = None
+    detailed_scores: Dict[str, Dict[int, float]],
+    title: str = "",
+    filepath: Optional[str] = None,
+    methods_colors: Optional[Union[Dict[str, Any], str]] = None,
 ):
     """
     Plot the evolution curves for Insertion and Deletion metrics
@@ -139,8 +140,7 @@ def fidelity_curves(
             # methods_color is a string linking to a cmap
             cmap = matplotlib.cm.get_cmap(methods_colors)
 
-        methods_colors = {methods[i]: cmap((i + 1) / len(methods))
-                          for i in range(len(methods))}
+        methods_colors = {methods[i]: cmap((i + 1) / len(methods)) for i in range(len(methods))}
 
     _, ax = plt.subplots(figsize=(10, 5))
     for method, method_scores in detailed_scores.items():

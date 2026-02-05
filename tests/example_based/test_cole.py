@@ -1,26 +1,23 @@
 """
 Test Cole
 """
-import os
 
+import os
 import sys
 
 sys.path.append(os.getcwd())
 
-import numpy as np
 import tensorflow as tf
 
-from xplique.commons.operators_operations import gradients_predictions
-from xplique.attributions import Occlusion, Saliency
-from xplique.example_based import Cole, SimilarExamples
-from xplique.example_based.projections import Projection
-
 from tests.utils import (
-    generate_data,
-    generate_model,
     almost_equal,
+    generate_model,
     generate_timeseries_model,
 )
+from xplique.attributions import Occlusion, Saliency
+from xplique.commons.operators_operations import gradients_predictions
+from xplique.example_based import Cole, SimilarExamples
+from xplique.example_based.projections import Projection
 
 
 def get_setup(input_shape, nb_samples=10, nb_labels=10):
@@ -28,9 +25,7 @@ def get_setup(input_shape, nb_samples=10, nb_labels=10):
     Generate data and model for Cole
     """
     # Data generation
-    x_train = tf.stack(
-        [i * tf.ones(input_shape, tf.float32) for i in range(nb_samples)]
-    )
+    x_train = tf.stack([i * tf.ones(input_shape, tf.float32) for i in range(nb_samples)])
     x_test = x_train[1:-1]
     y_train = tf.one_hot(tf.range(len(x_train)) % nb_labels, depth=nb_labels)
     y_test = y_train[1:-1]
@@ -52,9 +47,7 @@ def test_cole_attribution():
     input_shape = (5, 5)
     nb_labels = 10
     k = 3
-    x_train = tf.random.uniform(
-        (nb_samples,) + input_shape, minval=-1, maxval=1, seed=0
-    )
+    x_train = tf.random.uniform((nb_samples,) + input_shape, minval=-1, maxval=1, seed=0)
     x_test = tf.random.uniform((nb_samples,) + input_shape, minval=-1, maxval=1, seed=2)
     labels = tf.one_hot(
         indices=tf.repeat(input=tf.range(nb_labels), repeats=[nb_samples // nb_labels]),
@@ -79,9 +72,9 @@ def test_cole_attribution():
 
     # Cole with attribution explain batch gradient is overwritten for test purpose, do not copy!
     explainer = Saliency(model)
-    explainer.batch_gradient = \
-    lambda model, inputs, targets, batch_size:\
-        explainer.gradient(model, inputs, targets)
+    explainer.batch_gradient = lambda model, inputs, targets, batch_size: explainer.gradient(
+        model, inputs, targets
+    )
     projection = Projection(get_weights=explainer)
 
     euclidean_dist = lambda x, z: tf.sqrt(tf.reduce_sum(tf.square(x - z), axis=-1))
@@ -131,8 +124,9 @@ def test_cole_hadamard():
     nb_samples = 10
     nb_labels = 2
     k = 3
-    model, x_train, x_test, y_train, y_test =\
-        get_setup(input_shape, nb_samples=nb_samples, nb_labels=nb_labels)
+    model, x_train, x_test, y_train, y_test = get_setup(
+        input_shape, nb_samples=nb_samples, nb_labels=nb_labels
+    )
 
     # Cole with Hadamard projection constructor
     method_constructor = Cole(

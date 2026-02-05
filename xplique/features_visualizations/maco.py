@@ -2,23 +2,25 @@
 Optimisation functions for MaCo method.
 """
 
-import tensorflow as tf
 import numpy as np
+import tensorflow as tf
 
-from ..types import Optional, Union, Callable, Tuple
-from .preconditioning import maco_image_parametrization, init_maco_buffer
+from ..types import Callable, Optional, Tuple, Union
 from .objectives import Objective
+from .preconditioning import init_maco_buffer, maco_image_parametrization
 
 
-def maco(objective: Objective,
-         optimizer: Optional[tf.keras.optimizers.Optimizer] = None,
-         maco_dataset: Optional[tf.data.Dataset] = None,
-         nb_steps: int = 256,
-         noise_intensity: Optional[Union[float, Callable]] = 0.08,
-         box_size: Optional[Union[float, Callable]] = None,
-         nb_crops: Optional[int] = 32,
-         values_range: Tuple[float, float] = (-1, 1),
-         custom_shape: Optional[Tuple] = (512, 512)) -> Tuple[tf.Tensor, tf.Tensor]:
+def maco(
+    objective: Objective,
+    optimizer: Optional[tf.keras.optimizers.Optimizer] = None,
+    maco_dataset: Optional[tf.data.Dataset] = None,
+    nb_steps: int = 256,
+    noise_intensity: Optional[Union[float, Callable]] = 0.08,
+    box_size: Optional[Union[float, Callable]] = None,
+    nb_crops: Optional[int] = 32,
+    values_range: Tuple[float, float] = (-1, 1),
+    custom_shape: Optional[Tuple] = (512, 512),
+) -> Tuple[tf.Tensor, tf.Tensor]:
     """
     Optimise a single objective using MaCo method. Note that, unlike classic fourier optimization,
     we can only optimize for one objective at a time.
@@ -69,7 +71,7 @@ def maco(objective: Objective,
     assert input_shape[0] == 1, "You can only optimize one objective at a time with MaCo."
 
     if input_shape[-1] == 1 and maco_dataset is None:
-        raise ValueError('For grayscale images, a dataset is required to compute the buffer.')
+        raise ValueError("For grayscale images, a dataset is required to compute the buffer.")
 
     if optimizer is None:
         optimizer = tf.keras.optimizers.Nadam(1.0)
@@ -81,9 +83,9 @@ def maco(objective: Objective,
     elif hasattr(box_size, "__call__"):
         get_box_size = box_size
     elif isinstance(box_size, float):
-        get_box_size = lambda _ : box_size
+        get_box_size = lambda _: box_size
     else:
-        raise ValueError('box_size must be a function or a float.')
+        raise ValueError("box_size must be a function or a float.")
 
     if noise_intensity is None:
         # default to large noise to low noise
@@ -92,9 +94,9 @@ def maco(objective: Objective,
     elif hasattr(noise_intensity, "__call__"):
         get_noise_intensity = noise_intensity
     elif isinstance(noise_intensity, float):
-        get_noise_intensity = lambda _ : noise_intensity
+        get_noise_intensity = lambda _: noise_intensity
     else:
-        raise ValueError('noise_intensity size must be a function or a float.')
+        raise ValueError("noise_intensity size must be a function or a float.")
 
     img_shape = (input_shape[1], input_shape[2])
     if custom_shape:
@@ -105,13 +107,19 @@ def maco(objective: Objective,
     transparency = tf.zeros((*custom_shape, input_shape[-1]))
 
     for step_i in range(nb_steps):
-
         box_size_at_i = get_box_size(step_i)
         noise_intensity_at_i = get_noise_intensity(step_i)
 
-        grads, grads_img = maco_optimisation_step(model, objective_function, magnitude, phase,
-                                                  box_size_at_i, noise_intensity_at_i, nb_crops,
-                                                  values_range)
+        grads, grads_img = maco_optimisation_step(
+            model,
+            objective_function,
+            magnitude,
+            phase,
+            box_size_at_i,
+            noise_intensity_at_i,
+            nb_crops,
+            values_range,
+        )
 
         optimizer.apply_gradients(zip([-grads], [phase]))
         transparency += tf.abs(grads_img)
@@ -122,9 +130,10 @@ def maco(objective: Objective,
 
 
 @tf.function
-def maco_optimisation_step(model, objective_function, magnitude, phase,
-                           box_average_size, noise_std, nb_crops, values_range):
-    """ Optimisation step for MaCo method.
+def maco_optimisation_step(
+    model, objective_function, magnitude, phase, box_average_size, noise_std, nb_crops, values_range
+):
+    """Optimisation step for MaCo method.
 
     Parameters
     ----------
@@ -165,22 +174,27 @@ def maco_optimisation_step(model, objective_function, magnitude, phase,
         delta_y = delta_x  # square boxes
 
         box_indices = tf.zeros(shape=(nb_crops,), dtype=tf.int32)
-        boxes = tf.stack([center_x - delta_x * 0.5,
-                          center_y - delta_y * 0.5,
-                          center_x + delta_x * 0.5,
-                          center_y + delta_y * 0.5], -1)
+        boxes = tf.stack(
+            [
+                center_x - delta_x * 0.5,
+                center_y - delta_y * 0.5,
+                center_x + delta_x * 0.5,
+                center_y + delta_y * 0.5,
+            ],
+            -1,
+        )
 
         if nb_crops == 0:
             crops = tf.image.resize(image[None, :, :, :], model.input_shape[1:3])
         else:
-            crops = tf.image.crop_and_resize(image[None, :, :, :], boxes, box_indices,
-                                             model.input_shape[1:3])
+            crops = tf.image.crop_and_resize(
+                image[None, :, :, :], boxes, box_indices, model.input_shape[1:3]
+            )
 
         # add random noise as feature viz robustness
         # see (https://distill.pub/2017/feature-visualization)
         crops += tf.random.normal(crops.shape, stddev=noise_std, mean=0.0)
-        crops += tf.random.uniform(crops.shape, minval=-noise_std/2.0,
-                                                maxval=noise_std/2.0)
+        crops += tf.random.uniform(crops.shape, minval=-noise_std / 2.0, maxval=noise_std / 2.0)
 
         # maco is always is a single objective
         model_outputs = model(crops)

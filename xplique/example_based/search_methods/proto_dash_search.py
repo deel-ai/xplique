@@ -3,18 +3,17 @@ ProtoDash search method in example-based module
 """
 
 import numpy as np
-from scipy.optimize import minimize
 import tensorflow as tf
+from scipy.optimize import minimize
 
-from ...types import Union, Optional, Tuple
-
+from ...types import Optional, Tuple, Union
 from .proto_greedy_search import ProtoGreedySearch
 
 
-class Optimizer():
+class Optimizer:
     """
     Class to solve the quadratic problem:
-    F(S) ≡ max_{w:supp(w)∈ S, w ≥ 0} l(w), 
+    F(S) ≡ max_{w:supp(w)∈ S, w ≥ 0} l(w),
     where l(w) = w^T * μ_p - 1/2 * w^T * K * w
 
     Parameters
@@ -28,20 +27,20 @@ class Optimizer():
     """
 
     def __init__(
-            self,
-            initial_weights: Union[tf.Tensor, np.ndarray],
-            min_weight: float = 0,
-            max_weight: float = 10000
+        self,
+        initial_weights: Union[tf.Tensor, np.ndarray],
+        min_weight: float = 0,
+        max_weight: float = 10000,
     ):
         self.initial_weights = initial_weights
         self.min_weight = min_weight
         self.max_weight = max_weight
         self.bounds = [(min_weight, max_weight)] * initial_weights.shape[0]
-        self.objective_fn = lambda w, u, K: - (w @ u - 0.5 * w @ K @ w)
+        self.objective_fn = lambda w, u, K: -(w @ u - 0.5 * w @ K @ w)
 
     def optimize(self, u, K):
         """
-        Perform optimization to find the optimal values of the weight vector (w) 
+        Perform optimization to find the optimal values of the weight vector (w)
         and the corresponding objective function value.
 
         Parameters
@@ -63,8 +62,14 @@ class Optimizer():
         u = u.numpy()
         K = K.numpy()
 
-        result = minimize(self.objective_fn, self.initial_weights, args=(u, K),
-                          method='SLSQP', bounds=self.bounds, options={'disp': False})
+        result = minimize(
+            self.objective_fn,
+            self.initial_weights,
+            args=(u, K),
+            method="SLSQP",
+            bounds=self.bounds,
+            options={"disp": False},
+        )
 
         # Get the best weights
         best_weights = result.x
@@ -72,8 +77,9 @@ class Optimizer():
 
         # Get the best objective
         best_objective = -result.fun
-        best_objective = tf.expand_dims(tf.convert_to_tensor(best_objective, dtype=tf.float32),
-                                        axis=0)
+        best_objective = tf.expand_dims(
+            tf.convert_to_tensor(best_objective, dtype=tf.float32), axis=0
+        )
 
         assert tf.reduce_all(best_weights >= 0)
 
@@ -119,7 +125,6 @@ class ProtoDashSearch(ProtoGreedySearch):
         gamma: float = None,
         exact_selection_weights_update: bool = False,
     ):
-
         self.exact_selection_weights_update = exact_selection_weights_update
 
         super().__init__(
@@ -127,20 +132,21 @@ class ProtoDashSearch(ProtoGreedySearch):
             batch_size=batch_size,
             nb_prototypes=nb_prototypes,
             kernel_fn=kernel_fn,
-            gamma=gamma
+            gamma=gamma,
         )
 
-    def _update_selection_weights(self,
-                                  selection_kernel_col_means: tf.Tensor,
-                                  selection_selection_kernel: tf.Tensor,
-                                  best_diag: tf.Tensor,
-                                  best_objective: tf.Tensor
-                                  ) -> tf.Tensor:
+    def _update_selection_weights(
+        self,
+        selection_kernel_col_means: tf.Tensor,
+        selection_selection_kernel: tf.Tensor,
+        best_diag: tf.Tensor,
+        best_objective: tf.Tensor,
+    ) -> tf.Tensor:
         """
         Update the selection weights based on the given parameters.
         Pursuant to Lemma IV.4:
         If best_gradient ≤ 0, then
-        ζ(S∪{best_sample_index}) = ζ(S) and specifically, w_{best_sample_index} = 0. 
+        ζ(S∪{best_sample_index}) = ζ(S) and specifically, w_{best_sample_index} = 0.
         Otherwise, the stationarity and complementary slackness KKT conditions
         entails that w_{best_sample_index} = best_gradient / κ(best_sample_index, best_sample_index)
 
@@ -194,17 +200,18 @@ class ProtoDashSearch(ProtoGreedySearch):
                 # update the weights
                 self.prototypes_weights[:nb_selected].assign(selection_weights)
 
-    def _compute_batch_objectives(self,
-                                  candidates_kernel_diag: tf.Tensor,
-                                  candidates_kernel_col_means: tf.Tensor,
-                                  selection_kernel_col_means: tf.Tensor,
-                                  candidates_selection_kernel: tf.Tensor,
-                                  selection_selection_kernel: tf.Tensor
-                                  ) -> Tuple[tf.Tensor, tf.Tensor]:
+    def _compute_batch_objectives(
+        self,
+        candidates_kernel_diag: tf.Tensor,
+        candidates_kernel_col_means: tf.Tensor,
+        selection_kernel_col_means: tf.Tensor,
+        candidates_selection_kernel: tf.Tensor,
+        selection_selection_kernel: tf.Tensor,
+    ) -> Tuple[tf.Tensor, tf.Tensor]:
         """
         Compute the objective function and corresponding weights
         for a given set of selected prototypes and a candidate.
-        Calculate the gradient of l(w) = w^T * μ_p - 1/2 * w^T * K * w 
+        Calculate the gradient of l(w) = w^T * μ_p - 1/2 * w^T * K * w
         w.r.t w, on the optimal weight point ζ^(S)
         g = ∇l(ζ^(S)) = μ_p - K * ζ^(S)
         g is computed for each candidate c
@@ -238,7 +245,8 @@ class ProtoDashSearch(ProtoGreedySearch):
             objectives = candidates_kernel_col_means
         else:
             # (bc,) - g = μ_p - K * ζ^(S)
-            objectives = candidates_kernel_col_means - tf.linalg.matvec(candidates_selection_kernel,
-                                                                        selection_kernel_col_means)
+            objectives = candidates_kernel_col_means - tf.linalg.matvec(
+                candidates_selection_kernel, selection_kernel_col_means
+            )
 
         return objectives, None

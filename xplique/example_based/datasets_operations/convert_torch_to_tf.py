@@ -1,6 +1,7 @@
 """
 Set of functions to convert `torch.utils.data.DataLoader` and `torch.Tensor` to `tf.data.Dataset`
 """
+
 from typing import Optional, Tuple
 
 import tensorflow as tf
@@ -8,10 +9,10 @@ import torch
 
 
 def convert_column_dataloader_to_tf_dataset(
-        dataloader: torch.utils.data.DataLoader,
-        elements_shape: Tuple[int],
-        column_index: Optional[int] = None,
-    ) -> tf.data.Dataset:
+    dataloader: torch.utils.data.DataLoader,
+    elements_shape: Tuple[int],
+    column_index: Optional[int] = None,
+) -> tf.data.Dataset:
     """
     Converts a PyTorch torch.utils.data.DataLoader to a TensorFlow Dataset.
 
@@ -33,10 +34,12 @@ def convert_column_dataloader_to_tf_dataset(
 
     # make generator from dataloader
     if column_index is None:
+
         def generator():
             for elements in dataloader:
                 yield tf.cast(elements.numpy(), tf.float32)
     else:
+
         def generator():
             for elements in dataloader:
                 yield tf.cast(elements[column_index].numpy(), tf.float32)
@@ -51,10 +54,10 @@ def convert_column_dataloader_to_tf_dataset(
 
 
 def split_and_convert_column_dataloader(
-        cases_dataset: torch.utils.data.DataLoader,
-        labels_dataset: Optional[torch.utils.data.DataLoader] = None,
-        targets_dataset: Optional[torch.utils.data.DataLoader] = None,
-        ) -> Tuple[tf.data.Dataset, tf.data.Dataset, tf.data.Dataset]:
+    cases_dataset: torch.utils.data.DataLoader,
+    labels_dataset: Optional[torch.utils.data.DataLoader] = None,
+    targets_dataset: Optional[torch.utils.data.DataLoader] = None,
+) -> Tuple[tf.data.Dataset, tf.data.Dataset, tf.data.Dataset]:
     """
     Splits a PyTorch DataLoader into cases, labels, and targets datasets.
     The DataLoader is splitted only if it has multiple columns.
@@ -73,7 +76,7 @@ def split_and_convert_column_dataloader(
     targets_dataset
         Targets associated with the cases in the `cases_dataset`.
         If this function is called and `cases_dataset` has 3 columns, it should be `None`.
-    
+
     Returns
     -------
     cases_dataset
@@ -90,37 +93,40 @@ def split_and_convert_column_dataloader(
         # the cases dataset only has one column
 
         # manage cases dataset
-        cases_shape = (None,) + first_cases.shape[1:]
+        cases_shape = (None,) + tf.TensorShape(first_cases.shape[1:])
         new_cases_dataset = convert_column_dataloader_to_tf_dataset(cases_dataset, cases_shape)
 
     else:
         # manage cases dataset
-        cases_shape = (None,) + first_cases[0].shape[1:]
+        cases_shape = (None,) + tf.TensorShape(first_cases[0].shape[1:])
         new_cases_dataset = convert_column_dataloader_to_tf_dataset(
-            cases_dataset, cases_shape, column_index=0)
+            cases_dataset, cases_shape, column_index=0
+        )
 
         if len(first_cases) >= 2:
             # the cases dataset has two columns
             assert labels_dataset is None, (
-                "The second column of `cases_dataset` is assumed to be the labels. "\
+                "The second column of `cases_dataset` is assumed to be the labels. "
                 + "Hence, `labels_dataset` should be empty."
             )
 
             # manage labels dataset (extract them from the second column of `cases_dataset`)
-            labels_shape = (None,) + first_cases[1].shape[1:]
+            labels_shape = (None,) + tf.TensorShape(first_cases[1].shape[1:])
             labels_dataset = convert_column_dataloader_to_tf_dataset(
-                cases_dataset, labels_shape, column_index=1)
+                cases_dataset, labels_shape, column_index=1
+            )
 
             if len(first_cases) == 3:
                 # the cases dataset has three columns
                 assert targets_dataset is None, (
-                    "The second and third columns of `cases_dataset` are assumed to be the labels "\
+                    "The second and third columns of `cases_dataset` are assumed to be the labels "
                     "and targets. Hence, `labels_dataset` and `targets_dataset` should be empty."
                 )
                 # manage targets dataset (extract them from the third column of `cases_dataset`)
-                targets_shape = (None,) + first_cases[2].shape[1:]
+                targets_shape = (None,) + tf.TensorShape(first_cases[2].shape[1:])
                 targets_dataset = convert_column_dataloader_to_tf_dataset(
-                    cases_dataset, targets_shape, column_index=2)
+                    cases_dataset, targets_shape, column_index=2
+                )
 
             elif len(first_cases) > 3:
                 raise AttributeError(
@@ -139,12 +145,12 @@ def split_and_convert_column_dataloader(
                     "The `labels_dataset` should only have one column. "
                     + f"{len(first_labels)} were detected."
                 )
-                labels_shape = (None,) + first_labels[0].shape[1:]
+                labels_shape = (None,) + tf.TensorShape(first_labels[0].shape[1:])
                 labels_dataset = convert_column_dataloader_to_tf_dataset(
                     labels_dataset, labels_shape, column_index=0
                 )
             else:
-                labels_shape = (None,) + first_labels.shape[1:]
+                labels_shape = (None,) + tf.TensorShape(first_labels.shape[1:])
                 labels_dataset = convert_column_dataloader_to_tf_dataset(
                     labels_dataset, labels_shape
                 )
@@ -167,12 +173,12 @@ def split_and_convert_column_dataloader(
                     "The `targets_dataset` should only have one column. "
                     + f"{len(first_targets)} were detected."
                 )
-                targets_shape = (None,) + first_targets[0].shape[1:]
+                targets_shape = (None,) + tf.TensorShape(first_targets[0].shape[1:])
                 targets_dataset = convert_column_dataloader_to_tf_dataset(
                     targets_dataset, targets_shape, column_index=0
                 )
             else:
-                targets_shape = (None,) + first_targets.shape[1:]
+                targets_shape = (None,) + tf.TensorShape(first_targets.shape[1:])
                 targets_dataset = convert_column_dataloader_to_tf_dataset(
                     targets_dataset, targets_shape
                 )

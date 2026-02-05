@@ -1,7 +1,6 @@
-import tensorflow as tf
-
 from xplique.attributions import SmoothGrad
-from ..utils import generate_data, generate_model, almost_equal
+
+from ..utils import generate_data, generate_model
 
 
 def test_output_shape():

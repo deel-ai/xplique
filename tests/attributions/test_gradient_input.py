@@ -1,4 +1,5 @@
 from xplique.attributions import GradientInput
+
 from ..utils import generate_data, generate_model
 
 

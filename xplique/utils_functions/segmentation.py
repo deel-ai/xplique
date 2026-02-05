@@ -6,7 +6,7 @@ import cv2
 import numpy as np
 import tensorflow as tf
 
-from ..types import Union, Tuple, List
+from ..types import List, Tuple, Union
 
 
 def get_class_zone(predictions: Union[tf.Tensor, np.array], class_id: int) -> tf.Tensor:
@@ -68,12 +68,12 @@ def get_connected_zone(
     """
     assert len(tf.shape(predictions)) == 3, "predictions should correspond to only one image"
 
-    assert (
-        coordinates[0] < predictions.shape[0]
-    ), f"Coordinates should be included in the shape, i.e. {coordinates[0]}<{predictions.shape[0]}"
-    assert (
-        coordinates[1] < predictions.shape[1]
-    ), f"Coordinates should be included in the shape, i.e. {coordinates[1]}<{predictions.shape[1]}"
+    assert coordinates[0] < predictions.shape[0], (
+        f"Coordinates should be included in the shape, i.e. {coordinates[0]}<{predictions.shape[0]}"
+    )
+    assert coordinates[1] < predictions.shape[1], (
+        f"Coordinates should be included in the shape, i.e. {coordinates[1]}<{predictions.shape[1]}"
+    )
 
     labels = tf.argmax(predictions, axis=-1)
     class_id = labels[coordinates[0], coordinates[1]]
@@ -95,9 +95,7 @@ def get_connected_zone(
 
 
 def list_class_connected_zones(
-        predictions: Union[tf.Tensor,np.array],
-        class_id: int,
-        zone_minimum_size: int = 100
+    predictions: Union[tf.Tensor, np.array], class_id: int, zone_minimum_size: int = 100
 ) -> List[tf.Tensor]:
     """
     List all connected zones for a given class.
@@ -127,7 +125,7 @@ def list_class_connected_zones(
 
     labels = tf.argmax(predictions, axis=-1)
     mask = labels == class_id
-    mask = np.uint8(np.array(mask)[:, : , np.newaxis] * 255)
+    mask = np.uint8(np.array(mask)[:, :, np.newaxis] * 255)
 
     components_masks = cv2.connectedComponents(mask)[1]  # pylint: disable=no-member
 
@@ -135,21 +133,19 @@ def list_class_connected_zones(
 
     connected_zones_masks_list = []
     for component_id, size in enumerate(sizes[1:]):
-
         if size > zone_minimum_size:
-
             connected_zone = tf.cast(components_masks == (component_id + 1), tf.float32)
 
             all_channels_class_zone_mask = tf.Variable(tf.zeros(predictions.shape))
-            all_channels_class_zone_mask =\
-                all_channels_class_zone_mask[:, :, class_id].assign(connected_zone)
+            all_channels_class_zone_mask = all_channels_class_zone_mask[:, :, class_id].assign(
+                connected_zone
+            )
 
             assert tf.reduce_sum(all_channels_class_zone_mask) >= 1
 
             connected_zones_masks_list.append(all_channels_class_zone_mask)
 
     return connected_zones_masks_list
-
 
 
 def get_in_out_border(
@@ -193,14 +189,13 @@ def get_in_out_border(
         Inside borders are set to `1` and outside borders are set to `-1`.
         The shape is the same as `class_zone_mask`, (h, w, c).
     """
-    assert len(tf.shape(class_zone_mask)) == 3,\
+    assert len(tf.shape(class_zone_mask)) == 3, (
         "class_zone_mask should correspond to only one image"
+    )
 
     # channel of the class of interest
     channel_mean = tf.reduce_sum(tf.cast(class_zone_mask, tf.int32), axis=[0, 1])
-    assert (
-        int(tf.reduce_sum(channel_mean)) >= 1
-    ), "The specified `class_target_mask` is empty."
+    assert int(tf.reduce_sum(channel_mean)) >= 1, "The specified `class_target_mask` is empty."
     class_id = int(tf.argmax(channel_mean))
 
     # set other values to -1 on the target zone to 1
@@ -213,9 +208,7 @@ def get_in_out_border(
         "SYMMETRIC",
     )
 
-    kernel = tf.convert_to_tensor(
-        [[-1, -1, -1], [-1, 13, -1], [-1, -1, -1]], dtype=tf.int32
-    )
+    kernel = tf.convert_to_tensor([[-1, -1, -1], [-1, 13, -1], [-1, -1, -1]], dtype=tf.int32)
     kernel = kernel[:, :, tf.newaxis, tf.newaxis]
     conv_result = tf.nn.conv2d(
         tf.expand_dims(tf.expand_dims(extended_binary_mask, axis=0), axis=-1),
@@ -274,9 +267,7 @@ def get_common_border(
     all_channel_border_mask_1 = tf.reduce_any(border_mask_1 != 0, axis=-1)
     all_channel_border_mask_2 = tf.reduce_any(border_mask_2 != 0, axis=-1)
 
-    common_pixels_mask = tf.logical_and(
-        all_channel_border_mask_1, all_channel_border_mask_2
-    )
+    common_pixels_mask = tf.logical_and(all_channel_border_mask_1, all_channel_border_mask_2)
 
     assert tf.reduce_any(common_pixels_mask), "No common border between the two masks."
 

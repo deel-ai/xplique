@@ -1,16 +1,17 @@
-import pytest
 import numpy as np
+import pytest
 import tensorflow as tf
 import tensorflow_probability as tfp
 
 from xplique.attributions import HsicAttributionMethod
 from xplique.attributions.global_sensitivity_analysis import (
-    SobolevEstimator,
     BinaryEstimator,
     RbfEstimator,
+    SobolevEstimator,
 )
 from xplique.attributions.global_sensitivity_analysis.kernels import Kernel
-from ..utils import generate_data, generate_model, almost_equal
+
+from ..utils import generate_data, generate_model
 
 
 def test_hsic_kernels_shape():
@@ -42,12 +43,11 @@ def test_estimators():
         model = generate_model(input_shape, nb_labels)
 
         for estimator in estimators:
-            method = HsicAttributionMethod(
-                model, grid_size=2, nb_design=8, estimator=estimator
-            )
+            method = HsicAttributionMethod(model, grid_size=2, nb_design=8, estimator=estimator)
             stis_maps = method.explain(x, y)
 
             assert x.shape[:-1] == stis_maps.shape[:-1]
+
 
 def test_estimator_batch_size():
     """Ensure estimator batch size is correctly used"""
@@ -64,7 +64,7 @@ def test_estimator_batch_size():
             assert method.estimator.batch_size == 100000
         else:
             assert method.estimator.batch_size == estimator_batch_size
-        
+
         stis_maps = method.explain(x, y)
         assert x.shape[:-1] == stis_maps.shape[:-1]
 
@@ -73,8 +73,8 @@ def test_estimator_batch_size():
 @pytest.mark.parametrize("Estimator", [SobolevEstimator, BinaryEstimator, RbfEstimator])
 def test_hsic_zero_when_output_constant(Estimator):
     nb_design, H, W, C = 16, 3, 2, 1
-    masks = tf.random.uniform((nb_design, H, W, C), minval=0., maxval=1., dtype=tf.float32)
-    outputs = tf.ones((nb_design, ), dtype=tf.float32)  # constant
+    masks = tf.random.uniform((nb_design, H, W, C), minval=0.0, maxval=1.0, dtype=tf.float32)
+    outputs = tf.ones((nb_design,), dtype=tf.float32)  # constant
     est = Estimator()
 
     scores = est(masks, outputs, nb_design).numpy()
@@ -132,7 +132,7 @@ def test_hsic_detects_dependent_dimension(Estimator):
     est = Estimator()
 
     scores = est(masks, outputs, nb_design).numpy()  # shape (W,H,C) = (1,2,1)
-    scores_hw = np.transpose(scores, (1,0,2)).reshape(H)  # back to [H] order
+    scores_hw = np.transpose(scores, (1, 0, 2)).reshape(H)  # back to [H] order
     assert np.argmax(scores_hw) == 0
     assert scores_hw[0] > scores_hw[1] + 1e-3
 
@@ -140,10 +140,12 @@ def test_hsic_detects_dependent_dimension(Estimator):
 def test_output_rbf_width_tfp_matches_numpy():
     rng = np.random.default_rng(0)
     n = 25
-    Y_np = rng.normal(size=(n,1)).astype(np.float32)
+    Y_np = rng.normal(size=(n, 1)).astype(np.float32)
 
     w_np = np.percentile(Y_np, 50.0).astype(np.float32)
-    w_tf = tf.cast(tfp.stats.percentile(tf.convert_to_tensor(Y_np), 50.0, interpolation='linear'), tf.float32)
+    w_tf = tf.cast(
+        tfp.stats.percentile(tf.convert_to_tensor(Y_np), 50.0, interpolation="linear"), tf.float32
+    )
 
     # Build same Gram using each width
     X = tf.convert_to_tensor(Y_np)
@@ -167,14 +169,17 @@ def test_rbf_kernel_symmetry_and_range():
 
 def test_binary_kernel_values():
     # For x,y in {0,1}: K = 0.5 - (x - y)^2
-    X = tf.constant([[0.],[0.],[1.],[1.]], tf.float32)
+    X = tf.constant([[0.0], [0.0], [1.0], [1.0]], tf.float32)
     K = Kernel.from_string("binary")(X, tf.transpose(X))  # (4,4)
-    expected = np.array([
-        [0.5, 0.5, -0.5, -0.5],
-        [0.5, 0.5, -0.5, -0.5],
-        [-0.5, -0.5, 0.5, 0.5],
-        [-0.5, -0.5, 0.5, 0.5],
-    ], dtype=np.float32)
+    expected = np.array(
+        [
+            [0.5, 0.5, -0.5, -0.5],
+            [0.5, 0.5, -0.5, -0.5],
+            [-0.5, -0.5, 0.5, 0.5],
+            [-0.5, -0.5, 0.5, 0.5],
+        ],
+        dtype=np.float32,
+    )
     assert np.allclose(K.numpy(), expected, atol=1e-6)
 
 
@@ -191,5 +196,3 @@ def test_attributions_stable_across_estimator_batch_size():
     map_large = m_large.explain(x, y).numpy()
 
     assert np.allclose(map_small, map_large, rtol=1e-5, atol=1e-6)
-
-

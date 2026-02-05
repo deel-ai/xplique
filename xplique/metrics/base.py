@@ -4,11 +4,11 @@ Module related to abstract attribution metric
 
 from abc import ABC, abstractmethod
 
-import tensorflow as tf
 import numpy as np
+import tensorflow as tf
 
-from ..commons import Tasks, numpy_sanitize, get_inference_function
-from ..types import Callable, Optional, Union, OperatorSignature
+from ..commons import Tasks, get_inference_function, numpy_sanitize
+from ..types import Callable, OperatorSignature, Optional, Union
 
 
 class BaseAttributionMetric(ABC):
@@ -32,18 +32,21 @@ class BaseAttributionMetric(ABC):
         after getting your logits. If None does not add a layer to your model.
     """
 
-    def __init__(self,
-                 model: Callable,
-                 inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
-                 targets: Optional[Union[tf.Tensor, np.ndarray]] = None,
-                 batch_size: Optional[int] = 64,
-                 activation: Optional[str] = None):
+    def __init__(
+        self,
+        model: Callable,
+        inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
+        targets: Optional[Union[tf.Tensor, np.ndarray]] = None,
+        batch_size: Optional[int] = 64,
+        activation: Optional[str] = None,
+    ):
         if activation is None:
             self.model = model
         else:
-            assert activation in ['sigmoid', 'softmax'], \
-            "activation must be in ['sigmoid', 'softmax']"
-            if activation == 'sigmoid':
+            assert activation in ["sigmoid", "softmax"], (
+                "activation must be in ['sigmoid', 'softmax']"
+            )
+            if activation == "sigmoid":
                 self.model = lambda x: tf.nn.sigmoid(model(x))
             else:
                 self.model = lambda x: tf.nn.softmax(model(x), axis=-1)
@@ -73,8 +76,7 @@ class ExplainerMetric(BaseAttributionMetric, ABC):
     """
 
     @abstractmethod
-    def evaluate(self,
-                 explainer: Callable) -> float:
+    def evaluate(self, explainer: Callable) -> float:
         """
         Compute the score of the given explainer.
 
@@ -90,8 +92,7 @@ class ExplainerMetric(BaseAttributionMetric, ABC):
         """
         raise NotImplementedError()
 
-    def __call__(self,
-                 explainer: Callable) -> float:
+    def __call__(self, explainer: Callable) -> float:
         """Evaluate alias"""
         return self.evaluate(explainer)
 
@@ -120,24 +121,26 @@ class ExplanationMetric(BaseAttributionMetric, ABC):
         if you want to measure a 'drop of probability' by adding a sigmoid or softmax
         after getting your logits. If None does not add a layer to your model.
     """
-    def __init__(self,
-                 model: tf.keras.Model,
-                 inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
-                 targets: Optional[Union[tf.Tensor, np.ndarray]] = None,
-                 batch_size: Optional[int] = 64,
-                 operator: Optional[Union[Tasks, str, OperatorSignature]] = None,
-                 activation: Optional[str] = None,
-                 ):
+
+    def __init__(
+        self,
+        model: tf.keras.Model,
+        inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
+        targets: Optional[Union[tf.Tensor, np.ndarray]] = None,
+        batch_size: Optional[int] = 64,
+        operator: Optional[Union[Tasks, str, OperatorSignature]] = None,
+        activation: Optional[str] = None,
+    ):
         # pylint: disable=R0913
         super().__init__(model, inputs, targets, batch_size, activation)
 
         # define the inference function according to the model type
-        self.inference_function, self.batch_inference_function = \
-            get_inference_function(model, operator)
+        self.inference_function, self.batch_inference_function = get_inference_function(
+            model, operator
+        )
 
     @abstractmethod
-    def evaluate(self,
-                 explanations: Union[tf.Tensor, np.array]) -> float:
+    def evaluate(self, explanations: Union[tf.Tensor, np.array]) -> float:
         """
         Compute the score of the given explanations.
 
@@ -153,7 +156,6 @@ class ExplanationMetric(BaseAttributionMetric, ABC):
         """
         raise NotImplementedError()
 
-    def __call__(self,
-                 explanations: Union[tf.Tensor, np.array]) -> float:
+    def __call__(self, explanations: Union[tf.Tensor, np.array]) -> float:
         """Evaluate alias"""
         return self.evaluate(explanations)

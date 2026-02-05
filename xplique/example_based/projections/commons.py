@@ -1,19 +1,20 @@
 """
 Commons for projections
 """
+
 import warnings
 
 import tensorflow as tf
 
 from ...commons import find_layer
-from ...types import Callable, Union, Optional, Tuple
+from ...types import Callable, Optional, Tuple, Union
 
 
 def model_splitting(
-        model: Union[tf.keras.Model, 'torch.nn.Module'],
-        latent_layer: Union[str, int],
-        device: Union["torch.device", str] = None,
-    ) -> Tuple[Union[tf.keras.Model, 'torch.nn.Module'], Union[tf.keras.Model, 'torch.nn.Module']]:
+    model: Union[tf.keras.Model, "torch.nn.Module"],
+    latent_layer: Union[str, int],
+    device: Union["torch.device", str] = None,
+) -> Tuple[Union[tf.keras.Model, "torch.nn.Module"], Union[tf.keras.Model, "torch.nn.Module"]]:
     """
     Split the model into two parts, before and after the `latent_layer`.
     The parts will respectively be called `features_extractor` and `predictor`.
@@ -33,7 +34,7 @@ def model_splitting(
     device
         Device to use for the projection, if None, use the default device.
         Only used for PyTorch models. Ignored for TensorFlow models.
-    
+
     Returns
     -------
     features_extractor
@@ -49,13 +50,15 @@ def model_splitting(
         return _torch_model_splitting(model, latent_layer, device)
     except ImportError as exc:
         raise AttributeError(
-            "Unknown model type, should be either `tf.keras.Model` or `torch.nn.Module`. "\
-            +f"But got {type(model)} instead.") from exc
+            "Unknown model type, should be either `tf.keras.Model` or `torch.nn.Module`. "
+            + f"But got {type(model)} instead."
+        ) from exc
 
 
-def _tf_model_splitting(model: tf.keras.Model,
-                        latent_layer: Union[str, int],
-                        ) -> Tuple[tf.keras.Model, tf.keras.Model]:
+def _tf_model_splitting(
+    model: tf.keras.Model,
+    latent_layer: Union[str, int],
+) -> Tuple[tf.keras.Model, tf.keras.Model]:
     """
     Split the model into two parts, before and after the `latent_layer`.
     The parts will respectively be called `features_extractor` and `predictor`.
@@ -72,7 +75,7 @@ def _tf_model_splitting(model: tf.keras.Model,
 
         To separate after the last convolution, `"last_conv"` can be used.
         Otherwise, `-1` could be used for the last layer before softmax.
-    
+
     Returns
     -------
     features_extractor
@@ -84,47 +87,45 @@ def _tf_model_splitting(model: tf.keras.Model,
     """
 
     warnings.warn(
-        "Automatically splitting the provided TensorFlow model into two parts. "\
-        +"This splitting is not robust to all models. "\
-        +"It is recommended to split the model manually. "\
-        +"Then the splitted parts can be provided at the method initialization.")
-
-    if latent_layer == "last_conv":
-        latent_layer = next(
-            layer for layer in model.layers[::-1] if hasattr(layer, "filters")
-        )
-    else:
-        latent_layer = find_layer(model, latent_layer)
-
-    features_extractor = tf.keras.Model(
-        model.input, latent_layer.output, name="features_extractor"
+        "Automatically splitting the provided TensorFlow model into two parts. "
+        + "This splitting is not robust to all models. "
+        + "It is recommended to split the model manually. "
+        + "Then the splitted parts can be provided at the method initialization."
     )
-    second_input = tf.keras.Input(shape=latent_layer.output_shape[1:])
+    # Extract the latent and the next layer
+    if latent_layer == "last_conv":
+        i, latent_l = next(
+            (i, layer) for i, layer in enumerate(model.layers[::-1]) if hasattr(layer, "filters")
+        )
+        i = len(model.layers) - i - 1
+    else:
+        latent_l = find_layer(model, latent_layer)
+        for i, layer in enumerate(model.layers):
+            if layer is latent_l:
+                break
+    next_l = model.layers[i + 1] if i + 1 < len(model.layers) else None
+
+    features_extractor = tf.keras.Model(model.inputs, latent_l.output, name="features_extractor")
+
+    if next_l is None:
+        return features_extractor, None
 
     # Reconstruct the second part of the model
-    new_input = second_input
-    layer_found = False
-    for layer in model.layers:
-        if layer_found:
-            new_input = layer(new_input)
-        if layer == latent_layer:
-            layer_found = True
+    new_input = tf.keras.Input(shape=next_l.input.shape[1:])
+    x = new_input
+    for layer in model.layers[i + 1 :]:
+        x = layer(x)
 
     # Create the second part of the model (predictor)
-    predictor = tf.keras.Model(
-        inputs=second_input,
-        outputs=new_input,
-        name="predictor"
-    )
-
+    predictor = tf.keras.Model(inputs=new_input, outputs=x, name="predictor")
     return features_extractor, predictor
 
 
 def _torch_model_splitting(
-        model: 'torch.nn.Module',
-        latent_layer: Union[str, int],
-        device: Union["torch.device", str] = None,
-    ) -> Tuple['torch.nn.Module', 'torch.nn.Module']:
+    model: "torch.nn.Module",
+    latent_layer: Union[str, int],
+    device: Union["torch.device", str] = None,
+) -> Tuple["torch.nn.Module", "torch.nn.Module"]:
     """
     Split the model into two parts, before and after the `latent_layer`.
     The parts will respectively be called `features_extractor` and `predictor`.
@@ -142,7 +143,7 @@ def _torch_model_splitting(
         To separate after the last convolution, `"last_conv"` can be used.
         Otherwise, `-1` could be used for the last layer before softmax.
     Device to use for the projection, if None, use the default device.
-    
+
     Returns
     -------
     features_extractor
@@ -155,14 +156,16 @@ def _torch_model_splitting(
     # pylint: disable=import-outside-toplevel
     import torch
     from torch import nn
+
     from ...wrappers import TorchWrapper
 
     warnings.warn(
-        "Automatically splitting the provided PyTorch model into two parts. "\
-        +"This splitting is based on `model.named_children()`. "\
-        +"If the model cannot be reconstructed via sub-modules, errors are to be expected. "\
-        +"It is recommended to split the model manually and wrap it with `TorchWrapper`. "\
-        +"Then the wrapped parts can be provided at the method initialization.")
+        "Automatically splitting the provided PyTorch model into two parts. "
+        + "This splitting is based on `model.named_children()`. "
+        + "If the model cannot be reconstructed via sub-modules, errors are to be expected. "
+        + "It is recommended to split the model manually and wrap it with `TorchWrapper`. "
+        + "Then the wrapped parts can be provided at the method initialization."
+    )
 
     if device is None:
         warnings.warn(
@@ -212,9 +215,9 @@ def _torch_model_splitting(
 
 
 @tf.function
-def target_free_classification_operator(model: Callable,
-                                        inputs: tf.Tensor,
-                                        targets: Optional[tf.Tensor] = None) -> tf.Tensor:
+def target_free_classification_operator(
+    model: Callable, inputs: tf.Tensor, targets: Optional[tf.Tensor] = None
+) -> tf.Tensor:
     """
     Compute predictions scores, only for the label class, for a batch of samples.
     It has the same behavior as `Tasks.CLASSIFICATION` operator

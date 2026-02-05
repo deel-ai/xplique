@@ -1,14 +1,15 @@
 """
 Attribution, a projection from example based module
 """
+
 import warnings
 
 import tensorflow as tf
+
 from xplique.types import Optional
 
 from ...commons import get_gradient_functions
-from ...types import Union, Optional, OperatorSignature
-
+from ...types import OperatorSignature, Optional, Union
 from .base import Projection
 from .commons import model_splitting, target_free_classification_operator
 
@@ -70,9 +71,10 @@ class HadamardProjection(Projection):
         If you encounter errors in the `project_dataset` method, you can set it to `False`.
         Used only for a splitted model. Thgus if `model` is `None`.
     """
+
     def __init__(
         self,
-        model: Optional[Union[tf.keras.Model, 'torch.nn.Module']] = None,
+        model: Optional[Union[tf.keras.Model, "torch.nn.Module"]] = None,
         latent_layer: Optional[Union[str, int]] = None,
         operator: Optional[OperatorSignature] = None,
         device: Union["torch.device", str] = None,
@@ -81,16 +83,20 @@ class HadamardProjection(Projection):
         mappable: bool = True,
     ):
         if model is None:
-            assert features_extractor is not None and predictor is not None,\
+            assert features_extractor is not None and predictor is not None, (
                 "If no model is provided, the features_extractor and predictor should be provided."
+            )
 
-            assert isinstance(features_extractor, tf.keras.Model)\
-                and isinstance(predictor, tf.keras.Model),\
-                "The features_extractor and predictor should be tf.keras.Model."\
+            assert isinstance(features_extractor, tf.keras.Model) and isinstance(
+                predictor, tf.keras.Model
+            ), (
+                "The features_extractor and predictor should be tf.keras.Model."
                 + "The xplique.wrappers.TorchWrapper can be used for PyTorch models."
+            )
         else:
-            assert features_extractor is None and predictor is None,\
+            assert features_extractor is None and predictor is None, (
                 "If a model is provided, the features_extractor and predictor cannot be provided."
+            )
 
             if latent_layer is None:
                 # no split
@@ -99,15 +105,17 @@ class HadamardProjection(Projection):
                 predictor = model
             else:
                 # split the model if a latent_layer is provided
-                features_extractor, predictor = model_splitting(model,
-                                                                latent_layer=latent_layer,
-                                                                device=device)
+                features_extractor, predictor = model_splitting(
+                    model, latent_layer=latent_layer, device=device
+                )
 
             mappable = isinstance(model, tf.keras.Model)
 
         if operator is None:
-            warnings.warn("No operator provided, using standard classification operator. "\
-                          + "For non-classification tasks, please specify an operator.")
+            warnings.warn(
+                "No operator provided, using standard classification operator. "
+                + "For non-classification tasks, please specify an operator."
+            )
             operator = target_free_classification_operator
 
         # the weights are given by the gradient of the operator based on the predictor
@@ -119,5 +127,5 @@ class HadamardProjection(Projection):
             get_weights=get_weights,
             space_projection=features_extractor,
             mappable=mappable,
-            requires_targets=True
+            requires_targets=True,
         )

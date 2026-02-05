@@ -1,14 +1,14 @@
 """
 Base model for example-based
 """
+
 import tensorflow as tf
 
 from ..attributions.base import BlackBoxExplainer
-from ..types import Callable, List, Optional, Type, Union, DatasetOrTensor
-
-from .search_methods import KNN, BaseSearchMethod, ORDER
-from .projections import Projection, AttributionProjection, HadamardProjection
+from ..types import Callable, DatasetOrTensor, List, Optional, Type, Union
 from .base_example_method import BaseExampleMethod
+from .projections import AttributionProjection, HadamardProjection, Projection
+from .search_methods import KNN, ORDER, BaseSearchMethod
 
 
 class SimilarExamples(BaseExampleMethod):
@@ -67,6 +67,7 @@ class SimilarExamples(BaseExampleMethod):
         {"manhattan", "euclidean", "cosine", "chebyshev", "inf"}, or a Callable,
         by default "euclidean".
     """
+
     def __init__(
         self,
         cases_dataset: DatasetOrTensor,
@@ -168,10 +169,11 @@ class Cole(SimilarExamples):
     attribution_kwargs
         Parameters to be passed for the construction of the `attribution_method`.
     """
+
     def __init__(
         self,
         cases_dataset: DatasetOrTensor,
-        model: Union[tf.keras.Model, 'torch.nn.Module'],
+        model: Union[tf.keras.Model, "torch.nn.Module"],
         labels_dataset: Optional[DatasetOrTensor] = None,
         targets_dataset: Optional[DatasetOrTensor] = None,
         k: int = 1,
@@ -186,7 +188,6 @@ class Cole(SimilarExamples):
 
         # build the corresponding projection
         if isinstance(attribution_method, str) and attribution_method.lower() == "gradient":
-
             operator = attribution_kwargs.get("operator", None)
 
             projection = HadamardProjection(
@@ -204,8 +205,8 @@ class Cole(SimilarExamples):
             )
         else:
             raise ValueError(
-                "`attribution_method` should be 'gradient' or a subclass of BlackBoxExplainer, " +\
-                f"not {attribution_method}"
+                "`attribution_method` should be 'gradient' or a subclass of BlackBoxExplainer, "
+                + f"not {attribution_method}"
             )
 
         super().__init__(

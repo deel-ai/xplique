@@ -4,14 +4,14 @@ Base projection for similar examples in example based module
 
 import warnings
 
-import tensorflow as tf
 import numpy as np
+import tensorflow as tf
 
-from ...commons import sanitize_inputs_targets, get_device
-from ...types import Callable, Union, Optional
+from ...commons import get_device, sanitize_inputs_targets
+from ...types import Callable, Optional, Union
 
 
-class Projection():
+class Projection:
     """
     Base class used by `BaseExampleMethod` to project samples to a meaningful space
     for the model to explain.
@@ -61,17 +61,19 @@ class Projection():
         If you encounter errors in the `project_dataset` method, you can set it to `False`.
     """
 
-    def __init__(self,
-                 get_weights: Optional[Union[Callable, tf.Tensor, np.ndarray]] = None,
-                 space_projection: Optional[Callable] = None,
-                 device: Optional[str] = None,
-                 mappable: bool = False,
-                 requires_targets: bool = False):
+    def __init__(
+        self,
+        get_weights: Optional[Union[Callable, tf.Tensor, np.ndarray]] = None,
+        space_projection: Optional[Callable] = None,
+        device: Optional[str] = None,
+        mappable: bool = False,
+        requires_targets: bool = False,
+    ):
         if get_weights is None and space_projection is None:
             warnings.warn(
                 "At least one of `get_weights` and `space_projection`"
                 + "should not be `None`. Otherwise the projection is an identity function."
-        )
+            )
 
         self.requires_targets = requires_targets
 
@@ -88,9 +90,9 @@ class Projection():
                 weights = get_weights
 
             # define a function that returns the weights
-            self.get_weights = lambda inputs, _: tf.repeat(tf.expand_dims(weights, axis=0),
-                                                           tf.shape(inputs)[0],
-                                                           axis=0)
+            self.get_weights = lambda inputs, _: tf.repeat(
+                tf.expand_dims(weights, axis=0), tf.shape(inputs)[0], axis=0
+            )
         elif hasattr(get_weights, "__call__"):
             # weights is a function
             self.get_weights = get_weights
@@ -142,7 +144,7 @@ class Projection():
         with tf.device(self.device):
             projected_inputs = self.space_projection(inputs)
             weights = self.get_weights(projected_inputs, targets)
-            weighted_projected_inputs =  tf.multiply(weights, projected_inputs)
+            weighted_projected_inputs = tf.multiply(weights, projected_inputs)
         return weighted_projected_inputs
 
     def __call__(
@@ -175,10 +177,11 @@ class Projection():
         """
         if self.requires_targets and targets_dataset is None:
             warnings.warn(
-                "The projection requires `targets` but `targets_dataset` is not provided. "\
-                +"`targets` will be computed online, assuming a classification setting. "\
-                +"Hence, online `targets` will be the predicted class one-hot-encoding. "\
-                +"If this is not the expected behavior, please provide a `targets_dataset`.")
+                "The projection requires `targets` but `targets_dataset` is not provided. "
+                + "`targets` will be computed online, assuming a classification setting. "
+                + "Hence, online `targets` will be the predicted class one-hot-encoding. "
+                + "If this is not the expected behavior, please provide a `targets_dataset`."
+            )
 
         if self.mappable:
             return self._map_project_dataset(cases_dataset, targets_dataset)
@@ -209,9 +212,9 @@ class Projection():
             projected_cases_dataset = cases_dataset.map(self.project)
         else:
             # in case targets are provided, we zip the datasets and project them together
-            projected_cases_dataset = tf.data.Dataset.zip(
-                (cases_dataset, targets_dataset)
-            ).map(self.project)
+            projected_cases_dataset = tf.data.Dataset.zip((cases_dataset, targets_dataset)).map(
+                self.project
+            )
 
         return projected_cases_dataset
 

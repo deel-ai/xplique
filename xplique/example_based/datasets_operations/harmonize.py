@@ -2,20 +2,20 @@
 Allow Example-based methods to work with different types of datasets and tensors.
 """
 
-
 import math
 
 import numpy as np
 import tensorflow as tf
 
-from ...types import Optional, Tuple, DatasetOrTensor
-from .tf_dataset_operations import sanitize_dataset, is_batched
+from ...types import DatasetOrTensor, Optional, Tuple
+from .tf_dataset_operations import is_batched, sanitize_dataset
 
 
-def split_tf_dataset(cases_dataset: tf.data.Dataset,
-                     labels_dataset: Optional[tf.data.Dataset] = None,
-                     targets_dataset: Optional[tf.data.Dataset] = None
-                     ) -> Tuple[tf.data.Dataset, tf.data.Dataset, tf.data.Dataset]:
+def split_tf_dataset(
+    cases_dataset: tf.data.Dataset,
+    labels_dataset: Optional[tf.data.Dataset] = None,
+    targets_dataset: Optional[tf.data.Dataset] = None,
+) -> Tuple[tf.data.Dataset, tf.data.Dataset, tf.data.Dataset]:
     """
     Splits a TensorFlow dataset into cases, labels, and targets datasets.
     The dataset is splitted only if it has multiple columns.
@@ -33,7 +33,7 @@ def split_tf_dataset(cases_dataset: tf.data.Dataset,
     targets_dataset
         Targets associated with the cases in the `cases_dataset`.
         If this function is called and `cases_dataset` has 3 columns, it should be `None`.
-    
+
     Returns
     -------
     cases_dataset
@@ -51,14 +51,14 @@ def split_tf_dataset(cases_dataset: tf.data.Dataset,
     if isinstance(cases_dataset.element_spec, tuple):
         if len(cases_dataset.element_spec) == 2:
             assert labels_dataset is None, (
-                "The second column of `cases_dataset` is assumed to be the labels. "\
+                "The second column of `cases_dataset` is assumed to be the labels. "
                 + "Hence, `labels_dataset` should be empty."
             )
             labels_dataset = cases_dataset.map(lambda x, y: y)
             cases_dataset = cases_dataset.map(lambda x, y: x)
         elif len(cases_dataset.element_spec) == 3:
             assert labels_dataset is None and targets_dataset is None, (
-                "The second and third columns of `cases_dataset` are assumed to be the labels "\
+                "The second and third columns of `cases_dataset` are assumed to be the labels "
                 "and targets. Hence, `labels_dataset` and `targets_dataset` should be empty."
             )
             targets_dataset = cases_dataset.map(lambda x, y, t: t)
@@ -74,19 +74,19 @@ def split_tf_dataset(cases_dataset: tf.data.Dataset,
 
 
 def harmonize_datasets(
-        cases_dataset: DatasetOrTensor,
-        labels_dataset: Optional[DatasetOrTensor] = None,
-        targets_dataset: Optional[DatasetOrTensor] = None,
-        batch_size: Optional[int] = None,
-    ) -> Tuple[tf.data.Dataset, tf.data.Dataset, tf.data.Dataset, int]:
+    cases_dataset: DatasetOrTensor,
+    labels_dataset: Optional[DatasetOrTensor] = None,
+    targets_dataset: Optional[DatasetOrTensor] = None,
+    batch_size: Optional[int] = None,
+) -> Tuple[tf.data.Dataset, tf.data.Dataset, tf.data.Dataset, int]:
     """
     Harmonizes the provided datasets, transforming them to tf.data.Dataset if necessary.
     Datasets are also checked in case they are shuffled or do not match in batch_size.
     If the datasets have multiple columns, the function will split them into cases,
     labels, and targets datasets based on the number of columns.
-    
+
     This function supports both TensorFlow and PyTorch datasets.
-    
+
     Parameters
     ----------
     cases_dataset
@@ -135,7 +135,7 @@ def harmonize_datasets(
             )
         else:
             assert isinstance(cases_dataset, type(labels_dataset)), (
-                "The cases_dataset and labels_dataset should be of the same type."\
+                "The cases_dataset and labels_dataset should be of the same type."
                 + f"Got {type(cases_dataset)} and {type(labels_dataset)}."
             )
     if targets_dataset is not None:
@@ -148,7 +148,7 @@ def harmonize_datasets(
             )
         else:
             assert isinstance(cases_dataset, type(targets_dataset)), (
-                "The cases_dataset and targets_dataset should be of the same type."\
+                "The cases_dataset and targets_dataset should be of the same type."
                 + f"Got {type(cases_dataset)} and {type(targets_dataset)}."
             )
 
@@ -171,8 +171,9 @@ def harmonize_datasets(
         # handle multi-column datasets
         if isinstance(cases_dataset.element_spec, tuple):
             # split dataset if `cases_dataset` has multiple columns
-            cases_dataset, labels_dataset, targets_dataset =\
-                split_tf_dataset(cases_dataset, labels_dataset, targets_dataset)
+            cases_dataset, labels_dataset, targets_dataset = split_tf_dataset(
+                cases_dataset, labels_dataset, targets_dataset
+            )
     elif isinstance(cases_dataset, (np.ndarray, tf.Tensor)):
         # compute batch size and cardinality
         if batch_size is None:
@@ -184,13 +185,16 @@ def harmonize_datasets(
 
         # tensors will be converted to tf.data.Dataset via the snitize function
     else:
-        error_message = "Unknown cases dataset type, should be in: [tf.data.Dataset, tf.Tensor, "\
-                        + "np.ndarray, torch.Tensor, torch.utils.data.DataLoader]. "\
-                        + f"But got {type(cases_dataset)} instead."
+        error_message = (
+            "Unknown cases dataset type, should be in: [tf.data.Dataset, tf.Tensor, "
+            + "np.ndarray, torch.Tensor, torch.utils.data.DataLoader]. "
+            + f"But got {type(cases_dataset)} instead."
+        )
         # try to import torch and torch.utils.data.DataLoader to treat possible input types
         try:
             # pylint: disable=import-outside-toplevel
             import torch
+
             from .convert_torch_to_tf import split_and_convert_column_dataloader
         except ImportError as exc:
             raise AttributeError(error_message) from exc
@@ -215,8 +219,9 @@ def harmonize_datasets(
         elif isinstance(cases_dataset, torch.utils.data.DataLoader):
             batch_size = cases_dataset.batch_size
             cardinality = len(cases_dataset)
-            cases_dataset, labels_dataset, targets_dataset =\
-                split_and_convert_column_dataloader(cases_dataset, labels_dataset, targets_dataset)
+            cases_dataset, labels_dataset, targets_dataset = split_and_convert_column_dataloader(
+                cases_dataset, labels_dataset, targets_dataset
+            )
         else:
             raise AttributeError(error_message)
 

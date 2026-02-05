@@ -9,7 +9,6 @@ from einops import rearrange
 
 from ...types import Tuple, Union
 
-
 EPS = 1e-12
 
 
@@ -67,9 +66,9 @@ class SobolEstimator(ABC):
 
     @staticmethod
     @tf.function(jit_compile=True)
-    def split_abc(outputs: tf.Tensor,
-                  nb_design: Union[tf.Tensor, int],
-                  nb_dim: tf.Tensor) -> Tuple[tf.Tensor, tf.Tensor, tf.Tensor]:
+    def split_abc(
+        outputs: tf.Tensor, nb_design: Union[tf.Tensor, int], nb_dim: tf.Tensor
+    ) -> Tuple[tf.Tensor, tf.Tensor, tf.Tensor]:
         """
         Split the outputs values into the 3 sampling matrices A, B and C.
 
@@ -100,16 +99,15 @@ class SobolEstimator(ABC):
 
         # Checks done in-graph (no Python branching):
         tf.debugging.assert_equal(
-            n_total, n_total_expected,
-            message="outputs length must be nb_design * (2 + nb_dim)"
+            n_total, n_total_expected, message="outputs length must be nb_design * (2 + nb_dim)"
         )
 
         a = outputs[:nb_design]  # (N,)
-        b = outputs[nb_design:nb_design * 2]  # (N,)
-        c_flat = outputs[nb_design * 2:]  # (D*N,)
+        b = outputs[nb_design : nb_design * 2]  # (N,)
+        c_flat = outputs[nb_design * 2 :]  # (D*N,)
 
         # Reshape C to (D, N)
-        c = rearrange(c_flat, '(d n) -> d n', d=nb_dim)
+        c = rearrange(c_flat, "(d n) -> d n", d=nb_dim)
 
         return a, b, c
 

@@ -1,9 +1,11 @@
 """
 Plots for tabular data
 """
+
 import matplotlib.pyplot as plt
-from matplotlib import cm
 import numpy as np
+from matplotlib import cm
+
 
 def _sanitize_features_name(explanations, features_name):
     """
@@ -11,12 +13,13 @@ def _sanitize_features_name(explanations, features_name):
     is None.
     """
     if features_name is None:
-        single_explanation = len(explanations.shape)==1
+        single_explanation = len(explanations.shape) == 1
         if single_explanation:
             features_name = [f"Feature {str(j)}" for j in range(len(explanations))]
         else:
             features_name = [f"Feature {str(j)}" for j in range(explanations.shape[1])]
     return features_name
+
 
 def _select_features(explanations, max_display, features_name):
     """
@@ -29,17 +32,14 @@ def _select_features(explanations, max_display, features_name):
         features_idx_kept = np.arange(num_features_kept)
     else:
         num_features_kept = min(max_display, len(features_name))
-        single_explanation = len(explanations.shape)==1
+        single_explanation = len(explanations.shape) == 1
         if single_explanation:
-            ranked = np.argsort(
-               np.abs(explanations)
-            )
+            ranked = np.argsort(np.abs(explanations))
         else:
-            ranked = np.argsort(
-                np.mean(np.abs(explanations), axis=0)
-            )
+            ranked = np.argsort(np.mean(np.abs(explanations), axis=0))
         features_idx_kept = ranked[::-1][:num_features_kept]
     return num_features_kept, features_idx_kept
+
 
 def _add_colorbar(cmap):
     """
@@ -47,13 +47,14 @@ def _add_colorbar(cmap):
     """
     mappa = cm.ScalarMappable(cmap=cmap)
     colorbar = plt.colorbar(mappa, ticks=[0, 1])
-    colorbar.set_ticklabels(['Low', 'High'])
-    colorbar.set_label('Feature value', size=12, labelpad=0)
+    colorbar.set_ticklabels(["Low", "High"])
+    colorbar.set_label("Feature value", size=12, labelpad=0)
     colorbar.ax.tick_params(labelsize=11, length=0)
     colorbar.set_alpha(1)
     colorbar.outline.set_visible(False)
     bbox = colorbar.ax.get_window_extent().transformed(plt.gcf().dpi_scale_trans.inverted())
     colorbar.ax.set_aspect((bbox.height - 0.9) * 20)
+
 
 def _clip_values(fvalues, clip_percentile):
     """
@@ -64,6 +65,7 @@ def _clip_values(fvalues, clip_percentile):
         clip_max = np.percentile(fvalues, 100 - clip_percentile)
         fvalues = np.clip(fvalues, clip_min, clip_max)
     return fvalues
+
 
 def _get_offset_positions(explanation_val_feature, nb_points, row_height):
     """
@@ -84,15 +86,15 @@ def _get_offset_positions(explanation_val_feature, nb_points, row_height):
     offset
         The y position offset for each points
     """
-    nbins = 100 # nb of division on the y-axis for one feature
+    nbins = 100  # nb of division on the y-axis for one feature
 
     # get the points where explanation values are close
     max_feat_val = np.max(explanation_val_feature)
     min_feat_val = np.min(explanation_val_feature)
     num = nbins * (explanation_val_feature - min_feat_val)
-    den = max_feat_val - min_feat_val + 1e-8 # in case max=min
+    den = max_feat_val - min_feat_val + 1e-8  # in case max=min
     # points with the same quant value might overlap
-    quant = np.round(num/den)
+    quant = np.round(num / den)
 
     # here we make sure points with the same quant value have different offset
     inds = np.argsort(quant + np.random.randn(nb_points) * 1e-6)
@@ -111,6 +113,7 @@ def _get_offset_positions(explanation_val_feature, nb_points, row_height):
     offset *= 0.9 * (row_height / np.max(offset + 1))
 
     return offset
+
 
 def plot_feature_impact(
     explanation,
@@ -161,64 +164,60 @@ def plot_feature_impact(
 
     # the actual bar plot
     colors = [
-        'slateblue' if explanation_kept[j]<=0 else 'yellowgreen' for j in range(num_features_kept)
+        "slateblue" if explanation_kept[j] <= 0 else "yellowgreen" for j in range(num_features_kept)
     ]
-    axes.barh(
-        y_pos,
-        explanation_kept,
-        align='center',
-        color=colors
-    )
+    axes.barh(y_pos, explanation_kept, align="center", color=colors)
 
     # add the explanation value next to the bar
     xlen = plt.xlim()[1] - plt.xlim()[0]
     bbox = axes.get_window_extent().transformed(fig.dpi_scale_trans.inverted())
-    xscale = xlen/bbox.width
+    xscale = xlen / bbox.width
 
     for i in y_pos:
         # put horizontal lines for each feature row
         plt.axhline(i, color="darkgrey", lw=0.5, dashes=(1, 5), zorder=-1)
         if explanation_kept[i] < 0:
             axes.text(
-                explanation_kept[i] - 0.02*xscale,
+                explanation_kept[i] - 0.02 * xscale,
                 y_pos[i],
                 f"{str(round(explanation_kept[i], 2))}",
-                horizontalalignment='right',
-                verticalalignment='center',
-                fontsize=10
+                horizontalalignment="right",
+                verticalalignment="center",
+                fontsize=10,
             )
         else:
             axes.text(
-                explanation_kept[i] + 0.02*xscale,
+                explanation_kept[i] + 0.02 * xscale,
                 y_pos[i],
                 f"{str(round(explanation_kept[i], 2))}",
-                horizontalalignment='left',
-                verticalalignment='center',
-                fontsize=10
+                horizontalalignment="left",
+                verticalalignment="center",
+                fontsize=10,
             )
 
     # add some text for labels and custom y-axis tick labels
-    axes.set_xlabel('Impact on output')
-    axes.set_ylabel('')
-    axes.set_title('Features impact')
+    axes.set_xlabel("Impact on output")
+    axes.set_ylabel("")
+    axes.set_title("Features impact")
     axes.set_yticks(y_pos)
     axes.set_yticklabels(yticklabels)
 
     # make the plot prettier
     fig.tight_layout()
 
-    axes.spines['right'].set_visible(False)
-    axes.spines['top'].set_visible(False)
-    xmin,xmax = plt.gca().get_xlim()
+    axes.spines["right"].set_visible(False)
+    axes.spines["top"].set_visible(False)
+    xmin, xmax = plt.gca().get_xlim()
 
     # if we have negative values draw a vertical axis at zero
-    neg_val = len(explanation_kept[explanation_kept<0])!=0
+    neg_val = len(explanation_kept[explanation_kept < 0]) != 0
     if neg_val:
         plt.axvline(0, 0, 1, color="dimgray", linestyle="-", linewidth=1)
-        axes.spines['left'].set_visible(False)
-        plt.gca().set_xlim(xmin - (xmax-xmin)*0.1, xmax + (xmax-xmin)*0.1)
+        axes.spines["left"].set_visible(False)
+        plt.gca().set_xlim(xmin - (xmax - xmin) * 0.1, xmax + (xmax - xmin) * 0.1)
     else:
-        plt.gca().set_xlim(xmin, xmax + (xmax-xmin)*0.1)
+        plt.gca().set_xlim(xmin, xmax + (xmax - xmin) * 0.1)
+
 
 def plot_mean_feature_impact(
     explanations,
@@ -236,20 +235,19 @@ def plot_mean_feature_impact(
     mean_explanation_per_feature = np.mean(explanations, axis=0)
 
     plot_feature_impact(
-        mean_explanation_per_feature,
-        features_name=features_name,
-        max_display=max_display
+        mean_explanation_per_feature, features_name=features_name, max_display=max_display
     )
+
 
 def summary_plot_tabular(
     explanations,
-    features_values = None,
-    features_name = None,
-    max_display = None,
-    cmap = 'viridis',
-    clip_percentile = 1,
-    alpha = 1,
-    plot_size = None,
+    features_values=None,
+    features_name=None,
+    max_display=None,
+    cmap="viridis",
+    clip_percentile=1,
+    alpha=1,
+    plot_size=None,
 ):
     """
     Summary plot adapted from the [shap library](https://github.com/slundberg/shap). Usefull to
@@ -296,7 +294,7 @@ def summary_plot_tabular(
     plt.figure()
     if plot_size is None:
         plt.gcf().set_size_inches(8, nb_features_kept * row_height + 1.5)
-    elif isinstance(plot_size,(list, tuple)):
+    elif isinstance(plot_size, (list, tuple)):
         plt.gcf().set_size_inches(plot_size[0], plot_size[1])
     elif isinstance(plot_size, float):
         row_height = plot_size
@@ -308,7 +306,6 @@ def summary_plot_tabular(
 
     # make the beeswarm dots
     for pos, i in enumerate(features_idx_kept):
-
         plt.axhline(y=pos, color="darkgrey", lw=0.5, dashes=(1, 5), zorder=-1)
         explanation_val_feature = explanations[:, i]
 
@@ -332,7 +329,7 @@ def summary_plot_tabular(
                 zorder=3,
                 color="slategrey",
                 s=16,
-                rasterized=True
+                rasterized=True,
             )
 
         else:
@@ -348,7 +345,7 @@ def summary_plot_tabular(
                 cmap=cmap,
                 s=16,
                 c=fvalues,
-                rasterized=True
+                rasterized=True,
             )
 
     # draw the color bar
@@ -356,14 +353,14 @@ def summary_plot_tabular(
         _add_colorbar(cmap)
 
     # make the plot prettier
-    plt.gca().xaxis.set_ticks_position('bottom')
-    plt.gca().yaxis.set_ticks_position('none')
-    plt.gca().spines['right'].set_visible(False)
-    plt.gca().spines['top'].set_visible(False)
-    plt.gca().spines['left'].set_visible(False)
+    plt.gca().xaxis.set_ticks_position("bottom")
+    plt.gca().yaxis.set_ticks_position("none")
+    plt.gca().spines["right"].set_visible(False)
+    plt.gca().spines["top"].set_visible(False)
+    plt.gca().spines["left"].set_visible(False)
     plt.yticks(range(nb_features_kept), yticklabels, fontsize=13)
-    plt.gca().tick_params('y', length=20, width=0.5, which='major')
-    plt.gca().tick_params('x', labelsize=11)
+    plt.gca().tick_params("y", length=20, width=0.5, which="major")
+    plt.gca().tick_params("x", labelsize=11)
     plt.ylim(-1, nb_features_kept)
     plt.xlabel("Impact on output", fontsize=13)
     plt.tight_layout()

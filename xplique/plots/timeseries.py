@@ -4,25 +4,24 @@ Pretty plots option for explanations
 
 from math import ceil
 
-from matplotlib import pyplot as plt
 import numpy as np
 import tensorflow as tf
+from matplotlib import pyplot as plt
 
-from ..types import Union, List, Optional
-
-from .image import _clip_normalize, _adjust_figure
+from ..types import List, Optional, Union
+from .image import _adjust_figure, _clip_normalize
 
 
 def _show_heatmap(
-        explanation: Union[np.array, tf.Tensor],
-        features: List[str],
-        title: str = "",
-        cmap: str = "coolwarm",
-        colorbar: bool = False,
-        clip_percentile: Optional[float] = 0.1,
-        absolute_value: bool = False,
-        img_size: float = 2.,
-        **plot_kwargs
+    explanation: Union[np.array, tf.Tensor],
+    features: List[str],
+    title: str = "",
+    cmap: str = "coolwarm",
+    colorbar: bool = False,
+    clip_percentile: Optional[float] = 0.1,
+    absolute_value: bool = False,
+    img_size: float = 2.0,
+    **plot_kwargs,
 ):
     """
     Display a heatmap representing the attributions for timeseries.
@@ -59,8 +58,9 @@ def _show_heatmap(
 
     explanation = _clip_normalize(explanation, clip_percentile, absolute_value)
 
-    image = plt.imshow(np.array(explanation, np.float32).transpose(), cmap=cmap,
-                       vmax=1, vmin=-1, **plot_kwargs)
+    image = plt.imshow(
+        np.array(explanation, np.float32).transpose(), cmap=cmap, vmax=1, vmin=-1, **plot_kwargs
+    )
 
     plt.title(title, fontsize=3 * img_size)
 
@@ -76,18 +76,18 @@ def _show_heatmap(
 
 
 def plot_timeseries_attributions(
-        explanations: Union[tf.Tensor, np.ndarray],
-        features: List[str],
-        title: Optional[str] = None,
-        subtitles: Optional[List[str]] = None,
-        filepath: Optional[str] = None,
-        cmap: str = "coolwarm",
-        colorbar: bool = False,
-        clip_percentile: Optional[float] = 0.1,
-        absolute_value: bool = False,
-        cols: int = 5,
-        img_size: float = 3.,
-        **plot_kwargs
+    explanations: Union[tf.Tensor, np.ndarray],
+    features: List[str],
+    title: Optional[str] = None,
+    subtitles: Optional[List[str]] = None,
+    filepath: Optional[str] = None,
+    cmap: str = "coolwarm",
+    colorbar: bool = False,
+    clip_percentile: Optional[float] = 0.1,
+    absolute_value: bool = False,
+    cols: int = 5,
+    img_size: float = 3.0,
+    **plot_kwargs,
 ):
     """
     Displays a series of explanations and their associated images if these are provided.
@@ -124,8 +124,9 @@ def plot_timeseries_attributions(
         Additional parameters passed to `plt.imshow()`.
     """
     if subtitles is not None:
-        assert len(subtitles) == len(explanations), "If you provide subtitles, " +\
-                                                    "there must be as many as explanations."
+        assert len(subtitles) == len(explanations), (
+            "If you provide subtitles, " + "there must be as many as explanations."
+        )
     else:
         subtitles = [None] * len(explanations)
 
@@ -142,11 +143,19 @@ def plot_timeseries_attributions(
         plt.suptitle(title, fontsize=4 * img_size)
 
     for i, explanation in enumerate(explanations):
-        plt.subplot(rows, cols, i+1)
+        plt.subplot(rows, cols, i + 1)
 
-        _show_heatmap(explanation, features=features, title=subtitles[i],
-                      cmap=cmap, colorbar=colorbar, img_size=img_size,
-                      clip_percentile=clip_percentile, absolute_value=absolute_value, **plot_kwargs)
+        _show_heatmap(
+            explanation,
+            features=features,
+            title=subtitles[i],
+            cmap=cmap,
+            colorbar=colorbar,
+            img_size=img_size,
+            clip_percentile=clip_percentile,
+            absolute_value=absolute_value,
+            **plot_kwargs,
+        )
     if filepath is not None:
         plt.savefig(filepath)
     else:

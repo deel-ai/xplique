@@ -1,9 +1,7 @@
-import tensorflow as tf
-import numpy as np
-
-from ..utils import generate_model, generate_data, almost_equal
+from xplique.attributions import GradientInput, Saliency
 from xplique.metrics import MeGe
-from xplique.attributions import Saliency, GradientInput
+
+from ..utils import almost_equal, generate_data, generate_model
 
 
 def test_best_mege():
@@ -15,7 +13,6 @@ def test_best_mege():
     learning_algorithm = lambda x_train, y_train, x_test, y_test: model
 
     for method in [Saliency, GradientInput]:
-
         metric = MeGe(learning_algorithm, x, y, k_splits=4)
         mege, _ = metric.evaluate(method)
 

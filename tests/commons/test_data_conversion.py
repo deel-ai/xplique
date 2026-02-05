@@ -1,7 +1,7 @@
-import tensorflow as tf
 import numpy as np
+import tensorflow as tf
 
-from xplique.commons import tensor_sanitize, numpy_sanitize
+from xplique.commons import numpy_sanitize, tensor_sanitize
 
 from ..utils import generate_data
 
@@ -9,9 +9,7 @@ from ..utils import generate_data
 def test_tensor_sanitize():
     """Ensure we get tf.Tensor for numpy array, tf tensor and tf.data.Dataset"""
     nb_samples = 71
-    inputs_shapes = [
-        (32, 32, 1), (32, 32, 3)
-    ]
+    inputs_shapes = [(32, 32, 1), (32, 32, 3)]
 
     for shape in inputs_shapes:
         inputs_np, targets_np = generate_data(shape, 10, nb_samples)

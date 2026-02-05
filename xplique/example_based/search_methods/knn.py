@@ -1,17 +1,18 @@
 """
 KNN online search method in example-based module
 """
-from abc import abstractmethod
+
 import inspect
+from abc import abstractmethod
 
 import numpy as np
 import tensorflow as tf
 
+from ...types import Callable, List, Optional, Tuple, Union
 from ..datasets_operations.tf_dataset_operations import dataset_gather, sanitize_dataset
-from ...types import Callable, List, Union, Optional, Tuple
-
-from .base import BaseSearchMethod, ORDER
+from .base import ORDER, BaseSearchMethod
 from .common import get_distance_function
+
 
 class BaseKNN(BaseSearchMethod):
     """
@@ -39,6 +40,7 @@ class BaseKNN(BaseSearchMethod):
         ASCENDING means that the smallest distances are the best,
         DESCENDING means that the biggest distances are the best.
     """
+
     def __init__(
         self,
         cases_dataset: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
@@ -54,17 +56,19 @@ class BaseKNN(BaseSearchMethod):
             batch_size=batch_size,
         )
         # set order
-        assert isinstance(order, ORDER),\
+        assert isinstance(order, ORDER), (
             f"order should be an instance of ORDER and not {type(order)}"
+        )
         self.order = order
         # fill value
         self.fill_value = np.inf if self.order == ORDER.ASCENDING else -np.inf
 
     @abstractmethod
-    def kneighbors(self,
-                   inputs: Union[tf.Tensor, np.ndarray],
-                   targets: Optional[Union[tf.Tensor, np.ndarray]] = None
-                   ) -> Tuple[tf.Tensor, tf.Tensor]:
+    def kneighbors(
+        self,
+        inputs: Union[tf.Tensor, np.ndarray],
+        targets: Optional[Union[tf.Tensor, np.ndarray]] = None,
+    ) -> Tuple[tf.Tensor, tf.Tensor]:
         """
         Compute the k-nearest neighbors to each tensor of `inputs` in `self.cases_dataset`.
         Here `self.cases_dataset` is a `tf.data.Dataset`, hence, computations are done by batches.
@@ -93,10 +97,11 @@ class BaseKNN(BaseSearchMethod):
         """
         raise NotImplementedError
 
-    def find_examples(self,
-                      inputs: Union[tf.Tensor, np.ndarray],
-                      targets: Optional[Union[tf.Tensor, np.ndarray]] = None
-                      ) -> dict:
+    def find_examples(
+        self,
+        inputs: Union[tf.Tensor, np.ndarray],
+        targets: Optional[Union[tf.Tensor, np.ndarray]] = None,
+    ) -> dict:
         """
         Search the samples to return as examples. Called by the explain methods.
         It may also return the indices corresponding to the samples,
@@ -124,11 +129,12 @@ class BaseKNN(BaseSearchMethod):
 
         return return_dict
 
-    def _build_return_dict(self,
-                           inputs: Union[tf.Tensor, np.ndarray],
-                           examples_distances: tf.Tensor,
-                           examples_indices: tf.Tensor
-                           ) -> dict:
+    def _build_return_dict(
+        self,
+        inputs: Union[tf.Tensor, np.ndarray],
+        examples_distances: tf.Tensor,
+        examples_indices: tf.Tensor,
+    ) -> dict:
         """
         Build the return dict based on the `self.returns` values.
         It builds the return dict with the value in the subset of
@@ -162,15 +168,14 @@ class BaseKNN(BaseSearchMethod):
             return_dict["examples"] = dataset_gather(self.cases_dataset, examples_indices)
             if "include_inputs" in self.returns:
                 inputs = tf.expand_dims(inputs, axis=1)
-                return_dict["examples"] = tf.concat(
-                    [inputs, return_dict["examples"]], axis=1
-                )
+                return_dict["examples"] = tf.concat([inputs, return_dict["examples"]], axis=1)
         if "indices" in self.returns:
             return_dict["indices"] = examples_indices
         if "distances" in self.returns:
             return_dict["distances"] = examples_distances
 
         return return_dict
+
 
 class KNN(BaseKNN):
     """
@@ -202,6 +207,7 @@ class KNN(BaseKNN):
         {"manhattan", "euclidean", "cosine", "chebyshev", "inf"}, or a Callable,
         by default "euclidean".
     """
+
     def __init__(
         self,
         cases_dataset: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
@@ -248,18 +254,21 @@ class KNN(BaseKNN):
         # reshape for broadcasting
         x1 = tf.reshape(x1, (n, 1, -1))
         x2 = tf.reshape(x2, (n, m, -1))
+
         def compute_distance(args):
             a, b = args
             return self.distance_fn(a, b)
+
         args = (x1, x2)
         # Use vectorized_map to apply compute_distance element-wise
         distances = tf.vectorized_map(compute_distance, args)
         return distances
 
-    def kneighbors(self,
-                   inputs: Union[tf.Tensor, np.ndarray],
-                   _ = None,
-                   ) -> Tuple[tf.Tensor, tf.Tensor]:
+    def kneighbors(
+        self,
+        inputs: Union[tf.Tensor, np.ndarray],
+        _=None,
+    ) -> Tuple[tf.Tensor, tf.Tensor]:
         """
         Compute the k-neareast neighbors to each tensor of `inputs` in `self.cases_dataset`.
         Here `self.cases_dataset` is a `tf.data.Dataset`, hence, computations are done by batches.
@@ -321,14 +330,13 @@ class KNN(BaseKNN):
                 concatenated_distances, axis=1, direction=self.order.name.upper()
             )[:, : self.k]
 
-            best_indices.assign(
-                tf.gather(concatenated_indices, sort_order, axis=1, batch_dims=1)
-            )
+            best_indices.assign(tf.gather(concatenated_indices, sort_order, axis=1, batch_dims=1))
             best_distances.assign(
                 tf.gather(concatenated_distances, sort_order, axis=1, batch_dims=1)
             )
 
         return best_distances, best_indices
+
 
 class FilterKNN(BaseKNN):
     """
@@ -373,8 +381,9 @@ class FilterKNN(BaseKNN):
         A Callable that takes as inputs the inputs, their targets,
         the cases and their targets and returns a boolean mask of shape (n, m)
         where n is the number of inputs and m the number of cases.
-        This boolean mask is used to choose between which inputs and cases to compute the distances. 
+        This boolean mask is used to choose between which inputs and cases to compute the distances.
     """
+
     def __init__(
         self,
         cases_dataset: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
@@ -400,19 +409,19 @@ class FilterKNN(BaseKNN):
             self.distance_fn = distance
         else:
             base_distance_fn = get_distance_function(distance)
-            self.distance_fn = lambda x1, x2, m:\
-                tf.where(m, base_distance_fn(x1, x2), self.fill_value)
+            self.distance_fn = lambda x1, x2, m: tf.where(
+                m, base_distance_fn(x1, x2), self.fill_value
+            )
 
         if filter_fn is None:
             filter_fn = lambda x, z, y, t: tf.ones((tf.shape(x)[0], tf.shape(z)[0]), dtype=tf.bool)
         elif hasattr(filter_fn, "__call__"):
             filter_fn_signature = inspect.signature(filter_fn)
-            assert len(filter_fn_signature.parameters) == 4,\
+            assert len(filter_fn_signature.parameters) == 4, (
                 f"filter_fn should take 4 parameters, not {len(filter_fn_signature.parameters)}"
-        else:
-            raise TypeError(
-                f"filter_fn should be Callable, not {type(filter_fn)}"
             )
+        else:
+            raise TypeError(f"filter_fn should be Callable, not {type(filter_fn)}")
         self.filter_fn = filter_fn
 
         # set targets_dataset
@@ -420,7 +429,7 @@ class FilterKNN(BaseKNN):
             self.targets_dataset = sanitize_dataset(targets_dataset, self.batch_size)
         else:
             # make an iterable of None
-            self.targets_dataset = [None]*len(cases_dataset)
+            self.targets_dataset = [None] * len(cases_dataset)
 
     @tf.function
     def _crossed_distances_fn(self, x1, x2, mask):
@@ -451,18 +460,21 @@ class FilterKNN(BaseKNN):
         # reshape for broadcasting
         x1 = tf.reshape(x1, (n, 1, -1))
         x2 = tf.reshape(x2, (n, m, -1))
+
         def compute_distance(args):
             a, b, mask = args
             return self.distance_fn(a, b, mask)
+
         args = (x1, x2, mask)
         # Use vectorized_map to apply compute_distance element-wise
         distances = tf.vectorized_map(compute_distance, args)
         return distances
 
-    def kneighbors(self,
-                   inputs: Union[tf.Tensor, np.ndarray],
-                   targets: Optional[Union[tf.Tensor, np.ndarray]] = None
-                   ) -> Tuple[tf.Tensor, tf.Tensor]:
+    def kneighbors(
+        self,
+        inputs: Union[tf.Tensor, np.ndarray],
+        targets: Optional[Union[tf.Tensor, np.ndarray]] = None,
+    ) -> Tuple[tf.Tensor, tf.Tensor]:
         """
         Compute the k-neareast neighbors to each tensor of `inputs` in `self.cases_dataset`.
         Here `self.cases_dataset` is a `tf.data.Dataset`, hence, computations are done by batches.
@@ -504,8 +516,9 @@ class FilterKNN(BaseKNN):
         batch_indices = tf.tile(batch_indices, multiples=(nb_inputs, 1))
 
         # iterate on batches
-        for batch_index, (cases, cases_targets) in\
-                enumerate(zip(self.cases_dataset, self.targets_dataset)):
+        for batch_index, (cases, cases_targets) in enumerate(
+            zip(self.cases_dataset, self.targets_dataset)
+        ):
             # add new elements
             # (n, current_bs, 2)
             indices = batch_indices[:, : tf.shape(cases)[0]]
@@ -532,12 +545,9 @@ class FilterKNN(BaseKNN):
                 concatenated_distances, axis=1, direction=self.order.name.upper()
             )[:, : self.k]
 
-            best_indices.assign(
-                tf.gather(concatenated_indices, sort_order, axis=1, batch_dims=1)
-            )
+            best_indices.assign(tf.gather(concatenated_indices, sort_order, axis=1, batch_dims=1))
             best_distances.assign(
                 tf.gather(concatenated_distances, sort_order, axis=1, batch_dims=1)
             )
 
         return best_distances, best_indices
-    

@@ -1,12 +1,14 @@
 """
 Module for having a wrapper for PyTorch models
 """
+
 import warnings
 
-import tensorflow as tf
 import numpy as np
+import tensorflow as tf
 
-from ..types import Union, Optional, Tuple, Callable
+from ..types import Callable, Optional, Tuple, Union
+
 
 class TorchWrapper(tf.keras.Model):
     """
@@ -23,32 +25,35 @@ class TorchWrapper(tf.keras.Model):
         A boolean that is true if the torch's model expect a channel dim and if this one come first
     """
 
-    def __init__(self, torch_model: "nn.Module", device: Union["torch.device", str],
-                 is_channel_first: Optional[bool] = None
-                 ): # pylint: disable=C0415,C0103,W0719
-
+    def __init__(
+        self,
+        torch_model: "nn.Module",
+        device: Union["torch.device", str],
+        is_channel_first: Optional[bool] = None,
+    ):  # pylint: disable=C0415,C0103,W0719
         try:
             super().__init__()
         except tf.errors.InternalError as error:
-            raise Exception("If you have a tensorflow InternalError with cudaGetDevice() here, \
+            raise Exception(
+                "If you have a tensorflow InternalError with cudaGetDevice() here, \
             it is possible that importing tensorflow before torch might resolve the issue."
             ) from error
 
         try:
             # use PyTorch functionality
             import torch
-            from torch import nn
-            from torch import from_numpy
+            from torch import from_numpy, nn
+
             self.torch = torch
             self.nn = nn
             self.from_numpy = from_numpy
         except ImportError as exc:
             raise ImportError(
-            "PyTorch is required to use this feature. \
+                "PyTorch is required to use this feature. \
              Please install PyTorch using 'pip install torch'."
             ) from exc
 
-        assert not(torch_model.training), "Please provide a torch module in eval mode"
+        assert not (torch_model.training), "Please provide a torch module in eval mode"
         self.model = torch_model.to(device)
         self.device = device
         # with torch, the convention for CNN is (N, C, H, W)
@@ -58,8 +63,10 @@ class TorchWrapper(tf.keras.Model):
             self.channel_first = is_channel_first
         # deactivate all tf.function
         tf.config.run_functions_eagerly(True)
-        warnings.warn("TF is set to run eagerly to avoid conflict with PyTorch. Thus,\
-                       TF functions might be slower")
+        warnings.warn(
+            "TF is set to run eagerly to avoid conflict with PyTorch. Thus,\
+                       TF functions might be slower"
+        )
 
     # pylint: disable=arguments-differ
     @tf.custom_gradient
@@ -96,7 +103,7 @@ class TorchWrapper(tf.keras.Model):
             self.torch.autograd.backward(
                 outputs,
                 grad_tensors=self.from_numpy(upstream.numpy()).to(self.device),
-                retain_graph=False
+                retain_graph=False,
             )
             dx_torch = torch_inputs.grad
 

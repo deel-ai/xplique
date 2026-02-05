@@ -1,17 +1,20 @@
 import numpy as np
+import pytest
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import pytest
 
 from xplique.concepts import CraftTorch as Craft
 
+
 def generate_torch_data(x_shape=(3, 32, 32), num_labels=10, samples=100):
     x = torch.tensor(np.random.rand(samples, *x_shape).astype(np.float32))
-    y = F.one_hot(torch.tensor(np.random.randint(0, num_labels, samples), dtype=torch.int64),
-                  num_labels)
+    y = F.one_hot(
+        torch.tensor(np.random.randint(0, num_labels, samples), dtype=torch.int64), num_labels
+    )
 
     return x, y
+
 
 def generate_torch_model(input_shape=(3, 32, 32, 3), output_shape=10):
     """Creates a basic torch model that can be used for testing purpose"""
@@ -23,13 +26,13 @@ def generate_torch_model(input_shape=(3, 32, 32, 3), output_shape=10):
 
     model.append(nn.Conv2d(c_in, 4, (2, 2)))
     h_out = h_in - 1
-    w_out = w_in -1
+    w_out = w_in - 1
     c_out = 4
 
     model.append(nn.ReLU())
     model.append(nn.MaxPool2d((2, 2)))
-    h_out = int((h_out - 2)/2 + 1)
-    w_out = int((w_out - 2)/2 + 1)
+    h_out = int((h_out - 2) / 2 + 1)
+    w_out = int((w_out - 2) / 2 + 1)
 
     model.append(nn.Dropout(0.25))
     model.append(nn.Flatten())
@@ -38,6 +41,7 @@ def generate_torch_model(input_shape=(3, 32, 32, 3), output_shape=10):
     model.append(nn.Linear(int(flatten_size), output_shape))
 
     return model
+
 
 def test_shape():
     """Ensure the output shape is correct"""
@@ -61,7 +65,6 @@ def test_shape():
         # for index_layer_g, index_layer_h in [(0, 1), (-1, -1)]:
 
         for index_layer_g, index_layer_h in [(2, 2), (-1, -1)]:
-
             g = nn.Sequential(*list(model.children())[:index_layer_g])
             h = nn.Sequential(*list(model.children())[index_layer_h:])
 
@@ -72,22 +75,26 @@ def test_shape():
             number_of_concepts = 10
             patch_size = 15
 
-            craft = Craft(input_to_latent_model = g,
-                        latent_to_logit_model = h,
-                        number_of_concepts = number_of_concepts,
-                        patch_size = patch_size,
-                        batch_size = 64,
-                        device = 'cpu')
+            craft = Craft(
+                input_to_latent_model=g,
+                latent_to_logit_model=h,
+                number_of_concepts=number_of_concepts,
+                patch_size=patch_size,
+                batch_size=64,
+                device="cpu",
+            )
 
             # Now we can fit the concept using our images
             # Focus on class id 0
             class_id = 0
-            images_preprocessed = x[y.argmax(1)==class_id] # select only images of class 'class_id'
+            images_preprocessed = x[
+                y.argmax(1) == class_id
+            ]  # select only images of class 'class_id'
             crops, crops_u, w = craft.fit(images_preprocessed, class_id)
 
             # Checking shape of crops, crops_u, w
-            assert crops.shape[2] == crops.shape[3] == patch_size # Check patch sizes
-            assert crops.shape[0] == crops_u.shape[0] # Check numbers of patches
+            assert crops.shape[2] == crops.shape[3] == patch_size  # Check patch sizes
+            assert crops.shape[0] == crops_u.shape[0]  # Check numbers of patches
             assert crops_u.shape[1] == w.shape[0]
 
             # Importance estimation
@@ -97,14 +104,17 @@ def test_shape():
             # Checking the results of transform()
             images_u = craft.transform(images_preprocessed)
             if len(images_u.shape) == 4:
-                assert images_u.shape == (images_preprocessed.shape[0],
-                                          images_preprocessed.shape[2]-1,
-                                          images_preprocessed.shape[3]-1,
-                                          number_of_concepts)
+                assert images_u.shape == (
+                    images_preprocessed.shape[0],
+                    images_preprocessed.shape[2] - 1,
+                    images_preprocessed.shape[3] - 1,
+                    number_of_concepts,
+                )
             elif len(images_u.shape) == 2:
                 assert images_u.shape == (images_preprocessed.shape[0], number_of_concepts)
             else:
                 raise ValueError("images_u contains the wrong shape")
+
 
 def test_wrong_layers():
     """Ensure that Craft complains when the input models are incompatible"""
@@ -118,14 +128,16 @@ def test_wrong_layers():
     # first part is g(.) our 'input_to_latent' model,
     # second part is h(.) our 'latent_to_logit' model
     g = nn.Sequential(*list(model.children())[:3])
-    h = lambda x: 2*x
+    h = lambda x: 2 * x
 
     # Initialize Craft
     number_of_concepts = 10
     patch_size = 15
     with pytest.raises(TypeError):
-        Craft(input_to_latent_model = g,
-                latent_to_logit_model = h,
-                number_of_concepts = number_of_concepts,
-                patch_size = patch_size,
-                batch_size = 64)
+        Craft(
+            input_to_latent_model=g,
+            latent_to_logit_model=h,
+            number_of_concepts=number_of_concepts,
+            patch_size=patch_size,
+            batch_size=64,
+        )

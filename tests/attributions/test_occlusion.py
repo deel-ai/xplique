@@ -1,7 +1,8 @@
 import numpy as np
 
 from xplique.attributions import Occlusion
-from ..utils import generate_data, generate_model, almost_equal
+
+from ..utils import almost_equal, generate_data, generate_model
 
 
 def test_output_shape():
@@ -47,24 +48,18 @@ def test_mask_generator():
     assert Occlusion._get_masks((10, 10), (1, 1), (1, 1)).shape == (100, 10, 10)
     assert Occlusion._get_masks((10, 10), (2, 2), (2, 2)).shape == (25, 10, 10)
     assert Occlusion._get_masks((10, 10), (2, 2), (3, 3)).shape == (9, 10, 10)
-    assert np.array_equal(Occlusion._get_masks((2, 2), (1, 1), (1, 1)), np.array([
-        [
-            [1, 0],
-            [0, 0]
-        ],
-        [
-            [0, 1],
-            [0, 0]
-        ],
-        [
-            [0, 0],
-            [1, 0]
-        ],
-        [
-            [0, 0],
-            [0, 1]
-        ],
-    ], dtype=np.float32))
+    assert np.array_equal(
+        Occlusion._get_masks((2, 2), (1, 1), (1, 1)),
+        np.array(
+            [
+                [[1, 0], [0, 0]],
+                [[0, 1], [0, 0]],
+                [[0, 0], [1, 0]],
+                [[0, 0], [0, 1]],
+            ],
+            dtype=np.float32,
+        ),
+    )
 
 
 def test_apply():
@@ -75,24 +70,25 @@ def test_apply():
     masks = Occlusion._get_masks((2, 2, 1), (1, 1), (1, 1))
     occluded_x = Occlusion._apply_masks(x, masks, applied_value)
 
-    assert almost_equal(occluded_x[:,:,:,0], np.array([
-        [[applied_value, 1.0],
-         [1.0, 1.0]],
-        [[1.0, applied_value],
-         [1.0, 1.0]],
-        [[1.0, 1.0],
-         [applied_value, 1.0]],
-        [[1.0, 1.0],
-         [1.0, applied_value]],
-    ]))
+    assert almost_equal(
+        occluded_x[:, :, :, 0],
+        np.array(
+            [
+                [[applied_value, 1.0], [1.0, 1.0]],
+                [[1.0, applied_value], [1.0, 1.0]],
+                [[1.0, 1.0], [applied_value, 1.0]],
+                [[1.0, 1.0], [1.0, applied_value]],
+            ]
+        ),
+    )
 
     masks = Occlusion._get_masks((2, 2, 1), (2, 2), (2, 2))
     occluded_x = Occlusion._apply_masks(x, masks, applied_value)
 
-    assert almost_equal(occluded_x[:, :, :, 0], np.array([
-        [[applied_value, applied_value],
-         [applied_value, applied_value]]
-    ]))
+    assert almost_equal(
+        occluded_x[:, :, :, 0],
+        np.array([[[applied_value, applied_value], [applied_value, applied_value]]]),
+    )
 
 
 def test_delta_computation():
