@@ -1,14 +1,15 @@
 """
 Module related to SmoothGrad method
 """
+
 from abc import ABC, abstractmethod
 
-import tensorflow as tf
 import numpy as np
+import tensorflow as tf
 
+from ...commons import Tasks, batch_tensor, repeat_labels
+from ...types import OperatorSignature, Optional, Union
 from ..base import WhiteBoxExplainer, sanitize_input_output
-from ...commons import repeat_labels, batch_tensor, Tasks
-from ...types import Union, Optional, OperatorSignature
 
 
 class GradientStatistic(WhiteBoxExplainer, ABC):
@@ -52,14 +53,16 @@ class GradientStatistic(WhiteBoxExplainer, ABC):
         Scalar, noise used as standard deviation of a normal law centered on zero.
     """
 
-    def __init__(self,
-                 model: tf.keras.Model,
-                 output_layer: Optional[Union[str, int]] = None,
-                 batch_size: Optional[int] = 32,
-                 operator: Optional[Union[Tasks, str, OperatorSignature]] = None,
-                 reducer: Optional[str] = "mean",
-                 nb_samples: int = 50,
-                 noise: float = 0.2):
+    def __init__(
+        self,
+        model: tf.keras.Model,
+        output_layer: Optional[Union[str, int]] = None,
+        batch_size: Optional[int] = 32,
+        operator: Optional[Union[Tasks, str, OperatorSignature]] = None,
+        reducer: Optional[str] = "mean",
+        nb_samples: int = 50,
+        noise: float = 0.2,
+    ):
         super().__init__(model, output_layer, batch_size, operator, reducer)
         self.nb_samples = nb_samples
         self.noise = noise
@@ -67,9 +70,11 @@ class GradientStatistic(WhiteBoxExplainer, ABC):
 
     @sanitize_input_output
     @WhiteBoxExplainer._harmonize_channel_dimension
-    def explain(self,
-                inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
-                targets: Optional[Union[tf.Tensor, np.ndarray]] = None) -> tf.Tensor:
+    def explain(
+        self,
+        inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
+        targets: Optional[Union[tf.Tensor, np.ndarray]] = None,
+    ) -> tf.Tensor:
         """
         Compute SmoothGrad for a batch of samples.
 
@@ -105,22 +110,26 @@ class GradientStatistic(WhiteBoxExplainer, ABC):
 
             # loop over perturbation (a single pass if batch_size > nb_samples, batched otherwise)
             while total_perturbed_samples < self.nb_samples:
-                nb_perturbations = min(perturbation_batch_size,
-                                       self.nb_samples - total_perturbed_samples)
+                nb_perturbations = min(
+                    perturbation_batch_size, self.nb_samples - total_perturbed_samples
+                )
                 total_perturbed_samples += nb_perturbations
 
                 # add noise to inputs
                 perturbed_x_batch = GradientStatistic._perturb_samples(
-                    x_batch, nb_perturbations, self.noise)
+                    x_batch, nb_perturbations, self.noise
+                )
                 repeated_targets = repeat_labels(y_batch, nb_perturbations)
 
                 # compute the gradient of each noisy samples generated
                 gradients = self.batch_gradient(
-                    self.model, perturbed_x_batch, repeated_targets, batch_size)
+                    self.model, perturbed_x_batch, repeated_targets, batch_size
+                )
 
                 # group by inputs and compute the average gradient
                 gradients = tf.reshape(
-                    gradients, (x_batch.shape[0], nb_perturbations, *gradients.shape[1:]))
+                    gradients, (x_batch.shape[0], nb_perturbations, *gradients.shape[1:])
+                )
 
                 # update online estimation
                 self._update_online_statistic(gradients)
@@ -134,9 +143,7 @@ class GradientStatistic(WhiteBoxExplainer, ABC):
 
     @staticmethod
     @tf.function
-    def _perturb_samples(inputs: tf.Tensor,
-                         nb_perturbations: int,
-                         noise: float) -> tf.Tensor:
+    def _perturb_samples(inputs: tf.Tensor, nb_perturbations: int, noise: float) -> tf.Tensor:
         """
         Duplicate the samples and apply a noisy mask to each of them.
 

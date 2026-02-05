@@ -6,15 +6,14 @@ https://github.com/tensorflow/lucid/blob/master/lucid/optvis/param/color.py
 Credit is due to the original Lucid authors.
 """
 
-
 import numpy as np
 import tensorflow as tf
 
-from ..types import Tuple, Union, Callable, Optional
+from ..types import Callable, Optional, Tuple, Union
 
-
-IMAGENET_SPECTRUM_URL = "https://storage.googleapis.com/serrelab/loupe/"\
-                        "spectrums/imagenet_decorrelated.npy"
+IMAGENET_SPECTRUM_URL = (
+    "https://storage.googleapis.com/serrelab/loupe/spectrums/imagenet_decorrelated.npy"
+)
 
 
 def recorrelate_colors(images: tf.Tensor) -> tf.Tensor:
@@ -36,9 +35,12 @@ def recorrelate_colors(images: tf.Tensor) -> tf.Tensor:
 
     # constant
     imagenet_color_correlation = tf.cast(
-      [[0.56282854, 0.58447580, 0.58447580],
-       [0.19482528, 0.00000000,-0.19482528],
-       [0.04329450,-0.10823626, 0.06494176]], tf.float32
+        [
+            [0.56282854, 0.58447580, 0.58447580],
+            [0.19482528, 0.00000000, -0.19482528],
+            [0.04329450, -0.10823626, 0.06494176],
+        ],
+        tf.float32,
     )
 
     images_flat = tf.reshape(images, [-1, 3])
@@ -46,9 +48,11 @@ def recorrelate_colors(images: tf.Tensor) -> tf.Tensor:
     return tf.reshape(images_flat, tf.shape(images))
 
 
-def to_valid_rgb(images: tf.Tensor,
-                 normalizer: Union[str, Callable] = 'sigmoid',
-                 values_range: Tuple[float, float] = (0, 1)) -> tf.Tensor:
+def to_valid_rgb(
+    images: tf.Tensor,
+    normalizer: Union[str, Callable] = "sigmoid",
+    values_range: Tuple[float, float] = (0, 1),
+) -> tf.Tensor:
     """
     Apply transformations to map tensors to valid rgb images.
 
@@ -70,9 +74,9 @@ def to_valid_rgb(images: tf.Tensor,
     """
     images = recorrelate_colors(images)
 
-    if normalizer == 'sigmoid':
+    if normalizer == "sigmoid":
         images = tf.nn.sigmoid(images)
-    elif normalizer == 'clip':
+    elif normalizer == "clip":
         images = tf.clip_by_value(images, values_range[0], values_range[1])
     else:
         images = normalizer(images)
@@ -86,9 +90,11 @@ def to_valid_rgb(images: tf.Tensor,
     return images
 
 
-def to_valid_grayscale(images: tf.Tensor,
-                 normalizer: Union[str, Callable] = 'sigmoid',
-                 values_range: Tuple[float, float] = (0, 1)) -> tf.Tensor:
+def to_valid_grayscale(
+    images: tf.Tensor,
+    normalizer: Union[str, Callable] = "sigmoid",
+    values_range: Tuple[float, float] = (0, 1),
+) -> tf.Tensor:
     """
     Apply transformations to map tensors to valid gray-scale images.
 
@@ -108,9 +114,9 @@ def to_valid_grayscale(images: tf.Tensor,
     images
         Images after correction
     """
-    if normalizer == 'sigmoid':
+    if normalizer == "sigmoid":
         images = tf.nn.sigmoid(images)
-    elif normalizer == 'clip':
+    elif normalizer == "clip":
         images = tf.clip_by_value(images, values_range[0], values_range[1])
     elif isinstance(normalizer, Callable):
         images = normalizer(images)
@@ -148,7 +154,7 @@ def fft_2d_freq(width: int, height: int) -> np.ndarray:
     freq_y = np.fft.fftfreq(height)[:, np.newaxis]
 
     cut_off = int(width % 2 == 1)
-    freq_x = np.fft.fftfreq(width)[:width//2+1+cut_off]
+    freq_x = np.fft.fftfreq(width)[: width // 2 + 1 + cut_off]
 
     return np.sqrt(freq_x**2 + freq_y**2)
 
@@ -230,8 +236,7 @@ def fft_image(shape: Tuple, std: float = 0.01) -> tf.Tensor:
     batch, width, height, channels = shape
     frequencies = fft_2d_freq(width, height)
 
-    buffer = tf.random.normal((2, batch, channels)+frequencies.shape,
-                              stddev=std)
+    buffer = tf.random.normal((2, batch, channels) + frequencies.shape, stddev=std)
 
     return buffer
 
@@ -257,15 +262,15 @@ def init_maco_buffer(image_shape, dataset: Optional = None, std=1.0):
     phase
         Phase of the spectrum
     """
-    spectrum_shape = (image_shape[0], image_shape[1]//2+1)
+    spectrum_shape = (image_shape[0], image_shape[1] // 2 + 1)
 
     if dataset is None:
         # init randomly the phase and load the constrained spectrum (average spectrum)
         phase = np.random.normal(size=(3, *spectrum_shape), scale=std).astype(np.float32)
 
-        magnitude_path = tf.keras.utils.get_file("spectrum_decorrelated.npy",
-                                                 IMAGENET_SPECTRUM_URL,
-                                                 cache_subdir="spectrums")
+        magnitude_path = tf.keras.utils.get_file(
+            "spectrum_decorrelated.npy", IMAGENET_SPECTRUM_URL, cache_subdir="spectrums"
+        )
         magnitude = np.load(magnitude_path)
         magnitude = tf.image.resize(np.moveaxis(magnitude, 0, -1), spectrum_shape).numpy()
         magnitude = np.moveaxis(magnitude, -1, 0)

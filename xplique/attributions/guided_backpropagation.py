@@ -2,12 +2,12 @@
 Module related to Guided Backpropagation method
 """
 
-import tensorflow as tf
 import numpy as np
+import tensorflow as tf
 
+from ..commons import Tasks, guided_relu_policy, override_relu_gradient
+from ..types import OperatorSignature, Optional, Union
 from .base import WhiteBoxExplainer, sanitize_input_output
-from ..commons import guided_relu_policy, override_relu_gradient, Tasks
-from ..types import Union, Optional, OperatorSignature
 
 
 class GuidedBackprop(WhiteBoxExplainer):  # pylint: disable=duplicate-code
@@ -40,20 +40,25 @@ class GuidedBackprop(WhiteBoxExplainer):  # pylint: disable=duplicate-code
         String, name of the reducer to use. Either "min", "mean", "max", "sum", or `None` to ignore.
         Used only for images to obtain explanation with shape (n, h, w, 1).
     """
-    def __init__(self,
-                model: tf.keras.Model,
-                output_layer: Optional[Union[str, int]] = None,
-                batch_size: Optional[int] = 32,
-                operator: Optional[Union[Tasks, str, OperatorSignature]] = None,
-                reducer: Optional[str] = "mean",):
+
+    def __init__(
+        self,
+        model: tf.keras.Model,
+        output_layer: Optional[Union[str, int]] = None,
+        batch_size: Optional[int] = 32,
+        operator: Optional[Union[Tasks, str, OperatorSignature]] = None,
+        reducer: Optional[str] = "mean",
+    ):
         super().__init__(model, output_layer, batch_size, operator, reducer)
         self.model = override_relu_gradient(self.model, guided_relu_policy)
 
     @sanitize_input_output
     @WhiteBoxExplainer._harmonize_channel_dimension
-    def explain(self,
-                inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
-                targets: Optional[Union[tf.Tensor, np.ndarray]] = None) -> tf.Tensor:
+    def explain(
+        self,
+        inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
+        targets: Optional[Union[tf.Tensor, np.ndarray]] = None,
+    ) -> tf.Tensor:
         """
         Compute DeconvNet for a batch of samples.
         Accept Tensor, numpy array or tf.data.Dataset (in that case targets is None)

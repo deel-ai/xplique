@@ -1,14 +1,14 @@
 """
 Test operations on tf datasets
 """
+
 import os
 import sys
 
 sys.path.append(os.getcwd())
 
-import pytest
-
 import numpy as np
+import pytest
 import tensorflow as tf
 
 from xplique.example_based.datasets_operations.tf_dataset_operations import *
@@ -29,27 +29,19 @@ def test_are_dataset_first_elems_equal():
     """
     Verify that the function is able to compare the first element of datasets
     """
-    tf_dataset_up = tf.data.Dataset.from_tensor_slices(
-        tf.reshape(tf.range(90), (10, 3, 3))
-    )
-    tf_dataset_up_small = tf.data.Dataset.from_tensor_slices(
-        tf.reshape(tf.range(45), (5, 3, 3))
-    )
+    tf_dataset_up = tf.data.Dataset.from_tensor_slices(tf.reshape(tf.range(90), (10, 3, 3)))
+    tf_dataset_up_small = tf.data.Dataset.from_tensor_slices(tf.reshape(tf.range(45), (5, 3, 3)))
     tf_dataset_down = tf.data.Dataset.from_tensor_slices(
         tf.reshape(tf.range(90, 0, -1), (10, 3, 3))
     )
 
     zipped = tf.data.Dataset.zip((tf_dataset_up, tf_dataset_up))
-    zipped_batched_in = tf.data.Dataset.zip(
-        (tf_dataset_up.batch(3), tf_dataset_up.batch(3))
-    )
+    zipped_batched_in = tf.data.Dataset.zip((tf_dataset_up.batch(3), tf_dataset_up.batch(3)))
 
     assert are_dataset_first_elems_equal(tf_dataset_up, tf_dataset_up)
     assert are_dataset_first_elems_equal(tf_dataset_up.batch(3), tf_dataset_up.batch(3))
     assert are_dataset_first_elems_equal(tf_dataset_up, tf_dataset_up_small)
-    assert are_dataset_first_elems_equal(
-        tf_dataset_up.batch(3), tf_dataset_up_small.batch(3)
-    )
+    assert are_dataset_first_elems_equal(tf_dataset_up.batch(3), tf_dataset_up_small.batch(3))
     assert are_dataset_first_elems_equal(zipped, zipped)
     assert are_dataset_first_elems_equal(zipped.batch(3), zipped.batch(3))
     assert are_dataset_first_elems_equal(zipped_batched_in, zipped_batched_in)
@@ -57,9 +49,7 @@ def test_are_dataset_first_elems_equal():
     assert not are_dataset_first_elems_equal(tf_dataset_up.batch(3), zipped.batch(3))
     assert not are_dataset_first_elems_equal(tf_dataset_up.batch(3), zipped_batched_in)
     assert not are_dataset_first_elems_equal(tf_dataset_up, tf_dataset_down)
-    assert not are_dataset_first_elems_equal(
-        tf_dataset_up.batch(3), tf_dataset_down.batch(3)
-    )
+    assert not are_dataset_first_elems_equal(tf_dataset_up.batch(3), tf_dataset_down.batch(3))
 
 
 def test_is_shuffled():
@@ -67,9 +57,7 @@ def test_is_shuffled():
     Verify the function is able to detect dataset that do not provide stable order of elements
     """
     # test with non-shuffled datasets
-    tf_dataset = tf.data.Dataset.from_tensor_slices(
-        tf.reshape(tf.range(900), (100, 3, 3))
-    )
+    tf_dataset = tf.data.Dataset.from_tensor_slices(tf.reshape(tf.range(900), (100, 3, 3)))
     zipped = tf.data.Dataset.zip((tf_dataset, tf_dataset))
     tf_mapped = tf_dataset.map(lambda x: x)
 
@@ -106,9 +94,7 @@ def test_batch_size_matches():
     """
     Test that the function is able to detect incoherence between dataset and batch_size
     """
-    tf_dataset = tf.data.Dataset.from_tensor_slices(
-        tf.reshape(tf.range(90), (10, 3, 3))
-    )
+    tf_dataset = tf.data.Dataset.from_tensor_slices(tf.reshape(tf.range(90), (10, 3, 3)))
     tf_b1 = tf_dataset.batch(1)
     tf_b2 = tf_dataset.batch(2)
     tf_b5 = tf_dataset.batch(5)
@@ -177,9 +163,7 @@ def test_dataset_gather():
     Test dataset gather function
     """
     # (5, 2, 3, 3)
-    tf_dataset = tf.data.Dataset.from_tensor_slices(
-        tf.reshape(tf.range(90), (10, 3, 3))
-    ).batch(2)
+    tf_dataset = tf.data.Dataset.from_tensor_slices(tf.reshape(tf.range(90), (10, 3, 3))).batch(2)
 
     indices_1 = np.array([[[0, 0], [1, 1]], [[2, 1], [0, 0]]])
     # (2, 2, 3, 3)

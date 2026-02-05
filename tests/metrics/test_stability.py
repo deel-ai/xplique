@@ -1,8 +1,9 @@
-import tensorflow as tf
 import numpy as np
+import tensorflow as tf
 
-from ..utils import generate_model, generate_data, almost_equal
 from xplique.metrics import AverageStability
+
+from ..utils import almost_equal, generate_data, generate_model
 
 
 def test_average_stability():
@@ -10,17 +11,15 @@ def test_average_stability():
     input_shape, nb_labels, nb_samples = ((32, 32, 3), 10, 20)
     x, y = generate_data(input_shape, nb_labels, nb_samples)
     model = generate_model(input_shape, nb_labels)
-    explainer = lambda x, y : np.random.uniform(0, 1, x.shape[:-1])
+    explainer = lambda x, y: np.random.uniform(0, 1, x.shape[:-1])
 
     l_inf_dist = lambda phi_a, phi_b: np.max(phi_a - phi_b)
 
     for batch_size in [64, None]:
-        for dist in ['l1', 'l2', l_inf_dist]:
-            score = AverageStability(model, x, y,
-                                     batch_size=batch_size,
-                                     radius=0.1,
-                                     distance=dist,
-                                     nb_samples=100)(explainer)
+        for dist in ["l1", "l2", l_inf_dist]:
+            score = AverageStability(
+                model, x, y, batch_size=batch_size, radius=0.1, distance=dist, nb_samples=100
+            )(explainer)
 
             assert isinstance(score, float)
             assert score < np.prod(x.shape[:-1])
@@ -62,7 +61,7 @@ def test_worst_stability():
     model = model = generate_model(input_shape, nb_labels)
 
     def worst_explainer(inputs, _):
-        is_original = any([np.sum(np.abs(inputs[0] - _x)) == .0 for _x in x])
+        is_original = any([np.sum(np.abs(inputs[0] - _x)) == 0.0 for _x in x])
         if is_original:
             return np.ones(inputs.shape)
         else:

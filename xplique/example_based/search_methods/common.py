@@ -63,9 +63,7 @@ def _cosine_distance(x1: tf.Tensor, x2: tf.Tensor) -> tf.Tensor:
     tf.Tensor
         Cosine distance between the two vectors.
     """
-    return 1 - tf.reduce_sum(x1 * x2, axis=-1) / (
-        tf.norm(x1, axis=-1) * tf.norm(x2, axis=-1)
-    )
+    return 1 - tf.reduce_sum(x1 * x2, axis=-1) / (tf.norm(x1, axis=-1) * tf.norm(x2, axis=-1))
 
 
 def _chebyshev_distance(x1: tf.Tensor, x2: tf.Tensor) -> tf.Tensor:
@@ -117,7 +115,9 @@ _distances = {
 }
 
 
-def get_distance_function(distance: Union[int, str, Callable] = "euclidean",) -> Callable:
+def get_distance_function(
+    distance: Union[int, str, Callable] = "euclidean",
+) -> Callable:
     """
     Function to obtain a distance function from different inputs.
 
@@ -139,7 +139,7 @@ def get_distance_function(distance: Union[int, str, Callable] = "euclidean",) ->
         return _chebyshev_distance
 
     raise AttributeError(
-        "The distance parameter is expected to be either a Callable, "\
-        + f" an integer, 'inf', or a string in {_distances.keys()}. "\
+        "The distance parameter is expected to be either a Callable, "
+        + f" an integer, 'inf', or a string in {_distances.keys()}. "
         + f"But a {type(distance)} was received, with value {distance}."
     )

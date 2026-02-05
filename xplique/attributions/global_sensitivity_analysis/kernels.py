@@ -4,6 +4,7 @@ Kernel functions for HSIC estimators.
 # pylint: disable=C0103
 
 from enum import Enum
+
 import tensorflow as tf
 
 

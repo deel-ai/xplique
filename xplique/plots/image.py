@@ -1,10 +1,11 @@
 """
 Pretty plots option for explanations
 """
+
 from math import ceil
 
-import tensorflow as tf
 import numpy as np
+import tensorflow as tf
 from matplotlib import pyplot as plt
 
 from ..types import Optional, Union
@@ -31,8 +32,8 @@ def _normalize(image: Union[tf.Tensor, np.ndarray]) -> np.ndarray:
 
     return image
 
-def _clip_percentile(tensor: Union[tf.Tensor, np.ndarray],
-                     percentile: float) -> np.ndarray:
+
+def _clip_percentile(tensor: Union[tf.Tensor, np.ndarray], percentile: float) -> np.ndarray:
     """
     Apply clip according to percentile value (percentile, 100-percentile) of a tensor
     only if percentile is not None.
@@ -48,19 +49,21 @@ def _clip_percentile(tensor: Union[tf.Tensor, np.ndarray],
         Tensor clipped accordingly to the percentile value.
     """
 
-    assert 0. <= percentile <= 100., "Percentile value should be in [0, 100]"
+    assert 0.0 <= percentile <= 100.0, "Percentile value should be in [0, 100]"
 
     if percentile is not None:
         clip_min = np.percentile(tensor, percentile)
-        clip_max = np.percentile(tensor, 100. - percentile)
+        clip_max = np.percentile(tensor, 100.0 - percentile)
         tensor = np.clip(tensor, clip_min, clip_max)
 
     return tensor
 
 
-def _clip_normalize(explanation: Union[tf.Tensor, np.ndarray],
-                       clip_percentile: Optional[float] = 0.1,
-                       absolute_value: bool = False) -> Union[tf.Tensor, np.ndarray]:
+def _clip_normalize(
+    explanation: Union[tf.Tensor, np.ndarray],
+    clip_percentile: Optional[float] = 0.1,
+    absolute_value: bool = False,
+) -> Union[tf.Tensor, np.ndarray]:
     if absolute_value:
         explanation = np.abs(explanation)
 
@@ -72,13 +75,15 @@ def _clip_normalize(explanation: Union[tf.Tensor, np.ndarray],
     return explanation
 
 
-def plot_attribution(explanation,
-                      image: Optional[np.ndarray] = None,
-                      cmap: str = "jet",
-                      alpha: float = 0.5,
-                      clip_percentile: Optional[float] = 0.1,
-                      absolute_value: bool = False,
-                      **plot_kwargs):
+def plot_attribution(
+    explanation,
+    image: Optional[np.ndarray] = None,
+    cmap: str = "jet",
+    alpha: float = 0.5,
+    clip_percentile: Optional[float] = 0.1,
+    absolute_value: bool = False,
+    **plot_kwargs,
+):
     """
     Displays a single explanation and the associated image (if provided).
     Applies a series of pre-processing to facilitate the interpretation of heatmaps.
@@ -106,46 +111,46 @@ def plot_attribution(explanation,
         image = _normalize(image)
         plt.imshow(image)
 
-    if len(explanation.shape) == 4: # images channel are reduced
+    if len(explanation.shape) == 4:  # images channel are reduced
         explanation = np.mean(explanation, -1)
 
     explanation = _clip_normalize(explanation, clip_percentile, absolute_value)
 
     plt.imshow(explanation, cmap=cmap, alpha=alpha, **plot_kwargs)
-    plt.axis('off')
+    plt.axis("off")
 
 
 def _adjust_figure(cols, rows, img_size, spacing, margin, l_width, l_height):
-    figwidth = cols * img_size + (cols-1) * spacing + 2 * margin
-    figheight = rows * img_size * l_height/l_width + (rows-1) * spacing + 2 * margin
+    figwidth = cols * img_size + (cols - 1) * spacing + 2 * margin
+    figheight = rows * img_size * l_height / l_width + (rows - 1) * spacing + 2 * margin
 
-    left = margin/figwidth
-    bottom = margin/figheight
+    left = margin / figwidth
+    bottom = margin / figheight
 
     fig = plt.figure()
     fig.set_size_inches(figwidth, figheight)
 
     fig.subplots_adjust(
-        left = left,
-        bottom = bottom,
-        right = 1.-left,
-        top = 1.-bottom,
-        wspace = spacing/img_size,
-        hspace= spacing/img_size * l_width/l_height
+        left=left,
+        bottom=bottom,
+        right=1.0 - left,
+        top=1.0 - bottom,
+        wspace=spacing / img_size,
+        hspace=spacing / img_size * l_width / l_height,
     )
     return fig
 
 
 def plot_attributions(
-        explanations: Union[tf.Tensor, np.ndarray],
-        images: Optional[Union[tf.Tensor, np.ndarray]] = None,
-        cmap: str = "viridis",
-        alpha: float = 0.5,
-        clip_percentile: Optional[float] = 0.1,
-        absolute_value: bool = False,
-        cols: int = 5,
-        img_size: float = 2.,
-        **plot_kwargs
+    explanations: Union[tf.Tensor, np.ndarray],
+    images: Optional[Union[tf.Tensor, np.ndarray]] = None,
+    cmap: str = "viridis",
+    alpha: float = 0.5,
+    clip_percentile: Optional[float] = 0.1,
+    absolute_value: bool = False,
+    cols: int = 5,
+    img_size: float = 2.0,
+    **plot_kwargs,
 ):
     """
     Displays a series of explanations and their associated images if these are provided.
@@ -176,8 +181,9 @@ def plot_attributions(
         Additional parameters passed to `plt.imshow()`.
     """
     if images is not None:
-        assert len(images) == len(explanations), "If you provide images, there must be as many " \
-                                                 "as explanations."
+        assert len(images) == len(explanations), (
+            "If you provide images, there must be as many as explanations."
+        )
 
     rows = ceil(len(explanations) / cols)
     # get width and height of our images
@@ -189,17 +195,24 @@ def plot_attributions(
     _adjust_figure(cols, rows, img_size, spacing, margin, l_width, l_height)
 
     for i, explanation in enumerate(explanations):
-        plt.subplot(rows, cols, i+1)
+        plt.subplot(rows, cols, i + 1)
 
         if images is not None:
             img = _normalize(images[i])
             if img.shape[-1] == 1:
-                plt.imshow(img[:,:,0], cmap="Greys")
+                plt.imshow(img[:, :, 0], cmap="Greys")
             else:
                 plt.imshow(img)
 
-        plot_attribution(explanation, cmap=cmap, alpha=alpha, clip_percentile=clip_percentile,
-                         absolute_value=absolute_value, **plot_kwargs)
+        plot_attribution(
+            explanation,
+            cmap=cmap,
+            alpha=alpha,
+            clip_percentile=clip_percentile,
+            absolute_value=absolute_value,
+            **plot_kwargs,
+        )
+
 
 def plot_maco(image, alpha, percentile_image=1.0, percentile_alpha=80):
     """
@@ -229,16 +242,16 @@ def plot_maco(image, alpha, percentile_image=1.0, percentile_alpha=80):
     image = _normalize(image)
 
     plt.imshow(np.concatenate([image, alpha], -1))
-    plt.axis('off')
+    plt.axis("off")
 
 
 def plot_examples(
-        examples: np.ndarray,
-        distances: float = None,
-        labels: np.ndarray = None,
-        test_labels: np.ndarray = None,
-        predicted_labels: np.ndarray = None,
-        img_size: float = 2.,
+    examples: np.ndarray,
+    distances: float = None,
+    labels: np.ndarray = None,
+    test_labels: np.ndarray = None,
+    predicted_labels: np.ndarray = None,
+    img_size: float = 2.0,
 ):
     """
     This function is for image data, it show the returns of the explain function.
@@ -260,15 +273,19 @@ def plot_examples(
     """
     # pylint: disable=too-many-arguments
     if distances is not None:
-        assert examples.shape[0] == distances.shape[0],\
+        assert examples.shape[0] == distances.shape[0], (
             "Number of samples treated should match between examples and distances."
-        assert examples.shape[1] == distances.shape[1] + 1,\
+        )
+        assert examples.shape[1] == distances.shape[1] + 1, (
             "Number of distances for each input must correspond to the number of examples -1."
+        )
     if labels is not None:
-        assert examples.shape[0] == labels.shape[0],\
+        assert examples.shape[0] == labels.shape[0], (
             "Number of samples treated should match between examples and labels."
-        assert examples.shape[1] == labels.shape[1] + 1,\
+        )
+        assert examples.shape[1] == labels.shape[1] + 1, (
             "Number of labels for each input must correspond to the number of examples -1."
+        )
 
     # number of rows depends if weights are provided
     rows_by_input = 1
@@ -280,22 +297,22 @@ def plot_examples(
     # define the figure margin, width, height in inch
     margin = 0.3
     spacing = 0.3
-    figwidth = cols * img_size + (cols-1) * spacing + 2 * margin
-    figheight = rows * img_size * l_height/l_width + (rows-1) * spacing + 2 * margin
+    figwidth = cols * img_size + (cols - 1) * spacing + 2 * margin
+    figheight = rows * img_size * l_height / l_width + (rows - 1) * spacing + 2 * margin
 
-    left = margin/figwidth
-    bottom = margin/figheight
+    left = margin / figwidth
+    bottom = margin / figheight
 
     fig = plt.figure()
     fig.set_size_inches(figwidth, figheight)
 
     fig.subplots_adjust(
-        left = left,
-        bottom = bottom,
-        right = 1.-left,
-        top = 1.-bottom,
-        wspace = spacing/img_size,
-        hspace= spacing/img_size * l_width/l_height
+        left=left,
+        bottom=bottom,
+        right=1.0 - left,
+        top=1.0 - bottom,
+        wspace=spacing / img_size,
+        hspace=spacing / img_size * l_width / l_height,
     )
 
     # configure the grid to show all results
@@ -311,20 +328,26 @@ def plot_examples(
             if k == 0:
                 title = "Original image"
                 title += f"\nGround Truth: {test_labels[i]}" if test_labels is not None else ""
-                title += f"\nPrediction: {predicted_labels[i, k]}"\
-                    if predicted_labels is not None else ""
+                title += (
+                    f"\nPrediction: {predicted_labels[i, k]}"
+                    if predicted_labels is not None
+                    else ""
+                )
             else:
                 title = f"Example {k}"
-                title += f"\nGround Truth: {labels[i, k-1]}" if labels is not None else ""
-                title += f"\nPrediction: {predicted_labels[i, k]}"\
-                    if predicted_labels is not None else ""
-                title += f"\nDistance: {distances[i, k-1]:.4f}" if distances is not None else ""
+                title += f"\nGround Truth: {labels[i, k - 1]}" if labels is not None else ""
+                title += (
+                    f"\nPrediction: {predicted_labels[i, k]}"
+                    if predicted_labels is not None
+                    else ""
+                )
+                title += f"\nDistance: {distances[i, k - 1]:.4f}" if distances is not None else ""
             plt.title(title)
 
             # plot image
             img = _normalize(examples[i, k])
             if img.shape[-1] == 1:
-                plt.imshow(img[:,:,0], cmap="gray")
+                plt.imshow(img[:, :, 0], cmap="gray")
             else:
                 plt.imshow(img)
             plt.axis("off")

@@ -6,10 +6,10 @@ import tensorflow as tf
 
 from ..types import Callable
 
+
 def predictions_one_hot_callable(
-    model: Callable,
-    inputs: tf.Tensor,
-    targets: tf.Tensor) -> tf.Tensor:
+    model: Callable, inputs: tf.Tensor, targets: tf.Tensor
+) -> tf.Tensor:
     """
     Compute predictions scores, only for the label class, for a batch of samples.
 
@@ -28,7 +28,6 @@ def predictions_one_hot_callable(
         Predictions scores computed, only for the label class.
     """
     if isinstance(model, tf.lite.Interpreter):
-
         model.resize_tensor_input(0, [*inputs.shape], strict=False)
         model.allocate_tensors()
         model.set_tensor(model.get_input_details()[0]["index"], inputs)
@@ -36,7 +35,7 @@ def predictions_one_hot_callable(
         pred = model.get_tensor(model.get_output_details()[0]["index"])
 
     # can be a sklearn model or xgboost model
-    elif hasattr(model, 'predict_proba'):
+    elif hasattr(model, "predict_proba"):
         pred = model.predict_proba(inputs.numpy())
 
     # can be another model thus it needs to implement a call function

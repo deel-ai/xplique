@@ -1,5 +1,5 @@
-from xplique.features_visualizations.preconditioning import fft_image, \
-    fft_to_rgb, get_fft_scale
+from xplique.features_visualizations.preconditioning import fft_image, fft_to_rgb, get_fft_scale
+
 
 def test_shape():
     """Ensure the shape of the image generated is correct"""

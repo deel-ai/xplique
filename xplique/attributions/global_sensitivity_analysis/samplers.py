@@ -5,8 +5,8 @@ Sampling methods
 from abc import ABC, abstractmethod
 
 import numpy as np
-import tensorflow as tf
 import scipy
+import tensorflow as tf
 
 from ...types import Union
 
@@ -42,9 +42,7 @@ class ScipySampler(Sampler):
         try:
             self.qmc = scipy.stats.qmc  # pylint: disable=E1101
         except AttributeError as err:
-            raise ModuleNotFoundError(
-                "Xplique need scipy>=1.7 to use this sampling."
-            ) from err
+            raise ModuleNotFoundError("Xplique need scipy>=1.7 to use this sampling.") from err
 
 
 class TFSobolSequence(Sampler):

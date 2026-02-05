@@ -1,10 +1,21 @@
-import numpy as np
 import tensorflow as tf
 
-from xplique.attributions import (Saliency, GradientInput, IntegratedGradients, SmoothGrad, VarGrad,
-                                  SquareGrad, Occlusion, Rise, GuidedBackprop, DeconvNet, Lime,
-                                  KernelShap)
-from ..utils import generate_regression_model, generate_data
+from xplique.attributions import (
+    DeconvNet,
+    GradientInput,
+    GuidedBackprop,
+    IntegratedGradients,
+    KernelShap,
+    Lime,
+    Occlusion,
+    Saliency,
+    SmoothGrad,
+    SquareGrad,
+    VarGrad,
+)
+
+from ..utils import generate_data, generate_regression_model
+
 
 def _default_methods(model, output_layer_index):
     return [
@@ -21,6 +32,7 @@ def _default_methods(model, output_layer_index):
         Occlusion(model, patch_size=1, patch_stride=1),
     ]
 
+
 def test_tabular_data():
     """Test applied to most attributions method"""
 
@@ -35,26 +47,27 @@ def test_tabular_data():
 
     methods = _default_methods(model, output_layer_index)
 
-    for inputs, targets in [(inputs_np, targets_np),
-                            (inputs_tf, targets_tf),
-                            (dataset, None),
-                            # (batched_dataset, None)
-                            ]:
+    for inputs, targets in [
+        (inputs_np, targets_np),
+        (inputs_tf, targets_tf),
+        (dataset, None),
+        # (batched_dataset, None)
+    ]:
         for method in methods:
             try:
                 explanations = method.explain(inputs, targets)
             except:
-                raise AssertionError(
-                    "Explanation failed for method ", method.__class__.__name__)
+                raise AssertionError("Explanation failed for method ", method.__class__.__name__)
 
             # all explanation must have an explain method
-            assert hasattr(method, 'explain')
+            assert hasattr(method, "explain")
 
             # all explanations returned must be numpy array
             assert isinstance(explanations, tf.Tensor)
 
             # all explanations shape should match features shape
             assert explanations.shape == [samples, *features_shape]
+
 
 def test_multioutput_regression():
     """
@@ -72,26 +85,27 @@ def test_multioutput_regression():
 
     methods = _default_methods(model, output_layer_index)
 
-    for inputs, targets in [(inputs_np, targets_np),
-                            (inputs_tf, targets_tf),
-                            (dataset, None),
-                            # (batched_dataset, None)
-                            ]:
+    for inputs, targets in [
+        (inputs_np, targets_np),
+        (inputs_tf, targets_tf),
+        (dataset, None),
+        # (batched_dataset, None)
+    ]:
         for method in methods:
             try:
                 explanations = method.explain(inputs, targets)
             except:
-                raise AssertionError(
-                    "Explanation failed for method ", method.__class__.__name__)
+                raise AssertionError("Explanation failed for method ", method.__class__.__name__)
 
             # all explanation must have an explain method
-            assert hasattr(method, 'explain')
+            assert hasattr(method, "explain")
 
             # all explanations returned must be numpy array
             assert isinstance(explanations, tf.Tensor)
 
             # all explanations shape should match features shape
             assert explanations.shape == [samples, *features_shape]
+
 
 def test_batch_size():
     """
@@ -106,7 +120,6 @@ def test_batch_size():
     batch_sizes = [None, 1, 32]
 
     for bs in batch_sizes:
-
         methods = [
             Saliency(model, output_layer_index, bs),
             GradientInput(model, output_layer_index, bs),
@@ -126,5 +139,5 @@ def test_batch_size():
                 explanations = method.explain(inputs, targets)
             except:
                 raise AssertionError(
-                    "Explanation failed for method ", method.__class__.__name__,
-                    " batch size ", bs)
+                    "Explanation failed for method ", method.__class__.__name__, " batch size ", bs
+                )

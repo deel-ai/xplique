@@ -5,7 +5,6 @@ Custom, a projection from example based module
 import tensorflow as tf
 
 from ...types import Union
-
 from .base import Projection
 from .commons import model_splitting
 
@@ -40,22 +39,22 @@ class LatentSpaceProjection(Projection):
         If you encounter errors in the `project_dataset` method, you can set it to `False`.
     """
 
-    def __init__(self,
-                 model: Union[tf.keras.Model, 'torch.nn.Module'],
-                 latent_layer: Union[str, int] = -1,
-                 device: Union["torch.device", str] = None,
-                 mappable: bool = True,
-                 ):
+    def __init__(
+        self,
+        model: Union[tf.keras.Model, "torch.nn.Module"],
+        latent_layer: Union[str, int] = -1,
+        device: Union["torch.device", str] = None,
+        mappable: bool = True,
+    ):
         if latent_layer is None:
-            assert isinstance(model, tf.keras.Model),\
+            assert isinstance(model, tf.keras.Model), (
                 "If no latent_layer is provided, the model should be a tf.keras.Model."
+            )
             features_extractor = model
         else:
             features_extractor, _ = model_splitting(model, latent_layer=latent_layer, device=device)
             mappable = isinstance(model, tf.keras.Model)
 
         super().__init__(
-            space_projection=features_extractor,
-            mappable=mappable,
-            requires_targets=False
+            space_projection=features_extractor, mappable=mappable, requires_targets=False
         )

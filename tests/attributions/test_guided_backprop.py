@@ -2,7 +2,8 @@ import numpy as np
 import tensorflow as tf
 
 from xplique.attributions import GuidedBackprop
-from ..utils import generate_data, generate_model, almost_equal
+
+from ..utils import almost_equal, generate_data, generate_model
 
 
 def test_output_shape():
@@ -26,7 +27,7 @@ def test_guided_mechanism():
 
     model = tf.keras.models.Sequential()
     model.add(tf.keras.layers.Activation(tf.nn.relu, input_shape=(4,)))
-    model.add(tf.keras.layers.Lambda(lambda x: -x ** 2))
+    model.add(tf.keras.layers.Lambda(lambda x: -(x**2)))
 
     x = tf.constant(np.expand_dims([5.0, 0.0, -5.0, 10.0], axis=0))
 

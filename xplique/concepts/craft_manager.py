@@ -9,6 +9,7 @@ import numpy as np
 from ..types import Callable, Optional
 from .craft import DisplayImportancesOrder
 
+
 class BaseCraftManager(ABC):
     """
     Base class implementing the CRAFT Concept Extraction Mechanism on multiple classes.
@@ -30,12 +31,14 @@ class BaseCraftManager(ABC):
     """
 
     @abstractmethod
-    def __init__(self,
-                input_to_latent_model : Callable,
-                latent_to_logit_model : Callable,
-                inputs : np.ndarray,
-                labels : np.ndarray,
-                list_of_class_of_interest : Optional[list] = None):
+    def __init__(
+        self,
+        input_to_latent_model: Callable,
+        latent_to_logit_model: Callable,
+        inputs: np.ndarray,
+        labels: np.ndarray,
+        list_of_class_of_interest: Optional[list] = None,
+    ):
         self.input_to_latent_model = input_to_latent_model
         self.latent_to_logit_model = latent_to_logit_model
         self.inputs = inputs
@@ -78,7 +81,7 @@ class BaseCraftManager(ABC):
 
         for class_of_interest, craft_instance in self.craft_instances.items():
             if verbose:
-                print(f'Fitting CRAFT instance for class {class_of_interest} ')
+                print(f"Fitting CRAFT instance for class {class_of_interest} ")
             filtered_indices = np.where(y_preds == class_of_interest)
             class_inputs = self.inputs[filtered_indices]
             class_labels = self.labels[filtered_indices]
@@ -101,13 +104,12 @@ class BaseCraftManager(ABC):
         """
         for class_of_interest, craft_instance in self.craft_instances.items():
             if verbose:
-                print(f'Estimating importances for class {class_of_interest} ')
+                print(f"Estimating importances for class {class_of_interest} ")
             craft_instance.estimate_importance(nb_design=nb_design)
 
-    def plot_concepts_importances(self,
-                                  class_id: int,
-                                  nb_most_important_concepts: int = 5,
-                                  verbose: bool = False):
+    def plot_concepts_importances(
+        self, class_id: int, nb_most_important_concepts: int = 5, verbose: bool = False
+    ):
         """
         Plot a bar chart displaying the importance value of each concept.
 
@@ -121,13 +123,13 @@ class BaseCraftManager(ABC):
             If True, then print the importance value of each concept, otherwise no textual
             output will be printed.
         """
-        self.craft_instances[class_id].plot_concepts_importances(importances = None,
-                                        nb_most_important_concepts=nb_most_important_concepts,
-                                        verbose=verbose)
+        self.craft_instances[class_id].plot_concepts_importances(
+            importances=None, nb_most_important_concepts=nb_most_important_concepts, verbose=verbose
+        )
 
-    def plot_concepts_crops(self,
-                            class_id: int, nb_crops: int = 10,
-                            nb_most_important_concepts: int = None):
+    def plot_concepts_crops(
+        self, class_id: int, nb_crops: int = 10, nb_most_important_concepts: int = None
+    ):
         """
         Display the crops for each concept.
 
@@ -142,19 +144,21 @@ class BaseCraftManager(ABC):
             nb_most_important_concepts, otherwise display them all.
             Default is None.
         """
-        self.craft_instances[class_id].plot_concepts_crops(nb_crops=nb_crops,
-                        nb_most_important_concepts=nb_most_important_concepts)
+        self.craft_instances[class_id].plot_concepts_crops(
+            nb_crops=nb_crops, nb_most_important_concepts=nb_most_important_concepts
+        )
 
-    def plot_image_concepts(self,
-                            img: np.ndarray,
-                            class_id: int,
-                            display_importance_order: DisplayImportancesOrder = \
-                                                    DisplayImportancesOrder.GLOBAL,
-                            nb_most_important_concepts: int = 5,
-                            filter_percentile: int = 90,
-                            clip_percentile: Optional[float] = 10,
-                            alpha: float = 0.65,
-                            filepath: Optional[str] = None):
+    def plot_image_concepts(
+        self,
+        img: np.ndarray,
+        class_id: int,
+        display_importance_order: DisplayImportancesOrder = DisplayImportancesOrder.GLOBAL,
+        nb_most_important_concepts: int = 5,
+        filter_percentile: int = 90,
+        clip_percentile: Optional[float] = 10,
+        alpha: float = 0.65,
+        filepath: Optional[str] = None,
+    ):
         """
         All in one method displaying several plots for the image `id` given in argument:
         - the concepts attribution map for this image
@@ -187,10 +191,12 @@ class BaseCraftManager(ABC):
         filepath
             Path the file will be saved at. If None, the function will call plt.show().
         """
-        self.craft_instances[class_id].plot_image_concepts(img,
-                                            display_importance_order=display_importance_order,
-                                            nb_most_important_concepts=nb_most_important_concepts,
-                                            filter_percentile=filter_percentile,
-                                            clip_percentile=clip_percentile,
-                                            alpha=alpha,
-                                            filepath=filepath)
+        self.craft_instances[class_id].plot_image_concepts(
+            img,
+            display_importance_order=display_importance_order,
+            nb_most_important_concepts=nb_most_important_concepts,
+            filter_percentile=filter_percentile,
+            clip_percentile=clip_percentile,
+            alpha=alpha,
+            filepath=filepath,
+        )

@@ -5,14 +5,12 @@ ProtoGreedy search method in example-based module
 import numpy as np
 import tensorflow as tf
 
-from ...types import Callable, Union, Optional, Tuple
-
+from ...types import Callable, Optional, Tuple, Union
 from ..datasets_operations.tf_dataset_operations import sanitize_dataset
-
 from .common import get_distance_function
 
 
-class ProtoGreedySearch():
+class ProtoGreedySearch:
     """
     ProtoGreedy method for searching prototypes.
 
@@ -37,6 +35,7 @@ class ProtoGreedySearch():
     gamma : float, optional
         Parameter that determines the spread of the rbf kernel, defaults to 1.0 / n_features.
     """
+
     # pylint: disable=too-many-instance-attributes
 
     # Avoid zero division during procedure. (the value is not important, as if the denominator is
@@ -49,7 +48,7 @@ class ProtoGreedySearch():
         batch_size: Optional[int] = 32,
         nb_prototypes: int = 1,
         kernel_fn: callable = None,
-        gamma: float = None
+        gamma: float = None,
     ):
         # pylint: disable=duplicate-code
         # set batch size
@@ -69,8 +68,8 @@ class ProtoGreedySearch():
             self.kernel_fn = lambda x1, x2: tf.convert_to_tensor(kernel_fn(x1, x2))
         else:
             raise AttributeError(
-                "The kernel_fn parameter is expected to be None or a Callable"\
-                +f"but {kernel_fn} was received."\
+                "The kernel_fn parameter is expected to be None or a Callable"
+                + f"but {kernel_fn} was received."
             )
 
         # compute the sum of the columns and the diagonal values of the kernel matrix of the dataset
@@ -98,22 +97,26 @@ class ProtoGreedySearch():
         """
         # pylint: disable=invalid-name
         if distance is None:
+
             def kernel_induced_distance(x1, x2):
                 def dist(x):
                     x = tf.expand_dims(x, axis=0)
                     return tf.sqrt(
                         self.kernel_fn(x1, x1) - 2 * self.kernel_fn(x1, x) + self.kernel_fn(x, x)
                     )
+
                 distance = tf.map_fn(dist, x2)
                 return tf.squeeze(distance, axis=[1, 2])
+
             return kernel_induced_distance
 
         return get_distance_function(distance)
 
-    def __set_default_kernel_fn(self,
-                                cases_dataset: tf.data.Dataset,
-                                gamma: float = None,
-                                ) -> None:
+    def __set_default_kernel_fn(
+        self,
+        cases_dataset: tf.data.Dataset,
+        gamma: float = None,
+    ) -> None:
         """
         Set the default kernel function.
 
@@ -130,11 +133,12 @@ class ProtoGreedySearch():
         self.nb_features = cases_shape[-1]
 
         # elements should be batched tabular data
-        assert len(cases_shape) == 2,\
-            "Prototypes' searches expects 2D data, (nb_samples, nb_features), but got "+\
-            f"{cases_shape}. Please verify your projection "+\
-            "if you provided a custom one. If you use a splitted model, "+\
-            "make sure the output of the first part of the model is flattened."
+        assert len(cases_shape) == 2, (
+            "Prototypes' searches expects 2D data, (nb_samples, nb_features), but got "
+            + f"{cases_shape}. Please verify your projection "
+            + "if you provided a custom one. If you use a splitted model, "
+            + "make sure the output of the first part of the model is flattened."
+        )
 
         if gamma is None:
             if cases_dataset is None:
@@ -146,11 +150,16 @@ class ProtoGreedySearch():
         gamma = tf.constant(gamma, dtype=tf.float32)
 
         # created inside a function for gamma to be a constant and prevent graph retracing
-        @tf.function(input_signature=[
-            tf.TensorSpec(shape=cases_shape, dtype=tf.float32, name="tensor_1"),
-            tf.TensorSpec(shape=cases_shape, dtype=tf.float32, name="tensor_2")
-        ])
-        def rbf_kernel(tensor_1: tf.Tensor, tensor_2: tf.Tensor,) -> tf.Tensor:
+        @tf.function(
+            input_signature=[
+                tf.TensorSpec(shape=cases_shape, dtype=tf.float32, name="tensor_1"),
+                tf.TensorSpec(shape=cases_shape, dtype=tf.float32, name="tensor_2"),
+            ]
+        )
+        def rbf_kernel(
+            tensor_1: tf.Tensor,
+            tensor_2: tf.Tensor,
+        ) -> tf.Tensor:
             """
             Compute the rbf kernel matrix between two sets of samples.
 
@@ -160,7 +169,7 @@ class ProtoGreedySearch():
                 The first set of samples of shape (n, d).
             tensor_2
                 The second set of samples of shape (m, d).
-            
+
             Returns
             -------
             Tensor
@@ -198,7 +207,6 @@ class ProtoGreedySearch():
         nb_samples = 0
 
         for batch_col_index, batch_col_cases in enumerate(self.cases_dataset):
-
             batch_col_sums = tf.zeros((batch_col_cases.shape[0]), dtype=tf.float32)
 
             for batch_row_index, batch_row_cases in enumerate(self.cases_dataset):
@@ -247,13 +255,14 @@ class ProtoGreedySearch():
         # (nb, b)
         self.kernel_diag = tf.stack(diag, axis=0)
 
-    def _compute_batch_objectives(self,
-                                  candidates_kernel_diag: tf.Tensor,
-                                  candidates_kernel_col_means: tf.Tensor,
-                                  selection_kernel_col_means: tf.Tensor,
-                                  candidates_selection_kernel: tf.Tensor,
-                                  selection_selection_kernel: tf.Tensor
-                                  ) -> Tuple[tf.Tensor, tf.Tensor]:
+    def _compute_batch_objectives(
+        self,
+        candidates_kernel_diag: tf.Tensor,
+        candidates_kernel_col_means: tf.Tensor,
+        selection_kernel_col_means: tf.Tensor,
+        candidates_selection_kernel: tf.Tensor,
+        selection_selection_kernel: tf.Tensor,
+    ) -> Tuple[tf.Tensor, tf.Tensor]:
         """
         Compute the objective function and corresponding weights
         for a given set of selected prototypes and a batch of candidates.
@@ -268,11 +277,11 @@ class ProtoGreedySearch():
         Find argmax_{c} max_{w} (w^T mu_p) - (w^T K w) / 2
 
         w*, the optimal objective weights, is computed as follows: w* = K^-1 mu_p
-        
+
         where:
         - mu_p is the column means of the kernel matrix
         - K is the kernel matrix
-        
+
         Parameters
         ----------
         candidates_kernel_diag : Tensor
@@ -285,7 +294,7 @@ class ProtoGreedySearch():
             Kernel matrix between the candidates and the selected prototypes. Shape (bc, |S|).
         selection_selection_kernel : Tensor
             Kernel matrix between the selected prototypes. Shape (|S|, |S|).
-            
+
         Returns
         -------
         objectives
@@ -306,27 +315,19 @@ class ProtoGreedySearch():
             # (bc, |S|, |S|)
             selection_selection_kernel = tf.tile(
                 tf.expand_dims(selection_selection_kernel, 0),
-                [candidates_selection_kernel.shape[0], 1, 1]
+                [candidates_selection_kernel.shape[0], 1, 1],
             )
 
             # add candidates-selection kernel row to the selection-selection kernel matrix
             # (bc, |S| + 1, |S|)
             extended_selection_selection_kernel = tf.concat(
-                [
-                    selection_selection_kernel,
-                    candidates_selection_kernel[:, tf.newaxis, :]
-                ],
-                axis=1
+                [selection_selection_kernel, candidates_selection_kernel[:, tf.newaxis, :]], axis=1
             )
 
             # create the extended column for the candidates with the diagonal values
             # (bc, |S| + 1)
             extended_candidates_selection_kernel = tf.concat(
-                [
-                    candidates_selection_kernel,
-                    candidates_kernel_diag[:, tf.newaxis]
-                ],
-                axis=1
+                [candidates_selection_kernel, candidates_kernel_diag[:, tf.newaxis]], axis=1
             )
 
             # add the extended column for the candidates to the extended selection-selection kernel
@@ -336,21 +337,18 @@ class ProtoGreedySearch():
                     extended_selection_selection_kernel,
                     extended_candidates_selection_kernel[:, :, tf.newaxis],
                 ],
-                axis=2
+                axis=2,
             )
 
         # (bc, |S|) - extended selected kernel col means
         selection_kernel_col_means = tf.tile(
             selection_kernel_col_means[tf.newaxis, :],
-            multiples=[candidates_kernel_col_means.shape[0], 1]
+            multiples=[candidates_kernel_col_means.shape[0], 1],
         )
 
         # (bc, |S| + 1) - mu_p
         candidates_selection_kernel_col_means = tf.concat(
-            [
-                selection_kernel_col_means,
-                candidates_kernel_col_means[:, tf.newaxis]],
-            axis=1
+            [selection_kernel_col_means, candidates_kernel_col_means[:, tf.newaxis]], axis=1
         )
 
         # compute the optimal objective weights for each candidate in the batch
@@ -362,12 +360,12 @@ class ProtoGreedySearch():
         objectives_weights = tf.maximum(objectives_weights, 0)
 
         # (bc,) - (w*^T mu_p)
-        weights_mu_p = tf.einsum("bp,bp->b",
-                                 objectives_weights, candidates_selection_kernel_col_means)
+        weights_mu_p = tf.einsum(
+            "bp,bp->b", objectives_weights, candidates_selection_kernel_col_means
+        )
 
         # (bc,) - (w*^T K w*)
-        weights_K_weights = tf.einsum("bs,bsp,bp->b",
-                                      objectives_weights, K, objectives_weights)
+        weights_K_weights = tf.einsum("bs,bsp,bp->b", objectives_weights, K, objectives_weights)
 
         # (bc,) - (w*^T mu_p) - (w*^T K w*) / 2
         objectives = weights_mu_p - 0.5 * weights_K_weights
@@ -401,8 +399,9 @@ class ProtoGreedySearch():
 
         # kernel matrix variables
         # (np, np) - kernel matrix between selected prototypes
-        selection_selection_kernel = tf.Variable(tf.zeros((nb_prototypes, nb_prototypes),
-                                                        dtype=tf.float32))
+        selection_selection_kernel = tf.Variable(
+            tf.zeros((nb_prototypes, nb_prototypes), dtype=tf.float32)
+        )
         # (nb, b, np) - kernel matrix between samples and selected prototypes
         samples_selection_kernel = tf.Variable(tf.zeros((*self.kernel_diag.shape, nb_prototypes)))
 
@@ -435,20 +434,19 @@ class ProtoGreedySearch():
                 # compute the kernel matrix between the last selected prototypes and the candidates
                 if nb_selected > 0:
                     # (b,)
-                    batch_samples_last_selection_kernel = self.kernel_fn(
-                        cases, last_selected
-                    )[:, 0]
-                    samples_selection_kernel[batch_index, :cases.shape[0], nb_selected - 1].assign(
+                    batch_samples_last_selection_kernel = self.kernel_fn(cases, last_selected)[:, 0]
+                    samples_selection_kernel[batch_index, : cases.shape[0], nb_selected - 1].assign(
                         batch_samples_last_selection_kernel
                     )
 
                     # (b, |S|)
-                    batch_candidates_selection_kernel =\
-                        samples_selection_kernel[batch_index, :cases.shape[0], :nb_selected]
+                    batch_candidates_selection_kernel = samples_selection_kernel[
+                        batch_index, : cases.shape[0], :nb_selected
+                    ]
                     # (bc, |S|)
                     batch_candidates_selection_kernel = tf.boolean_mask(
                         tensor=batch_candidates_selection_kernel,
-                        mask=candidates_batch_mask[:cases.shape[0]],
+                        mask=candidates_batch_mask[: cases.shape[0]],
                         axis=0,
                     )
 
@@ -459,8 +457,9 @@ class ProtoGreedySearch():
                 # (bc,)
                 batch_candidates_kernel_diag = self.kernel_diag[batch_index][candidates_batch_mask]
                 # (bc,)
-                batch_candidates_kernel_col_means =\
-                    self.kernel_col_means[batch_index][candidates_batch_mask]
+                batch_candidates_kernel_col_means = self.kernel_col_means[batch_index][
+                    candidates_batch_mask
+                ]
 
                 # compute the objectives for the batch
                 # (bc,), (bc, |S| + 1)
@@ -501,12 +500,8 @@ class ProtoGreedySearch():
                 new_selected = samples_selection_kernel[best_batch_index, best_index, :nb_selected]
 
                 # add the new row and column to the selected-selected kernel matrix
-                selection_selection_kernel[nb_selected, :nb_selected].assign(
-                    new_selected
-                )
-                selection_selection_kernel[:nb_selected, nb_selected].assign(
-                    new_selected
-                )
+                selection_selection_kernel[nb_selected, :nb_selected].assign(new_selected)
+                selection_selection_kernel[:nb_selected, nb_selected].assign(new_selected)
 
             # update the selected column means
             selection_kernel_col_means[nb_selected].assign(
@@ -516,11 +511,11 @@ class ProtoGreedySearch():
             # update the selected weights
             if not hasattr(self, "_update_selection_weights"):
                 # pylint: disable=used-before-assignment
-                self.prototypes_weights[:nb_selected + 1].assign(best_weights)
+                self.prototypes_weights[: nb_selected + 1].assign(best_weights)
             else:
                 self._update_selection_weights(
-                    selection_kernel_col_means[:nb_selected + 1],
-                    selection_selection_kernel[:nb_selected + 1, :nb_selected + 1],
+                    selection_kernel_col_means[: nb_selected + 1],
+                    selection_selection_kernel[: nb_selected + 1, : nb_selected + 1],
                     self.kernel_diag[best_batch_index, best_index],
                     best_objective,
                 )
@@ -535,5 +530,6 @@ class ProtoGreedySearch():
         self.prototypes = tf.convert_to_tensor(self.prototypes)
         self.prototypes_weights = tf.convert_to_tensor(self.prototypes_weights)
 
-        assert tf.reduce_sum(tf.cast(mask_of_selected, tf.int32)) == nb_prototypes,\
+        assert tf.reduce_sum(tf.cast(mask_of_selected, tf.int32)) == nb_prototypes, (
             "The number of prototypes found is not equal to the number of prototypes expected."
+        )

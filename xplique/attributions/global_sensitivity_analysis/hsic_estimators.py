@@ -10,10 +10,9 @@ import tensorflow as tf
 import tensorflow_probability as tfp
 from einops import rearrange
 
-from .kernels import Kernel
-
 from ...commons import batch_tensor
 from ...types import Union
+from .kernels import Kernel
 
 
 class HsicEstimator(ABC):
@@ -115,8 +114,13 @@ class HsicEstimator(ABC):
             self.batch_size = batch_size
 
     # We do not decorate this with @tf.function to avoid retracing due to dynamic shapes.
-    def estimator(self, masks: tf.Tensor, L: tf.Tensor,
-                  nb_dim: Union[int, tf.Tensor], nb_design: Union[int, tf.Tensor]) -> tf.Tensor:
+    def estimator(
+        self,
+        masks: tf.Tensor,
+        L: tf.Tensor,
+        nb_dim: Union[int, tf.Tensor],
+        nb_design: Union[int, tf.Tensor],
+    ) -> tf.Tensor:
         """
         tf operations related to the estimator for performances
 
@@ -137,17 +141,17 @@ class HsicEstimator(ABC):
             Raw HSIC estimates in tensorflow
         """
         # Rearrange to get (d, nb_design) where d = H*W*1.
-        X = rearrange(masks, 'n h w c -> (c w h) n')
+        X = rearrange(masks, "n h w c -> (c w h) n")
         # Add singleton dimensions: shape becomes (d, 1, nb_design, 1)
-        X1 = rearrange(X, 'd n -> d 1 n 1')
+        X1 = rearrange(X, "d n -> d 1 n 1")
         # Swap last two axes: shape becomes (d, 1, 1, nb_design)
-        X2 = rearrange(X1, 'd a n b -> d a b n')
+        X2 = rearrange(X1, "d a n b -> d a b n")
 
         # Use the minimum of self.batch_size and nb_dim to avoid OOM.
         batch_size = tf.cond(
             nb_dim > self.batch_size,
             lambda: tf.cast(self.batch_size, tf.int64),
-            lambda: tf.cast(nb_dim, tf.int64)
+            lambda: tf.cast(nb_dim, tf.int64),
         )
 
         float_nb_design = tf.cast(nb_design, dtype=tf.float32)
@@ -157,23 +161,21 @@ class HsicEstimator(ABC):
             K = self.input_kernel_func(x1, x2)
             # Here we reduce over axis=1 (the kernel is computed per mask dimension)
             K = tf.math.reduce_prod(1 + K, axis=1)
-            H = tf.eye(nb_design) - tf.ones((nb_design, nb_design),
-                                            dtype=tf.float32) / float_nb_design
+            H = (
+                tf.eye(nb_design)
+                - tf.ones((nb_design, nb_design), dtype=tf.float32) / float_nb_design
+            )
             HK = tf.einsum("jk,ikl->ijl", H, K)
             HL = tf.einsum("jk,kl->jl", H, L)
             Kc = tf.einsum("ijk,kl->ijl", HK, H)
             Lc = tf.einsum("jk,kl->jl", HL, H)
-            score = tf.math.reduce_sum(
-                Kc * tf.transpose(Lc), axis=[1, 2]) / float_nb_design
+            score = tf.math.reduce_sum(Kc * tf.transpose(Lc), axis=[1, 2]) / float_nb_design
             scores = tf.concat([scores, score], axis=0)
 
         return scores
 
     def __call__(
-            self,
-            masks: tf.Tensor,
-            outputs: tf.Tensor,
-            nb_design: Union[int, tf.Tensor]
+        self, masks: tf.Tensor, outputs: tf.Tensor, nb_design: Union[int, tf.Tensor]
     ) -> tf.Tensor:
         """
         Compute the test statistic using a self.output_kernel_func kernel for the output
@@ -217,7 +219,7 @@ class BinaryEstimator(HsicEstimator):
 
     def output_kernel_func(self, X: tf.Tensor, Y: tf.Tensor) -> tf.Tensor:
         # Use tfp.stats.percentile to obtain the median.
-        width_y = tfp.stats.percentile(Y, 50.0, interpolation='linear')
+        width_y = tfp.stats.percentile(Y, 50.0, interpolation="linear")
         width_y = tf.cast(width_y, tf.float32)
         kernel_func = partial(Kernel.from_string(self.output_kernel), width=width_y)
         return kernel_func(X, Y)
@@ -234,7 +236,7 @@ class RbfEstimator(HsicEstimator):
         return kernel_func(X, Y)
 
     def output_kernel_func(self, X: tf.Tensor, Y: tf.Tensor) -> tf.Tensor:
-        width_y = tfp.stats.percentile(Y, 50.0, interpolation='linear')
+        width_y = tfp.stats.percentile(Y, 50.0, interpolation="linear")
         width_y = tf.cast(width_y, tf.float32)
         kernel_func = partial(Kernel.from_string(self.output_kernel), width=width_y)
         return kernel_func(X, Y)
@@ -249,7 +251,7 @@ class SobolevEstimator(HsicEstimator):
         return Kernel.from_string("sobolev")(X, Y)
 
     def output_kernel_func(self, X: tf.Tensor, Y: tf.Tensor) -> tf.Tensor:
-        width_y = tfp.stats.percentile(Y, 50.0, interpolation='linear')
+        width_y = tfp.stats.percentile(Y, 50.0, interpolation="linear")
         width_y = tf.cast(width_y, tf.float32)
         kernel_func = partial(Kernel.from_string(self.output_kernel), width=width_y)
         return kernel_func(X, Y)

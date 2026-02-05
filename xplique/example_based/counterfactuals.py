@@ -1,21 +1,21 @@
 """
 Implementation of both counterfactuals and semi factuals methods for classification tasks.
 """
+
 import numpy as np
 import tensorflow as tf
 
 from ..commons import sanitize_inputs_targets
-from ..types import Callable, List, Optional, Union, DatasetOrTensor
-
+from ..types import Callable, DatasetOrTensor, List, Optional, Union
 from .base_example_method import BaseExampleMethod
-from .search_methods import ORDER, FilterKNN
 from .projections import Projection
+from .search_methods import ORDER, FilterKNN
 
 
 class NaiveCounterFactuals(BaseExampleMethod):
     """
     This class allows to search for counterfactuals by searching for the closest sample to
-    a query in a projection space that do not have the same model's prediction. 
+    a query in a projection space that do not have the same model's prediction.
     It is a naive approach as it follows a greedy approach.
 
     Parameters
@@ -42,7 +42,7 @@ class NaiveCounterFactuals(BaseExampleMethod):
     projection
         Projection or Callable that project samples from the input space to the search space.
         The search space should be a space where distances are relevant for the model.
-        It should not be `None`, otherwise, the model is not involved thus not explained. 
+        It should not be `None`, otherwise, the model is not involved thus not explained.
 
         Example of Callable:
         ```
@@ -67,6 +67,7 @@ class NaiveCounterFactuals(BaseExampleMethod):
         {"manhattan", "euclidean", "cosine", "chebyshev", "inf"}, or a Callable,
         by default "euclidean".
     """
+
     # pylint: disable=duplicate-code
 
     def __init__(
@@ -99,7 +100,7 @@ class NaiveCounterFactuals(BaseExampleMethod):
             batch_size=self.batch_size,
             distance=distance,
             filter_fn=self.filter_fn,
-            order=ORDER.ASCENDING
+            order=ORDER.ASCENDING,
         )
 
     @property
@@ -110,7 +111,6 @@ class NaiveCounterFactuals(BaseExampleMethod):
         ignoring non-acceptable cases, thus not considering them in the search.
         """
         return FilterKNN
-
 
     def filter_fn(self, _, __, targets, cases_targets) -> tf.Tensor:
         """
@@ -123,8 +123,8 @@ class NaiveCounterFactuals(BaseExampleMethod):
 
         # for each input, if the target label is the same as the predicted label
         # the mask as a True value and False otherwise
-        label_targets = tf.argmax(cases_targets, axis=-1) # (bs,)
-        mask = tf.not_equal(tf.expand_dims(predicted_labels, axis=1), label_targets) #(n, bs)
+        label_targets = tf.argmax(cases_targets, axis=-1)  # (bs,)
+        mask = tf.not_equal(tf.expand_dims(predicted_labels, axis=1), label_targets)  # (n, bs)
         return mask
 
 
@@ -182,6 +182,7 @@ class LabelAwareCounterFactuals(BaseExampleMethod):
         {"manhattan", "euclidean", "cosine", "chebyshev", "inf"}, or a Callable,
         by default "euclidean".
     """
+
     # pylint: disable=duplicate-code
 
     def __init__(
@@ -195,7 +196,6 @@ class LabelAwareCounterFactuals(BaseExampleMethod):
         batch_size: Optional[int] = None,
         distance: Union[int, str, Callable] = "euclidean",
     ):
-
         super().__init__(
             cases_dataset=cases_dataset,
             labels_dataset=labels_dataset,
@@ -215,7 +215,7 @@ class LabelAwareCounterFactuals(BaseExampleMethod):
             batch_size=self.batch_size,
             distance=distance,
             filter_fn=self.filter_fn,
-            order=ORDER.ASCENDING
+            order=ORDER.ASCENDING,
         )
 
     @property
@@ -226,7 +226,6 @@ class LabelAwareCounterFactuals(BaseExampleMethod):
         non-acceptable cases, thus not considering them in the search.
         """
         return FilterKNN
-
 
     def filter_fn(self, _, __, cf_expected_classes, cases_targets) -> tf.Tensor:
         """
@@ -268,7 +267,7 @@ class LabelAwareCounterFactuals(BaseExampleMethod):
         targets
             Tensor or Array. One-hot encoded labels or regression target (e.g {+1, -1}),
             one for each sample. If not provided, the model's predictions are used.
-            Targets associated to the `inputs` for projection. 
+            Targets associated to the `inputs` for projection.
             Shape: (n, nb_classes) where n is the number of samples and
             nb_classes is the number of classes.
             It is used in the `projection`. But `projection` can compute it internally.

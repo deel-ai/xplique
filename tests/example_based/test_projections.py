@@ -1,20 +1,27 @@
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras.layers import (
-    Dense,
-    Conv2D,
-    Conv1D,
     Activation,
+    Conv2D,
+    Dense,
     Dropout,
     Flatten,
-    MaxPooling2D,
     Input,
+    MaxPooling2D,
 )
 
-from xplique.commons.operators import predictions_operator
 from xplique.attributions import Saliency
-from xplique.example_based.projections import Projection, AttributionProjection, LatentSpaceProjection, HadamardProjection
-from xplique.example_based.projections.commons import model_splitting, target_free_classification_operator
+from xplique.commons.operators import predictions_operator
+from xplique.example_based.projections import (
+    AttributionProjection,
+    HadamardProjection,
+    LatentSpaceProjection,
+    Projection,
+)
+from xplique.example_based.projections.commons import (
+    model_splitting,
+    target_free_classification_operator,
+)
 
 from ..utils import almost_equal
 
@@ -24,9 +31,7 @@ def get_setup(input_shape, nb_samples=10, nb_labels=2):
     Generate data and model for SimilarExamples
     """
     # Data generation
-    x_train = tf.stack(
-        [i * tf.ones(input_shape, tf.float32) for i in range(nb_samples)]
-    )
+    x_train = tf.stack([i * tf.ones(input_shape, tf.float32) for i in range(nb_samples)])
     x_test = x_train[1:-1]
     y_train = tf.one_hot(tf.range(len(x_train)) % nb_labels, nb_labels)
 
@@ -88,7 +93,9 @@ def test_model_splitting():
     model.add(Dense(1, name="dense2"))
     model.compile(loss="categorical_crossentropy", optimizer="sgd")
 
-    model.get_layer("dense1").set_weights([np.eye(10) * np.sign(np.arange(-4.5, 5.5)), np.zeros(10)])
+    model.get_layer("dense1").set_weights(
+        [np.eye(10) * np.sign(np.arange(-4.5, 5.5)), np.zeros(10)]
+    )
     model.get_layer("dense2").set_weights([np.ones((10, 1)), np.zeros(1)])
 
     # Split the model

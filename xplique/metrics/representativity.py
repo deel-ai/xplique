@@ -7,7 +7,7 @@ import tensorflow as tf
 from scipy.stats import spearmanr
 
 from ..commons import numpy_sanitize
-from ..types import Callable, Optional, Union, Tuple, Dict
+from ..types import Callable, Dict, Optional, Tuple, Union
 
 
 class MeGe:
@@ -37,14 +37,17 @@ class MeGe:
     k_splits
         Number of splits to estimate the metrics (usually between 4 and 6 are enough).
     """
+
     # pylint: disable=R0902
 
-    def __init__(self,
-                 learning_algorithm: Callable,
-                 inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
-                 targets: Optional[Union[tf.Tensor, np.ndarray]] = None,
-                 batch_size: Optional[int] = 64,
-                 k_splits: int = 4):
+    def __init__(
+        self,
+        learning_algorithm: Callable,
+        inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
+        targets: Optional[Union[tf.Tensor, np.ndarray]] = None,
+        batch_size: Optional[int] = 64,
+        k_splits: int = 4,
+    ):
         self.inputs, self.targets = numpy_sanitize(inputs, targets)
         self.batch_size = batch_size
         self.k_splits = k_splits
@@ -53,10 +56,12 @@ class MeGe:
         assert len(inputs) % k_splits == 0, "`k_splits` must divide the length of the dataset."
 
         self.split_len = len(inputs) // k_splits
-        self.x_splits = np.array([
-            self.inputs[i * self.split_len:(i + 1) * self.split_len] for i in range(k_splits)])
-        self.y_splits = np.array([
-            self.targets[i * self.split_len:(i + 1) * self.split_len] for i in range(k_splits)])
+        self.x_splits = np.array(
+            [self.inputs[i * self.split_len : (i + 1) * self.split_len] for i in range(k_splits)]
+        )
+        self.y_splits = np.array(
+            [self.targets[i * self.split_len : (i + 1) * self.split_len] for i in range(k_splits)]
+        )
 
         self.models = []
         for i in range(k_splits):
@@ -68,9 +73,9 @@ class MeGe:
             model = learning_algorithm(x_train, y_train, self.x_splits[i], self.y_splits[i])
             self.models.append(model)
 
-    def evaluate(self,
-                 explainer_class: Callable,
-                 explainer_params: Optional[Dict] = None) -> Tuple[float, float]:
+    def evaluate(
+        self, explainer_class: Callable, explainer_params: Optional[Dict] = None
+    ) -> Tuple[float, float]:
         # pylint: disable=C0103,R1702
         """
         Evaluate the MeGe score.
@@ -92,14 +97,18 @@ class MeGe:
         explainer_params = explainer_params or {}
 
         # for each model, we will need his explanation and his predictions
-        predictions = np.array([
-            np.argmax(model.predict(self.inputs, batch_size=self.batch_size), -1)
-            for model in self.models
-        ])
-        explanations = np.array([
-            explainer_class(model, **explainer_params)(self.inputs, self.targets)
-            for model in self.models
-        ])
+        predictions = np.array(
+            [
+                np.argmax(model.predict(self.inputs, batch_size=self.batch_size), -1)
+                for model in self.models
+            ]
+        )
+        explanations = np.array(
+            [
+                explainer_class(model, **explainer_params)(self.inputs, self.targets)
+                for model in self.models
+            ]
+        )
 
         s_eq, s_ne = self._pairwise_distances(predictions, explanations)
         s_total = np.concatenate([s_eq, s_ne], axis=0)
@@ -107,7 +116,7 @@ class MeGe:
         mege = 1.0 / (1.0 + np.mean(s_eq))
 
         reco = 0.0
-        step = (len(s_total) // 20) + 1 # skip some element to speed up computation
+        step = (len(s_total) // 20) + 1  # skip some element to speed up computation
         for gamma in np.sort(s_total)[::step]:
             tp = np.sum(s_eq < gamma)
             tn = np.sum(s_ne > gamma)
@@ -122,9 +131,9 @@ class MeGe:
 
         return mege, reco
 
-    def _pairwise_distances(self,
-                            predictions: np.array,
-                            explanations: np.array) -> Tuple[np.array, np.array]:
+    def _pairwise_distances(
+        self, predictions: np.array, explanations: np.array
+    ) -> Tuple[np.array, np.array]:
         """
         Compute all the pairwise distance between the models explanations.
         Use those distances to build two sets: s_equal for the distance between explanations of
@@ -151,7 +160,7 @@ class MeGe:
         s_eq, s_ne = [], []
 
         for i in range(self.k_splits):
-            for j in range(i+1, self.k_splits):
+            for j in range(i + 1, self.k_splits):
                 # get all the explanations for the pairs (model_i, model_j)
                 # with i != j
                 e_i = explanations[i]
@@ -172,8 +181,9 @@ class MeGe:
                         dist = self._spearman_distance(e_i_n, e_j[n])
 
                         # we need at least one good answer
-                        if pred_i == np.argmax(self.targets[n], -1) or \
-                           pred_j == np.argmax(self.targets[n], -1):
+                        if pred_i == np.argmax(self.targets[n], -1) or pred_j == np.argmax(
+                            self.targets[n], -1
+                        ):
                             # both are correct, add to S=
                             if pred_i == pred_j:
                                 s_eq.append(dist)
@@ -188,8 +198,9 @@ class MeGe:
         return s_eq, s_ne
 
     @staticmethod
-    def _spearman_distance(explanation_a: Union[tf.Tensor, np.array],
-                           explanation_b: Union[tf.Tensor, np.array]) -> float:
+    def _spearman_distance(
+        explanation_a: Union[tf.Tensor, np.array], explanation_b: Union[tf.Tensor, np.array]
+    ) -> float:
         """
         Compute the spearman distance between two explanations.
 
@@ -211,7 +222,6 @@ class MeGe:
         rho, _ = spearmanr(explanation_a, explanation_b)
         dist = np.sqrt(1.0 - np.abs(rho))
         return dist
-
 
     @staticmethod
     def _sanitize_explanation(explanation: Union[tf.Tensor, np.array]) -> np.array:

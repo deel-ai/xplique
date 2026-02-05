@@ -1,6 +1,7 @@
 """
 Test Cole
 """
+
 import os
 import sys
 
@@ -9,10 +10,9 @@ sys.path.append(os.getcwd())
 import numpy as np
 import tensorflow as tf
 
+from tests.utils import almost_equal
 from xplique.example_based import SimilarExamples
 from xplique.example_based.projections import Projection
-
-from tests.utils import almost_equal
 
 
 def get_setup(input_shape, nb_samples=10, nb_labels=10):
@@ -20,14 +20,11 @@ def get_setup(input_shape, nb_samples=10, nb_labels=10):
     Generate data and model for SimilarExamples
     """
     # Data generation
-    x_train = tf.stack(
-        [i * tf.ones(input_shape, tf.float32) for i in range(nb_samples)]
-    )
+    x_train = tf.stack([i * tf.ones(input_shape, tf.float32) for i in range(nb_samples)])
     x_test = x_train[1:-1]
     y_train = tf.range(len(x_train), dtype=tf.float32) % nb_labels
 
     return x_train, x_test, y_train
-
 
 
 def test_similar_examples_basic():
@@ -39,9 +36,7 @@ def test_similar_examples_basic():
     k = 3
     x_train, x_test, _ = get_setup(input_shape)
 
-    identity_projection = Projection(
-        space_projection=lambda inputs, targets=None: inputs
-    )
+    identity_projection = Projection(space_projection=lambda inputs, targets=None: inputs)
 
     # Method initialization
     method = SimilarExamples(
@@ -83,9 +78,7 @@ def test_similar_examples_return_multiple_elements():
     nb_samples_test = len(x_test)
     assert nb_samples_test + 2 == len(y_train)
 
-    identity_projection = Projection(
-        space_projection=lambda inputs, targets=None: inputs
-    )
+    identity_projection = Projection(space_projection=lambda inputs, targets=None: inputs)
 
     # Method initialization
     method = SimilarExamples(
@@ -133,12 +126,8 @@ def test_similar_examples_return_multiple_elements():
 
         # test labels
         assert almost_equal(labels[i, 0], y_train[i + 1])
-        assert almost_equal(labels[i, 1], y_train[i]) or almost_equal(
-            labels[i, 1], y_train[i + 2]
-        )
-        assert almost_equal(labels[i, 2], y_train[i]) or almost_equal(
-            labels[i, 2], y_train[i + 2]
-        )
+        assert almost_equal(labels[i, 1], y_train[i]) or almost_equal(labels[i, 1], y_train[i + 2])
+        assert almost_equal(labels[i, 2], y_train[i]) or almost_equal(labels[i, 2], y_train[i + 2])
 
 
 def test_similar_examples_weighting():

@@ -4,15 +4,16 @@ Module related to LIME method
 
 import warnings
 
-import tensorflow as tf
 import numpy as np
-from tensorflow.keras.losses import cosine_similarity #pylint:  disable=E0611
+import tensorflow as tf
+from skimage.segmentation import felzenszwalb, quickshift
 from sklearn import linear_model
-from skimage.segmentation import quickshift, felzenszwalb
+from tensorflow.keras.losses import cosine_similarity  # pylint:  disable=E0611
 
-from .base import BlackBoxExplainer, sanitize_input_output
 from ..commons import Tasks
-from ..types import Callable, Union, Optional, Any, OperatorSignature
+from ..types import Any, Callable, OperatorSignature, Optional, Union
+from .base import BlackBoxExplainer, sanitize_input_output
+
 
 class Lime(BlackBoxExplainer):
     """
@@ -96,6 +97,7 @@ class Lime(BlackBoxExplainer):
         values.
         Default to 45 (i.e adapted for RGB images).
     """
+
     def __init__(
         self,
         model: Callable,
@@ -103,21 +105,20 @@ class Lime(BlackBoxExplainer):
         operator: Optional[Union[Tasks, str, OperatorSignature]] = None,
         interpretable_model: Any = linear_model.Ridge(alpha=2),
         similarity_kernel: Optional[Callable[[tf.Tensor, tf.Tensor, tf.Tensor], tf.Tensor]] = None,
-        pertub_func: Optional[Callable[[Union[int, tf.Tensor],int], tf.Tensor]] = None,
+        pertub_func: Optional[Callable[[Union[int, tf.Tensor], int], tf.Tensor]] = None,
         map_to_interpret_space: Optional[Callable[[tf.Tensor], tf.Tensor]] = None,
         ref_value: Optional[np.ndarray] = None,
         nb_samples: int = 150,
         distance_mode: str = "euclidean",
         kernel_width: float = 45.0,
-        prob: float = 0.5
+        prob: float = 0.5,
     ):  # pylint: disable=R0913
-
-        if not all(hasattr(interpretable_model, attr) for attr in ['fit', 'predict']):
+        if not all(hasattr(interpretable_model, attr) for attr in ["fit", "predict"]):
             raise ValueError(
                 "The interpretable model is invalid. It should have a fit and a predict"
                 " method. It should also have a coef_ attribute (the interpretable "
                 "explanation) once fit is called."
-                )
+            )
 
         if similarity_kernel is None:
             similarity_kernel = Lime._get_exp_kernel_func(distance_mode, kernel_width)
@@ -146,8 +147,9 @@ class Lime(BlackBoxExplainer):
 
         self.batch_size = self.batch_size or self.nb_samples
 
-    def _set_shape_dependant_parameters(self,
-                                        inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray]):
+    def _set_shape_dependant_parameters(
+        self, inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray]
+    ):
         """
         Set default values for parameters dependant on the data type, thus the inputs shape.
         I.e. `ref_value` and `map_to_interpret_space`.
@@ -163,8 +165,9 @@ class Lime(BlackBoxExplainer):
 
         if self.ref_value is not None:
             if len(inputs.shape) == 4:
-                assert(self.ref_value.shape[0] == inputs.shape[-1]),\
+                assert self.ref_value.shape[0] == inputs.shape[-1], (
                     "The dimension of ref_values must match inputs (C, )"
+                )
             self.ref_value = tf.cast(self.ref_value, tf.float32)
         else:
             if len(inputs.shape) in [2, 3]:  # Tabular data or time series
@@ -188,9 +191,11 @@ class Lime(BlackBoxExplainer):
                     self.map_to_interpret_space = Lime._default_2dimage_map_to_interpret_space
 
     @sanitize_input_output
-    def explain(self,
-                inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
-                targets: Optional[Union[tf.Tensor, np.ndarray]] = None) -> tf.Tensor:
+    def explain(
+        self,
+        inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
+        targets: Optional[Union[tf.Tensor, np.ndarray]] = None,
+    ) -> tf.Tensor:
         """
         This method attributes the output of the model with given targets
         to the inputs of the model using the approach described above,
@@ -221,9 +226,7 @@ class Lime(BlackBoxExplainer):
         self._set_shape_dependant_parameters(inputs)
         explanations = []
 
-        for inp, target in tf.data.Dataset.from_tensor_slices(
-            (inputs, targets)
-        ):
+        for inp, target in tf.data.Dataset.from_tensor_slices((inputs, targets)):
             # get the mapping of the current input
             mapping = self.map_to_interpret_space(inp)
             # get the number of interpretable feature
@@ -241,19 +244,18 @@ class Lime(BlackBoxExplainer):
             # get the perturbed targets value and the similarities value
             perturbed_targets = []
             similarities = []
-            for int_samples in tf.data.Dataset.from_tensor_slices(
-                interpret_samples
-            ).batch(self.batch_size):
-
+            for int_samples in tf.data.Dataset.from_tensor_slices(interpret_samples).batch(
+                self.batch_size
+            ):
                 masks = Lime._get_masks(int_samples, mapping)
                 perturbed_samples = Lime._apply_masks(inp, masks, self.ref_value)
 
                 augmented_target = tf.expand_dims(target, axis=0)
                 augmented_target = tf.repeat(augmented_target, len(perturbed_samples), axis=0)
 
-                batch_perturbed_targets = self.inference_function(self.model,
-                                                                  perturbed_samples,
-                                                                  augmented_target)
+                batch_perturbed_targets = self.inference_function(
+                    self.model, perturbed_samples, augmented_target
+                )
 
                 perturbed_targets.append(batch_perturbed_targets)
 
@@ -274,9 +276,7 @@ class Lime(BlackBoxExplainer):
             explain_model = self.interpretable_model
 
             explain_model.fit(
-                interpret_samples.numpy(),
-                perturbed_targets.numpy(),
-                sample_weight=similarities_np
+                interpret_samples.numpy(), perturbed_targets.numpy(), sample_weight=similarities_np
             )
 
             explanation = explain_model.coef_
@@ -300,7 +300,7 @@ class Lime(BlackBoxExplainer):
     @tf.function(
         input_signature=(
             tf.TensorSpec(shape=[None, None], dtype=tf.int32),
-            tf.TensorSpec(shape=None, dtype=tf.int32)
+            tf.TensorSpec(shape=None, dtype=tf.int32),
         )
     )
     def _get_masks(interpret_samples: tf.Tensor, mapping: tf.Tensor) -> tf.Tensor:
@@ -330,9 +330,9 @@ class Lime(BlackBoxExplainer):
 
     @staticmethod
     @tf.function
-    def _apply_masks(original_input: tf.Tensor,
-                     sample_masks: tf.Tensor,
-                     ref_value: tf.Tensor) -> tf.Tensor:
+    def _apply_masks(
+        original_input: tf.Tensor, sample_masks: tf.Tensor, ref_value: tf.Tensor
+    ) -> tf.Tensor:
         """
         This method apply masks obtained from the perturbed interpretable samples to the
         original input (i.e we get perturbed samples in the original space).
@@ -357,19 +357,19 @@ class Lime(BlackBoxExplainer):
 
         # if there is channels we need to expand masks dimension
         if len(original_input.shape) == 3:
-
             sample_masks = tf.expand_dims(sample_masks, axis=-1)
             sample_masks = tf.repeat(sample_masks, repeats=original_input.shape[-1], axis=-1)
 
             pert_samples = pert_samples * tf.cast(sample_masks, tf.float32)
-            ref_val = tf.reshape(ref_value, (1,1,1,original_input.shape[-1]))
+            ref_val = tf.reshape(ref_value, (1, 1, 1, original_input.shape[-1]))
 
         else:
-
             pert_samples = pert_samples * tf.cast(sample_masks, tf.float32)
             ref_val = tf.reshape(ref_value, (1, *(1,) * len(original_input.shape)))
 
-        pert_samples += (tf.ones((sample_masks.shape)) - tf.cast(sample_masks, tf.float32))*ref_val
+        pert_samples += (
+            tf.ones((sample_masks.shape)) - tf.cast(sample_masks, tf.float32)
+        ) * ref_val
 
         return pert_samples
 
@@ -377,7 +377,7 @@ class Lime(BlackBoxExplainer):
     @tf.function(
         input_signature=(
             tf.TensorSpec(shape=None, dtype=tf.float32),
-            tf.TensorSpec(shape=None, dtype=tf.int32)
+            tf.TensorSpec(shape=None, dtype=tf.int32),
         )
     )
     def _broadcast_explanation(explanation: tf.Tensor, mapping: tf.Tensor) -> tf.Tensor:
@@ -404,8 +404,8 @@ class Lime(BlackBoxExplainer):
 
     @staticmethod
     def _get_default_pertub_function(
-        prob: float = 0.5
-        ) -> Callable[[Union[int, tf.Tensor],int], tf.Tensor]:
+        prob: float = 0.5,
+    ) -> Callable[[Union[int, tf.Tensor], int], tf.Tensor]:
         """
         This method allows you to get a pertub function with the corresponding prob
         argument.
@@ -414,8 +414,9 @@ class Lime(BlackBoxExplainer):
         prob = tf.cast(prob, dtype=tf.float32)
 
         @tf.function
-        def _default_pertub_function(num_features: Union[int, tf.Tensor],
-                                     nb_samples: int) -> tf.Tensor:
+        def _default_pertub_function(
+            num_features: Union[int, tf.Tensor], nb_samples: int
+        ) -> tf.Tensor:
             """
             This method generate nb_samples tensor belonging to {0,1}^num_features.
             The prob argument is the probability to have a 1.
@@ -436,10 +437,9 @@ class Lime(BlackBoxExplainer):
             """
 
             probs = tf.ones(num_features, tf.float32) * tf.cast(prob, tf.float32)
-            uniform_sampling = tf.random.uniform(shape=[nb_samples, tf.squeeze(num_features)],
-                                                dtype=tf.float32,
-                                                minval=0,
-                                                maxval=1)
+            uniform_sampling = tf.random.uniform(
+                shape=[nb_samples, tf.squeeze(num_features)], dtype=tf.float32, minval=0, maxval=1
+            )
             sample = tf.greater(probs, uniform_sampling)
             sample = tf.cast(sample, dtype=tf.int32)
             return sample
@@ -448,7 +448,7 @@ class Lime(BlackBoxExplainer):
 
     @staticmethod
     def _get_exp_kernel_func(
-            distance_mode: str = "euclidean", kernel_width: float = 1.0
+        distance_mode: str = "euclidean", kernel_width: float = 1.0
     ) -> Callable[[tf.Tensor, tf.Tensor, tf.Tensor], tf.Tensor]:
         """
         This method allows one to get a function that computes:
@@ -477,51 +477,53 @@ class Lime(BlackBoxExplainer):
             kernel_width = 1e-8
 
         kernel_width = tf.cast(kernel_width, dtype=tf.float32)
-        safe_denominator = tf.maximum(kernel_width ** 2, 1e-8)  # avoid division by 0
+        safe_denominator = tf.maximum(kernel_width**2, 1e-8)  # avoid division by 0
 
         if distance_mode == "euclidean":
+
             @tf.function(
                 input_signature=(
-                        tf.TensorSpec(shape=None, dtype=tf.float32),
-                        tf.TensorSpec(shape=[None, None], dtype=tf.int32),
-                        tf.TensorSpec(shape=None, dtype=tf.float32),
+                    tf.TensorSpec(shape=None, dtype=tf.float32),
+                    tf.TensorSpec(shape=[None, None], dtype=tf.int32),
+                    tf.TensorSpec(shape=None, dtype=tf.float32),
                 )
             )
             def _euclidean_similarity_kernel(
-                    original_input, interp_samples, perturbed_samples
+                original_input, interp_samples, perturbed_samples
             ) -> tf.Tensor:
                 augmented_input = tf.expand_dims(original_input, axis=0)
-                augmented_input = tf.repeat(augmented_input,
-                                            repeats=tf.shape(interp_samples)[0], axis=0)
+                augmented_input = tf.repeat(
+                    augmented_input, repeats=tf.shape(interp_samples)[0], axis=0
+                )
                 flatten_inputs = tf.reshape(augmented_input, [tf.shape(interp_samples)[0], -1])
                 flatten_samples = tf.reshape(perturbed_samples, [tf.shape(interp_samples)[0], -1])
-                distances = tf.norm(flatten_inputs - flatten_samples, ord='euclidean', axis=1)
-                similarities = tf.exp(-1.0 * (distances ** 2) / safe_denominator)
+                distances = tf.norm(flatten_inputs - flatten_samples, ord="euclidean", axis=1)
+                similarities = tf.exp(-1.0 * (distances**2) / safe_denominator)
                 return similarities
 
             return _euclidean_similarity_kernel
 
         if distance_mode == "cosine":
+
             @tf.function(
                 input_signature=(
                     tf.TensorSpec(shape=None, dtype=tf.float32),
                     tf.TensorSpec(shape=[None, None], dtype=tf.int32),
-                    tf.TensorSpec(shape=None, dtype=tf.float32)
+                    tf.TensorSpec(shape=None, dtype=tf.float32),
                 )
             )
             def _cosine_similarity_kernel(
-                original_input,
-                interp_samples,
-                perturbed_samples
+                original_input, interp_samples, perturbed_samples
             ) -> tf.Tensor:
-            # pylint: disable=unused-argument
+                # pylint: disable=unused-argument
                 augmented_input = tf.expand_dims(original_input, axis=0)
-                augmented_input = tf.repeat(augmented_input,
-                                            repeats=tf.shape(interp_samples)[0], axis=0)
+                augmented_input = tf.repeat(
+                    augmented_input, repeats=tf.shape(interp_samples)[0], axis=0
+                )
                 flatten_inputs = tf.reshape(augmented_input, [tf.shape(interp_samples)[0], -1])
                 flatten_samples = tf.reshape(perturbed_samples, [tf.shape(interp_samples)[0], -1])
                 distances = 1.0 - cosine_similarity(flatten_inputs, flatten_samples, axis=1)
-                similarities = tf.exp(-1.0 * (distances ** 2) / safe_denominator)
+                similarities = tf.exp(-1.0 * (distances**2) / safe_denominator)
                 return similarities
 
             return _cosine_similarity_kernel
@@ -543,7 +545,7 @@ class Lime(BlackBoxExplainer):
         mappings
             Mappings which map each pixel to the corresponding segment
         """
-        mapping = quickshift(inp.numpy().astype('double'), ratio=0.5, kernel_size=2)
+        mapping = quickshift(inp.numpy().astype("double"), ratio=0.5, kernel_size=2)
         mapping = tf.cast(mapping, tf.int32)
 
         return mapping
@@ -563,7 +565,7 @@ class Lime(BlackBoxExplainer):
         mappings
             Mappings which map each pixel to the corresponding segment
         """
-        mapping = felzenszwalb(inp.numpy().astype('double'))
+        mapping = felzenszwalb(inp.numpy().astype("double"))
         mapping = tf.cast(mapping, tf.int32)
 
         return mapping

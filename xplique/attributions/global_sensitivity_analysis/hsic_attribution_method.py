@@ -2,14 +2,14 @@
 Hsic Attribution Method explainer
 """
 
-from ...types import Callable, Union, Optional, OperatorSignature
 from ...commons import Tasks
+from ...types import Callable, OperatorSignature, Optional, Union
 from .gsa_attribution_method import GSABaseAttributionMethod
-from .samplers import Sampler, TFSobolSequence
 from .hsic_estimators import (
     BinaryEstimator,
     HsicEstimator,
 )
+from .samplers import Sampler, TFSobolSequence
 
 
 class HsicAttributionMethod(GSABaseAttributionMethod):
@@ -63,24 +63,24 @@ class HsicAttributionMethod(GSABaseAttributionMethod):
         estimator_batch_size: int = None,
         operator: Optional[Union[Tasks, str, OperatorSignature]] = None,
     ):
-
         sampler = sampler if sampler is not None else TFSobolSequence(binary=True)
-        estimator = (
-            estimator if estimator is not None else BinaryEstimator(output_kernel="rbf")
-        )
+        estimator = estimator if estimator is not None else BinaryEstimator(output_kernel="rbf")
 
         assert isinstance(sampler, Sampler), "The sampler must be a valid Sampler."
-        assert isinstance(
-            estimator, HsicEstimator
-        ), "The estimator must be a valid HsicEstimator."
+        assert isinstance(estimator, HsicEstimator), "The estimator must be a valid HsicEstimator."
 
         if isinstance(estimator, BinaryEstimator):
             assert sampler.binary, "The sampler must be binary for BinaryEstimator."
 
         estimator.set_batch_size(estimator_batch_size)
 
-        super().__init__(model = model, operator = operator,
-                         sampler = sampler, estimator = estimator,
-                         grid_size = grid_size, nb_design = nb_design,
-                         perturbation_function = perturbation_function, batch_size = batch_size,
+        super().__init__(
+            model=model,
+            operator=operator,
+            sampler=sampler,
+            estimator=estimator,
+            grid_size=grid_size,
+            nb_design=nb_design,
+            perturbation_function=perturbation_function,
+            batch_size=batch_size,
         )

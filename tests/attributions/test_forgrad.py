@@ -7,8 +7,8 @@ from .test_common import _default_methods
 
 
 def test_base_forgrad():
-    """ Ensure forgrad is working with the expected shape """
-    shapes = [ (5, 32, 32, 3), (5, 32, 32, 1), (5, 32, 32), (5, 31, 31), (5, 60, 60) ]
+    """Ensure forgrad is working with the expected shape"""
+    shapes = [(5, 32, 32, 3), (5, 32, 32, 1), (5, 32, 32), (5, 31, 31), (5, 60, 60)]
     sigmas = [5, 10, 30]
 
     for shape in shapes:
@@ -19,7 +19,7 @@ def test_base_forgrad():
 
 
 def test_integration_forgrad():
-    """ Test that forgrad integrate with all attributions """
+    """Test that forgrad integrate with all attributions"""
     input_shape, nb_labels, samples = ((32, 32, 3), 10, 20)
     model = generate_model(input_shape, nb_labels)
     output_layer_index = -2
@@ -32,5 +32,3 @@ def test_integration_forgrad():
         explanations_filtered = forgrad(explanations)
 
         assert explanations_filtered.shape[:3] == explanations.shape[:3]
-
-

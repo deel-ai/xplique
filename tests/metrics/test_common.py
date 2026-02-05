@@ -1,11 +1,23 @@
 import numpy as np
 import tensorflow as tf
 
-from xplique.attributions import (Saliency, GradientInput, IntegratedGradients, SmoothGrad, VarGrad,
-                                  SquareGrad, GradCAM, Occlusion, Rise, GuidedBackprop, DeconvNet,
-                                  GradCAMPP)
-from xplique.metrics import MuFidelity, Deletion, Insertion, AverageStability
-from xplique.metrics.base import ExplanationMetric, ExplainerMetric
+from xplique.attributions import (
+    DeconvNet,
+    GradCAM,
+    GradCAMPP,
+    GradientInput,
+    GuidedBackprop,
+    IntegratedGradients,
+    Occlusion,
+    Rise,
+    Saliency,
+    SmoothGrad,
+    SquareGrad,
+    VarGrad,
+)
+from xplique.metrics import AverageStability, Deletion, Insertion, MuFidelity
+from xplique.metrics.base import ExplainerMetric
+
 from ..utils import generate_data, generate_model, generate_regression_model
 
 
@@ -40,27 +52,28 @@ def test_common():
 
     explainers = _default_methods(model, output_layer_index)
 
-    for inputs, targets in [(inputs_np, targets_np),
-                            (inputs_tf, targets_tf),
-                            (dataset, None),
-                            (batched_dataset, None)]:
-
+    for inputs, targets in [
+        (inputs_np, targets_np),
+        (inputs_tf, targets_tf),
+        (dataset, None),
+        (batched_dataset, None),
+    ]:
         metrics = [
             Deletion(model, inputs, targets, steps=3),
             Insertion(model, inputs, targets, steps=3),
             MuFidelity(model, inputs, targets, nb_samples=3),
-            AverageStability(model, inputs, targets, nb_samples=3)
+            AverageStability(model, inputs, targets, nb_samples=3),
         ]
 
         for explainer in explainers:
             explanations = explainer(inputs, targets)
             for metric in metrics:
-                assert hasattr(metric, 'evaluate')
+                assert hasattr(metric, "evaluate")
                 if isinstance(metric, ExplainerMetric):
                     score = metric(explainer)
                 else:
-                    assert hasattr(metric, 'inference_function')
-                    assert hasattr(metric, 'batch_inference_function')
+                    assert hasattr(metric, "inference_function")
+                    assert hasattr(metric, "batch_inference_function")
                     score = metric(explanations)
                 assert type(score) in [np.float32, np.float64, float]
 
@@ -84,17 +97,18 @@ def test_add_activation():
                 MuFidelity(model, x, y, nb_samples=3, activation=activation),
             ]
             for metric in metrics:
-                assert hasattr(metric, 'evaluate')
+                assert hasattr(metric, "evaluate")
                 if isinstance(metric, ExplainerMetric):
                     score = metric(explainer)
                 else:
-                    assert hasattr(metric, 'inference_function')
-                    assert hasattr(metric, 'batch_inference_function')
+                    assert hasattr(metric, "inference_function")
+                    assert hasattr(metric, "batch_inference_function")
                     score = metric(explanations)
                     if not isinstance(metric, MuFidelity):
                         assert np.all(score <= 1)
                         assert np.all(score >= 0)
                 assert type(score) in [np.float32, np.float64, float]
+
 
 def test_data_types_shapes():
     """Test that all the attributions method works as explainer"""
@@ -106,9 +120,7 @@ def test_data_types_shapes():
         "images black and white": (28, 28, 1),
     }
 
-    explainer_metrics = {
-        AverageStability: {"nb_samples": 3}
-    }
+    explainer_metrics = {AverageStability: {"nb_samples": 3}}
     explanation_metrics = {
         Deletion: {"steps": 3},
         Insertion: {"steps": 3},

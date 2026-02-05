@@ -1,16 +1,16 @@
 """
 Attribution, a projection from example based module
 """
+
 import warnings
 
 import tensorflow as tf
 
 from xplique.types import Optional
 
-from ...attributions.base import BlackBoxExplainer
 from ...attributions import Saliency
-from ...types import Union, Optional
-
+from ...attributions.base import BlackBoxExplainer
+from ...types import Optional, Union
 from .base import Projection
 from .commons import model_splitting, target_free_classification_operator
 
@@ -55,10 +55,10 @@ class AttributionProjection(Projection):
 
     def __init__(
         self,
-        model: Union[tf.keras.Model, 'torch.nn.Module'],
+        model: Union[tf.keras.Model, "torch.nn.Module"],
         attribution_method: BlackBoxExplainer = Saliency,
         latent_layer: Optional[Union[str, int]] = None,
-        **attribution_kwargs
+        **attribution_kwargs,
     ):
         self.attribution_method = attribution_method
 
@@ -73,15 +73,19 @@ class AttributionProjection(Projection):
 
         # change default operator
         if "operator" not in attribution_kwargs or attribution_kwargs["operator"] is None:
-            warnings.warn("No operator provided, using standard classification operator. "\
-                          + "For non-classification tasks, please specify an operator.")
+            warnings.warn(
+                "No operator provided, using standard classification operator. "
+                + "For non-classification tasks, please specify an operator."
+            )
             attribution_kwargs["operator"] = target_free_classification_operator
 
         # compute attributions
         get_weights = self.attribution_method(self.predictor, **attribution_kwargs)
 
         # set methods
-        super().__init__(get_weights=get_weights,
-                         space_projection=space_projection,
-                         mappable=False,
-                         requires_targets=True)
+        super().__init__(
+            get_weights=get_weights,
+            space_projection=space_projection,
+            mappable=False,
+            requires_targets=True,
+        )

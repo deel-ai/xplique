@@ -5,7 +5,7 @@
 
 <div align="center">
     <a href="#">
-        <img src="https://img.shields.io/badge/Python-3.7, 3.8, 3.9, 3.10-efefef">
+        <img src="https://img.shields.io/badge/Python-3.10, 3.11, 3.12, 3.13, 3.14-efefef">
     </a>
     <a href="#">
         <img src="https://img.shields.io/badge/Tensorflow-2.5, ..., 2.15-00008b">
@@ -14,7 +14,7 @@
         <img alt="PyLint" src="https://github.com/deel-ai/xplique/actions/workflows/python-lints.yml/badge.svg">
     </a>
     <a href="https://github.com/deel-ai/xplique/actions/workflows/python-tests.yml">
-        <img alt="Tox" src="https://github.com/deel-ai/xplique/actions/workflows/python-tests.yml/badge.svg">
+        <img alt="Tests" src="https://github.com/deel-ai/xplique/actions/workflows/python-tests.yml/badge.svg">
     </a>
     <a href="https://github.com/deel-ai/xplique/actions/workflows/python-publish.yml">
         <img alt="Pypi" src="https://github.com/deel-ai/xplique/actions/workflows/python-publish.yml/badge.svg">

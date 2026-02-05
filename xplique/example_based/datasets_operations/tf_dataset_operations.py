@@ -1,6 +1,7 @@
 """
 Set of functions to manipulated `tf.data.Dataset`
 """
+
 from itertools import product
 
 import numpy as np
@@ -14,9 +15,10 @@ def _almost_equal(arr1, arr2, epsilon=1e-6):
     return np.shape(arr1) == np.shape(arr2) and np.sum(np.abs(arr1 - arr2)) < epsilon
 
 
-def are_dataset_first_elems_equal(dataset1: Optional[tf.data.Dataset] = None,
-                                  dataset2: Optional[tf.data.Dataset] = None,
-                                  ) -> bool:
+def are_dataset_first_elems_equal(
+    dataset1: Optional[tf.data.Dataset] = None,
+    dataset2: Optional[tf.data.Dataset] = None,
+) -> bool:
     """
     Test if the first batch of elements of two datasets are the same.
     It is used to verify equality between datasets in a lazy way.
@@ -134,9 +136,7 @@ def batch_size_matches(dataset: Optional[tf.data.Dataset], batch_size: int) -> b
 
     first_item = next(iter(dataset))
     if isinstance(first_item, tuple):
-        return tf.reduce_all(
-            [tf.shape(item)[0].numpy() == batch_size for item in first_item]
-        )
+        return tf.reduce_all([tf.shape(item)[0].numpy() == batch_size for item in first_item])
     return tf.shape(first_item)[0].numpy() == batch_size
 
 
@@ -179,9 +179,9 @@ def sanitize_dataset(
             if not is_batched(dataset):
                 dataset = dataset.batch(batch_size)
             else:
-                assert batch_size_matches(
-                    dataset, batch_size
-                ), "The batch size should match between datasets."
+                assert batch_size_matches(dataset, batch_size), (
+                    "The batch size should match between datasets."
+                )
         elif isinstance(dataset, (tf.Tensor, np.ndarray)):
             dataset = tf.data.Dataset.from_tensor_slices(dataset).batch(batch_size)
         else:
@@ -196,7 +196,7 @@ def sanitize_dataset(
                 assert dataset_cardinality == cardinality, (
                     "The number of batch should match between datasets. "
                     + f"Received {dataset.cardinality().numpy()} vs {cardinality}. "
-                    + "You may have provided non-batched datasets "\
+                    + "You may have provided non-batched datasets "
                     + "or datasets with different lengths."
                 )
             else:
@@ -257,21 +257,25 @@ def dataset_gather(dataset: tf.data.Dataset, indices: tf.Tensor) -> tf.Tensor:
 
     if len(indices.shape) != 3 or indices.shape[-1] != 2:
         raise ValueError(
-            "Indices should have dimensions (n, k, 2), "\
-            + "where n represent the number of inputs and k the number of corresponding examples. "\
-            + "The index of each element is encoded by two values, "\
-            + "the batch index and the index of the element in the batch. "\
+            "Indices should have dimensions (n, k, 2), "
+            + "where n represent the number of inputs and k the number of corresponding examples. "
+            + "The index of each element is encoded by two values, "
+            + "the batch index and the index of the element in the batch. "
             + f"Received {indices.shape}."
         )
 
     example = next(iter(dataset))
 
-    if dataset.element_spec.dtype in ['uint8', 'int8', 'int16', 'int32', 'int64']:
-        results = tf.fill(dims=indices.shape[:-1] + example[0].shape,
-                          value=tf.constant(-1, dtype=dataset.element_spec.dtype))
+    if dataset.element_spec.dtype in ["uint8", "int8", "int16", "int32", "int64"]:
+        results = tf.fill(
+            dims=indices.shape[:-1] + example[0].shape,
+            value=tf.constant(-1, dtype=dataset.element_spec.dtype),
+        )
     else:
-        results = tf.fill(dims=indices.shape[:-1] + example[0].shape,
-                          value=tf.constant(np.inf, dtype=dataset.element_spec.dtype))
+        results = tf.fill(
+            dims=indices.shape[:-1] + example[0].shape,
+            value=tf.constant(np.inf, dtype=dataset.element_spec.dtype),
+        )
 
     nb_results = product(indices.shape[:-1])
     current_nb_results = 0

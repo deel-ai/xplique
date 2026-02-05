@@ -1,12 +1,27 @@
 import numpy as np
 import tensorflow as tf
 
-from xplique.attributions import (Saliency, GradientInput, IntegratedGradients, SmoothGrad, VarGrad,
-                                  SquareGrad, GradCAM, Occlusion, Rise, GuidedBackprop, DeconvNet,
-                                  GradCAMPP, Lime, KernelShap, SobolAttributionMethod,
-                                  HsicAttributionMethod)
+from xplique.attributions import (
+    DeconvNet,
+    GradCAM,
+    GradCAMPP,
+    GradientInput,
+    GuidedBackprop,
+    HsicAttributionMethod,
+    IntegratedGradients,
+    KernelShap,
+    Lime,
+    Occlusion,
+    Rise,
+    Saliency,
+    SmoothGrad,
+    SobolAttributionMethod,
+    SquareGrad,
+    VarGrad,
+)
 from xplique.attributions.base import BlackBoxExplainer
-from ..utils import generate_data, generate_model, generate_regression_model, almost_equal
+
+from ..utils import almost_equal, generate_data, generate_model, generate_regression_model
 
 
 def _default_methods(model, output_layer_index=None, bs=32):
@@ -44,15 +59,17 @@ def test_common():
 
     methods = _default_methods(model, output_layer_index)
 
-    for inputs, targets in [(inputs_np, targets_np),
-                            (inputs_tf, targets_tf),
-                            (dataset, None),
-                            (batched_dataset, None)]:
+    for inputs, targets in [
+        (inputs_np, targets_np),
+        (inputs_tf, targets_tf),
+        (dataset, None),
+        (batched_dataset, None),
+    ]:
         for method in methods:
             explanations = method.explain(inputs, targets)
 
             # all explanation must have an explain method
-            assert hasattr(method, 'explain')
+            assert hasattr(method, "explain")
 
             # all explanations returned must be either a tf.Tensor or ndarray
             assert isinstance(explanations, (tf.Tensor, np.ndarray))
@@ -72,7 +89,6 @@ def test_batch_size():
     batch_sizes = [None, 1, 32]
 
     for bs in batch_sizes:
-
         methods = _default_methods(model, output_layer_index, bs)
 
         for method in methods:
@@ -92,21 +108,20 @@ def test_model_caching():
     output_layer_index = -1
 
     # the key used for caching is the following tuple
-    cache_key = (id(model.input), id(model.output))
+    cache_key = (id(model.inputs), id(model.outputs))
 
     cache_len_before = len(BlackBoxExplainer._cache_models.keys())  # pylint:
     # disable=protected-access
 
-    assert (cache_key not in BlackBoxExplainer._cache_models)  # pylint: disable=protected-access
+    assert cache_key not in BlackBoxExplainer._cache_models  # pylint: disable=protected-access
 
     _ = _default_methods(model, output_layer_index)
 
     # check that the key is now in the cache
-    assert (cache_key in BlackBoxExplainer._cache_models)  # pylint: disable=protected-access
+    assert cache_key in BlackBoxExplainer._cache_models  # pylint: disable=protected-access
 
     # ensure that there no more than one key has been added
-    assert (len(
-        BlackBoxExplainer._cache_models) == cache_len_before + 1)  # pylint: disable=protected-access
+    assert len(BlackBoxExplainer._cache_models) == cache_len_before + 1  # pylint: disable=protected-access
 
 
 def test_data_types_shapes():
@@ -164,8 +179,6 @@ def test_data_types_shapes():
             explanation = explainer(inputs, targets)
 
             if len(input_shape) == 3:  # image => explanation (n, h, w, 1)
-                assert almost_equal(
-                    np.array(explanation.shape),
-                    np.array(inputs.shape[:-1] + (1,)))
+                assert almost_equal(np.array(explanation.shape), np.array(inputs.shape[:-1] + (1,)))
             else:
                 assert almost_equal(np.array(explanation.shape), np.array(inputs.shape))
