@@ -1,5 +1,7 @@
 # Average Increase in Confidence
 
+- [**Metrics**: Average Drop/Increase/Gain Fidelity](https://colab.research.google.com/drive/1nGP13qiQrsJMBx8TXgA69D-5ALoP3l9p) <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1nGP13qiQrsJMBx8TXgA69D-5ALoP3l9p) </sub>
+
 Average Increase in Confidence (AIC) measures the fraction of samples for which the masked input yields a higher score than the original input. This binary indicator provides a simple measure of explanation quality.
 
 !!! quote

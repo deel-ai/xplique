@@ -1,5 +1,7 @@
 # Model Randomization Metric
 
+- [**Metrics**: Randomization](https://colab.research.google.com/drive/13lNkZqKajRJ63XllkQddgrPOYF1Xv9-Y) <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/13lNkZqKajRJ63XllkQddgrPOYF1Xv9-Y) </sub>
+
 Model Randomization metric tests whether explanations degrade when model parameters are randomized. This implements a sanity check to verify that explainers are sensitive to model parameters.
 
 !!! quote
