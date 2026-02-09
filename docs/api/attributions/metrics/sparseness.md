@@ -1,5 +1,7 @@
 # Sparseness
 
+- [**Metrics**: Complexity](https://colab.research.google.com/drive/13boAsXGVKS0LaNzslOdjSkYIrpBJdh7K) <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/13boAsXGVKS0LaNzslOdjSkYIrpBJdh7K) </sub>
+
 Sparseness measures the concentration of attribution maps using the Gini index. Higher sparseness values indicate that importance is concentrated in fewer features, which is often desirable for interpretability.
 
 !!! quote

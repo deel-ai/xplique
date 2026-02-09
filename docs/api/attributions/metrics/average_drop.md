@@ -1,5 +1,7 @@
 # Average Drop
 
+- [**Metrics**: Average Drop/Increase/Gain Fidelity](https://colab.research.google.com/drive/1nGP13qiQrsJMBx8TXgA69D-5ALoP3l9p) <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1nGP13qiQrsJMBx8TXgA69D-5ALoP3l9p) </sub>
+
 Average Drop (AD) measures the relative decrease in the model's confidence when the input is masked according to the explanation. A good explanation should identify features that, when masked, cause the model's score to drop significantly.
 
 !!! quote

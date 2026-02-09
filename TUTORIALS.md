@@ -54,6 +54,9 @@ Here is the lists of the available tutorial for now:
 | Fidelity      | MuFidelity             | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1nuqLezSHavXGMsGtHrdSajEcR1SCzqTA) |
 | Fidelity      | Insertion              | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1QtwbegOpTSj7g6DxBprMt0aTtaV5surF) |
 | Fidelity      | Deletion               | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1W7tfXOoPnbu4HGGIkbhkoKdk9xRdStgs) |
+| Fidelity      | Average Drop/Increase/Gain | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1nGP13qiQrsJMBx8TXgA69D-5ALoP3l9p) |
+| Complexity    | Complexity             | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/13boAsXGVKS0LaNzslOdjSkYIrpBJdh7K) |
+| Randomization | Randomization          | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/13lNkZqKajRJ63XllkQddgrPOYF1Xv9-Y) |
 | Stability     | AverageStability       | **(WIP)**                                                                                                                                                          |
 
 ## PyTorch Wrapper

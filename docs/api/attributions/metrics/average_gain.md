@@ -1,5 +1,7 @@
 # Average Gain
 
+- [**Metrics**: Average Drop/Increase/Gain Fidelity](https://colab.research.google.com/drive/1nGP13qiQrsJMBx8TXgA69D-5ALoP3l9p) <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1nGP13qiQrsJMBx8TXgA69D-5ALoP3l9p) </sub>
+
 Average Gain (AG) measures the relative increase in the model's confidence when the input is masked according to the explanation. This metric is complementary to Average Drop and evaluates whether explanations capture truly discriminative features.
 
 !!! quote

@@ -1,5 +1,7 @@
 # Complexity
 
+- [**Metrics**: Complexity](https://colab.research.google.com/drive/13boAsXGVKS0LaNzslOdjSkYIrpBJdh7K) <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/13boAsXGVKS0LaNzslOdjSkYIrpBJdh7K) </sub>
+
 Complexity measures the entropy of attribution maps to evaluate how concentrated or diffuse the explanations are. Lower complexity (lower entropy) indicates more concentrated, sparse explanations, which are often considered more interpretable.
 
 !!! quote

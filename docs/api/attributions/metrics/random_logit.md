@@ -1,5 +1,7 @@
 # Random Logit Metric
 
+- [**Metrics**: Randomization](https://colab.research.google.com/drive/13lNkZqKajRJ63XllkQddgrPOYF1Xv9-Y) <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/13lNkZqKajRJ63XllkQddgrPOYF1Xv9-Y) </sub>
+
 Random Logit Invariance metric tests whether explanations change when the target logit is randomized to a different class. This is a sanity check to verify that explainers are sensitive to the target label.
 
 !!! quote
