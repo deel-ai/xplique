@@ -2,7 +2,7 @@ import numpy as np
 import tensorflow as tf
 
 from xplique.attributions import (Saliency, GradientInput, IntegratedGradients, SmoothGrad, VarGrad,
-                                  SquareGrad, GradCAM, Occlusion, Rise, GuidedBackprop, DeconvNet,
+                                  SquareGrad, GradCAM, FEM, Occlusion, Rise, GuidedBackprop, DeconvNet,
                                   GradCAMPP, Lime, KernelShap, SobolAttributionMethod,
                                   HsicAttributionMethod)
 from xplique.attributions.base import BlackBoxExplainer
@@ -18,6 +18,7 @@ def _default_methods(model, output_layer_index=None, bs=32):
         SquareGrad(model, output_layer_index, bs, nb_samples=2),
         IntegratedGradients(model, output_layer_index, bs, steps=2),
         GradCAM(model, output_layer_index, bs),
+        FEM(model, output_layer_index, bs),
         Occlusion(model, bs, patch_size=10, patch_stride=10),
         Rise(model, bs, nb_samples=2),
         GuidedBackprop(model, output_layer_index, bs),
@@ -120,8 +121,8 @@ def test_data_types_shapes():
     }
 
     not_compatible_methods = {
-        "tabular": ["GradCAM", "GradCAMPP", "SobolAttributionMethod", "HsicAttributionMethod"],
-        "time-series": ["GradCAM", "GradCAMPP", "SobolAttributionMethod", "HsicAttributionMethod"],
+        "tabular": ["GradCAM", "GradCAMPP", "FEM", "SobolAttributionMethod", "HsicAttributionMethod"],
+        "time-series": ["GradCAM", "GradCAMPP", "FEM", "SobolAttributionMethod", "HsicAttributionMethod"],
         "images rgb": [],
         "images black and white": [],
     }
@@ -137,6 +138,7 @@ def test_data_types_shapes():
         DeconvNet: {},
         GradCAM: {},
         GradCAMPP: {},
+        FEM: {},
         Occlusion: {},
         Rise: {"nb_samples": 2},
         Lime: {"nb_samples": 2},

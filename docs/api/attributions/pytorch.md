@@ -59,6 +59,7 @@ Not yet, but it works for most of them (even for gradient-based ones!):
 | Deconvolution          | ❌                |
 | Grad-CAM               | ❌                |
 | Grad-CAM++             | ❌                |
+| FEM                    | ❌                |
 | Gradient Input         | ✅                |
 | Guided Backprop        | ❌                |
 | Hsic Attribution       | ✅                |

@@ -83,11 +83,15 @@ Xplique includes the following black-box attributions:
 
 Those approaches are also called white-box methods as **they require a full access to the model's architecture**, notably it must **allow computing gradients**. Indeed, the core idea with the gradient-based approaches is to use back-propagation, not to update the model’s weights (which is already trained) but to reveal the most contributing inputs, potentially in a specific layer. All methods are available when the model works with TensorFlow but most methods also work with PyTorch (see [Xplique for PyTorch documentation](../pytorch/))
 
+FEM is a related white-box approach that does not require gradients but still relies on access to
+convolutional feature maps.
+
 | Method Name and Documentation link                          | **Tutorial**             | Available with TF | Available with PyTorch* |
 |:----------------------------------------------------------- | :----------------------: | :---------------: | :---------------------: |
 | [DeconvNet](../methods/deconvnet/)                          | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/19eB3uwAtCKZgkoWtMzrF0LTJ-htF_KE7) | ✔ |❌ |
 | [GradCAM](../methods/grad_cam/)                             | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1nsB7xdQbU0zeYQ1-aB_D-M67-RAnvt4X) | ✔ |❌ |
 | [GradCAM++](../methods/grad_cam_pp/)                        | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1nsB7xdQbU0zeYQ1-aB_D-M67-RAnvt4X) | ✔ |❌ |
+| [FEM](../methods/fem/)                                      | —                        | ✔ |❌ |
 | [GradientInput](../methods/gradient_input/)                 | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/19eB3uwAtCKZgkoWtMzrF0LTJ-htF_KE7) | ✔ | ✔ |
 | [GuidedBackpropagation](../methods/guided_backpropagation/) | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/19eB3uwAtCKZgkoWtMzrF0LTJ-htF_KE7) | ✔ |❌ |
 | [IntegratedGradients](../methods/integrated_gradients/)     | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1UXJYVebDVIrkTOaOl-Zk6pHG3LWkPcLo) | ✔ | ✔ |
@@ -101,7 +105,7 @@ Those approaches are also called white-box methods as **they require a full acce
 In addition, these methods inherit from `WhiteBoxExplainer` (itself inheriting from `BlackBoxExplainer`). Thus, two additional `__init__` arguments are added:
 
 - `output_layer`. It is the layer to target for the output (e.g logits or after softmax). If an `int` is provided, it will be interpreted as a layer index, if a `string` is provided it will look for the layer name. Default to the last layer.
-- `reducer`. For images, most gradient-based provide a value for each channel, however, for consistency, it was decided that for images, explanations will have the shape $(n, h, w, 1)$. Therefore, gradient-based methods need to reduce the channel dimension of their image explanations and the `reducer` parameter choose how to do it among {`"mean"`, `"min"`, `"max"`, `"sum"`, `None`}. In the case `None` is give, the channel dimension is not reduced. The default value is `"mean"` for methods excepts `Saliency` which is `"max"` to comply with the paper and `GradCAM` and `GradCAMPP` which are not concerned.
+- `reducer`. For images, most gradient-based provide a value for each channel, however, for consistency, it was decided that for images, explanations will have the shape $(n, h, w, 1)$. Therefore, gradient-based methods need to reduce the channel dimension of their image explanations and the `reducer` parameter choose how to do it among {`"mean"`, `"min"`, `"max"`, `"sum"`, `None`}. In the case `None` is give, the channel dimension is not reduced. The default value is `"mean"` for methods excepts `Saliency` which is `"max"` to comply with the paper and `GradCAM`, `GradCAMPP`, and `FEM` which are not concerned.
 
 !!!tip
     It is recommended to use the layer before Softmax.
