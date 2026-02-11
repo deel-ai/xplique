@@ -532,10 +532,9 @@ class RandomLogitMetric(BaseRandomizationMetric):
     seed
         Random seed used when sampling off-classes.
 
-    Returns (API)
-    -------------
-    evaluate(explainer) -> float
-        Mean SSIM over the dataset.
+    Notes
+    -----
+    `evaluate(explainer)` returns the mean SSIM over the dataset.
     """
     def __init__(self,
                  model: Callable,
@@ -645,8 +644,6 @@ class ModelRandomizationMetric(BaseRandomizationMetric):
     targets
         One-hot encoded labels, shape (N, C),
         or integer labels which will be one-hot encoded.
-    explainer
-        Attribution method implementing `explain(inputs, targets)`.
     randomization_strategy
         Strategy to randomize the model parameters. If None, a progressive
         randomization of top 25% layers is used.
@@ -657,10 +654,10 @@ class ModelRandomizationMetric(BaseRandomizationMetric):
     seed
         Random seed for reproducibility.
 
-    Returns (API)
-    -------------
-    evaluate(explainer) -> float
-        Mean Spearman correlation over the dataset.
+    Notes
+    -----
+    `evaluate(explainer)` returns the mean Spearman correlation over the dataset.
+    The `explainer` argument is passed to `evaluate`, not to `__init__`.
     """
 
     def __init__(self,

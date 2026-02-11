@@ -520,15 +520,27 @@ class BaseAverageXMetric(ExplanationMetric, ABC):
 
     Parameters
     ----------
-    model, inputs, targets, batch_size, operator, activation
-        See `ExplanationMetric` base class.
+    model
+        Model used for computing metric.
+    inputs
+        Input samples under study.
+    targets
+        One-hot encoded labels or regression target (e.g {+1, -1}), one for each sample.
+    batch_size
+        Number of samples to process at once, if None compute all at once.
+    operator
+        Function g to explain. It should take 3 parameters (f, x, y) and return a scalar,
+        with f the model, x the inputs and y the targets. If None, use the standard
+        operator g(f, x, y) = f(x)[y].
+    activation
+        A string that belongs to [None, 'sigmoid', 'softmax']. Specify if we should add
+        an activation layer once the model has been called.
 
-    Returns (API)
-    -------------
-    evaluate(explanations) -> float
-        Mean metric over the dataset.
-    detailed_evaluate(explanations) -> np.ndarray
-        Vector of metric per-sample, shape (N,).
+    Notes
+    -----
+    Subclasses implement:
+    - `evaluate(explanations) -> float`
+    - `detailed_evaluate(inputs, targets, explanations) -> np.ndarray`
     """
     def __init__(self,
                  model: tf.keras.Model,
@@ -663,21 +675,33 @@ class AverageDropMetric(BaseAverageXMetric):
     - Builds M_i by |explanation|, channel-average (if 4D), per-sample min-max to [0,1],
       then broadcast to input shape, and multiplicatively masks inputs.
 
-    Ref. Chattopadhay, A., Sarkar, A., Howlader, P., & Balasubramanian, V. N. (2018, March).
+    References
+    ----------
+    Chattopadhay, A., Sarkar, A., Howlader, P., & Balasubramanian, V. N. (2018, March).
     Grad-cam++: Generalized gradient-based visual explanations for deep convolutional networks.
     In 2018 IEEE winter conference on applications of computer vision (WACV) (pp. 839-847). IEEE.
 
     Parameters
     ----------
-    model, inputs, targets, batch_size, operator, activation
-        See `ExplanationMetric` base class.
+    model
+        Model used for computing metric.
+    inputs
+        Input samples under study.
+    targets
+        One-hot encoded labels or regression target (e.g {+1, -1}), one for each sample.
+    batch_size
+        Number of samples to process at once, if None compute all at once.
+    operator
+        Function g to explain. It should take 3 parameters (f, x, y) and return a scalar,
+        with f the model, x the inputs and y the targets. If None, use the standard
+        operator g(f, x, y) = f(x)[y].
+    activation
+        A string that belongs to [None, 'sigmoid', 'softmax']. Specify if we should add
+        an activation layer once the model has been called.
 
-    Returns (API)
-    -------------
-    evaluate(explanations) -> float
-        Mean AD over the dataset.
-    detailed_evaluate(explanations) -> np.ndarray
-        Vector of AD per-sample, shape (N,).
+    Notes
+    -----
+    `evaluate(explanations)` returns the mean AD over the dataset.
     """
 
     def detailed_evaluate(
@@ -751,22 +775,32 @@ class AverageIncreaseMetric(BaseAverageXMetric):
     -----
     - Works best with probabilistic outputs; set `activation="softmax"` or `"sigmoid"`
       if your model returns logits.
+    - `evaluate(explanations)` returns the mean indicator over the dataset.
 
-    Ref. Chattopadhay, A., Sarkar, A., Howlader, P., & Balasubramanian, V. N. (2018, March).
+    References
+    ----------
+    Chattopadhay, A., Sarkar, A., Howlader, P., & Balasubramanian, V. N. (2018, March).
     Grad-cam++: Generalized gradient-based visual explanations for deep convolutional networks.
     In 2018 IEEE winter conference on applications of computer vision (WACV) (pp. 839-847). IEEE.
 
     Parameters
     ----------
-    model, inputs, targets, batch_size, operator, activation
-        See `ExplanationMetric`.
+    model
+        Model used for computing metric.
+    inputs
+        Input samples under study.
+    targets
+        One-hot encoded labels or regression target (e.g {+1, -1}), one for each sample.
+    batch_size
+        Number of samples to process at once, if None compute all at once.
+    operator
+        Function g to explain. It should take 3 parameters (f, x, y) and return a scalar,
+        with f the model, x the inputs and y the targets. If None, use the standard
+        operator g(f, x, y) = f(x)[y].
+    activation
+        A string that belongs to [None, 'sigmoid', 'softmax']. Specify if we should add
+        an activation layer once the model has been called.
 
-    Returns (API)
-    -------------
-    evaluate(explanations) -> float
-        Mean indicator over the dataset (i.e., percentage / 100).
-    detailed_evaluate(explanations) -> np.ndarray
-        Vector of binary indicators per-sample, shape (N,).
     """
 
     def detailed_evaluate(
@@ -839,22 +873,32 @@ class AverageGainMetric(BaseAverageXMetric):
     -----
     - Intended for scores in [0,1]. If your model outputs logits, use
       `activation="softmax"` / `"sigmoid"` at construction to operate on probabilities.
+    - `evaluate(explanations)` returns the mean AG over the dataset.
 
-    Parameters
+    References
     ----------
-    model, inputs, targets, batch_size, operator, activation
-        See `ExplanationMetric`.
-
-    Ref. Zhang, H., Torres, F., Sicre, R., Avrithis, Y., & Ayache, S. (2024).
+    Zhang, H., Torres, F., Sicre, R., Avrithis, Y., & Ayache, S. (2024).
     Opti-CAM: Optimizing saliency maps for interpretability.
     Computer Vision and Image Understanding, 248, 104101.
 
-    Returns (API)
-    -------------
-    evaluate(explanations) -> float
-        Mean AG over the dataset.
-    detailed_evaluate(explanations) -> np.ndarray
-        Vector of AG per-sample, shape (N,).
+    Parameters
+    ----------
+    model
+        Model used for computing metric.
+    inputs
+        Input samples under study.
+    targets
+        One-hot encoded labels or regression target (e.g {+1, -1}), one for each sample.
+    batch_size
+        Number of samples to process at once, if None compute all at once.
+    operator
+        Function g to explain. It should take 3 parameters (f, x, y) and return a scalar,
+        with f the model, x the inputs and y the targets. If None, use the standard
+        operator g(f, x, y) = f(x)[y].
+    activation
+        A string that belongs to [None, 'sigmoid', 'softmax']. Specify if we should add
+        an activation layer once the model has been called.
+
     """
 
     def detailed_evaluate(
