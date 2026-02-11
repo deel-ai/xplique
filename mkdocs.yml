@@ -1,8 +1,5 @@
 site_name: Xplique
 
-google_analytics:
-  - UA-132343476-2
-  - auto
 
 nav:
   - Home: index.md
@@ -116,6 +113,9 @@ markdown_extensions:
       emoji_generator: !!python/name:material.extensions.emoji.to_svg
 
 extra:
+  analytics:
+    provider: google
+    property: UA-132343476-2
   version:
     provider: mike
 
