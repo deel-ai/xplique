@@ -1,0 +1,3348 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+      
+        <link rel="prev" href="../tcav/">
+      
+      
+        <link rel="next" href="../../example_based/api_example_based/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../../assets/x_logo.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.1">
+    
+    
+      
+        <title>Craft - Xplique</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../../css/custom.css">
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+  
+
+
+  
+  
+
+<script id="__analytics">function __md_analytics(){function e(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],e("js",new Date),e("config","UA-132343476-2"),document.addEventListener("DOMContentLoaded",(function(){document.forms.search&&document.forms.search.query.addEventListener("blur",(function(){this.value&&e("event","search",{search_term:this.value})}));document$.subscribe((function(){var t=document.forms.feedback;if(void 0!==t)for(var a of t.querySelectorAll("[type=submit]"))a.addEventListener("click",(function(a){a.preventDefault();var n=document.location.pathname,d=this.getAttribute("data-md-value");e("event","feedback",{page:n,data:d}),t.firstElementChild.disabled=!0;var r=t.querySelector(".md-feedback__note [data-md-value='"+d+"']");r&&(r.hidden=!1)})),t.hidden=!1})),location$.subscribe((function(t){e("config","UA-132343476-2",{page_path:t.pathname})}))}));var t=document.createElement("script");t.async=!0,t.src="https://www.googletagmanager.com/gtag/js?id=UA-132343476-2",document.getElementById("__analytics").insertAdjacentElement("afterEnd",t)}</script>
+  
+    <script>"undefined"!=typeof __md_analytics&&__md_analytics()</script>
+  
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="dark" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#craft" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+          <aside class="md-banner md-banner--warning">
+            <div class="md-banner__inner md-grid md-typeset">
+              
+  You're not viewing the latest version.
+  <a href="../../../..">
+    <strong>Click here to go to latest.</strong>
+  </a>
+
+            </div>
+            <script>var el=document.querySelector("[data-md-component=outdated]"),base=new URL("../../.."),outdated=__md_get("__outdated",sessionStorage,base);!0===outdated&&el&&(el.hidden=!1)</script>
+          </aside>
+        
+      </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../.." title="Xplique" class="md-header__button md-logo" aria-label="Xplique" data-md-component="logo">
+      
+  <img src="../../../assets/x_logo.png" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Xplique
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Craft
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="dark" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 6H7c-3.31 0-6 2.69-6 6s2.69 6 6 6h10c3.31 0 6-2.69 6-6s-2.69-6-6-6m0 10H7c-2.21 0-4-1.79-4-4s1.79-4 4-4h10c2.21 0 4 1.79 4 4s-1.79 4-4 4M7 9c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 7H7a5 5 0 0 0-5 5 5 5 0 0 0 5 5h10a5 5 0 0 0 5-5 5 5 0 0 0-5-5m0 8a3 3 0 0 1-3-3 3 3 0 0 1 3-3 3 3 0 0 1 3 3 3 3 0 0 1-3 3"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/deel-ai/xplique" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    deel-ai/xplique
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="Xplique" class="md-nav__button md-logo" aria-label="Xplique" data-md-component="logo">
+      
+  <img src="../../../assets/x_logo.png" alt="logo">
+
+    </a>
+    Xplique
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/deel-ai/xplique" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    deel-ai/xplique
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Attributions methods
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Attributions methods
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../attributions/api_attributions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Description
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_2" id="__nav_2_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Methods
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Methods
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../attributions/methods/deconvnet/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DeconvNet
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../attributions/methods/forgrad/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ForGRad
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../attributions/methods/grad_cam/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Grad-CAM
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../attributions/methods/grad_cam_pp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Grad-CAM++
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../attributions/methods/gradient_input/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Gradient Input
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../attributions/methods/guided_backpropagation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guided Backprop
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../attributions/methods/hsic/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Hsic Attribution Method
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../attributions/methods/integrated_gradients/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Integrated Gradient
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../attributions/methods/kernel_shap/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    KernelSHAP
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../attributions/methods/lime/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Lime
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../attributions/methods/occlusion/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Occlusion sensitivity
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../attributions/methods/rise/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rise
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../attributions/methods/saliency/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Saliency
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../attributions/methods/smoothgrad/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SmoothGrad
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../attributions/methods/sobol/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sobol Attribution Method
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../attributions/methods/square_grad/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SquareGrad
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../attributions/methods/vargrad/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    VarGrad
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_3" id="__nav_2_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Metrics
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Metrics
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../attributions/metrics/api_metrics/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Description
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../attributions/metrics/deletion/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Deletion
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../attributions/metrics/insertion/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Insertion
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../attributions/metrics/mu_fidelity/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    MuFidelity
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../attributions/metrics/avg_stability/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AverageStability
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../attributions/metrics/average_drop/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AverageDropMetric
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../attributions/metrics/average_gain/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AverageGainMetric
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../attributions/metrics/average_increase/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AverageIncreaseMetric
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../attributions/metrics/complexity/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Complexity
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../attributions/metrics/sparseness/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sparseness
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../attributions/metrics/random_logit/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    RandomLogitMetric
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../attributions/metrics/model_randomization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ModelRandomizationMetric
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../attributions/pytorch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    PyTorch
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../attributions/callable/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Callable
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../attributions/classification/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Classification
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../attributions/object_detection/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Object Detection
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../attributions/regression/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Regression
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../attributions/semantic_segmentation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Semantic Segmentation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Concept based
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Concept based
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../cav/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cav
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tcav/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tcav
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Craft
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Craft
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#example" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#CraftTf" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CraftTf
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#CraftManagerTf" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CraftManagerTf
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Example based
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Example based
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../example_based/api_example_based/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Description
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_2" id="__nav_4_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Similar Examples
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Similar Examples
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../example_based/similar_examples/similar_examples/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SimilarExamples
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../example_based/similar_examples/cole/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cole
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_3" id="__nav_4_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Counterfactuals
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Counterfactuals
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../example_based/counterfactuals/label_aware_counter_factuals/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    LabelAwareCounterFactuals
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../example_based/counterfactuals/naive_counter_factuals/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    NaiveCounterFactuals
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_4" id="__nav_4_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Semifactuals
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Semifactuals
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../example_based/semifactuals/kleor/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Kleor
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_5" id="__nav_4_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Prototypes
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Prototypes
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../example_based/prototypes/api_prototypes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Description
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../example_based/prototypes/proto_greedy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ProtoGreedy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../example_based/prototypes/proto_dash/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ProtoDash
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../example_based/prototypes/mmd_critic/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    MMDCritic
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../example_based/projections/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Projections
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Feature visualization
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Feature visualization
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../feature_viz/maco/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Modern Feature Visualization (MaCo)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../feature_viz/feature_viz/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Feature visualization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../tutorials/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tutorials
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../contributing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#example" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#CraftTf" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CraftTf
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#CraftManagerTf" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CraftManagerTf
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="craft">CRAFT<a class="headerlink" href="#craft" title="Permanent link">&para;</a></h1>
+<p><sub>
+    <img src="https://upload.wikimedia.org/wikipedia/commons/d/d0/Google_Colaboratory_SVG_Logo.svg" width="20">
+</sub>
+<a href="https://colab.research.google.com/drive/1jmyhb89Bdz7H4G2KfK8uEVbSC-C_aht_">View colab Tensorflow tutorial</a> |
+<sub>
+    <img src="https://upload.wikimedia.org/wikipedia/commons/d/d0/Google_Colaboratory_SVG_Logo.svg" width="20">
+</sub>
+<a href="https://colab.research.google.com/drive/16Jn2pQy4gi2qQYZFnuW6ZNtVAYiNyJHO">View colab Pytorch tutorial</a> |
+<sub>
+    <img src="https://upload.wikimedia.org/wikipedia/commons/9/91/Octicons-mark-github.svg" width="20">
+</sub><a href="https://github.com/deel-ai/xplique/blob/master/xplique/concepts/craft.py">View source</a> |
+📰 <a href="https://arxiv.org/pdf/2211.10154">Paper</a></p>
+<p>CRAFT or Concept Recursive Activation FacTorization for Explainability is a method for automatically extracting human-interpretable concepts from deep networks.</p>
+<p>This concept activations factorization method aims to explain a trained model's decisions on a per-class and per-image basis by highlighting both "what" the model saw and “where” it saw it. Thus CRAFT generates post-hoc local and global explanations.</p>
+<p>It is made up from 3 ingredients:</p>
+<ol>
+<li>a method to recursively decompose concepts into sub-concepts</li>
+<li>a method to better estimate the importance of extracted concepts</li>
+<li>a method to use any attribution method to create concept attribution maps, using implicit differentiation</li>
+</ol>
+<p>CRAFT requires splitting the model in two parts: <span class="arithmatex">\((g, h)\)</span> such that <span class="arithmatex">\(f(x) = (g \cdot h)(x)\)</span>. To put it simply, <span class="arithmatex">\(g\)</span> is the function that maps our input to the latent space (an inner layer of our model), and <span class="arithmatex">\(h\)</span> is the function that maps the latent space to the output.
+The concepts will be extracted from this latent space.</p>
+<div class="admonition info">
+<p class="admonition-title">Info</p>
+<p>It is important to note that if the model contains a global average pooling layer, it is strongly recommended to provide CRAFT with the layer before the global average pooling.</p>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Please keep in mind that the activations must be positives (after relu or any positive activation function)</p>
+</div>
+<h2 id="example">Example<a class="headerlink" href="#example" title="Permanent link">&para;</a></h2>
+<p>Use Craft to investigate a single class.</p>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">xplique.concepts</span><span class="w"> </span><span class="kn">import</span> <span class="n">CraftTf</span> <span class="k">as</span> <span class="n">Craft</span>
+
+<span class="c1"># Cut the model in two parts (as explained in the paper)</span>
+<span class="c1"># first part is g(.) our &#39;input_to_latent&#39; model returning positive activations,</span>
+<span class="c1"># second part is h(.) our &#39;latent_to_logit&#39; model</span>
+
+<span class="n">g</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">Model</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">input</span><span class="p">,</span> <span class="n">model</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="o">-</span><span class="mi">3</span><span class="p">]</span><span class="o">.</span><span class="n">output</span><span class="p">)</span>
+<span class="n">h</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">Model</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">input</span><span class="p">,</span> <span class="n">model</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">output</span><span class="p">)</span>
+
+<span class="c1"># Create a Craft concept extractor from these 2 models</span>
+<span class="n">craft</span> <span class="o">=</span> <span class="n">Craft</span><span class="p">(</span><span class="n">input_to_latent_model</span> <span class="o">=</span> <span class="n">g</span><span class="p">,</span>
+              <span class="n">latent_to_logit_model</span> <span class="o">=</span> <span class="n">h</span><span class="p">,</span>
+              <span class="n">number_of_concepts</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span>
+              <span class="n">patch_size</span> <span class="o">=</span> <span class="mi">80</span><span class="p">,</span>
+              <span class="n">batch_size</span> <span class="o">=</span> <span class="mi">64</span><span class="p">)</span>
+
+<span class="c1"># Use Craft to get the crops (crops), the embedding of the crops (crops_u),</span>
+<span class="c1"># and the concept bank (w)</span>
+<span class="n">crops</span><span class="p">,</span> <span class="n">crops_u</span><span class="p">,</span> <span class="n">w</span> <span class="o">=</span> <span class="n">craft</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">images_preprocessed</span><span class="p">,</span> <span class="n">class_id</span><span class="o">=</span><span class="n">rabbit_class_id</span><span class="p">)</span>
+
+<span class="c1"># Compute Sobol indices to understand which concept matters</span>
+<span class="n">importances</span> <span class="o">=</span> <span class="n">craft</span><span class="o">.</span><span class="n">estimate_importance</span><span class="p">()</span>
+
+<span class="c1"># Display those concepts by showing the 10 best crops for each concept</span>
+<span class="n">craft</span><span class="o">.</span><span class="n">plot_concepts_crops</span><span class="p">(</span><span class="n">nb_crops</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+</code></pre></div>
+<p>Use CraftManager to investigate multiple classes.</p>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">xplique.concepts</span><span class="w"> </span><span class="kn">import</span> <span class="n">CraftManagerTf</span> <span class="k">as</span> <span class="n">CraftManager</span>
+
+
+<span class="c1"># Cut the model in two parts (as explained in the paper)</span>
+<span class="c1"># first part is g(.) our &#39;input_to_latent&#39; model returning positive activations,</span>
+<span class="c1"># second part is h(.) our &#39;latent_to_logit&#39; model</span>
+
+<span class="n">g</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">Model</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">input</span><span class="p">,</span> <span class="n">model</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="o">-</span><span class="mi">3</span><span class="p">]</span><span class="o">.</span><span class="n">output</span><span class="p">)</span>
+<span class="n">h</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">Model</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">input</span><span class="p">,</span> <span class="n">model</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">output</span><span class="p">)</span>
+
+<span class="c1"># CraftManager will create one instance of Craft per class of interest</span>
+<span class="c1"># to investigate</span>
+<span class="n">list_of_class_of_interest</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">491</span><span class="p">,</span> <span class="mi">497</span><span class="p">,</span> <span class="mi">569</span><span class="p">,</span> <span class="mi">574</span><span class="p">]</span> <span class="c1"># list of class_ids</span>
+<span class="n">cm</span> <span class="o">=</span> <span class="n">CraftManager</span><span class="p">(</span><span class="n">input_to_latent_model</span> <span class="o">=</span> <span class="n">g</span><span class="p">,</span>
+                 <span class="n">latent_to_logit_model</span> <span class="o">=</span> <span class="n">h</span><span class="p">,</span>
+                 <span class="n">inputs</span> <span class="o">=</span> <span class="n">inputs_preprocessed</span><span class="p">,</span>
+                 <span class="n">labels</span> <span class="o">=</span> <span class="n">y</span><span class="p">,</span>
+                 <span class="n">list_of_class_of_interest</span> <span class="o">=</span> <span class="n">list_of_class_of_interest</span><span class="p">,</span>
+                 <span class="n">number_of_concepts</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span>
+                 <span class="n">patch_size</span> <span class="o">=</span> <span class="mi">80</span><span class="p">,</span>
+                 <span class="n">batch_size</span> <span class="o">=</span> <span class="mi">64</span><span class="p">)</span>
+
+<span class="n">cm</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">nb_samples_per_class</span><span class="o">=</span><span class="mi">50</span><span class="p">)</span>
+
+<span class="c1"># Compute Sobol indices to understand which concept matters</span>
+<span class="n">cm</span><span class="o">.</span><span class="n">estimate_importance</span><span class="p">()</span>
+
+<span class="c1"># Display those concepts by showing the 10 best crops for each concept,</span>
+<span class="c1"># for the 1st class</span>
+<span class="n">cm</span><span class="o">.</span><span class="n">plot_concepts_crops</span><span class="p">(</span><span class="n">class_id</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">nb_crops</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+</code></pre></div>
+<h2 class="numkdoc" id="CraftTf"><code>CraftTf</code><a class="headerlink" href="#CraftTf" title="Permanent link">&para;</a></h2>
+<p>Class implementing the CRAFT Concept Extraction Mechanism on Tensorflow.
+<br></p>
+<h4 class="numkdoc" id="__init__"><code>__init__(<span class='parameter-self'>self</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> input_to_latent_model</span>: <span class='parameter-type'> Callable</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> latent_to_logit_model</span>: <span class='parameter-type'> Callable</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> number_of_concepts</span>: <span class='parameter-type'> int = 20</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> batch_size</span>: <span class='parameter-type'> int = 64</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> patch_size</span>: <span class='parameter-type'> int = 64)</span></code><a class="headerlink" href="#__init__" title="Permanent link">&para;</a></h4>
+<p><strong>Parameters</strong></p>
+<ul>
+<li>
+<p><strong><span class='parameter-name'>input_to_latent_model</span></strong>            : <span class='parameter-type'>Callable</span> </p>
+<ul>
+<li><p> The first part of the model taking an input and returning positive activations, g(.) in the original paper.</p><p> Must be a Tensorflow model (tf.keras.engine.base_layer.Layer) accepting data of shape (n_samples, height, width, channels).</p> </li>
+</ul>
+</li>
+<li>
+<p><strong><span class='parameter-name'>latent_to_logit_model</span></strong>            : <span class='parameter-type'>Callable</span> </p>
+<ul>
+<li><p> The second part of the model taking activation and returning logits, h(.) in the original paper.</p><p> Must be a Tensorflow model (tf.keras.engine.base_layer.Layer).</p> </li>
+</ul>
+</li>
+<li>
+<p><strong><span class='parameter-name'>number_of_concepts</span></strong>            : <span class='parameter-type'>int = 20</span> </p>
+<ul>
+<li><p> The number of concepts to extract. Default is 20.</p> </li>
+</ul>
+</li>
+<li>
+<p><strong><span class='parameter-name'>batch_size</span></strong>            : <span class='parameter-type'>int = 64</span> </p>
+<ul>
+<li><p> The batch size to use during training and prediction. Default is 64.</p> </li>
+</ul>
+</li>
+<li>
+<p><strong><span class='parameter-name'>patch_size</span></strong>            : <span class='parameter-type'>int = 64</span> </p>
+<ul>
+<li><p> The size of the patches to extract from the input data. Default is 64.</p> </li>
+</ul>
+</li>
+</ul>
+<h4 class="numkdoc" id="check_if_fitted"><code>check_if_fitted(<span class='parameter-self'>self</span>)</code><a class="headerlink" href="#check_if_fitted" title="Permanent link">&para;</a></h4>
+<p>Checks if the factorization model has been fitted to input data.
+<br></p>
+<p><br></p>
+<h4 class="numkdoc" id="compute_subplots_layout_parameters"><code>compute_subplots_layout_parameters(<span class='parameter-name'>images</span>: <span class='parameter-type'> numpy.ndarray</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> cols</span>: <span class='parameter-type'> int = 5</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> img_size</span>: <span class='parameter-type'> float = 2.0</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> margin</span>: <span class='parameter-type'> float = 0.3</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> spacing</span>: <span class='parameter-type'> float = 0.3)</span></code><a class="headerlink" href="#compute_subplots_layout_parameters" title="Permanent link">&para;</a></h4>
+<p>Compute layout parameters for subplots, to be used by the
+method fig.subplots_adjust()
+<br></p>
+<p><strong>Parameters</strong></p>
+<ul>
+<li>
+<p><strong><span class='parameter-name'>images</span></strong>            : <span class='parameter-type'>numpy.ndarray</span> </p>
+<ul>
+<li><p> The images to display with subplots. Should be data of shape (n_samples, height, width, channels).</p> </li>
+</ul>
+</li>
+<li>
+<p><strong><span class='parameter-name'>cols</span></strong>            : <span class='parameter-type'>int = 5</span> </p>
+<ul>
+<li><p> Number of columns to configure for the subplots.</p><p> Defaults to 5.</p> </li>
+</ul>
+</li>
+<li>
+<p><strong><span class='parameter-name'>img_size</span></strong>            : <span class='parameter-type'>float = 2.0</span> </p>
+<ul>
+<li><p> Size of each subplots (in inch), considering we keep aspect ratio. Defaults to 2.</p> </li>
+</ul>
+</li>
+<li>
+<p><strong><span class='parameter-name'>margin</span></strong>            : <span class='parameter-type'>float = 0.3</span> </p>
+<ul>
+<li><p> The margin to use for the subplots. Defaults to 0.3.</p> </li>
+</ul>
+</li>
+<li>
+<p><strong><span class='parameter-name'>spacing</span></strong>            : <span class='parameter-type'>float = 0.3</span> </p>
+<ul>
+<li><p> The spacing to use for the subplots. Defaults to 0.3.</p> </li>
+</ul>
+</li>
+</ul>
+<p><strong>Return</strong></p>
+<ul>
+<li>
+<p><strong><span class='parameter-name'>layout_parameters</span></strong>            </p>
+<ul>
+<li><p> A dictionary containing the layout description</p> </li>
+</ul>
+</li>
+<li>
+<p><strong><span class='parameter-name'>rows</span></strong>            </p>
+<ul>
+<li><p> The number of rows needed to display the images</p> </li>
+</ul>
+</li>
+<li>
+<p><strong><span class='parameter-name'>figwidth</span></strong>            </p>
+<ul>
+<li><p> The figures width in the subplots</p> </li>
+</ul>
+</li>
+<li>
+<p><strong><span class='parameter-name'>figheight</span></strong>            </p>
+<ul>
+<li><p> The figures height in the subplots</p> </li>
+</ul>
+</li>
+</ul>
+<p><br></p>
+<h4 class="numkdoc" id="estimate_importance"><code>estimate_importance(<span class='parameter-self'>self</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> inputs</span>: <span class='parameter-type'> numpy.ndarray = None</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> nb_design</span>: <span class='parameter-type'> int = 32) -&gt; numpy.ndarray</span></code><a class="headerlink" href="#estimate_importance" title="Permanent link">&para;</a></h4>
+<p>Estimates the importance of each concept for a given class, either globally
+on the whole dataset provided in the fit() method (in this case, inputs shall
+be set to None), or locally on a specific input image.
+<br></p>
+<p><strong>Parameters</strong></p>
+<ul>
+<li>
+<p><strong><span class='parameter-name'>inputs</span></strong>            : <span class='parameter-type'>numpy array or Tensor</span> </p>
+<ul>
+<li><p> The input data on which to compute the importances.</p><p> If None, then the inputs provided in the fit() method will be used (global importance of the whole dataset).</p><p> Default is None.</p> </li>
+</ul>
+</li>
+<li>
+<p><strong><span class='parameter-name'>nb_design</span></strong>            : <span class='parameter-type'>int = 32</span> </p>
+<ul>
+<li><p> The number of design to use for the importance estimation. Default is 32.</p> </li>
+</ul>
+</li>
+</ul>
+<p><strong>Return</strong></p>
+<ul>
+<li>
+<p><strong><span class='parameter-name'>importances</span></strong>            : <span class='parameter-type'>numpy.ndarray</span> </p>
+<ul>
+<li><p> The Sobol total index (importance score) for each concept.</p> </li>
+</ul>
+</li>
+</ul>
+<p><br></p>
+<h4 class="numkdoc" id="fit"><code>fit(<span class='parameter-self'>self</span>,<br>&nbsp;&nbsp;&nbsp; <span class='parameter-name'> inputs</span>: <span class='parameter-type'> numpy.ndarray</span>,<br>&nbsp;&nbsp;&nbsp; <span class='parameter-name'> class_id</span>: <span class='parameter-type'> int = 0) -&gt; Tuple[numpy.ndarray, numpy.ndarray, numpy.ndarray]</span></code><a class="headerlink" href="#fit" title="Permanent link">&para;</a></h4>
+<p>Fit the Craft model to the input data.
+<br></p>
+<p><strong>Parameters</strong></p>
+<ul>
+<li>
+<p><strong><span class='parameter-name'>inputs</span></strong>            : <span class='parameter-type'>numpy.ndarray</span> </p>
+<ul>
+<li><p> Input data of shape (n_samples, height, width, channels).</p><p> (x1, x2, ..., xn) in the paper.</p> </li>
+</ul>
+</li>
+<li>
+<p><strong><span class='parameter-name'>class_id</span></strong>            : <span class='parameter-type'>int = 0</span> </p>
+<ul>
+<li><p> The class id of the inputs.</p> </li>
+</ul>
+</li>
+</ul>
+<p><strong>Return</strong></p>
+<ul>
+<li>
+<p><strong><span class='parameter-name'>crops</span></strong>            : <span class='parameter-type'>Tuple[numpy.ndarray, numpy.ndarray, numpy.ndarray]</span> </p>
+<ul>
+<li><p> The crops (X in the paper)</p> </li>
+</ul>
+</li>
+<li>
+<p><strong><span class='parameter-name'>crops_u</span></strong>            : <span class='parameter-type'>Tuple[numpy.ndarray, numpy.ndarray, numpy.ndarray]</span> </p>
+<ul>
+<li><p> The concepts' values (U in the paper)</p> </li>
+</ul>
+</li>
+<li>
+<p><strong><span class='parameter-name'>concept_bank_w</span></strong>            : <span class='parameter-type'>Tuple[numpy.ndarray, numpy.ndarray, numpy.ndarray]</span> </p>
+<ul>
+<li><p> The concept's basis (W in the paper)</p> </li>
+</ul>
+</li>
+</ul>
+<p><br></p>
+<h4 class="numkdoc" id="plot_concept_attribution_legend"><code>plot_concept_attribution_legend(<span class='parameter-self'>self</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> nb_most_important_concepts</span>: <span class='parameter-type'> int = 6</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> border_width</span>: <span class='parameter-type'> int = 5)</span></code><a class="headerlink" href="#plot_concept_attribution_legend" title="Permanent link">&para;</a></h4>
+<p>Plot a legend for the concepts attribution maps.
+<br></p>
+<p><strong>Parameters</strong></p>
+<ul>
+<li>
+<p><strong><span class='parameter-name'>nb_most_important_concepts</span></strong>            : <span class='parameter-type'>int = 6</span> </p>
+<ul>
+<li><p> The number of concepts to focus on. Default is 6.</p> </li>
+</ul>
+</li>
+<li>
+<p><strong><span class='parameter-name'>border_width</span></strong>            : <span class='parameter-type'>int = 5</span> </p>
+<ul>
+<li><p> Width of the border around each concept image, in pixels. Defaults to 5.</p> </li>
+</ul>
+</li>
+</ul>
+<p><br></p>
+<h4 class="numkdoc" id="plot_concept_attribution_map"><code>plot_concept_attribution_map(<span class='parameter-self'>self</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> image</span>: <span class='parameter-type'> numpy.ndarray</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> most_important_concepts</span>: <span class='parameter-type'> numpy.ndarray</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> nb_most_important_concepts</span>: <span class='parameter-type'> int = 5</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> filter_percentile</span>: <span class='parameter-type'> int = 90</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> clip_percentile</span>: <span class='parameter-type'> Optional[float] = 10</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> alpha</span>: <span class='parameter-type'> float = 0.65</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; **plot_kwargs)</code><a class="headerlink" href="#plot_concept_attribution_map" title="Permanent link">&para;</a></h4>
+<p>Display the concepts attribution map for a single image given in argument.
+<br></p>
+<p><strong>Parameters</strong></p>
+<ul>
+<li>
+<p><strong><span class='parameter-name'>image</span></strong>            : <span class='parameter-type'>numpy.ndarray</span> </p>
+<ul>
+<li><p> The image to display.</p> </li>
+</ul>
+</li>
+<li>
+<p><strong><span class='parameter-name'>most_important_concepts</span></strong>            : <span class='parameter-type'>numpy.ndarray</span> </p>
+<ul>
+<li><p> The concepts ids to display.</p> </li>
+</ul>
+</li>
+<li>
+<p><strong><span class='parameter-name'>nb_most_important_concepts</span></strong>            : <span class='parameter-type'>int = 5</span> </p>
+<ul>
+<li><p> The number of concepts to display. Default is 5.</p> </li>
+</ul>
+</li>
+<li>
+<p><strong><span class='parameter-name'>filter_percentile</span></strong>            : <span class='parameter-type'>int = 90</span> </p>
+<ul>
+<li><p> Percentile used to filter the concept heatmap.</p><p> (only show concept if excess N-th percentile). Defaults to 90.</p> </li>
+</ul>
+</li>
+<li>
+<p><strong><span class='parameter-name'>clip_percentile</span></strong>            : <span class='parameter-type'>Optional[float] = 10</span> </p>
+<ul>
+<li><p> Percentile value to use if clipping is needed when drawing the concept, e.g a value of 1 will perform a clipping between percentile 1 and 99.</p><p> This parameter allows to avoid outliers in case of too extreme values.</p><p> It is applied after the filter_percentile operation.</p><p> Default to 10.</p> </li>
+</ul>
+</li>
+<li>
+<p><strong><span class='parameter-name'>alpha</span></strong>            : <span class='parameter-type'>float = 0.65</span> </p>
+<ul>
+<li><p> The alpha channel value for the heatmaps. Defaults to 0.65.</p> </li>
+</ul>
+</li>
+<li>
+<p><strong><span class='parameter-name'>plot_kwargs</span></strong>            : <span class='parameter-type'>**plot_kwargs</span> </p>
+<ul>
+<li><p> Additional parameters passed to <code>plt.imshow()</code>.</p> </li>
+</ul>
+</li>
+</ul>
+<p><br></p>
+<h4 class="numkdoc" id="plot_concept_attribution_maps"><code>plot_concept_attribution_maps(<span class='parameter-self'>self</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> images</span>: <span class='parameter-type'> numpy.ndarray</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> importances</span>: <span class='parameter-type'> numpy.ndarray = None</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> nb_most_important_concepts</span>: <span class='parameter-type'> int = 5</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> filter_percentile</span>: <span class='parameter-type'> int = 90</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> clip_percentile</span>: <span class='parameter-type'> Optional[float] = 10.0</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> alpha</span>: <span class='parameter-type'> float = 0.65</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> cols</span>: <span class='parameter-type'> int = 5</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> img_size</span>: <span class='parameter-type'> float = 2.0</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; **plot_kwargs)</code><a class="headerlink" href="#plot_concept_attribution_maps" title="Permanent link">&para;</a></h4>
+<p>Display the concepts attribution maps for the images given in argument.
+<br></p>
+<p><strong>Parameters</strong></p>
+<ul>
+<li>
+<p><strong><span class='parameter-name'>images</span></strong>            : <span class='parameter-type'>numpy.ndarray</span> </p>
+<ul>
+<li><p> The images to display.</p> </li>
+</ul>
+</li>
+<li>
+<p><strong><span class='parameter-name'>importances</span></strong>            : <span class='parameter-type'>numpy.ndarray = None</span> </p>
+<ul>
+<li><p> The importances computed by the estimate_importance() method.</p><p> If None is provided, then the global importances will be used, otherwise the local importances set in this parameter will be used.</p> </li>
+</ul>
+</li>
+<li>
+<p><strong><span class='parameter-name'>nb_most_important_concepts</span></strong>            : <span class='parameter-type'>int = 5</span> </p>
+<ul>
+<li><p> The number of concepts to focus on. Default is 5.</p> </li>
+</ul>
+</li>
+<li>
+<p><strong><span class='parameter-name'>filter_percentile</span></strong>            : <span class='parameter-type'>int = 90</span> </p>
+<ul>
+<li><p> Percentile used to filter the concept heatmap (only show concept if excess N-th percentile). Defaults to 90.</p> </li>
+</ul>
+</li>
+<li>
+<p><strong><span class='parameter-name'>clip_percentile</span></strong>            : <span class='parameter-type'>Optional[float] = 10.0</span> </p>
+<ul>
+<li><p> Percentile value to use if clipping is needed when drawing the concept, e.g a value of 1 will perform a clipping between percentile 1 and 99.</p><p> This parameter allows to avoid outliers in case of too extreme values.</p><p> It is applied after the filter_percentile operation.</p><p> Default to 10.</p> </li>
+</ul>
+</li>
+<li>
+<p><strong><span class='parameter-name'>alpha</span></strong>            : <span class='parameter-type'>float = 0.65</span> </p>
+<ul>
+<li><p> The alpha channel value for the heatmaps. Defaults to 0.65.</p> </li>
+</ul>
+</li>
+<li>
+<p><strong><span class='parameter-name'>cols</span></strong>            : <span class='parameter-type'>int = 5</span> </p>
+<ul>
+<li><p> Number of columns. Default to 3.</p> </li>
+</ul>
+</li>
+<li>
+<p><strong><span class='parameter-name'>img_size</span></strong>            : <span class='parameter-type'>float = 2.0</span> </p>
+<ul>
+<li><p> Size of each subplots (in inch), considering we keep aspect ratio.</p> </li>
+</ul>
+</li>
+<li>
+<p><strong><span class='parameter-name'>plot_kwargs</span></strong>            : <span class='parameter-type'>**plot_kwargs</span> </p>
+<ul>
+<li><p> Additional parameters passed to <code>plt.imshow()</code>.</p> </li>
+</ul>
+</li>
+</ul>
+<p><br></p>
+<h4 class="numkdoc" id="plot_concepts_crops"><code>plot_concepts_crops(<span class='parameter-self'>self</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> nb_crops</span>: <span class='parameter-type'> int = 10</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> nb_most_important_concepts</span>: <span class='parameter-type'> int = None</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> verbose</span>: <span class='parameter-type'> bool = False) -&gt; None</span></code><a class="headerlink" href="#plot_concepts_crops" title="Permanent link">&para;</a></h4>
+<p>Display the crops for each concept.
+<br></p>
+<p><strong>Parameters</strong></p>
+<ul>
+<li>
+<p><strong><span class='parameter-name'>nb_crops</span></strong>            : <span class='parameter-type'>int = 10</span> </p>
+<ul>
+<li><p> The number of crops (patches) to display per concept. Defaults to 10.</p> </li>
+</ul>
+</li>
+<li>
+<p><strong><span class='parameter-name'>nb_most_important_concepts</span></strong>            : <span class='parameter-type'>int = None</span> </p>
+<ul>
+<li><p> The number of concepts to display. If provided, only display nb_most_important_concepts, otherwise display them all.</p><p> Default is None.</p> </li>
+</ul>
+</li>
+<li>
+<p><strong><span class='parameter-name'>verbose</span></strong>            : <span class='parameter-type'>bool = False</span> </p>
+<ul>
+<li><p> If True, then print the importance value of each concept, otherwise no textual output will be printed.</p> </li>
+</ul>
+</li>
+</ul>
+<p><br></p>
+<h4 class="numkdoc" id="plot_concepts_importances"><code>plot_concepts_importances(<span class='parameter-self'>self</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> importances</span>: <span class='parameter-type'> numpy.ndarray = None</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; display_importance_order: xplique.concepts.craft.DisplayImportancesOrder = <DisplayImportancesOrder.GLOBAL: 0>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> nb_most_important_concepts</span>: <span class='parameter-type'> int = None</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> verbose</span>: <span class='parameter-type'> bool = False)</span></code><a class="headerlink" href="#plot_concepts_importances" title="Permanent link">&para;</a></h4>
+<p>Plot a bar chart displaying the importance value of each concept.
+<br></p>
+<p><strong>Parameters</strong></p>
+<ul>
+<li>
+<p><strong><span class='parameter-name'>importances</span></strong>            : <span class='parameter-type'>numpy.ndarray = None</span> </p>
+<ul>
+<li><p> The importances computed by the estimate_importance() method.</p><p> Default is None, in this case the importances computed on the whole dataset will be used.</p> </li>
+</ul>
+</li>
+<li>
+<p><strong><span class='parameter-name'>display_importance_order</span></strong>            : <span class='parameter-type'>0&gt;</span> </p>
+<ul>
+<li><p> Selects the order in which the concepts will be displayed, either following the global importance on the whole dataset (same order for all images) or the local importance of the concepts for a single image sample (local importance).</p> </li>
+</ul>
+</li>
+<li>
+<p><strong><span class='parameter-name'>nb_most_important_concepts</span></strong>            : <span class='parameter-type'>int = None</span> </p>
+<ul>
+<li><p> The number of concepts to display. If None is provided, then all the concepts will be displayed unordered, otherwise only nb_most_important_concepts will be displayed, ordered by importance.</p><p> Default is None.</p> </li>
+</ul>
+</li>
+<li>
+<p><strong><span class='parameter-name'>verbose</span></strong>            : <span class='parameter-type'>bool = False</span> </p>
+<ul>
+<li><p> If True, then print the importance value of each concept, otherwise no textual output will be printed.</p> </li>
+</ul>
+</li>
+</ul>
+<p><br></p>
+<h4 class="numkdoc" id="plot_image_concepts"><code>plot_image_concepts(<span class='parameter-self'>self</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> img</span>: <span class='parameter-type'> numpy.ndarray</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; display_importance_order: xplique.concepts.craft.DisplayImportancesOrder = <DisplayImportancesOrder.GLOBAL: 0>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> nb_most_important_concepts</span>: <span class='parameter-type'> int = 5</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> filter_percentile</span>: <span class='parameter-type'> int = 90</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> clip_percentile</span>: <span class='parameter-type'> Optional[float] = 10</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> alpha</span>: <span class='parameter-type'> float = 0.65</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> filepath</span>: <span class='parameter-type'> Optional[str] = None</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; **plot_kwargs)</code><a class="headerlink" href="#plot_image_concepts" title="Permanent link">&para;</a></h4>
+<p>All in one method displaying several plots for the image <code>id</code> given in argument:
+- the concepts attribution map for this image
+- the best crops for each concept (displayed around the heatmap)
+- the importance of each concept
+<br></p>
+<p><strong>Parameters</strong></p>
+<ul>
+<li>
+<p><strong><span class='parameter-name'>img</span></strong>            : <span class='parameter-type'>numpy.ndarray</span> </p>
+<ul>
+<li><p> The image to display.</p> </li>
+</ul>
+</li>
+<li>
+<p><strong><span class='parameter-name'>display_importance_order</span></strong>            : <span class='parameter-type'>0&gt;</span> </p>
+<ul>
+<li><p> Selects the order in which the concepts will be displayed, either following the global importance on the whole dataset (same order for all images) or the local importance of the concepts for a single image sample (local importance).</p><p> Default to GLOBAL.</p> </li>
+</ul>
+</li>
+<li>
+<p><strong><span class='parameter-name'>nb_most_important_concepts</span></strong>            : <span class='parameter-type'>int = 5</span> </p>
+<ul>
+<li><p> The number of concepts to display. Default is 5.</p> </li>
+</ul>
+</li>
+<li>
+<p><strong><span class='parameter-name'>filter_percentile</span></strong>            : <span class='parameter-type'>int = 90</span> </p>
+<ul>
+<li><p> Percentile used to filter the concept heatmap (only show concept if excess N-th percentile). Defaults to 90.</p> </li>
+</ul>
+</li>
+<li>
+<p><strong><span class='parameter-name'>clip_percentile</span></strong>            : <span class='parameter-type'>Optional[float] = 10</span> </p>
+<ul>
+<li><p> Percentile value to use if clipping is needed when drawing the concept, e.g a value of 1 will perform a clipping between percentile 1 and 99.</p><p> This parameter allows to avoid outliers in case of too extreme values.</p><p> Default to 10.</p> </li>
+</ul>
+</li>
+<li>
+<p><strong><span class='parameter-name'>alpha</span></strong>            : <span class='parameter-type'>float = 0.65</span> </p>
+<ul>
+<li><p> The alpha channel value for the heatmaps. Defaults to 0.65.</p> </li>
+</ul>
+</li>
+<li>
+<p><strong><span class='parameter-name'>filepath</span></strong>            : <span class='parameter-type'>Optional[str] = None</span> </p>
+<ul>
+<li><p> Path the file will be saved at. If None, the function will call plt.show().</p> </li>
+</ul>
+</li>
+<li>
+<p><strong><span class='parameter-name'>plot_kwargs</span></strong>            : <span class='parameter-type'>**plot_kwargs</span> </p>
+<ul>
+<li><p> Additional parameters passed to <code>plt.imshow()</code>.</p> </li>
+</ul>
+</li>
+</ul>
+<p><br></p>
+<h4 class="numkdoc" id="transform"><code>transform(<span class='parameter-self'>self</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> inputs</span>: <span class='parameter-type'> numpy.ndarray</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> activations</span>: <span class='parameter-type'> numpy.ndarray = None) -&gt; numpy.ndarray</span></code><a class="headerlink" href="#transform" title="Permanent link">&para;</a></h4>
+<p>Transforms the inputs data into its concept representation.
+<br></p>
+<p><strong>Parameters</strong></p>
+<ul>
+<li>
+<p><strong><span class='parameter-name'>inputs</span></strong>            : <span class='parameter-type'>numpy.ndarray</span> </p>
+<ul>
+<li><p> The input data to be transformed.</p> </li>
+</ul>
+</li>
+<li>
+<p><strong><span class='parameter-name'>activations</span></strong>            : <span class='parameter-type'>numpy.ndarray = None</span> </p>
+<ul>
+<li><p> Pre-computed activations of the input data. If not provided, the activations will be computed using the input_to_latent_model model on the inputs.</p> </li>
+</ul>
+</li>
+</ul>
+<p><strong>Return</strong></p>
+<ul>
+<li>
+<p><strong><span class='parameter-name'>coeffs_u</span></strong>            : <span class='parameter-type'>numpy.ndarray</span> </p>
+<ul>
+<li><p> The concepts' values of the inputs (U in the paper).</p> </li>
+</ul>
+</li>
+</ul>
+<p><br></p>
+<h2 class="numkdoc" id="CraftManagerTf"><code>CraftManagerTf</code><a class="headerlink" href="#CraftManagerTf" title="Permanent link">&para;</a></h2>
+<p>Class implementing the CraftManager on Tensorflow.
+This manager creates one CraftTf instance per class to explain.
+<br></p>
+<h4 class="numkdoc" id="__init__"><code>__init__(<span class='parameter-self'>self</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> input_to_latent_model</span>: <span class='parameter-type'> Callable</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> latent_to_logit_model</span>: <span class='parameter-type'> Callable</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> inputs</span>: <span class='parameter-type'> numpy.ndarray</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> labels</span>: <span class='parameter-type'> numpy.ndarray</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> list_of_class_of_interest</span>: <span class='parameter-type'> Optional[list] = None</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> number_of_concepts</span>: <span class='parameter-type'> int = 20</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> batch_size</span>: <span class='parameter-type'> int = 64</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> patch_size</span>: <span class='parameter-type'> int = 64)</span></code><a class="headerlink" href="#__init__" title="Permanent link">&para;</a></h4>
+<p><strong>Parameters</strong></p>
+<ul>
+<li>
+<p><strong><span class='parameter-name'>input_to_latent_model</span></strong>            : <span class='parameter-type'>Callable</span> </p>
+<ul>
+<li><p> The first part of the model taking an input and returning positive activations, g(.) in the original paper.</p><p> Must return positive activations.</p> </li>
+</ul>
+</li>
+<li>
+<p><strong><span class='parameter-name'>latent_to_logit_model</span></strong>            : <span class='parameter-type'>Callable</span> </p>
+<ul>
+<li><p> The second part of the model taking activation and returning logits, h(.) in the original paper.</p> </li>
+</ul>
+</li>
+<li>
+<p><strong><span class='parameter-name'>inputs</span></strong>            : <span class='parameter-type'>numpy.ndarray</span> </p>
+<ul>
+<li><p> Input data of shape (n_samples, height, width, channels).</p><p> (x1, x2, ..., xn) in the paper.</p> </li>
+</ul>
+</li>
+<li>
+<p><strong><span class='parameter-name'>labels</span></strong>            : <span class='parameter-type'>numpy.ndarray</span> </p>
+<ul>
+<li><p> Labels of the inputs of shape (n_samples, class_id)</p> </li>
+</ul>
+</li>
+<li>
+<p><strong><span class='parameter-name'>list_of_class_of_interest</span></strong>            : <span class='parameter-type'>Optional[list] = None</span> </p>
+<ul>
+<li><p> A list of the classes id to explain. The manager will instanciate one CraftTf object per element of this list.</p> </li>
+</ul>
+</li>
+<li>
+<p><strong><span class='parameter-name'>number_of_concepts</span></strong>            : <span class='parameter-type'>int = 20</span> </p>
+<ul>
+<li><p> The number of concepts to extract. Default is 20.</p> </li>
+</ul>
+</li>
+<li>
+<p><strong><span class='parameter-name'>batch_size</span></strong>            : <span class='parameter-type'>int = 64</span> </p>
+<ul>
+<li><p> The batch size to use during training and prediction. Default is 64.</p> </li>
+</ul>
+</li>
+<li>
+<p><strong><span class='parameter-name'>patch_size</span></strong>            : <span class='parameter-type'>int = 64</span> </p>
+<ul>
+<li><p> The size of the patches (crops) to extract from the input data. Default is 64.</p> </li>
+</ul>
+</li>
+</ul>
+<h4 class="numkdoc" id="compute_predictions"><code>compute_predictions(<span class='parameter-self'>self</span>)</code><a class="headerlink" href="#compute_predictions" title="Permanent link">&para;</a></h4>
+<p>Compute the predictions for the current dataset, using the 2 models
+input_to_latent_model and latent_to_logit_model chained.
+<br></p>
+<p><strong>Return</strong></p>
+<ul>
+<li>
+<p><strong><span class='parameter-name'>y_preds</span></strong>            </p>
+<ul>
+<li><p> the predictions</p> </li>
+</ul>
+</li>
+</ul>
+<p><br></p>
+<h4 class="numkdoc" id="estimate_importance"><code>estimate_importance(<span class='parameter-self'>self</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> nb_design</span>: <span class='parameter-type'> int = 32</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> verbose</span>: <span class='parameter-type'> bool = False)</span></code><a class="headerlink" href="#estimate_importance" title="Permanent link">&para;</a></h4>
+<p>Estimates the importance of each concept for all the classes of interest.
+<br></p>
+<p><strong>Parameters</strong></p>
+<ul>
+<li>
+<p><strong><span class='parameter-name'>nb_design</span></strong>            : <span class='parameter-type'>int = 32</span> </p>
+<ul>
+<li><p> The number of design to use for the importance estimation. Default is 32.</p> </li>
+</ul>
+</li>
+<li>
+<p><strong><span class='parameter-name'>verbose</span></strong>            : <span class='parameter-type'>bool = False</span> </p>
+<ul>
+<li><p> If True, then print the current class CRAFT is estimating importances for, otherwise no textual output will be printed.</p> </li>
+</ul>
+</li>
+</ul>
+<p><br></p>
+<h4 class="numkdoc" id="fit"><code>fit(<span class='parameter-self'>self</span>,<br>&nbsp;&nbsp;&nbsp; <span class='parameter-name'> nb_samples_per_class</span>: <span class='parameter-type'> Optional[int] = None</span>,<br>&nbsp;&nbsp;&nbsp; <span class='parameter-name'> verbose</span>: <span class='parameter-type'> bool = False)</span></code><a class="headerlink" href="#fit" title="Permanent link">&para;</a></h4>
+<p>Fit the Craft models on their respective class of interest.
+<br></p>
+<p><strong>Parameters</strong></p>
+<ul>
+<li>
+<p><strong><span class='parameter-name'>nb_samples_per_class</span></strong>            : <span class='parameter-type'>Optional[int] = None</span> </p>
+<ul>
+<li><p> Number of samples to use to fit the Craft model.</p><p> Default is None, which means that all the samples will be used.</p> </li>
+</ul>
+</li>
+<li>
+<p><strong><span class='parameter-name'>verbose</span></strong>            : <span class='parameter-type'>bool = False</span> </p>
+<ul>
+<li><p> If True, then print the current class CRAFT is fitting, otherwise no textual output will be printed.</p> </li>
+</ul>
+</li>
+</ul>
+<p><br></p>
+<h4 class="numkdoc" id="plot_concepts_crops"><code>plot_concepts_crops(<span class='parameter-self'>self</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> class_id</span>: <span class='parameter-type'> int</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> nb_crops</span>: <span class='parameter-type'> int = 10</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> nb_most_important_concepts</span>: <span class='parameter-type'> int = None)</span></code><a class="headerlink" href="#plot_concepts_crops" title="Permanent link">&para;</a></h4>
+<p>Display the crops for each concept.
+<br></p>
+<p><strong>Parameters</strong></p>
+<ul>
+<li>
+<p><strong><span class='parameter-name'>class_id</span></strong>            : <span class='parameter-type'>int</span> </p>
+<ul>
+<li><p> The class to explain.</p> </li>
+</ul>
+</li>
+<li>
+<p><strong><span class='parameter-name'>nb_crops</span></strong>            : <span class='parameter-type'>int = 10</span> </p>
+<ul>
+<li><p> The number of crops (patches) to display per concept. Defaults to 10.</p> </li>
+</ul>
+</li>
+<li>
+<p><strong><span class='parameter-name'>nb_most_important_concepts</span></strong>            : <span class='parameter-type'>int = None</span> </p>
+<ul>
+<li><p> The number of concepts to display. If provided, only display nb_most_important_concepts, otherwise display them all.</p><p> Default is None.</p> </li>
+</ul>
+</li>
+</ul>
+<p><br></p>
+<h4 class="numkdoc" id="plot_concepts_importances"><code>plot_concepts_importances(<span class='parameter-self'>self</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> class_id</span>: <span class='parameter-type'> int</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> nb_most_important_concepts</span>: <span class='parameter-type'> int = 5</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> verbose</span>: <span class='parameter-type'> bool = False)</span></code><a class="headerlink" href="#plot_concepts_importances" title="Permanent link">&para;</a></h4>
+<p>Plot a bar chart displaying the importance value of each concept.
+<br></p>
+<p><strong>Parameters</strong></p>
+<ul>
+<li>
+<p><strong><span class='parameter-name'>class_id</span></strong>            : <span class='parameter-type'>int</span> </p>
+<ul>
+<li><p> The class to explain.</p> </li>
+</ul>
+</li>
+<li>
+<p><strong><span class='parameter-name'>nb_most_important_concepts</span></strong>            : <span class='parameter-type'>int = 5</span> </p>
+<ul>
+<li><p> The number of concepts to focus on. Default is 5.</p> </li>
+</ul>
+</li>
+<li>
+<p><strong><span class='parameter-name'>verbose</span></strong>            : <span class='parameter-type'>bool = False</span> </p>
+<ul>
+<li><p> If True, then print the importance value of each concept, otherwise no textual output will be printed.</p> </li>
+</ul>
+</li>
+</ul>
+<p><br></p>
+<h4 class="numkdoc" id="plot_image_concepts"><code>plot_image_concepts(<span class='parameter-self'>self</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> img</span>: <span class='parameter-type'> numpy.ndarray</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> class_id</span>: <span class='parameter-type'> int</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; display_importance_order: xplique.concepts.craft.DisplayImportancesOrder = <DisplayImportancesOrder.GLOBAL: 0>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> nb_most_important_concepts</span>: <span class='parameter-type'> int = 5</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> filter_percentile</span>: <span class='parameter-type'> int = 90</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> clip_percentile</span>: <span class='parameter-type'> Optional[float] = 10</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> alpha</span>: <span class='parameter-type'> float = 0.65</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class='parameter-name'> filepath</span>: <span class='parameter-type'> Optional[str] = None)</span></code><a class="headerlink" href="#plot_image_concepts" title="Permanent link">&para;</a></h4>
+<p>All in one method displaying several plots for the image <code>id</code> given in argument:
+- the concepts attribution map for this image
+- the best crops for each concept (displayed around the heatmap)
+- the importance of each concept
+<br></p>
+<p><strong>Parameters</strong></p>
+<ul>
+<li>
+<p><strong><span class='parameter-name'>img</span></strong>            : <span class='parameter-type'>numpy.ndarray</span> </p>
+<ul>
+<li><p> The image to explain.</p> </li>
+</ul>
+</li>
+<li>
+<p><strong><span class='parameter-name'>class_id</span></strong>            : <span class='parameter-type'>int</span> </p>
+<ul>
+<li><p> The class to explain.</p> </li>
+</ul>
+</li>
+<li>
+<p><strong><span class='parameter-name'>display_importance_order</span></strong>            : <span class='parameter-type'>0&gt;</span> </p>
+<ul>
+<li><p> Selects the order in which the concepts will be displayed, either following the global importance on the whole dataset (same order for all images) or the local importance of the concepts for a single image sample (local importance).</p><p> Default to GLOBAL.</p> </li>
+</ul>
+</li>
+<li>
+<p><strong><span class='parameter-name'>nb_most_important_concepts</span></strong>            : <span class='parameter-type'>int = 5</span> </p>
+<ul>
+<li><p> The number of concepts to focus on. Default is 5.</p> </li>
+</ul>
+</li>
+<li>
+<p><strong><span class='parameter-name'>filter_percentile</span></strong>            : <span class='parameter-type'>int = 90</span> </p>
+<ul>
+<li><p> Percentile used to filter the concept heatmap (only show concept if excess N-th percentile). Defaults to 90.</p> </li>
+</ul>
+</li>
+<li>
+<p><strong><span class='parameter-name'>clip_percentile</span></strong>            : <span class='parameter-type'>Optional[float] = 10</span> </p>
+<ul>
+<li><p> Percentile value to use if clipping is needed when drawing the concept, e.g a value of 1 will perform a clipping between percentile 1 and 99.</p><p> This parameter allows to avoid outliers in case of too extreme values.</p><p> Default to 10.</p> </li>
+</ul>
+</li>
+<li>
+<p><strong><span class='parameter-name'>alpha</span></strong>            : <span class='parameter-type'>float = 0.65</span> </p>
+<ul>
+<li><p> The alpha channel value for the heatmaps. Defaults to 0.65.</p> </li>
+</ul>
+</li>
+<li>
+<p><strong><span class='parameter-name'>filepath</span></strong>            : <span class='parameter-type'>Optional[str] = None</span> </p>
+<ul>
+<li><p> Path the file will be saved at. If None, the function will call plt.show().</p> </li>
+</ul>
+</li>
+</ul>
+<p><br></p>
+<div class="footnote">
+<hr />
+<ol>
+<li id="fn:1">
+<p><a href="https://arxiv.org/pdf/2211.10154.pdf">CRAFT: Concept Recursive Activation FacTorization for Explainability (2023).</a>&#160;<a class="footnote-backref" href="#fnref:1" title="Jump back to footnote 1 in the text">&#8617;</a></p>
+</li>
+</ol>
+</div>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": [], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+        <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+      
+        <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+      
+        <script src="../../../js/custom.js"></script>
+      
+    
+  </body>
+</html>
