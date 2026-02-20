@@ -26,7 +26,7 @@ prepare-dev:
 	. .venv/bin/activate && pre-commit install-hooks
 
 test:
-	. .venv/bin/activate && UV_CACHE_DIR="$(uv cache dir)" nohup tox > tox.out &
+	. .venv/bin/activate && nohup tox > tox.out &
 
 test-disable-gpu:
 	. .venv/bin/activate && CUDA_VISIBLE_DEVICES=-1 tox

@@ -51,7 +51,7 @@ Anyway, if you suceed you should see your virtual environment name in front of a
 ```
 - You can now install all necessary packages, with pip:
 ```
-uv pip install -r pyproject.toml --group dev --group pytorch
+uv pip install -r pyproject.toml --group dev --group torch
 ```
 Or with conda:
 ```

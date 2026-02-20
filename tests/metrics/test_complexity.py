@@ -1,11 +1,9 @@
 import numpy as np
 import tensorflow as tf
-import pytest
-
-from xplique.metrics.base import BaseComplexityMetric
-from xplique.metrics import Complexity, Sparseness
 
 from tests.utils import almost_equal
+from xplique.metrics import Complexity, Sparseness
+from xplique.metrics.base import BaseComplexityMetric
 
 EPS = 1e-8
 
@@ -61,9 +59,9 @@ def _gini_numpy(explanations: np.ndarray) -> np.ndarray:
     idx = np.arange(1, n + 1, dtype=np.float32)  # 1..n, shape (n,)
 
     weighted = x_sorted * idx  # broadcast over batch
-    num = 2.0 * np.sum(weighted, axis=-1)        # (B,)
-    den = n * np.sum(x_sorted, axis=-1) + EPS    # (B,)
-    gini = num / den - (n + 1.0) / n             # (B,)
+    num = 2.0 * np.sum(weighted, axis=-1)  # (B,)
+    den = n * np.sum(x_sorted, axis=-1) + EPS  # (B,)
+    gini = num / den - (n + 1.0) / n  # (B,)
 
     return gini
 
@@ -100,8 +98,8 @@ def test_complexity_entropy_matches_numpy_2d():
     """Complexity.detailed_evaluate should match NumPy entropy for 2D inputs."""
     exps = np.array(
         [
-            [1.0, 1.0, 1.0, 1.0],    # uniform
-            [1.0, 2.0, 3.0, 4.0],    # non-uniform
+            [1.0, 1.0, 1.0, 1.0],  # uniform
+            [1.0, 2.0, 3.0, 4.0],  # non-uniform
         ],
         dtype=np.float32,
     )
@@ -202,8 +200,8 @@ def test_sparseness_gini_matches_numpy_2d():
     """Sparseness.detailed_evaluate should match NumPy Gini for 2D inputs."""
     exps = np.array(
         [
-            [1.0, 1.0, 1.0, 1.0],    # uniform
-            [1.0, 2.0, 3.0, 4.0],    # non-uniform
+            [1.0, 1.0, 1.0, 1.0],  # uniform
+            [1.0, 2.0, 3.0, 4.0],  # non-uniform
         ],
         dtype=np.float32,
     )

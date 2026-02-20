@@ -5,7 +5,6 @@ Sobol' total order estimators module
 from abc import ABC, abstractmethod
 
 import tensorflow as tf
-from einops import rearrange
 
 from ...types import Tuple, Union
 
@@ -106,8 +105,8 @@ class SobolEstimator(ABC):
         b = outputs[nb_design : nb_design * 2]  # (N,)
         c_flat = outputs[nb_design * 2 :]  # (D*N,)
 
-        # Reshape C to (D, N)
-        c = rearrange(c_flat, "(d n) -> d n", d=nb_dim)
+        # Reshape C to (D, N) using TensorFlow ops so this works inside tf.function
+        c = tf.reshape(c_flat, tf.stack([nb_dim, nb_design]))
 
         return a, b, c
 

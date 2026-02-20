@@ -354,7 +354,8 @@ def test_average_metrics_constant_operator_yields_zero():
     x, y = generate_data(input_shape, nb_labels, samples)
 
     # dummy model, never used in operator
-    model = lambda z: tf.ones((tf.shape(z)[0], nb_labels), dtype=tf.float32)
+    def model(z):
+        return tf.ones((tf.shape(z)[0], nb_labels), dtype=tf.float32)
 
     explanations = np.random.randn(*x.shape).astype(np.float32)
 
@@ -387,7 +388,8 @@ def test_average_drop_manual_match_with_custom_operator():
     y = np.eye(2, dtype=np.float32)[np.zeros(B, dtype=np.int32)]  # dummy targets
     explanations = np.random.uniform(0.0, 1.0, size=(B, H, W, C)).astype(np.float32)
 
-    model = lambda z: tf.ones((tf.shape(z)[0], 2), dtype=tf.float32)
+    def model(z):
+        return tf.ones((tf.shape(z)[0], 2), dtype=tf.float32)
 
     metric = AverageDropMetric(
         model=model,
@@ -428,7 +430,9 @@ def test_average_metrics_batch_size_invariance():
     input_shape, nb_labels, samples = ((6, 6, 1), 2, 7)
     x, y = generate_data(input_shape, nb_labels, samples)
     explanations = np.random.rand(*x.shape).astype(np.float32)
-    model = lambda z: tf.ones((tf.shape(z)[0], nb_labels), dtype=tf.float32)
+
+    def model(z):
+        return tf.ones((tf.shape(z)[0], nb_labels), dtype=tf.float32)
 
     batch_sizes = [1, 2, 4, None]
     metrics = (AverageDropMetric, AverageIncreaseMetric, AverageGainMetric)

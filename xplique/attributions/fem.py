@@ -2,12 +2,12 @@
 Module related to FEM method
 """
 
-import tensorflow as tf
 import numpy as np
+import tensorflow as tf
 
-from .base import WhiteBoxExplainer
 from ..commons import find_layer, tensor_sanitize
-from ..types import Tuple, Union, Optional
+from ..types import Optional, Tuple, Union
+from .base import WhiteBoxExplainer
 
 
 class FEM(WhiteBoxExplainer):
@@ -36,11 +36,13 @@ class FEM(WhiteBoxExplainer):
         Number of standard deviations used in the threshold (k-sigma rule).
     """
 
-    def __init__(self,
-                 model: tf.keras.Model,
-                 batch_size: Optional[int] = 32,
-                 conv_layer: Optional[Union[str, int]] = None,
-                 k: float = 2.0):
+    def __init__(
+        self,
+        model: tf.keras.Model,
+        batch_size: Optional[int] = 32,
+        conv_layer: Optional[Union[str, int]] = None,
+        k: float = 2.0,
+    ):
         # pylint: disable=super-init-not-called
         self.batch_size = batch_size
         self.k = tf.cast(k, tf.float32)
@@ -50,7 +52,7 @@ class FEM(WhiteBoxExplainer):
             self.conv_layer = find_layer(model, conv_layer)
         else:
             for layer in model.layers[::-1]:
-                if hasattr(layer, 'filters'):
+                if hasattr(layer, "filters"):
                     self.conv_layer = layer
                     break
             else:
@@ -58,11 +60,13 @@ class FEM(WhiteBoxExplainer):
                     "FEM requires a convolutional layer. Please pass `conv_layer` explicitly."
                 )
 
-        self.model = tf.keras.Model(model.input, self.conv_layer.output)
+        self.model = tf.keras.Model(model.inputs[0], self.conv_layer.output)
 
-    def explain(self,
-                inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
-                targets: Optional[Union[tf.Tensor, np.ndarray]] = None) -> tf.Tensor:
+    def explain(
+        self,
+        inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
+        targets: Optional[Union[tf.Tensor, np.ndarray]] = None,
+    ) -> tf.Tensor:
         """
         Compute FEM maps for a batch of samples.
 
@@ -99,17 +103,15 @@ class FEM(WhiteBoxExplainer):
         # FEM is based on the last convolutional layer, we resize explanations to input size
         new_size = inputs.shape[1:-1]
         fem_maps = tf.map_fn(
-            fn=lambda fmap: tf.image.resize(
-                fmap, new_size, method=tf.image.ResizeMethod.BICUBIC),
-            elems=tf.expand_dims(fem_maps, axis=-1)
+            fn=lambda fmap: tf.image.resize(fmap, new_size, method=tf.image.ResizeMethod.BICUBIC),
+            elems=tf.expand_dims(fem_maps, axis=-1),
         )
 
         return fem_maps
 
     @staticmethod
     @tf.function
-    def _compute_weights(feature_maps: tf.Tensor,
-                         k: tf.Tensor) -> Tuple[tf.Tensor, tf.Tensor]:
+    def _compute_weights(feature_maps: tf.Tensor, k: tf.Tensor) -> Tuple[tf.Tensor, tf.Tensor]:
         """
         Compute channel weights and binary masks using the k-sigma threshold.
 
@@ -136,8 +138,7 @@ class FEM(WhiteBoxExplainer):
 
     @staticmethod
     @tf.function
-    def _apply_weights(weights: tf.Tensor,
-                       binary_masks: tf.Tensor) -> tf.Tensor:
+    def _apply_weights(weights: tf.Tensor, binary_masks: tf.Tensor) -> tf.Tensor:
         """
         Aggregate binary masks with the provided weights.
 

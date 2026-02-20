@@ -1,47 +1,65 @@
-name: tests for torch
+name: tests torch
 
 on:
   pull_request:
   workflow_dispatch:
 
 jobs:
+  discover-tox-envs:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.build-matrix.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Python (from pyproject)
+        uses: actions/setup-python@v6
+        with:
+          python-version-file: pyproject.toml
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v6
+
+      - name: Install tox tooling
+        run: |
+          uv pip install --system tox tox-uv pytest
+
+      - name: Build matrix from tox.ini
+        id: build-matrix
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          import subprocess
+
+          envs = subprocess.check_output(["tox", "-l"], text=True).splitlines()
+          envs = [e.strip() for e in envs if e.strip().startswith("py")]
+          envs = [e for e in envs if "-torch" in e]
+
+          matrix = {"toxenv": envs}
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as f:
+              f.write(f"matrix={json.dumps(matrix)}\n")
+          PY
+
   checks:
+    needs: discover-tox-envs
     runs-on: ubuntu-latest
     strategy:
-      max-parallel: 4
+      fail-fast: false
       matrix:
-        include:
-            - python-version: 3.8
-              tf-version: 2.5
-              torch-version: 1.11
-            - python-version: 3.8
-              tf-version: 2.8
-              torch-version: 1.11
-            - python-version: 3.8
-              tf-version: 2.11
-              torch-version: 1.11
-            - python-version: 3.9
-              tf-version: 2.8
-              torch-version: 1.13
-            - python-version: 3.9
-              tf-version: 2.11
-              torch-version: 1.13
-            - python-version: "3.10"
-              tf-version: 2.8
-              torch-version: 2.0.0
-            - python-version: "3.10"
-              tf-version: 2.11
-              torch-version: 2.0.0
+        toxenv: ${{ fromJson(needs.discover-tox-envs.outputs.matrix).toxenv }}
 
     steps:
-    - uses: actions/checkout@v1
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
-      with:
-        python-version: ${{ matrix.python-version }}
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install tox tox-uv uv
-    - name: Test with tox (Python ${{ matrix.python-version }} - TF ${{ matrix.tf-version }} - PyTorch ${{ matrix.torch-version }})
-      run: tox -e py$(echo ${{ matrix.python-version }}-tf${{ matrix.tf-version }}-torch${{matrix.torch-version}} | tr -d .)
+      - uses: actions/checkout@v6
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v6
+      - name: Create virtualenv and install tox
+        run: |
+          uv venv
+          . .venv/bin/activate
+          uv pip install --upgrade pip
+          uv pip install tox tox-uv
+      - name: Test with tox (${{ matrix.toxenv }})
+        run: |
+          . .venv/bin/activate
+          tox -e ${{ matrix.toxenv }}

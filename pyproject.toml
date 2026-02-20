@@ -26,8 +26,8 @@ dependencies = [
     "scikit-image>=0.14.1,<=0.25.2",
     "scikit-learn>=0.14.1,<=1.7.2",
     "scipy>=1.0.0,<=1.15.3",
-    "tensorflow>=2.16.1,<=2.20.0; sys_platform != 'linux'",
-    "tensorflow[and-cuda]>=2.16.1,<=2.20.0; sys_platform == 'linux'",
+    "tensorflow>=2.18,<=2.20.0; sys_platform != 'linux'",
+    "tensorflow[and-cuda]>=2.18,<=2.20.0; sys_platform == 'linux'",
     "tensorflow-probability[tf]>=0.20.1,<=0.25.0",
 ]
 
@@ -50,7 +50,7 @@ dev = [
     "tox",
     "tox-uv",
 ]
-pytorch = [
+torch = [
     "torch>=2.5.0,<=2.10.0",
 ]
 

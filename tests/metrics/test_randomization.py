@@ -3,21 +3,20 @@ import pytest
 import tensorflow as tf
 
 from xplique.metrics.randomization import (
-    ssim,
-    batched_spearman,
-    ProgressiveLayerRandomization,
-    RandomLogitMetric,
     ModelRandomizationMetric,
     ModelRandomizationStrategy,
+    ProgressiveLayerRandomization,
+    RandomLogitMetric,
+    batched_spearman,
+    ssim,
 )
-
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
-def _make_simple_cnn(num_classes: int = 4,
-                     input_shape=(16, 16, 3)) -> tf.keras.Model:
+
+def _make_simple_cnn(num_classes: int = 4, input_shape=(16, 16, 3)) -> tf.keras.Model:
     """Small conv net for tests; only needs to support forward passes."""
     model = tf.keras.Sequential(
         [
@@ -31,16 +30,13 @@ def _make_simple_cnn(num_classes: int = 4,
     return model
 
 
-def _make_dummy_data(num_samples: int = 8,
-                     num_classes: int = 4,
-                     input_shape=(16, 16, 3),
-                     seed: int = 42):
+def _make_dummy_data(
+    num_samples: int = 8, num_classes: int = 4, input_shape=(16, 16, 3), seed: int = 42
+):
     """Random images + one-hot labels."""
     tf.random.set_seed(seed)
     x = tf.random.normal((num_samples,) + tuple(input_shape), dtype=tf.float32)
-    y_indices = tf.random.uniform(
-        (num_samples,), minval=0, maxval=num_classes, dtype=tf.int32
-    )
+    y_indices = tf.random.uniform((num_samples,), minval=0, maxval=num_classes, dtype=tf.int32)
     y = tf.one_hot(y_indices, depth=num_classes, dtype=tf.float32)
     return x, y
 
@@ -103,6 +99,7 @@ class IdentityRandomization(ModelRandomizationStrategy):
 # SSIM tests
 # ---------------------------------------------------------------------------
 
+
 def test_ssim_identical_images_is_one():
     tf.random.set_seed(42)
     img = tf.random.uniform((32, 32, 3), dtype=tf.float32)
@@ -125,9 +122,7 @@ def test_ssim_batched_matches_unbatched():
     imgs2 = tf.random.uniform((4, 8, 8, 3), dtype=tf.float32)
 
     batched_scores = ssim(imgs1, imgs2, batched=True).numpy()
-    unbatched_scores = np.array(
-        [float(ssim(imgs1[i], imgs2[i]).numpy()) for i in range(4)]
-    )
+    unbatched_scores = np.array([float(ssim(imgs1[i], imgs2[i]).numpy()) for i in range(4)])
 
     assert batched_scores.shape == (4,)
     assert batched_scores == pytest.approx(unbatched_scores, rel=1e-5, abs=1e-5)
@@ -152,6 +147,7 @@ def test_ssim_small_image_adapts_filter_size():
 # ---------------------------------------------------------------------------
 # batched_spearman tests
 # ---------------------------------------------------------------------------
+
 
 def test_batched_spearman_perfect_positive_correlation():
     tf.random.set_seed(42)
@@ -213,6 +209,7 @@ def test_rankdata_average_ties_simple_ties():
 # ProgressiveLayerRandomization tests
 # ---------------------------------------------------------------------------
 
+
 def test_progressive_layer_randomization_by_name_and_reverse():
     tf.random.set_seed(42)
     model = _make_simple_cnn(num_classes=4)
@@ -233,17 +230,17 @@ def test_progressive_layer_randomization_by_name_and_reverse():
     new_dense_w = [w for w in dense.get_weights()]
 
     # conv1 should have been randomized, conv2 untouched
-    assert any(
-        np.allclose(o, n) for o, n in zip(original_conv1_w, new_conv1_w)
-    ), "conv1 weights should remain unchanged"
+    assert any(np.allclose(o, n) for o, n in zip(original_conv1_w, new_conv1_w)), (
+        "conv1 weights should remain unchanged"
+    )
 
-    assert all(
-        not np.allclose(o, n) for o, n in zip(original_conv2_w, new_conv2_w)
-    ), "conv2 weights should change"
+    assert all(not np.allclose(o, n) for o, n in zip(original_conv2_w, new_conv2_w)), (
+        "conv2 weights should change"
+    )
 
-    assert all(
-        not np.allclose(o, n) for o, n in zip(original_dense_w, new_dense_w)
-    ), "dense weights should change"
+    assert all(not np.allclose(o, n) for o, n in zip(original_dense_w, new_dense_w)), (
+        "dense weights should change"
+    )
 
 
 def test_progressive_layer_randomization_invalid_stop_layer_type():
@@ -271,24 +268,23 @@ def test_progressive_layer_randomization_with_int_stop_layer():
     tf.random.set_seed(42)
     model = _make_simple_cnn(num_classes=4)
     # Store original weights for layers with trainable weights
-    original_weights = {l.name: [w.copy() for w in l.get_weights()]
-                        for l in model.layers if l.get_weights()}
+    original_weights = {
+        _l.name: [w.copy() for w in _l.get_weights()] for _l in model.layers if _l.get_weights()
+    }
 
     # reverse=False means we go from input to output, randomizing first 2 layers
     strategy = ProgressiveLayerRandomization(stop_layer=2, reverse=False)
     strategy.randomize(model)
 
     # Get layers with weights in forward order
-    layers_with_weights = [l for l in model.layers if l.get_weights()]
+    layers_with_weights = [_l for _l in model.layers if _l.get_weights()]
 
     # First 2 layers with weights should be randomized
     randomized_count = 0
     for i, layer in enumerate(layers_with_weights):
         new_weights = layer.get_weights()
         orig_weights = original_weights[layer.name]
-        weights_changed = any(
-            not np.allclose(o, n) for o, n in zip(orig_weights, new_weights)
-        )
+        weights_changed = any(not np.allclose(o, n) for o, n in zip(orig_weights, new_weights))
         if i < 2:
             # These should be randomized
             if weights_changed:
@@ -297,13 +293,15 @@ def test_progressive_layer_randomization_with_int_stop_layer():
             # These should remain unchanged
             assert not weights_changed, f"Layer {layer.name} should not be randomized"
 
-    assert randomized_count == min(2, len(layers_with_weights)), \
+    assert randomized_count == min(2, len(layers_with_weights)), (
         "Expected exactly 2 layers to be randomized"
+    )
 
 
 # ---------------------------------------------------------------------------
 # RandomLogitMetric tests
 # ---------------------------------------------------------------------------
+
 
 def test_random_logit_metric_requires_targets():
     tf.random.set_seed(42)
@@ -367,6 +365,7 @@ def test_random_logit_metric_invariant_explainer_gives_high_ssim():
 # ---------------------------------------------------------------------------
 # ModelRandomizationMetric tests
 # ---------------------------------------------------------------------------
+
 
 def test_model_randomization_metric_requires_targets():
     tf.random.set_seed(42)

@@ -15,22 +15,21 @@ jobs:
 
     steps:
       - name: "Checkout"
-        uses: actions/checkout@v3
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
       - name: "Set up Python"
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v6
         with:
-          python-version: '3.10'
+          python-version-file: pyproject.toml
+
+      - name: "Set up uv"
+        uses: astral-sh/setup-uv@v6
 
       - name: "Install Dependencies"
         run: |
-          python -m pip install --upgrade pip
-          pip install mkdocs mkdocs-material numkdoc mike
-          pip install -r requirements.txt
-          pip install torch
-          pip install -e .
+          uv pip install --system -r pyproject.toml --group dev --group torch -e .
 
       - name: "Setup Docs Deploy"
         run: |

@@ -3,11 +3,11 @@ Attribution complexity metrics
 Re-implementations in TensorFlow for efficiency, inspired by Quantus:
 https://github.com/understandable-machine-intelligence-lab/Quantus/blob/main/quantus/metrics/complexity/complexity.py
 """
+
 import numpy as np
 import tensorflow as tf
 
 from .base import BaseComplexityMetric
-
 
 _EPS = 1e-8
 
@@ -31,6 +31,7 @@ class Complexity(BaseComplexityMetric):
     - If explanations are 4D (B, H, W, C), we average across channels C before
       flattening, consistent with typical usage for saliency maps.
     """
+
     def detailed_evaluate(self, explanations: tf.Tensor) -> np.ndarray:
         """
         Compute the Shannon entropy for each explanation in the batch.
@@ -64,7 +65,6 @@ class Complexity(BaseComplexityMetric):
         (4,)
         """
         x = tf.convert_to_tensor(explanations, dtype=tf.float32)
-
 
         # |attribution|
         x = tf.math.abs(x)
@@ -107,6 +107,7 @@ class Sparseness(BaseComplexityMetric):
     - We compute on |attribution| with L1 normalization for scale invariance.
     - If explanations are 4D (B, H, W, C), we average across channels C.
     """
+
     def detailed_evaluate(self, explanations: tf.Tensor) -> np.ndarray:
         """
         Compute the Gini coefficient for each explanation in the batch.
@@ -168,8 +169,8 @@ class Sparseness(BaseComplexityMetric):
 
         # Gini formula: (2 * sum_i i x_i) / (n * sum_i x_i) - (n+1)/n
         # sum_i x_i == 1 due to L1-normalization, but keep general form for robustness
-        num = 2.0 * tf.reduce_sum(weighted, axis=-1)                 # (B,)
-        den = n * tf.reduce_sum(x_sorted, axis=-1) + _EPS            # (B,)
-        gini = num / den - (n + 1.0) / n                             # (B,)
+        num = 2.0 * tf.reduce_sum(weighted, axis=-1)  # (B,)
+        den = n * tf.reduce_sum(x_sorted, axis=-1) + _EPS  # (B,)
+        gini = num / den - (n + 1.0) / n  # (B,)
 
         return gini.numpy()

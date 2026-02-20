@@ -10,29 +10,29 @@ significantly when either the target logit or the model parameters are randomize
 Thus, a low similarity (SSIM or Spearman correlation) between explanations
 before and after randomization indicates a faithful explainer.
 """
+
 from abc import ABC, abstractmethod
-from typing import Callable, Union, Optional
+from typing import Callable, Optional, Union
 
 import numpy as np
 import tensorflow as tf
 
-from .base import ExplainerMetric
-from ..attributions.base import WhiteBoxExplainer, BlackBoxExplainer
+from ..attributions.base import BlackBoxExplainer, WhiteBoxExplainer
 from ..commons import batch_tensor
-
-from ..types import Callable, Optional, Union
+from .base import ExplainerMetric
 
 _EPS = 1e-8
 
 
-def ssim(a: tf.Tensor,
-         b: tf.Tensor,
-         batched: bool = False,
-         win_size: int = 11,
-         filter_sigma: float = 1.5,
-         k1: float = 0.01,
-         k2: float = 0.03,
-         ) -> tf.Tensor:
+def ssim(
+    a: tf.Tensor,
+    b: tf.Tensor,
+    batched: bool = False,
+    win_size: int = 11,
+    filter_sigma: float = 1.5,
+    k1: float = 0.01,
+    k2: float = 0.03,
+) -> tf.Tensor:
     """
     Compute the Structural Similarity Index Measure (SSIM) between two images
     (or batches of images) using TensorFlow's built-in implementation.
@@ -97,11 +97,13 @@ def ssim(a: tf.Tensor,
         )
 
         ssim_val = tf.image.ssim(
-            image_a, image_b,
+            image_a,
+            image_b,
             max_val=safe_data_range,
             filter_size=fs,
             filter_sigma=filter_sigma,
-            k1=k1, k2=k2,
+            k1=k1,
+            k2=k2,
         )
         # if original dynamic range was zero -> SSIM = 1
         return tf.where(
@@ -167,19 +169,19 @@ def _rankdata_average_ties(x: tf.Tensor) -> tf.Tensor:
     b = tf.shape(x)[0]
     f = tf.shape(x)[1]
 
-    idx = tf.argsort(x, axis=1, stable=True)                        # (B, F)
-    x_sorted = tf.gather(x, idx, batch_dims=1)                      # (B, F)
+    idx = tf.argsort(x, axis=1, stable=True)  # (B, F)
+    x_sorted = tf.gather(x, idx, batch_dims=1)  # (B, F)
 
     # group boundaries where value changes (ties -> same group)
-    change = tf.not_equal(x_sorted[:, 1:], x_sorted[:, :-1])        # (B, F-1)
+    change = tf.not_equal(x_sorted[:, 1:], x_sorted[:, :-1])  # (B, F-1)
     boundary = tf.concat([tf.zeros((b, 1), tf.bool), change], axis=1)  # (B, F)
-    group_id = tf.cumsum(tf.cast(boundary, tf.int32), axis=1)       # (B, F), starts at 0
+    group_id = tf.cumsum(tf.cast(boundary, tf.int32), axis=1)  # (B, F), starts at 0
 
-    pos = tf.tile(tf.range(f)[None, :], [b, 1])                     # (B, F)
+    pos = tf.tile(tf.range(f)[None, :], [b, 1])  # (B, F)
     pos_f = tf.cast(pos, tf.float32)
 
     # unique segment ids across batch
-    seg_id = tf.range(b)[:, None] * f + group_id                    # (B, F)
+    seg_id = tf.range(b)[:, None] * f + group_id  # (B, F)
     seg_id_flat = tf.reshape(seg_id, [-1])
     pos_flat = tf.reshape(pos_f, [-1])
 
@@ -187,8 +189,8 @@ def _rankdata_average_ties(x: tf.Tensor) -> tf.Tensor:
     mean_per_seg = tf.math.unsorted_segment_mean(pos_flat, seg_id_flat, num_segments)
     ranks_sorted = tf.reshape(tf.gather(mean_per_seg, seg_id_flat), (b, f))
 
-    inv = tf.argsort(idx, axis=1)                                   # inverse perm
-    ranks = tf.gather(ranks_sorted, inv, batch_dims=1)              # back to original order
+    inv = tf.argsort(idx, axis=1)  # inverse perm
+    ranks = tf.gather(ranks_sorted, inv, batch_dims=1)  # back to original order
     return ranks
 
 
@@ -218,9 +220,9 @@ def batched_spearman(a: tf.Tensor, b: tf.Tensor) -> tf.Tensor:
     da = rank_a - mean_a
     db = rank_b - mean_b
 
-    cov = tf.reduce_mean(da * db, axis=1)              # (B,)
-    std_a = tf.math.reduce_std(rank_a, axis=1)         # (B,)
-    std_b = tf.math.reduce_std(rank_b, axis=1)         # (B,)
+    cov = tf.reduce_mean(da * db, axis=1)  # (B,)
+    std_a = tf.math.reduce_std(rank_a, axis=1)  # (B,)
+    std_b = tf.math.reduce_std(rank_b, axis=1)  # (B,)
 
     return cov / (std_a * std_b + _EPS)
 
@@ -250,62 +252,60 @@ class ModelRandomizationStrategy(ABC):
 
 class ProgressiveLayerRandomization(ModelRandomizationStrategy):
     """
-        Progressive layer randomization strategy for model parameter perturbation.
+    Progressive layer randomization strategy for model parameter perturbation.
 
-        Randomizes model weights layer-by-layer, starting from the output layers
-        (by default) and progressing toward the input layers up to a specified
-        stopping point. This implements the cascading randomization approach
-        described in Adebayo et al. (2018).
+    Randomizes model weights layer-by-layer, starting from the output layers
+    (by default) and progressing toward the input layers up to a specified
+    stopping point. This implements the cascading randomization approach
+    described in Adebayo et al. (2018).
 
-        Only layers with trainable weights are considered for randomization.
+    Only layers with trainable weights are considered for randomization.
 
-        Parameters
-        ----------
-        stop_layer : str, int, or float
-            Specifies where to stop randomization in the layer traversal:
-            - str: Name of the layer to stop before.
-            - int: Index of the layer to stop before (in traversal order).
-            - float: Fraction of layers to randomize (must be in [0, 1]).
-            Note: The stop layer itself is not randomized, it just defines the cutoff point.
-        reverse : bool, default True
-            If True, traverse layers from output to input (top-down randomization).
-            If False, traverse from input to output (bottom-up randomization).
+    Parameters
+    ----------
+    stop_layer : str, int, or float
+        Specifies where to stop randomization in the layer traversal:
+        - str: Name of the layer to stop before.
+        - int: Index of the layer to stop before (in traversal order).
+        - float: Fraction of layers to randomize (must be in [0, 1]).
+        Note: The stop layer itself is not randomized, it just defines the cutoff point.
+    reverse : bool, default True
+        If True, traverse layers from output to input (top-down randomization).
+        If False, traverse from input to output (bottom-up randomization).
 
-        Raises
-        ------
-        TypeError
-            If `stop_layer` is not str, int, or float.
-        ValueError
-            If `stop_layer` is a float outside [0, 1], or if a specified
-            layer name is not found in the model.
+    Raises
+    ------
+    TypeError
+        If `stop_layer` is not str, int, or float.
+    ValueError
+        If `stop_layer` is a float outside [0, 1], or if a specified
+        layer name is not found in the model.
 
-        Examples
-        --------
-        Randomize the top 25% of layers (by weight count):
+    Examples
+    --------
+    Randomize the top 25% of layers (by weight count):
 
-        >>> strategy = ProgressiveLayerRandomization(stop_layer=0.25)
-        >>> randomized_model = strategy.randomize(model)
+    >>> strategy = ProgressiveLayerRandomization(stop_layer=0.25)
+    >>> randomized_model = strategy.randomize(model)
 
-        Randomize all layers up to (but excluding) 'conv2':
+    Randomize all layers up to (but excluding) 'conv2':
 
-        >>> strategy = ProgressiveLayerRandomization(stop_layer='conv2')
-        >>> randomized_model = strategy.randomize(model)
+    >>> strategy = ProgressiveLayerRandomization(stop_layer='conv2')
+    >>> randomized_model = strategy.randomize(model)
 
-        Randomize layers from input toward output, stopping at index 3:
+    Randomize layers from input toward output, stopping at index 3:
 
-        >>> strategy = ProgressiveLayerRandomization(stop_layer=3, reverse=False)
-        >>> randomized_model = strategy.randomize(model)
+    >>> strategy = ProgressiveLayerRandomization(stop_layer=3, reverse=False)
+    >>> randomized_model = strategy.randomize(model)
 
-        References
-        ----------
-        Adebayo, J., Gilmer, J., Muelly, M., Goodfellow, I., Hardt, M., & Kim, B. (2018).
-        Sanity checks for saliency maps. Advances in neural information processing systems, 31.
-        https://arxiv.org/abs/1810.03292
-        """
+    References
+    ----------
+    Adebayo, J., Gilmer, J., Muelly, M., Goodfellow, I., Hardt, M., & Kim, B. (2018).
+    Sanity checks for saliency maps. Advances in neural information processing systems, 31.
+    https://arxiv.org/abs/1810.03292
+    """
 
-    def __init__(self,
-                 stop_layer: Union[str, int, float],
-                 reverse: bool = True):
+    def __init__(self, stop_layer: Union[str, int, float], reverse: bool = True):
         if not isinstance(stop_layer, (str, int, float)):
             raise TypeError("`stop_layer` must be str, int, or float.")
         if isinstance(stop_layer, float):
@@ -355,13 +355,13 @@ class ProgressiveLayerRandomization(ModelRandomizationStrategy):
         >>> randomized_model = strategy.randomize(model)  # Randomizes top 50% of layers
         """
         # Only count layers that actually have weights (matches your unit tests)
-        weight_layers = [l for l in model.layers if l.get_weights()]
+        weight_layers = [_l for _l in model.layers if _l.get_weights()]
         layer_list = weight_layers[::-1] if self.reverse else weight_layers
         n_layers = len(layer_list)
 
         # resolve stop_index in this order
         if isinstance(self.stop_layer, str):
-            indices = [i for i, l in enumerate(layer_list) if l.name == self.stop_layer]
+            indices = [i for i, _l in enumerate(layer_list) if _l.name == self.stop_layer]
             if not indices:
                 raise ValueError(f"Layer '{self.stop_layer}' not found in model.")
             stop_index = indices[0]
@@ -409,15 +409,22 @@ class BaseRandomizationMetric(ExplainerMetric, ABC):
         Random seed for reproducibility.
     """
 
-    def __init__(self,
-                 model: Callable,
-                 inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
-                 targets: Optional[Union[tf.Tensor, np.ndarray]],
-                 batch_size: Optional[int] = 64,
-                 activation: Optional[str] = None,
-                 seed: int = 42):
-        super().__init__(model=model, inputs=inputs, targets=targets,
-                         batch_size=batch_size, activation=activation)
+    def __init__(
+        self,
+        model: Callable,
+        inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
+        targets: Optional[Union[tf.Tensor, np.ndarray]],
+        batch_size: Optional[int] = 64,
+        activation: Optional[str] = None,
+        seed: int = 42,
+    ):
+        super().__init__(
+            model=model,
+            inputs=inputs,
+            targets=targets,
+            batch_size=batch_size,
+            activation=activation,
+        )
         self.seed = seed
         tf.random.set_seed(self.seed)
 
@@ -426,10 +433,12 @@ class BaseRandomizationMetric(ExplainerMetric, ABC):
         self.n_classes = int(self.targets.shape[-1])
 
     @abstractmethod
-    def _get_perturbed_context(self,
-                               inputs: tf.Tensor,
-                               targets: tf.Tensor,
-                               explainer: Union[WhiteBoxExplainer, BlackBoxExplainer]) -> tuple:
+    def _get_perturbed_context(
+        self,
+        inputs: tf.Tensor,
+        targets: tf.Tensor,
+        explainer: Union[WhiteBoxExplainer, BlackBoxExplainer],
+    ) -> tuple:
         """
         Prepare perturbed inputs/targets/explainer for comparison.
 
@@ -441,9 +450,7 @@ class BaseRandomizationMetric(ExplainerMetric, ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    def _compute_similarity(self,
-                            exp_original: tf.Tensor,
-                            exp_perturbed: tf.Tensor) -> tf.Tensor:
+    def _compute_similarity(self, exp_original: tf.Tensor, exp_perturbed: tf.Tensor) -> tf.Tensor:
         """
         Compute similarity metric between original and perturbed explanations.
 
@@ -464,18 +471,19 @@ class BaseRandomizationMetric(ExplainerMetric, ABC):
     def _cleanup_perturbed_context(self, explainer, *args):  # pylint: disable=unused-argument
         """Hook for cleanup after perturbed context usage. Override if needed."""
 
-    def _batch_evaluate(self,
-                        inputs: tf.Tensor,
-                        targets: tf.Tensor,
-                        explainer: Union[WhiteBoxExplainer, BlackBoxExplainer]) -> tf.Tensor:
+    def _batch_evaluate(
+        self,
+        inputs: tf.Tensor,
+        targets: tf.Tensor,
+        explainer: Union[WhiteBoxExplainer, BlackBoxExplainer],
+    ) -> tf.Tensor:
         """Compute per-sample scores for a batch."""
         # Original explanations
         exp_original = explainer.explain(inputs=inputs, targets=targets)
         exp_original = self._preprocess_explanation(exp_original)
 
         # Get perturbed context and compute explanations
-        p_inputs, p_targets, p_explainer = self._get_perturbed_context(
-            inputs, targets, explainer)
+        p_inputs, p_targets, p_explainer = self._get_perturbed_context(inputs, targets, explainer)
         exp_perturbed = p_explainer.explain(inputs=p_inputs, targets=p_targets)
         exp_perturbed = self._preprocess_explanation(exp_perturbed)
 
@@ -488,11 +496,13 @@ class BaseRandomizationMetric(ExplainerMetric, ABC):
         """Compute mean similarity score over the dataset."""
         scores = None
         for inp_batch, tgt_batch in batch_tensor(
-                (self.inputs, self.targets), self.batch_size or len(self.inputs)):
+            (self.inputs, self.targets), self.batch_size or len(self.inputs)
+        ):
             batch_scores = self._batch_evaluate(
                 tf.convert_to_tensor(inp_batch, dtype=tf.float32),
                 tf.convert_to_tensor(tgt_batch, dtype=tf.float32),
-                explainer)
+                explainer,
+            )
             scores = batch_scores if scores is None else tf.concat([scores, batch_scores], axis=0)
         return float(tf.reduce_mean(scores))
 
@@ -536,21 +546,28 @@ class RandomLogitMetric(BaseRandomizationMetric):
     -----
     `evaluate(explainer)` returns the mean SSIM over the dataset.
     """
-    def __init__(self,
-                 model: Callable,
-                 inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
-                 targets: Optional[Union[tf.Tensor, np.ndarray]],
-                 batch_size: Optional[int] = 64,
-                 activation: Optional[str] = None,
-                 seed: int = 42):
-        super().__init__(model=model, inputs=inputs, targets=targets,
-                         batch_size=batch_size, activation=activation,
-                         seed=seed)
 
-    def _get_perturbed_context(self,
-                               inputs: tf.Tensor,
-                               targets: tf.Tensor,
-                               explainer: Callable) -> tuple:
+    def __init__(
+        self,
+        model: Callable,
+        inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
+        targets: Optional[Union[tf.Tensor, np.ndarray]],
+        batch_size: Optional[int] = 64,
+        activation: Optional[str] = None,
+        seed: int = 42,
+    ):
+        super().__init__(
+            model=model,
+            inputs=inputs,
+            targets=targets,
+            batch_size=batch_size,
+            activation=activation,
+            seed=seed,
+        )
+
+    def _get_perturbed_context(
+        self, inputs: tf.Tensor, targets: tf.Tensor, explainer: Callable
+    ) -> tuple:
         """
         Generate perturbed context by randomly sampling off-class targets.
 
@@ -589,9 +606,7 @@ class RandomLogitMetric(BaseRandomizationMetric):
 
         return inputs, off_one_hot, explainer
 
-    def _compute_similarity(self,
-                            exp_original: tf.Tensor,
-                            exp_perturbed: tf.Tensor) -> tf.Tensor:
+    def _compute_similarity(self, exp_original: tf.Tensor, exp_perturbed: tf.Tensor) -> tf.Tensor:
         """
         Compute SSIM similarity between original and perturbed explanations.
 
@@ -660,23 +675,30 @@ class ModelRandomizationMetric(BaseRandomizationMetric):
     The `explainer` argument is passed to `evaluate`, not to `__init__`.
     """
 
-    def __init__(self,
-                 model: Callable,
-                 inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
-                 targets: Optional[Union[tf.Tensor, np.ndarray]],
-                 randomization_strategy: ModelRandomizationStrategy = None,
-                 batch_size: Optional[int] = 64,
-                 activation: Optional[str] = None,
-                 seed: int = 42):
-        super().__init__(model=model, inputs=inputs, targets=targets,
-                         batch_size=batch_size, activation=activation, seed=seed)
+    def __init__(
+        self,
+        model: Callable,
+        inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
+        targets: Optional[Union[tf.Tensor, np.ndarray]],
+        randomization_strategy: ModelRandomizationStrategy = None,
+        batch_size: Optional[int] = 64,
+        activation: Optional[str] = None,
+        seed: int = 42,
+    ):
+        super().__init__(
+            model=model,
+            inputs=inputs,
+            targets=targets,
+            batch_size=batch_size,
+            activation=activation,
+            seed=seed,
+        )
         self.randomization_strategy = randomization_strategy or ProgressiveLayerRandomization(0.25)
         self._original_model_ref = None
 
-    def _get_perturbed_context(self,
-                               inputs: tf.Tensor,
-                               targets: tf.Tensor,
-                               explainer: Callable) -> tuple:
+    def _get_perturbed_context(
+        self, inputs: tf.Tensor, targets: tf.Tensor, explainer: Callable
+    ) -> tuple:
         """
         Generate perturbed context by randomizing the model parameters.
 
@@ -719,9 +741,7 @@ class ModelRandomizationMetric(BaseRandomizationMetric):
 
         return inputs, targets, explainer
 
-    def _compute_similarity(self,
-                            exp_original: tf.Tensor,
-                            exp_perturbed: tf.Tensor) -> tf.Tensor:
+    def _compute_similarity(self, exp_original: tf.Tensor, exp_perturbed: tf.Tensor) -> tf.Tensor:
         """
         Compute Spearman rank correlation between original and perturbed explanations.
 
