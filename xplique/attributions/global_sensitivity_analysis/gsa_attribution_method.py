@@ -115,6 +115,7 @@ class GSABaseAttributionMethod(BlackBoxExplainer):
         self,
         inputs: Union[tf.data.Dataset, tf.Tensor, np.ndarray],
         targets: Optional[Union[tf.Tensor, np.ndarray]] = None,
+        verbose: bool = False,
     ) -> tf.Tensor:
         """
         Compute the total Sobol' indices according to the explainer parameter (perturbation
@@ -131,6 +132,8 @@ class GSABaseAttributionMethod(BlackBoxExplainer):
             One-hot encoding for classification or direction {-1, +1} for regression.
             Tensor or numpy array.
             Expected shape (N, C) or (N).
+        verbose
+            Whether to print progress during the computation. Default is False.
 
         Returns
         -------
@@ -144,7 +147,17 @@ class GSABaseAttributionMethod(BlackBoxExplainer):
             perturbator = self.perturbation_function(inp)
             outputs = None
 
-            for batch_masks in batch_tensor(self.masks, self.batch_size):
+            # Calculate total number of batches for progress tracking
+            total_masks = len(self.masks)
+            if verbose:
+                print(f"\nComputing perturbations on {total_masks} masks...")
+            for batch_idx, batch_masks in enumerate(batch_tensor(self.masks, self.batch_size)):
+                if verbose:
+                    print(
+                        f"\r    Processing mask {batch_idx * self.batch_size + 1}/{total_masks}...",
+                        end="",
+                        flush=True,
+                    )
                 batch_x, batch_y = self._batch_perturbations(
                     batch_masks, perturbator, target, input_shape
                 )
