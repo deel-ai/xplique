@@ -44,6 +44,10 @@ jobs:
   checks:
     needs: discover-tox-envs
     runs-on: ubuntu-latest
+    # The 'fail-fast' strategy option determines whether to cancel all in-progress jobs
+    # if any matrix job fails. When set to 'false', failed jobs do not cancel other
+    # running jobs, allowing all matrix combinations to complete independently.
+    # This is useful for testing across multiple configurations to see all failures.
     strategy:
       fail-fast: false
       matrix:

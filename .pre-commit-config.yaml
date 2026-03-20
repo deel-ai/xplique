@@ -15,4 +15,4 @@ repos:
         args: [".", "--fix"]
 
     -   id: ruff-format
-        args: [".", "--check"]
+        args: ["."]

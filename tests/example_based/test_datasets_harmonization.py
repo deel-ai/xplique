@@ -130,7 +130,6 @@ def test_inputs_combinations():
     """
 
     tf_tensor = tf.reshape(tf.range(90, dtype=tf.float32), (10, 3, 3))
-    np.array(tf_tensor)
     tf_dataset = tf.data.Dataset.from_tensor_slices(tf_tensor)
 
     tf_dataset_b3 = tf_dataset.batch(3)

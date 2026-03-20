@@ -186,7 +186,6 @@ def test_from_splitted_model():
     input_features = 10
     output_features = 3
     x_train = np.reshape(np.arange(0, nb_samples * input_features), (nb_samples, input_features))
-    tf.convert_to_tensor(x_train, dtype=tf.float32)  # tf_x_train
 
     train_dataset = tf.data.Dataset.from_tensor_slices(x_train).batch(3)
 

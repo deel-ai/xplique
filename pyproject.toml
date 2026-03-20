@@ -4,13 +4,13 @@ version = "1.4.2"
 description = "Explanations toolbox for TensorFlow 2"
 readme = "README.md"
 requires-python = ">=3.10,<3.14"
-license = { text = "MIT" }
+license = "MIT"
+license-files = ["LICENSE"]
 authors = [
   { name = "Thomas FEL", email = "thomas_fel@brown.edu" }
 ]
 classifiers = [
   "Development Status :: 4 - Beta",
-  "License :: OSI Approved :: MIT License",
   "Programming Language :: Python",
   "Programming Language :: Python :: 3",
   "Operating System :: OS Independent"
@@ -34,6 +34,7 @@ dependencies = [
 [dependency-groups]
 dev = [
     "bump2version",
+    "build",
     "docutils",
     "markdown",
     "mkdocs",
@@ -49,10 +50,19 @@ dev = [
     "pytest-cov",
     "tox",
     "tox-uv",
+    "mike>=2.1.4",
+    "twine",
 ]
 torch = [
     "torch>=2.5.0,<=2.10.0",
 ]
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["xplique*"]
 
 [tool.bumpversion]
 current_version = "1.4.2"
@@ -71,9 +81,9 @@ line-length = 100
 [tool.ruff.lint]
 select = ["E", "F"]
 ignore = [
-    "PLR0904",
-    "PLR0914",
-    "PLR0917",
+    "PLR0904",  # https://docs.astral.sh/ruff/rules/too-many-public-methods/
+    "PLR0914",  # https://docs.astral.sh/ruff/rules/too-many-locals/
+    "PLR0917",  # https://docs.astral.sh/ruff/rules/too-many-positional-arguments/
 ]
 # Add the `line-too-long` E501 rule to the enforced rule set. By default, Ruff omits
 # rules that overlap with the use of a formatter, like Black, but we can override this

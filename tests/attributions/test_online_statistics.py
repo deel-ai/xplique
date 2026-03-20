@@ -43,9 +43,6 @@ def test_online_square_mean():
 def test_online_variance():
     method = VarGrad(lambda x: None)
     for shape in [(1, 7, 4), (5, 2, 4, 4), (5, 7, 4, 4, 3)]:
-        # Force to go to tf.float64, as for the test last sample (5, 7, 4, 4, 3)
-        # At the last line of _get_online_statistic_final_value, (mean**2)[0, 1, 3, 0],
-        # I got a loss of precision with 165.0**2 = 27224.998046875 and should be 27225.0
         samples = tf.reshape(tf.range(int(np.prod(shape)), dtype=tf.float64), shape)
 
         normal_stat = tf.math.reduce_variance(samples, axis=1) * (shape[1] / (shape[1] - 1))

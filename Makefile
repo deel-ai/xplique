@@ -5,7 +5,7 @@ help:
 	@echo "make prepare-dev"
 	@echo "       create and prepare development environment, use only once"
 	@echo "make test"
-	@echo "       run tests and linting in current env"
+	@echo "       run tests and linting in current `.venv/`"
 	@echo "make test-disable-gpu"
 	@echo "       run test with gpu disabled"
 	@echo "make pc_check"

@@ -29,7 +29,7 @@ jobs:
 
       - name: "Install Dependencies"
         run: |
-          uv pip install --system -r pyproject.toml --group dev --group torch -e .
+          uv pip install --system -r pyproject.toml --group dev .
 
       - name: "Setup Docs Deploy"
         run: |
@@ -38,5 +38,5 @@ jobs:
 
       - name: "Deploy Github Pages"
         run: |
-          mike deploy --push --update-aliases ${{ github.event.release.tag_name }} latest
-          mike set-default --push latest
+          uv run mike deploy --push --update-aliases ${{ github.event.release.tag_name }} latest
+          uv run mike set-default --push latest

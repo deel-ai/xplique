@@ -14,7 +14,6 @@ from .guided_backpropagation import GuidedBackprop
 from .integrated_gradients import IntegratedGradients
 from .kernel_shap import KernelShap
 from .lime import Lime
-from .object_detector import BoundingBoxesExplainer
 from .occlusion import Occlusion
 from .rise import Rise
 from .saliency import Saliency
@@ -35,7 +34,6 @@ __all__ = [
     "IntegratedGradients",
     "KernelShap",
     "Lime",
-    "BoundingBoxesExplainer",
     "Occlusion",
     "Rise",
     "Saliency",

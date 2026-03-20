@@ -30,35 +30,10 @@ def test_output_shape():
 
     for input_shape in input_shapes:
         samples, labels = generate_data(input_shape, nb_labels, 100)
-        model = tf.keras.Sequential(
-            [
-                Input(shape=input_shape),
-                Conv2D(4, kernel_size=(2, 2), activation="relu", name="conv2d"),
-                Conv2D(4, kernel_size=(2, 2), activation="relu", name="conv2d_1"),
-                MaxPooling2D(pool_size=(2, 2)),
-                Dropout(0.25),
-                Flatten(),
-                Dense(nb_labels),
-                Activation("softmax"),
-            ]
-        )
-        model.compile(loss="categorical_crossentropy", optimizer="sgd")
-
         model = _generate_model(input_shape, nb_labels)
 
         method = GradCAM(model, -2)
         outputs = method.explain(samples, labels)
-
-        # debug
-        samples = tf.cast(samples, tf.float32)
-        labels = tf.cast(labels, tf.float32)
-        multi = tf.keras.Model(model.inputs, [model.layers[1].output] + model.outputs)
-        with tf.GradientTape() as tape:
-            tape.watch(samples)
-            feature_maps, predictions = multi(samples)
-            score = tf.reduce_sum(tf.multiply(predictions, tf.cast(labels, tf.float32)), axis=-1)
-        tape.gradient(score, feature_maps)
-
         assert samples.shape[:3] == outputs.shape[:3]
 
 

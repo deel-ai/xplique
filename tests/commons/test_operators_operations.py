@@ -3,6 +3,7 @@ Ensure we can use the operator functionnality on various models
 """
 
 import pytest
+import tensorflow as tf
 
 import xplique
 from xplique.commons.exceptions import InvalidOperatorException
@@ -11,7 +12,24 @@ from xplique.commons.operators import (
     predictions_operator,
     semantic_segmentation_operator,
 )
-from xplique.commons.operators_operations import Tasks, check_operator, get_operator
+from xplique.commons.operators_operations import (
+    Tasks,
+    check_operator,
+    end_watch_layer,
+    get_operator,
+    watch_layer,
+)
+
+
+def _generate_conv_model(input_shape=(8, 8, 1), output_shape=3):
+    return tf.keras.Sequential(
+        [
+            tf.keras.layers.Input(shape=input_shape),
+            tf.keras.layers.Conv2D(4, kernel_size=(3, 3), activation="relu", name="conv"),
+            tf.keras.layers.Flatten(),
+            tf.keras.layers.Dense(output_shape, activation="softmax"),
+        ]
+    )
 
 
 def test_check_operator():
@@ -90,3 +108,63 @@ def test_enum_shortcut():
     # ensure all proposed operators are operators
     for operator in [task.value for task in xplique.Tasks]:
         check_operator(operator)
+
+
+def test_watch_layer_exposes_feature_maps_and_restore_layer_call():
+    tf.keras.backend.clear_session()
+
+    model = _generate_conv_model()
+    conv_layer = model.get_layer("conv")
+    original_call = conv_layer.call
+    inputs = tf.random.uniform((2, 8, 8, 1))
+    targets = tf.one_hot([0, 1], depth=3)
+
+    with tf.GradientTape(watch_accessed_variables=False) as tape:
+        watched_layer = watch_layer(conv_layer, tape)
+        predictions = model(inputs)
+        feature_maps = watched_layer.result
+        scores = tf.reduce_sum(predictions * targets, axis=-1)
+
+    feature_maps_gradients = tape.gradient(scores, feature_maps)
+
+    assert watched_layer is conv_layer
+    assert hasattr(conv_layer, "result")
+    tf.debugging.assert_equal(feature_maps, conv_layer.result)
+    assert feature_maps_gradients is not None
+    assert feature_maps_gradients.shape == feature_maps.shape
+    assert hasattr(conv_layer.call, "__wrapped__")
+
+    end_watch_layer(conv_layer)
+
+    assert not hasattr(conv_layer, "result")
+    assert not hasattr(conv_layer.call, "__wrapped__")
+    assert getattr(conv_layer.call, "__func__", conv_layer.call) is getattr(
+        original_call, "__func__", original_call
+    )
+    assert getattr(conv_layer.call, "__self__", None) is getattr(original_call, "__self__", None)
+
+    _ = model(inputs)
+    assert not hasattr(conv_layer, "result")
+
+
+def test_end_watch_layer_allows_rewatching_same_layer():
+    tf.keras.backend.clear_session()
+
+    model = _generate_conv_model()
+    conv_layer = model.get_layer("conv")
+    inputs = tf.random.uniform((1, 8, 8, 1))
+    targets = tf.one_hot([1], depth=3)
+
+    for _ in range(2):
+        with tf.GradientTape(watch_accessed_variables=False) as tape:
+            watch_layer(conv_layer, tape)
+            predictions = model(inputs)
+            feature_maps = conv_layer.result
+            scores = tf.reduce_sum(predictions * targets, axis=-1)
+
+        feature_maps_gradients = tape.gradient(scores, feature_maps)
+
+        assert feature_maps_gradients is not None
+
+        end_watch_layer(conv_layer)
+        assert not hasattr(conv_layer, "result")
