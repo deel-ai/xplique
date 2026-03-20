@@ -8,17 +8,17 @@
 
 ## Which kind of tasks are supported by Xplique?
 
-With the [operator's api](../api/attributions/operator) you can treat many different problems with Xplique. There is one operator for each task.
+With the [operator's api](api_attributions.md#tasks-and-operator) you can treat many different problems with Xplique. There is one operator for each task.
 
 | Task and Documentation link                        | `operator` parameter value <br/> from `xplique.Tasks` Enum  | Tutorial link |
 | :------------------------------------------------- | :---------------------------------------------------------- | :------------ |
-| [Classification](../classification/)               | `CLASSIFICATION`        | <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1XproaVxXjO9nrBSyyy7BuKJ1vy21iHs2) </sub> |
+| [Classification](classification.md)               | `CLASSIFICATION`        | <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1XproaVxXjO9nrBSyyy7BuKJ1vy21iHs2) </sub> |
 | **Object Detection**                               | `OBJECT_DETECTION`      | <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1X3Yq7BduMKqTA0XEheoVIpOo3IvOrzWL) </sub> |
-| [Regression](../regression/)                       | `REGRESSION`            | <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1pjDJmAa9oeSquYtbYh6tksU6eTmObIcq) </sub> |
-| [Semantic Segmentation](../semantic_segmentation/) | `SEMANTIC_SEGMENTATION` | <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1AHg7KO1fCOX5nZLGZfxkZ2-DLPPdSfbX) </sub> |
+| [Regression](regression.md)                       | `REGRESSION`            | <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1pjDJmAa9oeSquYtbYh6tksU6eTmObIcq) </sub> |
+| [Semantic Segmentation](semantic_segmentation.md) | `SEMANTIC_SEGMENTATION` | <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1AHg7KO1fCOX5nZLGZfxkZ2-DLPPdSfbX) </sub> |
 
 !!!info
-    They all share the [API for Xplique attribution methods](../api_attributions/).
+    They all share the [API for Xplique attribution methods](api_attributions.md).
 
 
 
@@ -58,7 +58,7 @@ for all_bbx_for_one_image, image in zip(predictions, images):
 
 ## How to use it?
 
-To apply attribution methods, the [**common API documentation**](../api_attributions/) describes the parameters and how to fix them. However, depending on the task and thus on the `operator`, there are three points that vary:
+To apply attribution methods, the [**common API documentation**](api_attributions.md) describes the parameters and how to fix them. However, depending on the task and thus on the `operator`, there are three points that vary:
 
 - **[The `operator` parameter](#the-operator)** value, it is an Enum or a string identifying the task,
 
@@ -82,7 +82,7 @@ Method(model, operator=xplique.Tasks.OBJECT_DETECTION)
 ```
 
 !!!info
-    There are several [variants of the object detection operator](#the-different-operators-variant-and-what-they-explain) to explain part of the prediction.
+    There are several [variants of the object detection operator](#the-different-operators-variants-and-what-they-explain) to explain part of the prediction.
 
 
 
@@ -114,14 +114,14 @@ $$
     The intersection score of the operator is the IOU (Intersection Over Union) by default but can be modified by specifying as [custom intersection score](#custom-intersection-score).
 
 !!!info
-    With the DRise formula the methods explain the box position, the box objectness, and the class prediction at the same time. However, the user may want to explain them separately, therefore several variants of this operator are available in Xplique and described in [What can we explain and how? section](#what-can-we-explain-and-how).
+    With the DRise formula the methods explain the box position, the box objectness, and the class prediction at the same time. However, the user may want to explain them separately, therefore several variants of this operator are available in Xplique and described in [What can be explained and how? section](#what-can-be-explained-and-how).
 
 
 
 ### The behavior
 
-- In the case of [perturbation-based methods](../api_attributions/#gradient-based-approaches), the perturbation score is the similarity metric aforementioned.
-- For [gradient-based methods](../api_attributions/#perturbation-based-approaches), the gradient of the similarity metric is given, but no matching is necessary as no perturbation is made.
+- In the case of [perturbation-based methods](api_attributions.md#gradient-based-approaches), the perturbation score is the similarity metric aforementioned.
+- For [gradient-based methods](api_attributions.md#perturbation-based-approaches), the gradient of the similarity metric is given, but no matching is necessary as no perturbation is made.
 
 
 
@@ -142,7 +142,7 @@ We expect `model(inputs)` to yield a $(n, nb\_boxes, 4 + 1 + nb\_classes)$ tenso
     Object detection models provided to the explainer should not include NMS and classification should be soft classification not one-hot encoding. Furthermore, if the model does not match the expected format, a wrapper may be needed. (see [the tutorial](https://colab.research.google.com/drive/1X3Yq7BduMKqTA0XEheoVIpOo3IvOrzWL) for an example).
 
 !!!info
-    PyTorch models are not natively treated by Xplique, however, a simple wrapper is available in [pytorch documentation](../pytorch/).
+    PyTorch models are not natively treated by Xplique, however, a simple wrapper is available in [pytorch documentation](pytorch.md).
 
 
 

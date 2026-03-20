@@ -15,7 +15,7 @@ COLE for Contributions Oriented Local Explanations was introduced by Kenny & Kea
 
     -- <cite>[COLE paper](https://researchrepository.ucd.ie/handle/10197/11064)</cite>[^1]
 
-The core idea of the COLE approach is to use [attribution maps](../../../attributions/api_attributions/) to define a relevant search space for the K-Nearest Neighbors (KNN) search.
+The core idea of the COLE approach is to use [attribution maps](../../attributions/api_attributions.md) to define a relevant search space for the K-Nearest Neighbors (KNN) search.
 
 More specifically, the COLE approach is based on the following steps:
 
@@ -26,7 +26,7 @@ More specifically, the COLE approach is based on the following steps:
 - (3) Perform a KNN search in the projection space to find the most similar training samples
 
 !!! info
-    In the original paper, the authors focused on Multi-Layer Perceptrons (MLP) and three attribution methods (Hadamard, LPR, Integrated Gradient, and DeepLift). We decided to implement a COLE method that generalizes to a more broader range of Neural Networks and attribution methods (see [API Attributions documentation](../../../attributions/api_attributions/) to see the list of methods available).
+    In the original paper, the authors focused on Multi-Layer Perceptrons (MLP) and three attribution methods (Hadamard, LPR, Integrated Gradient, and DeepLift). We decided to implement a COLE method that generalizes to a more broader range of Neural Networks and attribution methods (see [API Attributions documentation](../../attributions/api_attributions.md) to see the list of methods available).
 
 !!! tips
     The original paper shown that the hadamard product between the latent space and the gradient was the best method. Hence we optimized the code for this method. Setting the `attribution_method` argument to `"gradient"` will run much faster.

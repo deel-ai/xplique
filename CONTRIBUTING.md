@@ -12,8 +12,9 @@ work is not in vain.
 
 - Clone the repo `git clone https://github.com/deel-ai/xplique.git`.
 - Go to your freshly downloaded repo `cd xplique`
-- Create a virtual environment and install the necessary dependencies for development `make prepare-dev && source xplique_dev_env/bin/activate`.
-- You are ready to install the library `uv pip install -e .` or run the test suite `make test`.
+- Be sure to have `make` and `uv` installed on your machine.
+- Create a virtual environment and install the necessary dependencies for development with `make prepare-dev` and `. .venv/bin/activate`.
+- Run the test suite with `make test`.
 
 Welcome to the team 🔥🚀 !
 
@@ -21,54 +22,20 @@ Welcome to the team 🔥🚀 !
 
 - Clone the repo `git clone https://github.com/deel-ai/xplique.git`.
 - Go to your freshly downloaded repo `cd xplique`
-- Install virtualenv with `uv`:
+### Install virtualenv with `uv`:
 ```
-uv venv xplique_dev_env
+uv venv
 ```
-Or with `conda`:
 ```
-conda install -c conda-forge virtualenv
+. .venv/bin/activate
 ```
-- Create a new virtual environment
-```
-venv xplique_dev_env
-```
-- Activate your new environment
-```
-. xplique_dev_env/bin/activate
-```
-Depending on your machine, this operation might be slightly different. For instance, on Windows you should probably do (with cmd.exe):
-```
-~/xplique> path\to\xplique_dev_env\bin\activate.bat
-```
+
 Or with Powershell:
 ```
-PS ~/xplique> path\to\xplique_dev_env\bin\Activate.ps1
+PS ~/xplique> path\to\.venv\bin\Activate.ps1
 ```
-Anyway, if you suceed you should see your virtual environment name in front of any other command:
 ```
-(xplique_dev_env) :~/xplique$
-```
-- You can now install all necessary packages, with pip:
-```
-uv pip install -r pyproject.toml --group dev --group torch
-```
-Or with conda:
-```
-conda install --file requirements.txt
-conda install --file requirements_dev.txt
-```
-- You are ready to install the library:
-```
-uv pip install -e .
-```
-Or with conda
-```
-pip install -e .
-```
-- Or run the test suite:
-```
-tox
+uv sync
 ```
 
 You are now ready to code and to be part of the team 🔥🚀 !
@@ -80,9 +47,9 @@ It is actually just a command which activate your virtual environment and launch
 So basically, if you do not succeed to use `make` just activate your virtual env and do `tox` !
 
 `tox` on the otherhand will do the following:
-- run pytest on the tests folder with python 3.6, python 3.7 and python 3.8
+- run pytest on the tests folder with python 3.10, python 3.11, python 3.12, and python 3.13.
 > Note: If you do not have those 3 interpreters the tests would be only performs with your current interpreter
-- run `ruff check` and `ruff format` on the xplique main files, also with python 3.6, python 3.7 and python 3.8
+- run `ruff check .` and `ruff format .` on the xplique main files, also with python 3.10, python 3.11, python 3.12, and python 3.13.
 > Note: It is possible that ruff throw false-positive errors. If the linting test failed please check first ruff output to point out the reasons.
 
 Please, make sure you run all the tests at least once before opening a pull request.

@@ -8,17 +8,17 @@
 
 ## Which kind of tasks are supported by Xplique?
 
-With the [operator's api](../api/attributions/operator) you can treat many different problems with Xplique. There is one operator for each task.
+With the [operator's api](api_attributions.md#tasks-and-operator) you can treat many different problems with Xplique. There is one operator for each task.
 
 | Task and Documentation link                        | `operator` parameter value <br/> from `xplique.Tasks` Enum  | Tutorial link |
 | :------------------------------------------------- | :---------------------------------------------------------- | :------------ |
-| [Classification](../classification/)               | `CLASSIFICATION`        | <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1XproaVxXjO9nrBSyyy7BuKJ1vy21iHs2) </sub> |
-| [Object Detection](../object_detection/)           | `OBJECT_DETECTION`      | <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1X3Yq7BduMKqTA0XEheoVIpOo3IvOrzWL) </sub> |
-| [Regression](../regression/)                       | `REGRESSION`            | <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1pjDJmAa9oeSquYtbYh6tksU6eTmObIcq) </sub> |
+| [Classification](classification.md)               | `CLASSIFICATION`        | <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1XproaVxXjO9nrBSyyy7BuKJ1vy21iHs2) </sub> |
+| [Object Detection](object_detection.md)           | `OBJECT_DETECTION`      | <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1X3Yq7BduMKqTA0XEheoVIpOo3IvOrzWL) </sub> |
+| [Regression](regression.md)                       | `REGRESSION`            | <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1pjDJmAa9oeSquYtbYh6tksU6eTmObIcq) </sub> |
 | **Semantic Segmentation**                          | `SEMANTIC_SEGMENTATION` | <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1AHg7KO1fCOX5nZLGZfxkZ2-DLPPdSfbX) </sub> |
 
 !!!info
-    They all share the [API for Xplique attribution methods](../api_attributions/).
+    They all share the [API for Xplique attribution methods](api_attributions.md).
 
 
 
@@ -55,7 +55,7 @@ score_saliency = metric(explanations)
 
 ## How to use it?
 
-To apply attribution methods, the [**common API documentation**](../api_attributions/) describes the parameters and how to fix them. However, depending on the task and thus on the `operator`, there are three points that vary:
+To apply attribution methods, the [**common API documentation**](api_attributions.md) describes the parameters and how to fix them. However, depending on the task and thus on the `operator`, there are three points that vary:
 
 - **[The `operator` parameter](#the-operator)** value, it is an Enum or a string identifying the task,
 
@@ -101,8 +101,8 @@ Note that the two information need to be communicated through the [`targets` par
 
 ### The behavior
 
-- In the case of [perturbation-based methods](../api_attributions/#gradient-based-approaches), the perturbation score is the difference between the operator's output for the studied `inputs` and the perturbed inputs. Where the operator's output is the mean logits value over the class and zone of interest.
-- For [gradient-based methods](../api_attributions/#perturbation-based-approaches), the gradient of the mean of model's predictions limited to the zone and class of interest.
+- In the case of [perturbation-based methods](api_attributions.md#gradient-based-approaches), the perturbation score is the difference between the operator's output for the studied `inputs` and the perturbed inputs. Where the operator's output is the mean logits value over the class and zone of interest.
+- For [gradient-based methods](api_attributions.md#perturbation-based-approaches), the gradient of the mean of model's predictions limited to the zone and class of interest.
 
 
 
@@ -181,7 +181,7 @@ The most simple, where the class of interest is `class_id` and the zone of inter
 
 - the [class of a crowd of objects](#the-class-of-a-crowd-of-objects)
 - the [class of an object](#the-class-of-an-object), if there is only one object in the image.
-- the [class of a set of objects](#the-class-of-a-set-of-object), if there are few and locally close objects of the same class.
+- the [class of a set of objects](#the-class-of-a-set-of-objects), if there are few and locally close objects of the same class.
 
 {{xplique.utils_functions.segmentation.get_class_zone}}
 
@@ -192,7 +192,7 @@ The most simple, where the class of interest is `class_id` and the zone of inter
 Here `coordinates` is a $(h, w)$ tuple that indicates the indices of a pixel of the image. The class of interest is the argmax along the classes dimension for this given pixel. Then the zone of interest is the set of pixels with the same argmax class that forms a connected zone with the indicated pixel. This function can be seen as selecting a zone with a point in this zone. This function can be used to design `targets` to explain:
 
 - the [class of an object](#the-class-of-an-object).
-- the [class of a set of objects](#the-class-of-a-set-of-object), if they are connected.
+- the [class of a set of objects](#the-class-of-a-set-of-objects), if they are connected.
 - the [class of part of an object](#the-class-of-part-of-an-object), if this part have been classified differently than the object and the other surrounding objects.
 
 {{xplique.utils_functions.segmentation.get_connected_zone}}

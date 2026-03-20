@@ -6,9 +6,9 @@ The model can be something else than a `tf.keras.Model` if it respects one of th
 - The model has a `scikit-learn` API and has a `predict_proba` function
 - The model is a `xgboost.XGBModel` from the [XGBoost python library](https://xgboost.readthedocs.io/en/latest/python/python_intro.html)
 - The model is a [TF Lite model](https://www.tensorflow.org/api_docs/python/tf/lite). Note this feature is experimental.
-- The model is a PyTorch model (see the [dedicated documentation](../pytorch/))
+- The model is a PyTorch model (see the [dedicated documentation](pytorch.md))
 
-In fact, what happens when a custom `operator` is not provided (see [operator's documentation](../api_attributions/#tasks-and-operator)) and `model` (see [model's documentation](../api_attributions/#model)) is not a `tf.keras.Model`, a `tf.Module` or a `tf.keras.layers.Layer` is that the `predictions_one_hot_callable` operator is used:
+In fact, what happens when a custom `operator` is not provided (see [operator's documentation](api_attributions.md#tasks-and-operator)) and `model` (see [model's documentation](api_attributions.md#model)) is not a `tf.keras.Model`, a `tf.Module` or a `tf.keras.layers.Layer` is that the `predictions_one_hot_callable` operator is used:
 
 ```python
 def predictions_one_hot_callable(
@@ -61,4 +61,4 @@ def predictions_one_hot_callable(
     return scores
 ```
 
-Knowing that, you are free to wrap your model to make it work with our API and/or write a more customizable `operator` (see [operator's documentation](../api_attributions/#providing-custom-operator))!
+Knowing that, you are free to wrap your model to make it work with our API and/or write a more customizable `operator` (see [operator's documentation](api_attributions.md#providing-custom-operator))!

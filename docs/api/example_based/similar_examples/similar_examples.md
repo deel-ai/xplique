@@ -7,7 +7,7 @@
     <img src="https://upload.wikimedia.org/wikipedia/commons/9/91/Octicons-mark-github.svg" width="20">
 </sub> [View source](https://github.com/deel-ai/xplique/blob/master/xplique/example_based/similar_examples.py)
 
-We designate here as *Similar Examples* all methods that given an input sample, search for the most similar **training** samples given a distance function `distance`. Furthermore, one can define the search space using a `projection` function (see [Projections](../../projections/)). This function should map an input sample to the search space where the distance function is defined and meaningful (**e.g.** the latent space of a Convolutional Neural Network).
+We designate here as *Similar Examples* all methods that given an input sample, search for the most similar **training** samples given a distance function `distance`. Furthermore, one can define the search space using a `projection` function (see [Projections](../projections.md)). This function should map an input sample to the search space where the distance function is defined and meaningful (**e.g.** the latent space of a Convolutional Neural Network).
 Then, a K-Nearest Neighbors (KNN) search is performed to find the most similar samples in the search space.
 
 ## Example

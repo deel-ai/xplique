@@ -25,7 +25,7 @@ As pointed out by [Petsiuk et al.](http://arxiv.org/abs/1806.07421), most explai
 ## Common API
 
 !!!info
-    Metrics described on this page are metrics for attribution methods and explanations. Therefore, the user should first get familiar with the [attributions methods API](../../api_attributions/) as many parameters are common between both API. For instance, `model`, `inputs`, `targets`, and `operator` should match for methods and their metrics.
+    Metrics described on this page are metrics for attribution methods and explanations. Therefore, the user should first get familiar with the [attributions methods API](../api_attributions.md) as many parameters are common between both API. For instance, `model`, `inputs`, `targets`, and `operator` should match for methods and their metrics.
 
 All metrics inherit from the base class `BaseAttributionMetric` which has the following `__init__` arguments:
 
@@ -38,11 +38,11 @@ All metrics inherit from the base class `BaseAttributionMetric` which has the fo
 Then we can distinguish two category of metrics:
 
 - Those which only need the attribution outputs of an explainer: `ExplanationMetric`, namely:
-    - **Fidelity metrics**: [MuFidelity](../mu_fidelity), [Deletion](../deletion), [Insertion](../insertion), [AverageDropMetric](../average_drop), [AverageGainMetric](../average_gain), [AverageIncreaseMetric](../average_increase)
-    - **Complexity metrics**: [Complexity](../complexity), [Sparseness](../sparseness)
+    - **Fidelity metrics**: [MuFidelity](mu_fidelity.md), [Deletion](deletion.md), [Insertion](insertion.md), [AverageDropMetric](average_drop.md), [AverageGainMetric](average_gain.md), [AverageIncreaseMetric](average_increase.md)
+    - **Complexity metrics**: [Complexity](complexity.md), [Sparseness](sparseness.md)
 - Those which need the explainer: `ExplainerMetric`:
-    - **Stability metrics**: [AverageStability](../avg_stability)
-    - **Randomization metrics**: [RandomLogitMetric](../random_logit), [ModelRandomizationMetric](../model_randomization)
+    - **Stability metrics**: [AverageStability](avg_stability.md)
+    - **Randomization metrics**: [RandomLogitMetric](random_logit.md), [ModelRandomizationMetric](model_randomization.md)
 
 
 
@@ -56,7 +56,7 @@ Those metrics are agnostic of the explainer used and rely only on the attributio
 
 All metrics inheriting from this class have another argument in their `__init__` method:
 
-- `operator`: Optional function wrapping the model. It can be seen as a metric which allows to evaluate model evolution. For more details, see the attribution's [API Description section on `operator`](../../api_attributions/#tasks-and-operator).
+- `operator`: Optional function wrapping the model. It can be seen as a metric which allows to evaluate model evolution. For more details, see the attribution's [API Description section on `operator`](../api_attributions.md#tasks-and-operator).
 
 !!!info
     The `operator` used here should match the one used to compute the explanations!
@@ -72,7 +72,7 @@ These metrics will not assess the quality of the explanations provided but (also
 All metrics inheriting from this class have to define a method `evaluate` which will take as input the `explainer` evaluated.
 
 !!!info
-    It is even more important that `inputs` and `targets` be the same as defined in the attribution's [API Description](../../api_attributions/#inputs).
+    It is even more important that `inputs` and `targets` be the same as defined in the attribution's [API Description](../api_attributions.md#inputs-and-data-types).
 
 Currently, there is only one Stability metric inheriting from this class:
 
@@ -104,9 +104,9 @@ The default behavior is to compute the metric without adding any activation laye
 
 Other fidelity metrics that are much less computationally expensive:
 
-- [**AverageDropMetric**](../average_drop): Measures the relative drop in confidence when masking inputs with the explanation.
-- [**AverageGainMetric**](../average_gain): Measures the relative increase in confidence (complementary to Average Drop).
-- [**AverageIncreaseMetric**](../average_increase): Binary indicator for whether masking increases confidence.
+- [**AverageDropMetric**](average_drop.md): Measures the relative drop in confidence when masking inputs with the explanation.
+- [**AverageGainMetric**](average_gain.md): Measures the relative increase in confidence (complementary to Average Drop).
+- [**AverageIncreaseMetric**](average_increase.md): Binary indicator for whether masking increases confidence.
 
 
 
@@ -115,8 +115,8 @@ Other fidelity metrics that are much less computationally expensive:
 
 These metrics evaluate the interpretability of explanations based on their structure and complexity:
 
-- [**Complexity**](../complexity): Entropy-based measure of how diffuse/concentrated explanations are.
-- [**Sparseness**](../sparseness): Gini-index-based measure of attribution concentration.
+- [**Complexity**](complexity.md): Entropy-based measure of how diffuse/concentrated explanations are.
+- [**Sparseness**](sparseness.md): Gini-index-based measure of attribution concentration.
 
 
 
@@ -125,8 +125,8 @@ These metrics evaluate the interpretability of explanations based on their struc
 
 These metrics implement sanity checks to verify that explainers are sensitive to the model and target labels:
 
-- [**RandomLogitMetric**](../random_logit): Tests whether explanations change when the target class is randomized.
-- [**ModelRandomizationMetric**](../model_randomization): Tests whether explanations degrade when model parameters are randomized.
+- [**RandomLogitMetric**](random_logit.md): Tests whether explanations change when the target class is randomized.
+- [**ModelRandomizationMetric**](model_randomization.md): Tests whether explanations degrade when model parameters are randomized.
 
 !!!tip
     These metrics are based on the sanity checks proposed by [Adebayo et al. (2018)](https://arxiv.org/abs/1810.03292). Low similarity scores indicate faithful explainers.

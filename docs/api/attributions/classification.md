@@ -8,17 +8,17 @@
 
 ## Which kind of tasks are supported by Xplique?
 
-With the [operator's api](../api/attributions/operator) you can treat many different problems with Xplique. There is one operator for each task.
+With the [operator's api](api_attributions.md#tasks-and-operator) you can treat many different problems with Xplique. There is one operator for each task.
 
 | Task and Documentation link                        | `operator` parameter value <br/> from `xplique.Tasks` Enum  | Tutorial link |
 | :------------------------------------------------- | :---------------------------------------------------------- | :------------ |
 | **Classification**                                 | `CLASSIFICATION`        | <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1XproaVxXjO9nrBSyyy7BuKJ1vy21iHs2) </sub> |
-| [Object Detection](../object_detection/)           | `OBJECT_DETECTION`      | <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1X3Yq7BduMKqTA0XEheoVIpOo3IvOrzWL) </sub> |
-| [Regression](../regression/)                       | `REGRESSION`            | <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1pjDJmAa9oeSquYtbYh6tksU6eTmObIcq) </sub> |
-| [Semantic Segmentation](../semantic_segmentation/) | `SEMANTIC_SEGMENTATION` | <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1AHg7KO1fCOX5nZLGZfxkZ2-DLPPdSfbX) </sub> |
+| [Object Detection](object_detection.md)           | `OBJECT_DETECTION`      | <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1X3Yq7BduMKqTA0XEheoVIpOo3IvOrzWL) </sub> |
+| [Regression](regression.md)                       | `REGRESSION`            | <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1pjDJmAa9oeSquYtbYh6tksU6eTmObIcq) </sub> |
+| [Semantic Segmentation](semantic_segmentation.md) | `SEMANTIC_SEGMENTATION` | <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1AHg7KO1fCOX5nZLGZfxkZ2-DLPPdSfbX) </sub> |
 
 !!!info
-    They all share the [API for Xplique attribution methods](../api_attributions/).
+    They all share the [API for Xplique attribution methods](api_attributions.md).
 
 
 
@@ -61,7 +61,7 @@ score_saliency = metric(explanations)
 
 ## How to use it?
 
-To apply attribution methods, the [**common API documentation**](../api_attributions/) describes the parameters and how to fix them. However, depending on the task and thus on the `operator`, there are three points that vary:
+To apply attribution methods, the [**common API documentation**](api_attributions.md) describes the parameters and how to fix them. However, depending on the task and thus on the `operator`, there are three points that vary:
 
 - **[The `operator` parameter](#the-operator)** value, it is an Enum or a string identifying the task,
 
@@ -102,8 +102,8 @@ scores = tf.reduce_sum(model(inputs) * targets, axis=-1)
 
 ### The behavior
 
-- In the case of [perturbation-based methods](../api_attributions/#gradient-based-approaches), the perturbation score corresponds to the difference between the initial logits value for the predicted classes and the same logits for predictions over perturbed inputs.
-- For [gradient-based methods](../api_attributions/#perturbation-based-approaches), the gradient of logits of interest with respect to the inputs.
+- In the case of [perturbation-based methods](api_attributions.md#gradient-based-approaches), the perturbation score corresponds to the difference between the initial logits value for the predicted classes and the same logits for predictions over perturbed inputs.
+- For [gradient-based methods](api_attributions.md#perturbation-based-approaches), the gradient of logits of interest with respect to the inputs.
 
 The logits of interest are specified via the `targets` parameter described in [the related section](#the-targets-parameter).
 

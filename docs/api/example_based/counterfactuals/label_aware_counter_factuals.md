@@ -11,7 +11,7 @@
 !!!note
     The paper referenced here is not exactly the one we implemented. However, it is probably the closest in essence of what we implemented.
 
-In contrast to the [Naive Counterfactuals](../../counterfactuals/naive_counter_factuals/) approach, the Label Aware CounterFactuals leverage an *a priori* knowledge of the Counterfactuals' (CFs) targets to guide the search for the CFs (*e.g.* one is looking for a CF of the digit 8 in MNIST dataset within the digit 0 instances).
+In contrast to the [Naive Counterfactuals](naive_counter_factuals.md) approach, the Label Aware CounterFactuals leverage an *a priori* knowledge of the Counterfactuals' (CFs) targets to guide the search for the CFs (*e.g.* one is looking for a CF of the digit 8 in MNIST dataset within the digit 0 instances).
 
 !!!warning
     Consequently, for this class, when a user call the `explain` method, the user is expected to provide both the `targets` corresponding to the input samples and `cf_expected_classes` a one-hot encoding of the label expected for the CFs. But in most cases, the `targets` can be set to `None` as they are computed internally by projections.

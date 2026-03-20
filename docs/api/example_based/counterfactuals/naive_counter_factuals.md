@@ -15,7 +15,7 @@ We define here a "naive" counterfactual method that is based on the Nearest Unli
 
 Thus, in this naive approach to counterfactuals, we yield the $k$ nearest training instances that have a different label than the target of the input sample in a greedy fashion. 
 
-As it is mentioned in the [API documentation](../../api_example_based/), by setting a `Projection` object, one will map the inputs to a space where the distance function is meaningful.
+As it is mentioned in the [API documentation](../api_example_based.md), by setting a `Projection` object, one will map the inputs to a space where the distance function is meaningful.
 
 ## Example
 

@@ -5,7 +5,7 @@
 
 <div align="center">
     <a href="#">
-        <img src="https://img.shields.io/badge/Python-3.7, 3.8, 3.9, 3.10-efefef">
+        <img src="https://img.shields.io/badge/Python-3.10, 3.11, 3.12, 3.13-efefef">
     </a>
     <a href="#">
         <img src="https://img.shields.io/badge/Tensorflow-2.5, ..., 2.15-00008b">
@@ -125,7 +125,7 @@ Finally, the _Metrics_ module covers the current metrics used in explainability.
     - [**Modern Feature Visualization with MaCo**: Getting started](https://colab.research.google.com/drive/1l0kag1o-qMY4NCbWuAwnuzkzd9sf92ic) <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1l0kag1o-qMY4NCbWuAwnuzkzd9sf92ic) </sub>
     - [**Example-based Methods**: Getting started](https://colab.research.google.com/drive/1gA7mhWhWzdKholZWkTvAg4FzFnzS8NHF) <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1gA7mhWhWzdKholZWkTvAg4FzFnzS8NHF) </sub>
 
-    You can find a certain number of [**other practical tutorials just here**](tutorials/). This section is actively developed and more contents will be
+    You can find a certain number of [**other practical tutorials just here**](tutorials.md). This section is actively developed and more contents will be
     included. We will try to cover all the possible usage of the library, feel free to contact us if you have any suggestions or recommendations towards tutorials you would like to see.
 
 
@@ -153,7 +153,7 @@ Now that Xplique is installed, here are some basic examples of what you can do w
     # or just `explainer(images, labels)`
     ```
 
-    All attributions methods share a common API described [in the attributions API documentation](api/attributions/api_attributions/).
+    All attributions methods share a common API described [in the attributions API documentation](api/attributions/api_attributions.md).
 
 ??? example "Attributions Metrics"
 
@@ -173,7 +173,7 @@ Now that Xplique is installed, here are some basic examples of what you can do w
     score_grad_cam = metric(explanations)
     ```
 
-    All attributions metrics share a common API. You can find out more about it [here](api/attributions/metrics/api_metrics/).
+    All attributions metrics share a common API. You can find out more about it [here](api/attributions/metrics/api_metrics.md).
 
 ??? example "Concepts Extraction"
 
@@ -193,7 +193,7 @@ Now that Xplique is installed, here are some basic examples of what you can do w
                             negative_samples)
     ```
 
-    More information on CAV [here](api/concepts/cav/) and on TCAV [here](api/concepts/tcav/).
+    More information on CAV [here](api/concepts/cav.md) and on TCAV [here](api/concepts/tcav.md).
 
     ### CRAFT
 
@@ -218,7 +218,7 @@ Now that Xplique is installed, here are some basic examples of what you can do w
 
     ```
 
-    More information in the [CRAFT documentation](api/concepts/craft/).
+    More information in the [CRAFT documentation](api/concepts/craft.md).
 
 
 ??? example "Feature Visualization"
@@ -238,7 +238,7 @@ Now that Xplique is installed, here are some basic examples of what you can do w
     images, obj_names = optimize(obj)
     ```
 
-    Want to know more ? Check the Feature Viz [documentation](api/feature_viz/feature_viz/)
+    Want to know more ? Check the Feature Viz [documentation](api/feature_viz/feature_viz.md)
 
 ??? example "PyTorch with Xplique"
 
@@ -264,11 +264,11 @@ Now that Xplique is installed, here are some basic examples of what you can do w
     score_saliency = metric(explanations)
     ```
 
-    Want to know more ? Check the [PyTorch documentation](api/attributions/pytorch/)
+    Want to know more ? Check the [PyTorch documentation](api/attributions/pytorch.md).
 
 ## 📦 What's Included
 
-There are 4 modules in Xplique, [Attribution methods](api/attributions/api_attributions/), [Attribution metrics](api/attributions/metrics/api_metrics/), [Concepts](api/concepts/cav/), and [Feature visualization](api/feature_viz/feature_viz/). In particular, the attribution methods module supports a huge diversity of tasks: [Classification](api/attributions/classification/), [Regression](api/attributions/regression/), [Object Detection](api/attributions/object_detection/), and [Semantic Segmentation](api/attributions/semantic_segmentation/). For diverse data types: [Images, Time Series, and Tabular data](api/attributions/api_attributions/). The methods compatible with such task and methods compatible with Tensorflow or PyTorch are highlighted in the following table:
+There are 4 modules in Xplique, [Attribution methods](api/attributions/api_attributions.md), [Attribution metrics](api/attributions/metrics/api_metrics.md), [Concepts](api/concepts/cav.md), and [Feature visualization](api/feature_viz/feature_viz.md). In particular, the attribution methods module supports a huge diversity of tasks: [Classification](api/attributions/classification.md), [Regression](api/attributions/regression.md), [Object Detection](api/attributions/object_detection.md), and [Semantic Segmentation](api/attributions/semantic_segmentation.md). For diverse data types: [Images, Time Series, and Tabular data](api/attributions/api_attributions.md). The methods compatible with such task and methods compatible with Tensorflow or PyTorch are highlighted in the following table:
 
 ??? abstract "Table of attributions available"
 
@@ -295,12 +295,12 @@ There are 4 modules in Xplique, [Attribution methods](api/attributions/api_attri
 
     TF : Tensorflow compatible
 
-    C : [Classification](api/attributions/classification/) | R : [Regression](api/attributions/regression/) |
-    OD : [Object Detection](api/attributions/object_detection/) | SS : [Semantic Segmentation](api/attributions/semantic_segmentation/)
+    C : [Classification](api/attributions/classification.md) | R : [Regression](api/attributions/regression.md) |
+    OD : [Object Detection](api/attributions/object_detection.md) | SS : [Semantic Segmentation](api/attributions/semantic_segmentation.md)
 
-    \* : See the [Callable documentation](api/attributions/callable/)
+    \* : See the [Callable documentation](api/attributions/callable.md)
 
-    ** : See the [Xplique for PyTorch documentation](api/attributions/pytorch/), and the [**PyTorch models**: Getting started](https://colab.research.google.com/drive/1bMlO29_0K3YnTQBbbyKQyRfo8YjvDbhe) notebook.
+    ** : See the [Xplique for PyTorch documentation](api/attributions/pytorch.md), and the [**PyTorch models**: Getting started](https://colab.research.google.com/drive/1bMlO29_0K3YnTQBbbyKQyRfo8YjvDbhe) notebook.
 
     ✔️ : Supported by Xplique | ❌ : Not applicable | 🔵 : Work in Progress
 
@@ -326,7 +326,7 @@ There are 4 modules in Xplique, [Attribution methods](api/attributions/api_attri
 
     TF : Tensorflow compatible
 
-    ** : See the [Xplique for PyTorch documentation](api/attributions/pytorch/), and the [**PyTorch models**: Getting started](https://colab.research.google.com/drive/1bMlO29_0K3YnTQBbbyKQyRfo8YjvDbhe) notebook.
+    ** : See the [Xplique for PyTorch documentation](api/attributions/pytorch.md), and the [**PyTorch models**: Getting started](https://colab.research.google.com/drive/1bMlO29_0K3YnTQBbbyKQyRfo8YjvDbhe) notebook.
 
 ??? abstract "Table of concept methods available"
 
@@ -340,7 +340,7 @@ There are 4 modules in Xplique, [Attribution methods](api/attributions/api_attri
     | (WIP) Automatic Concept Extraction (ACE)        | | |
     TF : Tensorflow compatible
 
-    ** : See the [Xplique for Pytorch documentation](pytorch/), and the [**PyTorch's model**: Getting started](https://colab.research.google.com/drive/1bMlO29_0K3YnTQBbbyKQyRfo8YjvDbhe)<sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1bMlO29_0K3YnTQBbbyKQyRfo8YjvDbhe) </sub> notebook
+    ** : See the [Xplique for Pytorch documentation](api/attributions/pytorch.md), and the [**PyTorch's model**: Getting started](https://colab.research.google.com/drive/1bMlO29_0K3YnTQBbbyKQyRfo8YjvDbhe)<sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1bMlO29_0K3YnTQBbbyKQyRfo8YjvDbhe) </sub> notebook
 
 ??? abstract "Table of Feature Visualization methods available"
 
@@ -356,28 +356,28 @@ There are 4 modules in Xplique, [Attribution methods](api/attributions/api_attri
 
     TF : Tensorflow compatible
 
-Even though we are only at the early stages, we have also recently added an [Example-based methods](api/example_based/api_example_based/) module. Do not hesitate to give us feedback! Currently, the methods available are summarized in the following table:
+Even though we are only at the early stages, we have also recently added an [Example-based methods](api/example_based/api_example_based.md) module. Do not hesitate to give us feedback! Currently, the methods available are summarized in the following table:
 
 ??? abstract "Table of example-based methods available"
 
     | Method | Family | Documentation | Tutorial |
     | --- | --- | --- | --- |
-    | `SimilarExamples` | Similar Examples | [SimilarExamples](../similar_examples/similar_examples/) | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1gA7mhWhWzdKholZWkTvAg4FzFnzS8NHF) |
-    | `Cole` | Similar Examples | [Cole](../similar_examples/cole/) | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1gA7mhWhWzdKholZWkTvAg4FzFnzS8NHF) |
+    | `SimilarExamples` | Similar Examples | [SimilarExamples](api/example_based/similar_examples/similar_examples.md) | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1gA7mhWhWzdKholZWkTvAg4FzFnzS8NHF) |
+    | `Cole` | Similar Examples | [Cole](api/example_based/similar_examples/cole.md) | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1gA7mhWhWzdKholZWkTvAg4FzFnzS8NHF) |
     |  |  |  |
-    | `NaiveCounterFactuals` | Counter Factuals | [NaiveCounterFactuals](../counterfactuals/naive_counter_factuals/) | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1gA7mhWhWzdKholZWkTvAg4FzFnzS8NHF) |
-    | `LabelAwareCounterFactuals` | Counter Factuals | [LabelAwareCounterFactuals](../counterfactuals/label_aware_counter_factuals/) | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1gA7mhWhWzdKholZWkTvAg4FzFnzS8NHF) |
+    | `NaiveCounterFactuals` | Counter Factuals | [NaiveCounterFactuals](api/example_based/counterfactuals/naive_counter_factuals.md) | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1gA7mhWhWzdKholZWkTvAg4FzFnzS8NHF) |
+    | `LabelAwareCounterFactuals` | Counter Factuals | [LabelAwareCounterFactuals](api/example_based/counterfactuals/label_aware_counter_factuals.md) | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1gA7mhWhWzdKholZWkTvAg4FzFnzS8NHF) |
     ||||
-    | `KLEORSimMiss` | Semi Factuals | [KLEOR](../semifactuals/kleor/) | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1gA7mhWhWzdKholZWkTvAg4FzFnzS8NHF) |
-    | `KLEORGlobalSim` | Semi Factuals | [KLEOR](../semifactuals/kleor/) | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1gA7mhWhWzdKholZWkTvAg4FzFnzS8NHF) |
+    | `KLEORSimMiss` | Semi Factuals | [KLEOR](api/example_based/semifactuals/kleor.md) | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1gA7mhWhWzdKholZWkTvAg4FzFnzS8NHF) |
+    | `KLEORGlobalSim` | Semi Factuals | [KLEOR](api/example_based/semifactuals/kleor.md) | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1gA7mhWhWzdKholZWkTvAg4FzFnzS8NHF) |
     ||||
-    | `ProtoGreedy` | Prototypes | [ProtoGreedy](../prototypes/proto_greedy/) | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1OI3oa884GwGbXlzn3Y9NH-1j4cSaQb0w) |
-    | `ProtoDash` | Prototypes | [ProtoDash](../prototypes/proto_dash/) | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1OI3oa884GwGbXlzn3Y9NH-1j4cSaQb0w) |
-    | `MMDCritic` | Prototypes | [MMDCritic](../prototypes/mmd_critic/) | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1OI3oa884GwGbXlzn3Y9NH-1j4cSaQb0w) |
+    | `ProtoGreedy` | Prototypes | [ProtoGreedy](api/example_based/prototypes/proto_greedy.md) | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1OI3oa884GwGbXlzn3Y9NH-1j4cSaQb0w) |
+    | `ProtoDash` | Prototypes | [ProtoDash](api/example_based/prototypes/proto_dash.md) | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1OI3oa884GwGbXlzn3Y9NH-1j4cSaQb0w) |
+    | `MMDCritic` | Prototypes | [MMDCritic](api/example_based/prototypes/mmd_critic.md) | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1OI3oa884GwGbXlzn3Y9NH-1j4cSaQb0w) |
 
 ## 👍 Contributing
 
-Feel free to propose your ideas or come and contribute with us on the Xplique toolbox! We have a specific document where we describe in a simple way how to make your first pull request: [just here](contributing/).
+Feel free to propose your ideas or come and contribute with us on the Xplique toolbox! We have a specific document where we describe in a simple way how to make your first pull request: [just here](contributing.md).
 
 ## 👀 See Also
 
