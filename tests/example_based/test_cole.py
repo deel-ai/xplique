@@ -155,6 +155,7 @@ def test_cole_hadamard():
         cases_dataset=x_train,
         targets_dataset=y_train,
         k=k,
+        batch_size=7,
         distance=euclidean_dist,
         projection=projection,
     )
