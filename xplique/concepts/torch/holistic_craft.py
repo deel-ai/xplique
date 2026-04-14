@@ -71,8 +71,9 @@ class HolisticCraftTorch(HolisticCraft):
         """
         Transform latent data to concept coefficients with gradient preservation.
 
-        PyTorch-specific implementation using differentiable least squares solver.
-        Ensures gradients flow through the concept projection for attribution methods.
+        PyTorch-specific implementation using a differentiable non-negative
+        optimization solver. Ensures gradients flow through the concept
+        projection for attribution methods.
 
         Parameters
         ----------

@@ -287,6 +287,8 @@ def test_craft_encode_differentiable_gradients(image_data, craft_data):
         assert isinstance(coeffs_u, tf.Tensor), (
             "coeffs_u should be a tf.Tensor in differentiable mode"
         )
+        assert tf.reduce_all(tf.math.is_finite(coeffs_u)), "coeffs_u should be finite"
+        assert tf.reduce_min(coeffs_u) >= -1e-6, "coeffs_u should remain non-negative"
 
         # Create a simple loss
         loss = tf.reduce_sum(coeffs_u)

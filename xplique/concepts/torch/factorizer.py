@@ -15,9 +15,10 @@ class TorchSklearnNMFFactorizer(SklearnNMFFactorizer):
 
     def encode_differentiable(self, activations: torch.Tensor) -> torch.Tensor:
         """
-        Encode activations to coefficients using differentiable least squares.
+        Encode activations with a differentiable non-negative solver.
 
-        Uses torch.linalg.lstsq to solve: activations ≈ coefficients @ concept_bank_w
+        Solves the fixed-dictionary NMF subproblem with restartable FISTA so
+        gradients still flow through ``activations``.
 
         Parameters
         ----------
@@ -32,12 +33,72 @@ class TorchSklearnNMFFactorizer(SklearnNMFFactorizer):
         if self._concept_bank_w is None:
             raise ValueError("Factorizer must be fitted before encoding")
 
+        if not isinstance(activations, torch.Tensor):
+            activations = torch.as_tensor(activations)
+
+        beta_loss = self.nmf_kwargs.get("beta_loss", "frobenius")
+        if beta_loss != "frobenius":
+            raise NotImplementedError(
+                "PyTorch differentiable NMF encoding only supports beta_loss='frobenius'"
+            )
+
+        if torch.any(activations < 0).item():
+            raise ValueError("NMF requires non-negative activations")
+
         concept_bank_tensor = torch.tensor(
             self._concept_bank_w, dtype=activations.dtype, device=activations.device
         )
+        dtype = activations.dtype
+        device = activations.device
+        eps = torch.tensor(1e-8, dtype=dtype, device=device)
+        one = torch.tensor(1.0, dtype=dtype, device=device)
+        four = torch.tensor(4.0, dtype=dtype, device=device)
 
-        # pylint: disable=not-callable
-        coefficients = torch.linalg.lstsq(concept_bank_tensor.T, activations.T).solution.T
+        alpha_w = torch.tensor(self.nmf_kwargs.get("alpha_W", 0.0), dtype=dtype, device=device)
+        l1_ratio = torch.tensor(self.nmf_kwargs.get("l1_ratio", 0.0), dtype=dtype, device=device)
+        n_features = torch.tensor(activations.shape[1], dtype=dtype, device=device)
+        l1_reg = n_features * alpha_w * l1_ratio
+        l2_reg = n_features * alpha_w * (1.0 - l1_ratio)
+
+        max_iter = int(self.nmf_kwargs.get("max_iter", 200))
+        tol = float(self.nmf_kwargs.get("tol", 1e-4))
+
+        gram = concept_bank_tensor @ concept_bank_tensor.T
+        cross = activations @ concept_bank_tensor.T
+        diagonal = torch.diagonal(gram)
+        coefficients = torch.relu(cross / (diagonal.unsqueeze(0) + l2_reg + eps))
+
+        lipschitz = torch.linalg.norm(gram, ord="fro") + l2_reg + eps
+        step = one / lipschitz
+
+        def fista_step(coeffs, extrapolated_coeffs, momentum):
+            gradient = extrapolated_coeffs @ gram - cross + l2_reg * extrapolated_coeffs
+            updated = torch.relu(extrapolated_coeffs - step * gradient - step * l1_reg)
+            coeff_delta = torch.linalg.norm(updated - coeffs) / (torch.linalg.norm(updated) + eps)
+
+            next_momentum = (one + torch.sqrt(one + four * torch.square(momentum))) / 2.0
+            accelerated = updated + ((momentum - one) / next_momentum) * (updated - coeffs)
+            restart = torch.sum((extrapolated_coeffs - updated) * (updated - coeffs)) > 0
+
+            next_extrapolated = torch.where(restart, updated, accelerated)
+            next_momentum = torch.where(restart, one, next_momentum)
+            return updated, next_extrapolated, next_momentum, coeff_delta
+
+        extrapolated_coeffs = coefficients
+        momentum = one
+
+        if tol > 0.0:
+            for _ in range(max_iter):
+                coefficients, extrapolated_coeffs, momentum, delta = fista_step(
+                    coefficients, extrapolated_coeffs, momentum
+                )
+                if delta.item() <= tol:
+                    break
+        else:
+            for _ in range(max_iter):
+                coefficients, extrapolated_coeffs, momentum, _ = fista_step(
+                    coefficients, extrapolated_coeffs, momentum
+                )
 
         return coefficients
 

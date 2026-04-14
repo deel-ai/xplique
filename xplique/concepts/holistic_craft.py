@@ -340,9 +340,10 @@ class HolisticCraft(ABC):
         """
         Transform latent data to concept coefficients with gradient preservation.
 
-        Uses differentiable least squares to project activations onto concepts,
-        maintaining the computational graph for gradient-based attribution methods.
-        Must be implemented by framework-specific subclasses.
+        Uses a differentiable non-negative optimization procedure to project
+        activations onto concepts while maintaining the computational graph for
+        gradient-based attribution methods. Must be implemented by
+        framework-specific subclasses.
 
         Parameters
         ----------
@@ -406,8 +407,8 @@ class HolisticCraft(ABC):
             Target size for resizing images
         differentiable
             If True, preserves gradients for backpropagation using differentiable
-            least squares. If False (default), uses standard NMF transform which
-            is faster but does not preserve gradients.
+            non-negative optimization. If False (default), uses standard NMF
+            transform which is faster but does not preserve gradients.
 
         Returns
         -------
