@@ -65,8 +65,9 @@ class HolisticCraftTf(HolisticCraft):
         """
         Transform latent data to concept coefficients with gradient preservation.
 
-        TensorFlow-specific implementation using differentiable least squares solver.
-        Maintains the gradient tape for computing attributions with respect to concepts.
+        TensorFlow-specific implementation using a differentiable non-negative
+        optimization solver. Maintains the gradient tape for computing
+        attributions with respect to concepts.
 
         Parameters
         ----------
