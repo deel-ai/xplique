@@ -10,7 +10,7 @@ import tensorflow as tf
 from xplique.commons.prediction_types import StructuredPrediction
 
 
-class ClassifierTensor(StructuredPrediction):
+class TfClassifierTensor(StructuredPrediction):
     """
     TensorFlow wrapper for classification predictions.
 
@@ -26,6 +26,13 @@ class ClassifierTensor(StructuredPrediction):
 
     def __init__(self, tensor: tf.Tensor):
         self.tensor = tensor
+
+    @classmethod
+    def from_predictions(cls, predictions):
+        """Wrap raw classifier predictions unless they are already formatted."""
+        if isinstance(predictions, cls):
+            return predictions
+        return cls(predictions)
 
     @property
     def shape(self):

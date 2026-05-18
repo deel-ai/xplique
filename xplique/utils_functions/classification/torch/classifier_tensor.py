@@ -9,8 +9,10 @@ interface via structural typing (duck typing).
 
 import torch
 
+from xplique.commons.prediction_types import StructuredPrediction
 
-class ClassifierTensor(torch.Tensor):
+
+class TorchClassifierTensor(torch.Tensor):
     """
     Tensor representation for classification predictions.
 
@@ -24,6 +26,26 @@ class ClassifierTensor(torch.Tensor):
     - to_batched_tensor(): Adds batch dimension if needed
     - filter(class_id, confidence): No-op for classifiers (returns self)
     """
+
+    @classmethod
+    def __torch_function__(cls, func, types, args=(), kwargs=None):
+        """Delegate torch operations while preserving Tensor subclass semantics.
+
+        PyTorch does not expose an equivalent of TensorFlow's ``__tf_tensor__``
+        conversion hook, so this class intentionally subclasses ``torch.Tensor``
+        to keep autograd and tensor operations available on formatted outputs.
+        Delegating here keeps the default PyTorch subclass behavior explicit.
+        """
+        if kwargs is None:
+            kwargs = {}
+        return super().__torch_function__(func, types, args, kwargs)
+
+    @classmethod
+    def from_predictions(cls, predictions):
+        """Wrap raw classifier predictions unless they are already formatted."""
+        if isinstance(predictions, cls):
+            return predictions
+        return cls(predictions)
 
     def to_batched_tensor(self) -> torch.Tensor:
         """
@@ -62,3 +84,11 @@ class ClassifierTensor(torch.Tensor):
             Returns self unchanged
         """
         return self
+
+
+# Verify structural compliance with StructuredPrediction protocol at import time.
+# TorchClassifierTensor cannot explicitly inherit from StructuredPrediction due to a
+# metaclass conflict between torch.Tensor (_TensorMeta) and Protocol (_ProtocolMeta).
+assert issubclass(TorchClassifierTensor, StructuredPrediction), (
+    "TorchClassifierTensor must structurally satisfy the StructuredPrediction protocol"
+)

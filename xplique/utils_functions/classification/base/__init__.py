@@ -1,7 +1,5 @@
 """
-Base classes for classification utilities.
+Base classification utilities.
 """
 
-from .classifier_formatter import BaseClassifierFormatter
-
-__all__ = ["BaseClassifierFormatter"]
+__all__ = []
