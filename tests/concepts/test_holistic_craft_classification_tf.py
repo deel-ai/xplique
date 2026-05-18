@@ -12,7 +12,7 @@ from xplique.attributions.gradient_input import GradientInput
 from xplique.concepts import HolisticCraftTf as Craft
 from xplique.concepts.holistic_craft import PartialExplainer
 from xplique.concepts.tf.layered_model_latent_extractor import LayeredModelExtractorBuilder
-from xplique.utils_functions.classification.tf.classifier_tensor import ClassifierTensor
+from xplique.utils_functions.classification.tf.classifier_tensor import TfClassifierTensor
 from xplique.utils_functions.common.tf.gradients_check import check_model_gradients
 
 
@@ -115,8 +115,8 @@ def test_latent_extractor(image_data, latent_extractor_data):
     # Test the latent extractor output
     results = latent_extractor(input_tensor)
 
-    # Should return ClassifierTensor with shape (batch, num_classes)
-    assert isinstance(results, ClassifierTensor), "Results should be a ClassifierTensor"
+    # Should return TfClassifierTensor with shape (batch, num_classes)
+    assert isinstance(results, TfClassifierTensor), "Results should be a TfClassifierTensor"
     assert results.shape == (1, 1000), f"Expected shape (1, 1000), got {results.shape}"
 
 
@@ -211,7 +211,7 @@ def test_craft_reencode(image_data, craft_data):
 
     # Decode back
     result = craft.decode(latent_data, coeffs_u)
-    assert isinstance(result, ClassifierTensor), "Decoded result should be a ClassifierTensor"
+    assert isinstance(result, TfClassifierTensor), "Decoded result should be a TfClassifierTensor"
     assert result.shape == (1, 1000), f"Expected shape (1, 1000), got {result.shape}"
 
 

@@ -7,7 +7,7 @@ from typing import Union
 import numpy as np
 import torch
 
-from xplique.utils_functions.classification.torch import TorchClassifierFormatter
+from xplique.utils_functions.classification.torch import TorchClassifierTensor
 
 from ..latent_extractor import LatentData, LatentExtractorBuilder
 from .latent_extractor import TorchLatentExtractor
@@ -266,7 +266,7 @@ class LayeredModelExtractorBuilder(LatentExtractorBuilder):
             g,
             h,
             latent_data_class=LayeredLatentData,
-            output_formatter=TorchClassifierFormatter(),
+            output_formatter=TorchClassifierTensor.from_predictions,
             batch_size=batch_size,
             device=device,
         )

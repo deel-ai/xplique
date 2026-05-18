@@ -2,7 +2,6 @@
 PyTorch classification utilities.
 """
 
-from .classifier_formatter import TorchClassifierFormatter
-from .classifier_tensor import ClassifierTensor
+from .classifier_tensor import TorchClassifierTensor
 
-__all__ = ["ClassifierTensor", "TorchClassifierFormatter"]
+__all__ = ["TorchClassifierTensor"]
