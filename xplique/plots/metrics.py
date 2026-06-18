@@ -66,10 +66,10 @@ def barplot(
         # either None or string
         if methods_colors is None:
             # default cmap
-            cmap = matplotlib.cm.get_cmap("Set3")
+            cmap = matplotlib.colormaps["Set3"]
         else:
             # methods_color is a string linking to a cmap
-            cmap = matplotlib.cm.get_cmap(methods_colors)
+            cmap = matplotlib.colormaps[methods_colors]
 
         methods_colors = {methods[i]: cmap((i + 1) / len(methods)) for i in range(len(methods))}
 
@@ -135,10 +135,10 @@ def fidelity_curves(
         # either None or string
         if methods_colors is None:
             # default cmap
-            cmap = matplotlib.cm.get_cmap("Set3")
+            cmap = matplotlib.colormaps["Set3"]
         else:
             # methods_color is a string linking to a cmap
-            cmap = matplotlib.cm.get_cmap(methods_colors)
+            cmap = matplotlib.colormaps[methods_colors]
 
         methods_colors = {methods[i]: cmap((i + 1) / len(methods)) for i in range(len(methods))}
 
