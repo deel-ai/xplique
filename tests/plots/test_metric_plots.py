@@ -8,7 +8,7 @@ from xplique.plots.metrics import barplot, fidelity_curves
 
 def test_bar_plot():
     # test metrics barplot
-    cmap = matplotlib.cm.get_cmap("Set3")
+    cmap = matplotlib.colormaps["Set3"]
     methods_colors = {"method_" + str(i): cmap(i / 9) for i in range(10)}
 
     scores = {}
@@ -31,7 +31,7 @@ def test_bar_plot():
 
 def test_curves():
     # test fidelity metric curves plot
-    cmap = matplotlib.cm.get_cmap("Set3")
+    cmap = matplotlib.colormaps["Set3"]
     methods_colors = {"method_" + str(i): cmap(i / 9) for i in range(10)}
 
     steps = np.linspace(0, 100, num=11)
