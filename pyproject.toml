@@ -31,6 +31,13 @@ dependencies = [
     "tensorflow-probability[tf]>=0.20.1,<=0.25.0",
 ]
 
+[project.optional-dependencies]
+torch = [
+    "torch>=2.5.0,<=2.10.0",
+    "torchvision>=0.20.0,<=0.25.0",
+    "overcomplete>=0.2.8",
+]
+
 [dependency-groups]
 dev = [
     "bump2version",
@@ -55,7 +62,7 @@ dev = [
 ]
 torch = [
     "torch>=2.5.0,<=2.10.0",
-    "torchvision>=0.23.0",
+    "torchvision>=0.20.0,<=0.25.0",
     "overcomplete>=0.2.8",
 ]
 
