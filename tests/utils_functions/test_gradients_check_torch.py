@@ -473,3 +473,70 @@ def test_model_with_nan_output(input_tensor):
     # Result could be True or False depending on whether NaN propagates
     # The important thing is it doesn't crash
     assert not result, "Should detect no gradients due to NaN outputs"
+
+
+def test_model_with_cancelling_outputs(input_tensor):
+    """Test that independent VJP probes detect gradients hidden by output summation."""
+
+    def cancelling_model(x):
+        return torch.stack([x[:, 0, 0, 0], -x[:, 0, 0, 0]], dim=-1)
+
+    assert check_model_gradients(cancelling_model, input_tensor)
+
+
+def test_model_with_zero_gradient(input_tensor):
+    """Test that zero gradients are rejected."""
+
+    assert not check_model_gradients(lambda x: x * 0.0, input_tensor)
+
+
+def test_model_with_finite_gradient(input_tensor):
+    """Test that finite non-zero gradients are accepted."""
+
+    assert check_model_gradients(lambda x: x * 2.0, input_tensor)
+
+
+@pytest.mark.parametrize("invalid_gradient", [float("nan"), float("inf")])
+def test_model_with_nonfinite_gradient(input_tensor, invalid_gradient):
+    """Test that NaN and infinite gradients are rejected."""
+
+    def invalid_gradient_model(x):
+        return x * torch.tensor(invalid_gradient, device=x.device, dtype=x.dtype)
+
+    assert not check_model_gradients(invalid_gradient_model, input_tensor)
+
+
+def test_model_gradient_and_training_states_are_preserved():
+    """Test that gradient checking does not change parameter gradients or module modes."""
+    model = torch.nn.Sequential(
+        torch.nn.BatchNorm1d(2),
+        torch.nn.Dropout(),
+        torch.nn.Linear(2, 1),
+    )
+    model.train()
+    model[0].eval()
+    module_states = [(module, module.training) for module in model.modules()]
+    parameter_gradients = []
+    for parameter in model.parameters():
+        parameter.grad = torch.randn_like(parameter)
+        parameter_gradients.append(parameter.grad)
+
+    assert check_model_gradients(model, torch.randn(4, 2))
+    assert [(module, module.training) for module in model.modules()] == module_states
+    for parameter, gradient in zip(model.parameters(), parameter_gradients):
+        assert parameter.grad is gradient
+
+
+def test_disabled_grad_mode_is_preserved(input_tensor):
+    """Test that a checker call does not enable gradients for its caller."""
+    with torch.no_grad():
+        assert check_model_gradients(lambda x: x, input_tensor)
+        assert not torch.is_grad_enabled()
+
+
+def test_invalid_input_does_not_enable_grad_mode():
+    """Test that invalid inputs do not leak an enabled global grad mode."""
+    with torch.no_grad():
+        with pytest.raises(TypeError):
+            check_model_gradients(lambda x: x, torch.ones(2, dtype=torch.int64))
+        assert not torch.is_grad_enabled()

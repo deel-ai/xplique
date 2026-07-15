@@ -40,6 +40,13 @@ def _extract_all_tensors(obj: Any) -> List[torch.Tensor]:
     return []
 
 
+def _vjp_probes(tensor: torch.Tensor) -> List[torch.Tensor]:
+    """Return deterministic probes that do not reduce every output to its sum."""
+    alternating = torch.arange(tensor.numel(), device=tensor.device)
+    alternating = 2 * torch.remainder(alternating, 2) - 1
+    return [torch.ones_like(tensor), alternating.to(tensor.dtype).reshape_as(tensor)]
+
+
 def check_model_gradients(
     func: Union[Callable, torch.nn.Module], input_tensor: torch.Tensor, verbose: bool = False
 ) -> bool:
@@ -60,70 +67,82 @@ def check_model_gradients(
     bool
         True if non-zero gradients are propagated to the input, False otherwise.
     """
-    # Input verification and preparation
     if not isinstance(input_tensor, torch.Tensor):
         raise TypeError("input_tensor must be a torch.Tensor")
+    if not (input_tensor.is_floating_point() or input_tensor.is_complex()):
+        raise TypeError("input_tensor must have a floating-point or complex dtype")
 
-    # Make sure we're not in a no_grad context
-    had_no_grad = torch.is_grad_enabled()
-    if not had_no_grad:
-        torch.set_grad_enabled(True)
-
-    # Create a copy to avoid modifying the original and enable gradients
-    x = input_tensor.detach().clone().requires_grad_(True)
-
-    # Configure the model if it's a nn.Module
-    was_training = None
+    module_states = []
     in_place_warning_printed = False
     if isinstance(func, torch.nn.Module):
-        # Save current training state and set to eval mode
-        was_training = func.training
-        func.eval()  # Use eval() to freeze weights without blocking gradients
-
-        # Print a warning about in-place operations in ReLU, etc...
-        for m in func.modules():
-            if hasattr(m, "inplace") and m.inplace:
-                if not in_place_warning_printed:
-                    if verbose:
-                        print(
-                            f"Warning: In-place operation found in {type(m)}. "
-                            f"This may cause issues with gradient computation."
-                        )
-                    in_place_warning_printed = True
-
-        try:
-            device = next(func.parameters()).device
-            x = x.to(device)
-        except (StopIteration, RuntimeError):
-            pass  # No parameters or other error
+        module_states = [(module, module.training) for module in func.modules()]
 
     try:
-        # Forward pass
-        outputs = func(x)
+        # This context restores the caller's grad-mode state on every exit path.
+        with torch.enable_grad():
+            device = None
+            if isinstance(func, torch.nn.Module):
+                func.eval()
 
-        # Extract all tensors recursively from the output structure
-        tensors = _extract_all_tensors(outputs)
+                # Print a warning about in-place operations in ReLU, etc...
+                for module in func.modules():
+                    if hasattr(module, "inplace") and module.inplace:
+                        if not in_place_warning_printed and verbose:
+                            print(
+                                f"Warning: In-place operation found in {type(module)}. "
+                                f"This may cause issues with gradient computation."
+                            )
+                        in_place_warning_printed = True
 
-        if not tensors:
+                try:
+                    device = next(func.parameters()).device
+                except StopIteration:
+                    try:
+                        device = next(func.buffers()).device
+                    except StopIteration:
+                        pass
+
+            # Transfer before enabling gradients on the input so it remains a leaf.
+            x = input_tensor.detach()
+            if device is not None:
+                x = x.to(device)
+            x = x.clone().requires_grad_(True)
+            outputs = func(x)
+            tensors = _extract_all_tensors(outputs)
+
+            if not tensors:
+                if verbose:
+                    print("No tensor found in outputs")
+                return False
+
+            # Probe each output independently: summing outputs can cancel gradients,
+            # for example when a model returns probabilities that sum to one.
+            for tensor in tensors:
+                if (
+                    not (tensor.is_floating_point() or tensor.is_complex())
+                    or not tensor.requires_grad
+                ):
+                    continue
+                for probe in _vjp_probes(tensor):
+                    (gradients,) = torch.autograd.grad(
+                        tensor,
+                        x,
+                        grad_outputs=probe,
+                        retain_graph=True,
+                        allow_unused=True,
+                    )
+                    if gradients is None:
+                        continue
+                    is_finite = bool(torch.all(torch.isfinite(gradients)).item())
+                    is_nonzero = bool(torch.any(gradients != 0).item())
+                    if is_finite and is_nonzero:
+                        if verbose:
+                            print(f"Gradients OK - sum={gradients.abs().sum().item():.6f}")
+                        return True
+
             if verbose:
-                print("No tensor found in outputs")
+                print("No finite, non-zero gradients")
             return False
-
-        # Calculate the loss by summing all tensors
-        loss = torch.stack([t.sum() for t in tensors]).sum()
-
-        # Backward pass
-        loss.backward()
-
-        # Check if gradients were propagated
-        if x.grad is not None and x.grad.abs().sum() > 0:
-            if verbose:
-                print(f"Gradients OK - sum={x.grad.abs().sum().item():.6f}")
-            return True
-
-        if verbose:
-            print("No gradients or zero gradients")
-        return False
 
     # pylint: disable=broad-exception-caught
     except Exception as e:
@@ -131,10 +150,5 @@ def check_model_gradients(
             print(f"Error: {str(e)}")
         return False
     finally:
-        # Restore settings
-        if not had_no_grad:
-            torch.set_grad_enabled(False)
-
-        # Restore the original model mode
-        if isinstance(func, torch.nn.Module) and was_training is not None:
-            func.train(was_training)
+        for module, training in module_states:
+            module.training = training

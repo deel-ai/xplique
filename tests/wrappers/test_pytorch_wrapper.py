@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 import tensorflow as tf
+import torch
 import torch.nn as nn
 
 from xplique.attributions import (
@@ -218,3 +219,46 @@ def test_metric_dense():
                 assert hasattr(metric, "batch_inference_function")
                 score = metric(explanations)
             assert type(score) in [np.float32, np.float64, float]
+
+
+def test_wrapper_gradient_does_not_mutate_parameter_gradients():
+    """Test that wrapper gradients are computed without touching model parameters."""
+    model = nn.Linear(2, 1, bias=False)
+    with torch.no_grad():
+        model.weight.copy_(torch.tensor([[2.0, -3.0]]))
+    model.eval()
+    original_gradient = torch.full_like(model.weight, 7.0)
+    model.weight.grad = original_gradient
+    wrapped_model = TorchWrapper(model, device="cpu", is_channel_first=False)
+    inputs = tf.constant([[1.0, 2.0]], dtype=tf.float32)
+
+    with tf.GradientTape() as tape:
+        tape.watch(inputs)
+        outputs = wrapped_model(inputs)
+        loss = tf.reduce_sum(outputs)
+    gradients = tape.gradient(loss, inputs)
+
+    np.testing.assert_allclose(gradients.numpy(), [[2.0, -3.0]])
+    assert model.weight.grad is original_gradient
+
+
+def test_wrapper_without_gradients_supports_inference_only():
+    """Test that requires_grad=False gives a clear error for gradient requests."""
+    model = nn.Linear(2, 1, bias=False)
+    with torch.no_grad():
+        model.weight.copy_(torch.tensor([[2.0, -3.0]]))
+    model.eval()
+    wrapped_model = TorchWrapper(
+        model,
+        device="cpu",
+        is_channel_first=False,
+        requires_grad=False,
+    )
+    inputs = tf.constant([[1.0, 2.0]], dtype=tf.float32)
+
+    np.testing.assert_allclose(wrapped_model(inputs).numpy(), [[-4.0]])
+    with tf.GradientTape() as tape:
+        tape.watch(inputs)
+        outputs = wrapped_model(inputs)
+    with pytest.raises(RuntimeError, match="requires_grad=False"):
+        tape.gradient(outputs, inputs)
