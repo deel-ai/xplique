@@ -27,13 +27,13 @@ from .base import BaseConceptExtractor
 class Factorization:
     """Dataclass handling data produced during the Factorization step."""
 
+    inputs: Optional[np.ndarray]
     class_id: int
+    crops: Optional[np.ndarray]
     reducer: NMF
+    crops_u: Optional[np.ndarray]
     concept_bank_w: np.ndarray
-    inputs: np.ndarray = None
-    crops: np.ndarray = None
-    crops_u: np.ndarray = None
-    coeffs_u: np.ndarray = None
+    coeffs_u: Optional[np.ndarray] = None
 
 
 class Sensitivity:
