@@ -117,7 +117,12 @@ def generate_heatmap(
 
     # resize the explanation to match the image size
     if size is not None and size != heatmap.shape[:2]:
-        heatmap = tf.image.resize(heatmap, size, method=tf.image.ResizeMethod.BILINEAR).numpy()
+        if len(heatmap.shape) == 2:
+            heatmap = tf.image.resize(
+                heatmap[..., np.newaxis], size, method=tf.image.ResizeMethod.BILINEAR
+            )[..., 0].numpy()
+        else:
+            heatmap = tf.image.resize(heatmap, size, method=tf.image.ResizeMethod.BILINEAR).numpy()
     return heatmap
 
 

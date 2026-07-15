@@ -69,7 +69,7 @@ def _draw_boxes_on_ax(
     ax.imshow(image)
 
     if heatmap is not None:
-        ax.imshow(heatmap, cmap=cmap, alpha=alpha)
+        ax.imshow(heatmap, cmap=cmap, alpha=alpha, extent=ax.images[0].get_extent())
 
     boxes = multibox_results.boxes()
     scores = multibox_results.scores()
