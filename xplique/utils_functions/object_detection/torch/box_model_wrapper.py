@@ -12,6 +12,11 @@ from xplique.utils_functions.object_detection.torch.multi_box_tensor import Torc
 from xplique.utils_functions.output_as_list_mixin import OutputAsListMixin
 
 
+def _pad_and_stack_box_predictions(predictions: List[TorchMultiBoxTensor]) -> torch.Tensor:
+    """Stack variable detection counts, using all-zero rows as padding."""
+    return torch.nn.utils.rnn.pad_sequence(predictions, batch_first=True)
+
+
 class TorchBoxesModelWrapper(OutputAsListMixin, torch.nn.Module, ABC):
     """
     Wrapper for PyTorch object detection models with box formatting capabilities.
@@ -58,11 +63,10 @@ class TorchBoxesModelWrapper(OutputAsListMixin, torch.nn.Module, ABC):
         predictions
             If output_as_list is True: List of MultiBoxTensor objects, one per image.
             If output_as_list is False: Stacked tensor of formatted predictions with shape
-            (batch_size, ...).
+            (batch_size, max_num_boxes, features), with all-zero padding.
         """
         predictions = self.model(x, **kwargs)
         list_of_predictions = self.box_formatter(predictions)
         if self.output_as_list:
             return list_of_predictions
-        concatenated = torch.stack(list_of_predictions, dim=0)
-        return concatenated
+        return _pad_and_stack_box_predictions(list_of_predictions)

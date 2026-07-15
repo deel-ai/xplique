@@ -11,6 +11,12 @@ from xplique.utils_functions.object_detection.tf.multi_box_tensor import TfMulti
 from xplique.utils_functions.output_as_list_mixin import OutputAsListMixin
 
 
+def _pad_and_stack_box_predictions(predictions: List[TfMultiBoxTensor]) -> tf.Tensor:
+    """Stack variable detection counts, using all-zero rows as padding."""
+    predictions = [tf.convert_to_tensor(prediction) for prediction in predictions]
+    return tf.ragged.stack(predictions).to_tensor()
+
+
 class TfBoxesModelWrapper(OutputAsListMixin, tf.keras.Model):
     """
     Wrapper for TensorFlow object detection models with box formatting capabilities.
@@ -56,11 +62,10 @@ class TfBoxesModelWrapper(OutputAsListMixin, tf.keras.Model):
         predictions
             If output_as_list is True: List of MultiBoxTensor objects, one per image.
             If output_as_list is False: Stacked tensor of formatted predictions with shape
-            (batch_size, ...).
+            (batch_size, max_num_boxes, features), with all-zero padding.
         """
         predictions = self.model(x, **kwargs)
         list_of_predictions = self.box_formatter(predictions)
         if self.output_as_list:
             return list_of_predictions
-        concatenated = tf.stack(list_of_predictions, axis=0)
-        return concatenated
+        return _pad_and_stack_box_predictions(list_of_predictions)
