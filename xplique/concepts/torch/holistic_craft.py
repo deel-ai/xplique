@@ -1,6 +1,6 @@
 """PyTorch-specific wrapper for HolisticCraft."""
 
-from typing import Optional, Union
+from typing import Any, Optional, Union
 
 import numpy as np
 import torch
@@ -29,7 +29,7 @@ class HolisticCraftTorch(HolisticCraft):
         number_of_concepts
             Number of concepts to extract (default: 20)
         device
-            PyTorch device ('cuda' or 'cpu') (default: 'cuda')
+            PyTorch device. If None, uses the latent extractor device.
         factorizer
             Optional factorizer instance. If None, creates a TorchSklearnNMFFactorizer
             with alpha_W=1e-2 and max_iter=200
@@ -39,7 +39,7 @@ class HolisticCraftTorch(HolisticCraft):
         self,
         latent_extractor: LatentExtractor,
         number_of_concepts: int = 20,
-        device: str = "cuda",
+        device: Optional[Union[str, torch.device]] = None,
         factorizer: Optional[ConceptFactorizer] = None,
     ) -> None:
         """
@@ -52,7 +52,7 @@ class HolisticCraftTorch(HolisticCraft):
         number_of_concepts
             Number of concepts to extract (default: 20)
         device
-            PyTorch device ('cuda' or 'cpu') (default: 'cuda')
+            PyTorch device. If None, uses the latent extractor device.
         factorizer
             Optional factorizer instance. If None, creates a TorchSklearnNMFFactorizer
             with alpha_W=1e-2 and max_iter=200
@@ -63,6 +63,8 @@ class HolisticCraftTorch(HolisticCraft):
                 n_components=number_of_concepts, alpha_W=1e-2, max_iter=200
             )
 
+        if device is None:
+            device = latent_extractor.device
         super().__init__(latent_extractor, number_of_concepts, device, factorizer)
         self.framework = "torch"
         self._framework_module = torch
@@ -117,14 +119,14 @@ class HolisticCraftTorch(HolisticCraft):
         coeffs_u = coeffs_u.reshape(*activations_original_shape, -1)
         return coeffs_u
 
-    def _to_numpy(self, tensor: Union[torch.Tensor, np.ndarray]) -> np.ndarray:
+    def _to_numpy(self, tensor: Any) -> np.ndarray:
         """
         Convert PyTorch tensor to numpy array.
 
         Parameters
         ----------
         tensor
-            PyTorch tensor or numpy array
+            PyTorch tensor, TensorFlow tensor, or numpy array
 
         Returns
         -------
@@ -133,7 +135,11 @@ class HolisticCraftTorch(HolisticCraft):
         """
         if isinstance(tensor, np.ndarray):
             return tensor
-        return tensor.detach().cpu().numpy()
+        if isinstance(tensor, torch.Tensor):
+            return tensor.detach().cpu().numpy()
+        if hasattr(tensor, "numpy"):
+            return tensor.numpy()
+        return np.asarray(tensor)
 
     def _to_tensor(self, array: np.ndarray, dtype: Optional[torch.dtype] = None) -> torch.Tensor:
         """

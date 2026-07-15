@@ -2,7 +2,6 @@
 Framework-agnostic CRAFT implementation for holistic model explanations.
 """
 
-import warnings
 from abc import ABC, abstractmethod
 from typing import Any, Callable, List, Optional, Tuple, Union
 
@@ -221,6 +220,8 @@ class HolisticCraft(ABC):
             latent_data.get_activations(as_numpy=True)
             for latent_data in self.latent_extractor.input_to_latent_generator(inputs)
         ]
+        if not activations_list:
+            raise ValueError("No activations extracted from inputs.")
         activations = np.concatenate(activations_list, axis=0)
 
         needs_reshape = len(activations.shape) > 2  # (N,H,W,C) or (N,Tokens,C)
@@ -244,7 +245,9 @@ class HolisticCraft(ABC):
             coeffs_u = coeffs_u.reshape(*activations_original_shape, -1)
 
         self.factorization = Factorization(
+            inputs=None,
             class_id=class_id,
+            crops=None,
             reducer=self.factorizer,
             concept_bank_w=concept_bank_w,
             crops_u=None,
@@ -286,6 +289,8 @@ class HolisticCraft(ABC):
 
         # encode, but only return coeffs_u as a single tensor
         encoded_data = self.encode(inputs, resize)
+        if not encoded_data:
+            raise ValueError("No activations extracted from inputs.")
         # extract coeffs_u using named attribute access for clarity
         coeffs_u = np.concatenate([enc.coeffs_u for enc in encoded_data], axis=0)
         return coeffs_u
@@ -559,6 +564,8 @@ class HolisticCraft(ABC):
             # object detection models can return various number of
             # detection boxes per image
             encoded_data_list = self.encode(images)
+            if not encoded_data_list:
+                raise ValueError("No latent data extracted from inputs.")
 
             total_images = len(encoded_data_list)
             for i, enc in enumerate(encoded_data_list):
@@ -567,12 +574,7 @@ class HolisticCraft(ABC):
                 # Pass 1 (no gradients): plain forward pass to build attribution targets.
                 decoded_result = self.decode(enc.latent_data, enc.coeffs_u)
                 filtered_result = decoded_result.filter(class_id=class_id, confidence=confidence)
-                expected_explanation_shape = (
-                    1,
-                    enc.coeffs_u.shape[1],
-                    enc.coeffs_u.shape[2],
-                    enc.coeffs_u.shape[3],
-                )
+                expected_explanation_shape = tuple(enc.coeffs_u.shape)
                 if len(filtered_result) == 0:  # No detection
                     explanation = np.zeros(expected_explanation_shape)
                     if verbose:
@@ -590,9 +592,9 @@ class HolisticCraft(ABC):
                     # Pass 2 (differentiable): explainer calls ConceptDecoder internally to compute
                     # gradients. Explain the importance of each concept w.r.t the targets.
                     explanation = explainer_instance.explain(enc.coeffs_u, targets)
-                    explanation = explanation.numpy()
+                    explanation = self._to_numpy(explanation)
                     if explanation.shape != expected_explanation_shape:
-                        warnings.warn(
+                        raise ValueError(
                             f"Explanation shape {explanation.shape} does not match expected shape "
                             f"{expected_explanation_shape} for image {i}. Check that the explainer "
                             f"and concept decoder are correctly implemented."
@@ -668,6 +670,16 @@ class HolisticCraft(ABC):
                     f"because Tokens is not a perfect square."
                 )
             coeffs_u = coeffs_u.reshape(num_images, height, width, num_concepts)
+        elif len(coeffs_u.shape) != 4:
+            raise ValueError(
+                "coeffs_u must have shape (N, H, W, n_concepts) or (N, tokens, n_concepts)"
+            )
+
+        if coeffs_u.shape[-1] != self.number_of_concepts:
+            raise ValueError(
+                f"coeffs_u contains {coeffs_u.shape[-1]} concepts, expected "
+                f"{self.number_of_concepts}"
+            )
 
         # convert images to HWC numpy format for display
         if self.framework == "torch":
@@ -679,7 +691,26 @@ class HolisticCraft(ABC):
         if order is None:
             concepts_id = list(range(self.number_of_concepts))
         else:
-            concepts_id = order
+            try:
+                concepts_id = list(order)
+            except TypeError as error:
+                raise ValueError("order must be an iterable of concept IDs") from error
+            if not concepts_id:
+                raise ValueError("order must contain at least one concept ID")
+            if len(concepts_id) > self.number_of_concepts:
+                raise ValueError("order cannot contain more IDs than number_of_concepts")
+            if any(
+                not isinstance(concept_id, (int, np.integer))
+                or isinstance(concept_id, bool)
+                or not 0 <= concept_id < self.number_of_concepts
+                for concept_id in concepts_id
+            ):
+                raise ValueError(
+                    f"order concept IDs must be integers between 0 and "
+                    f"{self.number_of_concepts - 1}"
+                )
+            if len(set(concepts_id)) != len(concepts_id):
+                raise ValueError("order cannot contain duplicate concept IDs")
 
         return images_np, coeffs_u, concepts_id
 
@@ -778,11 +809,11 @@ class HolisticCraft(ABC):
             images, coeffs_u, order
         )
 
-        nb_cols = min(len(concepts_id), self.number_of_concepts)
+        nb_cols = len(concepts_id)
         nb_rows = len(images_np)
 
         fig, axs = plt.subplots(nb_rows, nb_cols, figsize=(2 * nb_cols, 2 * nb_rows))
-        axs = np.atleast_2d(axs)  # fix issue when nb_rows == 1
+        axs = np.asarray(axs).reshape(nb_rows, nb_cols)
 
         for i, c_i in enumerate(concepts_id):
             axs[0, i].set_title(f"concept #{c_i}", fontsize=10)
@@ -866,9 +897,9 @@ class HolisticCraft(ABC):
         )
 
         nb_rows = topk
-        nb_cols = min(len(concepts_id), self.number_of_concepts)
+        nb_cols = len(concepts_id)
         fig, axs = plt.subplots(nb_rows, nb_cols, figsize=(2 * nb_cols, 2 * nb_rows))
-        axs = np.atleast_2d(axs)
+        axs = np.asarray(axs).reshape(nb_rows, nb_cols)
 
         for i, c_i in enumerate(concepts_id):
             axs[0, i].set_title(f"concept #{c_i}", fontsize=10)
@@ -1014,8 +1045,9 @@ class HolisticCraft(ABC):
         }
         if abs_before_reduce:
             explanation = np.abs(explanation)
-        if spatial_reducer is not None:
-            explanation = reducers[spatial_reducer](explanation, axis=(1, 2))
+        spatial_axes = tuple(range(1, explanation.ndim - 1))
+        if spatial_reducer is not None and spatial_axes:
+            explanation = reducers[spatial_reducer](explanation, axis=spatial_axes)
         if aggregation_reducer is not None:
             importances = reducers[aggregation_reducer](explanation, axis=0)
         else:
@@ -1045,7 +1077,10 @@ class HolisticCraft(ABC):
             Fraction of images for which each concept is dominant, shape (n_concepts,).
             Values sum to 1.
         """
-        per_image = np.mean(explanation, axis=(1, 2))  # (N, n_concepts)
+        spatial_axes = tuple(range(1, explanation.ndim - 1))
+        per_image = (
+            np.mean(explanation, axis=spatial_axes) if spatial_axes else explanation
+        )  # (N, n_concepts)
         dominant = np.argmax(per_image, axis=-1)  # (N,)
         prevalence = np.zeros(self.number_of_concepts)
         for c in range(self.number_of_concepts):
@@ -1081,7 +1116,10 @@ class HolisticCraft(ABC):
             Concepts with no dominant image get a reliability of 0.0.
         """
         accuracy = np.asarray(accuracy)
-        per_image = np.mean(explanation, axis=(1, 2))  # (N, n_concepts)
+        spatial_axes = tuple(range(1, explanation.ndim - 1))
+        per_image = (
+            np.mean(explanation, axis=spatial_axes) if spatial_axes else explanation
+        )  # (N, n_concepts)
         dominant = np.argmax(per_image, axis=-1)  # (N,)
         reliability = np.zeros(self.number_of_concepts)
         for c in range(self.number_of_concepts):
