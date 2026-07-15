@@ -19,6 +19,20 @@ from xplique.utils_functions.common.torch.gradients_check import check_model_gra
 from xplique.wrappers import TorchWrapper
 
 
+def test_classifier_tensor_targets_class_and_preserves_batch_shape():
+    predictions = TorchClassifierTensor.from_predictions(
+        torch.tensor([[0.1, 0.2, 0.7], [0.3, 0.6, 0.1]])
+    )
+
+    targets = predictions.to_attribution_target(class_id=1)
+
+    torch.testing.assert_close(targets, torch.tensor([[0.0, 1.0, 0.0], [0.0, 1.0, 0.0]]))
+    assert targets.to_batched_tensor().shape == (2, 3)
+
+    with pytest.raises(ValueError):
+        predictions.to_attribution_target(class_id=3)
+
+
 @pytest.fixture(params=["cpu", "cuda"])
 def device_param(request):
     """Pytest fixture to provide device parameter (cpu or cuda)."""
@@ -57,10 +71,10 @@ def test_image_size(image_data):
 
 @pytest.fixture(scope="function")
 def model_data(image_data, device_param):
-    """Pytest fixture to load pretrained ResNet50 model and run predictions."""
+    """Pytest fixture to load a local ResNet50 model and run predictions."""
     _, input_tensor = image_data
-    # Load pretrained ResNet50
-    model = models.resnet50(pretrained=True).to(device_param)
+    # Do not download ImageNet weights during tests.
+    model = models.resnet50(weights=None).to(device_param)
     model.eval()
 
     with torch.no_grad():

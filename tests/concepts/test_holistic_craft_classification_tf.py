@@ -16,6 +16,18 @@ from xplique.utils_functions.classification.tf.classifier_tensor import TfClassi
 from xplique.utils_functions.common.tf.gradients_check import check_model_gradients
 
 
+def test_classifier_tensor_targets_class_and_preserves_batch_shape():
+    predictions = TfClassifierTensor(tf.constant([[0.1, 0.2, 0.7], [0.3, 0.6, 0.1]]))
+
+    targets = predictions.to_attribution_target(class_id=1)
+
+    np.testing.assert_array_equal(targets.tensor.numpy(), [[0.0, 1.0, 0.0], [0.0, 1.0, 0.0]])
+    assert targets.to_batched_tensor().shape == (2, 3)
+
+    with pytest.raises(ValueError):
+        predictions.to_attribution_target(class_id=3)
+
+
 @pytest.fixture(params=["cpu", "gpu"])
 def device_param(request):
     """Pytest fixture to provide device parameter (cpu or gpu)."""
@@ -58,12 +70,12 @@ def test_image_size(image_data):
 
 @pytest.fixture(scope="function")
 def model_data(image_data, device_param):
-    """Pytest fixture to load pretrained ResNet50 model and run predictions."""
+    """Pytest fixture to load a local ResNet50 model and run predictions."""
     device_name = f'/{device_param.upper()}:0'
     with tf.device(device_name):
         _, input_tensor = image_data
-        # Load pretrained ResNet50
-        model = tf.keras.applications.ResNet50(weights='imagenet')
+        # Do not download ImageNet weights during tests.
+        model = tf.keras.applications.ResNet50(weights=None)
         predictions = model.predict(input_tensor, verbose=0)
 
         return model, predictions
