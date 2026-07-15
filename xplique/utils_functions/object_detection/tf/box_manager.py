@@ -24,6 +24,32 @@ class TfBoxManager(BoxManager):
     """
 
     @staticmethod
+    def _as_floating(boxes: tf.Tensor) -> tf.Tensor:
+        """Return boxes in a floating dtype suitable for coordinate arithmetic."""
+        boxes = tf.convert_to_tensor(boxes)
+        if not boxes.dtype.is_floating:
+            boxes = tf.cast(boxes, tf.float32)
+        return boxes
+
+    @staticmethod
+    def _coordinate_scale(boxes: tf.Tensor, size: tf.Tensor) -> tf.Tensor:
+        """Build a scale that leaves prediction fields after coordinates unchanged."""
+        size = tf.reshape(tf.cast(tf.convert_to_tensor(size), boxes.dtype), [-1])
+        tf.debugging.assert_equal(
+            tf.size(size), 2, message="Image size must contain width and height."
+        )
+        tf.debugging.assert_greater_equal(
+            tf.shape(boxes)[-1], 4, message="Boxes must contain at least four coordinate columns."
+        )
+        return tf.concat(
+            [
+                tf.tile(size, [2]),
+                tf.ones(tf.reshape(tf.shape(boxes)[-1] - 4, [1]), dtype=boxes.dtype),
+            ],
+            axis=0,
+        )
+
+    @staticmethod
     def normalize_boxes(raw_boxes: tf.Tensor, image_source_size: tf.Tensor) -> tf.Tensor:
         """
         Normalize bounding box coordinates from pixel values to [0, 1] range.
@@ -40,20 +66,12 @@ class TfBoxManager(BoxManager):
         normalized_boxes
             Normalized boxes with coordinates in [0, 1] range, same shape as input.
         """
-        sx, sy = image_source_size
-        if sx == 0 or sy == 0:
-            raise ValueError("Image width and height must be greater than zero for normalization.")
-        normalized_boxes = tf.identity(raw_boxes)
-        normalized_boxes = tf.concat(
-            [
-                normalized_boxes[:, 0:1] / sx,
-                normalized_boxes[:, 1:2] / sy,
-                normalized_boxes[:, 2:3] / sx,
-                normalized_boxes[:, 3:4] / sy,
-            ],
-            axis=1,
+        raw_boxes = TfBoxManager._as_floating(raw_boxes)
+        size = tf.cast(tf.convert_to_tensor(image_source_size), raw_boxes.dtype)
+        tf.debugging.assert_positive(
+            size, message="Image width and height must be greater than zero for normalization."
         )
-        return normalized_boxes
+        return raw_boxes / TfBoxManager._coordinate_scale(raw_boxes, size)
 
     @staticmethod
     def box_cxcywh_to_xyxy(normalized_boxes: tf.Tensor) -> tf.Tensor:
@@ -74,13 +92,14 @@ class TfBoxManager(BoxManager):
         boxes
             Boxes in XYXY format of shape (N, 4).
         """
-        x_c, y_c, w, h = tf.unstack(normalized_boxes, axis=1)
+        normalized_boxes = TfBoxManager._as_floating(normalized_boxes)
+        x_c, y_c, w, h = tf.unstack(normalized_boxes[..., :4], axis=-1)
         x_min = x_c - 0.5 * w
         y_min = y_c - 0.5 * h
         x_max = x_c + 0.5 * w
         y_max = y_c + 0.5 * h
-        b = tf.stack([x_min, y_min, x_max, y_max], axis=1)
-        return b
+        b = tf.stack([x_min, y_min, x_max, y_max], axis=-1)
+        return tf.concat([b, normalized_boxes[..., 4:]], axis=-1)
 
     @staticmethod
     def box_xywh_to_xyxy(normalized_boxes: tf.Tensor) -> tf.Tensor:
@@ -101,9 +120,10 @@ class TfBoxManager(BoxManager):
         boxes
             Boxes in XYXY format of shape (N, 4).
         """
-        x, y, w, h = tf.unstack(normalized_boxes, axis=1)  # extract the columns
+        normalized_boxes = TfBoxManager._as_floating(normalized_boxes)
+        x, y, w, h = tf.unstack(normalized_boxes[..., :4], axis=-1)  # extract the columns
         b = [x, y, x + w, y + h]
-        return tf.stack(b, axis=1)
+        return tf.concat([tf.stack(b, axis=-1), normalized_boxes[..., 4:]], axis=-1)
 
     @staticmethod
     def box_xyxy_to_cxcywh(xyxy_boxes: tf.Tensor) -> tf.Tensor:
@@ -124,13 +144,14 @@ class TfBoxManager(BoxManager):
         boxes
             Boxes in CXCYWH format of shape (N, 4).
         """
-        x_min, y_min, x_max, y_max = tf.unstack(xyxy_boxes, axis=1)
+        xyxy_boxes = TfBoxManager._as_floating(xyxy_boxes)
+        x_min, y_min, x_max, y_max = tf.unstack(xyxy_boxes[..., :4], axis=-1)
         w = x_max - x_min
         h = y_max - y_min
         x_c = x_min + 0.5 * w
         y_c = y_min + 0.5 * h
         b = [x_c, y_c, w, h]
-        return tf.stack(b, axis=1)
+        return tf.concat([tf.stack(b, axis=-1), xyxy_boxes[..., 4:]], axis=-1)
 
     @staticmethod
     def box_xyxy_to_xywh(xyxy_boxes: tf.Tensor) -> tf.Tensor:
@@ -151,11 +172,12 @@ class TfBoxManager(BoxManager):
         boxes
             Boxes in XYWH format of shape (N, 4).
         """
-        x_min, y_min, x_max, y_max = tf.unstack(xyxy_boxes, axis=1)
+        xyxy_boxes = TfBoxManager._as_floating(xyxy_boxes)
+        x_min, y_min, x_max, y_max = tf.unstack(xyxy_boxes[..., :4], axis=-1)
         w = x_max - x_min
         h = y_max - y_min
         b = [x_min, y_min, w, h]
-        return tf.stack(b, axis=1)
+        return tf.concat([tf.stack(b, axis=-1), xyxy_boxes[..., 4:]], axis=-1)
 
     @staticmethod
     def denormalize_boxes(boxes: tf.Tensor, size: tf.Tensor) -> tf.Tensor:
@@ -177,12 +199,8 @@ class TfBoxManager(BoxManager):
         denormalized_boxes
             Boxes in pixel coordinates, same shape as input.
         """
-        # Ensure size is a tensor and cast to float32 for compatibility
-        size = tf.cast(tf.convert_to_tensor(size), tf.float32)
-        # Concatenate size with itself to create [width, height, width, height]
-        scale = tf.concat([size, size], axis=0)
-        denormalized_boxes = boxes * scale
-        return denormalized_boxes
+        boxes = TfBoxManager._as_floating(boxes)
+        return boxes * TfBoxManager._coordinate_scale(boxes, size)
 
     @staticmethod
     def to_numpy_tuple(*tensors) -> Tuple:
@@ -285,8 +303,7 @@ class TfBoxCoordinatesTranslator(BaseBoxCoordinatesTranslator):
         ValueError
             If image size is required but not provided.
         """
-        if not isinstance(box, tf.Tensor):
-            box = tf.convert_to_tensor(box)
+        box = TfBoxManager._as_floating(box)
 
         # Early return if input and output formats are identical
         if (

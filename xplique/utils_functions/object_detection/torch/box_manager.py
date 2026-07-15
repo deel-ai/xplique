@@ -23,6 +23,25 @@ class TorchBoxManager(BoxManager):
     """
 
     @staticmethod
+    def _as_floating(boxes: torch.Tensor) -> torch.Tensor:
+        """Return boxes in a floating dtype suitable for coordinate arithmetic."""
+        boxes = torch.as_tensor(boxes)
+        if not boxes.is_floating_point():
+            boxes = boxes.to(torch.float32)
+        return boxes
+
+    @staticmethod
+    def _coordinate_scale(boxes: torch.Tensor, size: torch.Size) -> torch.Tensor:
+        """Build a scale that leaves prediction fields after coordinates unchanged."""
+        if boxes.shape[-1] < 4:
+            raise ValueError("Boxes must contain at least four coordinate columns.")
+        size = torch.as_tensor(size, dtype=boxes.dtype, device=boxes.device).reshape(-1)
+        if size.numel() != 2:
+            raise ValueError("Image size must contain width and height.")
+        trailing_scale = torch.ones(boxes.shape[-1] - 4, dtype=boxes.dtype, device=boxes.device)
+        return torch.cat([size.repeat(2), trailing_scale])
+
+    @staticmethod
     def normalize_boxes(raw_boxes: torch.Tensor, image_source_size: torch.Size) -> torch.Tensor:
         """
         Normalize bounding box coordinates to [0,1] range based on image size.
@@ -39,13 +58,11 @@ class TorchBoxManager(BoxManager):
         normalized_boxes
             Normalized boxes with coordinates in [0,1] range.
         """
-        sx, sy = image_source_size
-        if sx == 0 or sy == 0:
+        raw_boxes = TorchBoxManager._as_floating(raw_boxes)
+        image_source_size = torch.as_tensor(image_source_size, device=raw_boxes.device).reshape(-1)
+        if image_source_size.numel() != 2 or torch.any(image_source_size == 0):
             raise ValueError("Image width and height must be greater than zero for normalization.")
-        normalized_boxes = raw_boxes.clone()
-        normalized_boxes[:, [0, 2]] /= sx
-        normalized_boxes[:, [1, 3]] /= sy
-        return normalized_boxes
+        return raw_boxes / TorchBoxManager._coordinate_scale(raw_boxes, image_source_size)
 
     @staticmethod
     def box_cxcywh_to_xyxy(normalized_boxes: torch.Tensor) -> torch.Tensor:
@@ -62,9 +79,10 @@ class TorchBoxManager(BoxManager):
         xyxy_boxes
             Boxes in XYXY format with shape (N, 4).
         """
-        x_c, y_c, w, h = normalized_boxes.unbind(1)  # extract the columns
+        normalized_boxes = TorchBoxManager._as_floating(normalized_boxes)
+        x_c, y_c, w, h = normalized_boxes[..., :4].unbind(-1)  # extract the columns
         b = [(x_c - 0.5 * w), (y_c - 0.5 * h), (x_c + 0.5 * w), (y_c + 0.5 * h)]
-        return torch.stack(b, dim=1)
+        return torch.cat([torch.stack(b, dim=-1), normalized_boxes[..., 4:]], dim=-1)
 
     @staticmethod
     def box_xyxy_to_cxcywh(xyxy_boxes: torch.Tensor) -> torch.Tensor:
@@ -81,13 +99,14 @@ class TorchBoxManager(BoxManager):
         cxcywh_boxes
             Boxes in CXCYWH format with shape (N, 4).
         """
-        x1, y1, x2, y2 = xyxy_boxes.unbind(1)
+        xyxy_boxes = TorchBoxManager._as_floating(xyxy_boxes)
+        x1, y1, x2, y2 = xyxy_boxes[..., :4].unbind(-1)
         w = x2 - x1
         h = y2 - y1
         x_c = x1 + 0.5 * w
         y_c = y1 + 0.5 * h
         b = [x_c, y_c, w, h]
-        return torch.stack(b, dim=1)
+        return torch.cat([torch.stack(b, dim=-1), xyxy_boxes[..., 4:]], dim=-1)
 
     @staticmethod
     def box_xywh_to_xyxy(normalized_boxes: torch.Tensor) -> torch.Tensor:
@@ -104,9 +123,10 @@ class TorchBoxManager(BoxManager):
         xyxy_boxes
             Boxes in XYXY format with shape (N, 4).
         """
-        x, y, w, h = normalized_boxes.unbind(1)
+        normalized_boxes = TorchBoxManager._as_floating(normalized_boxes)
+        x, y, w, h = normalized_boxes[..., :4].unbind(-1)
         b = [x, y, x + w, y + h]
-        return torch.stack(b, dim=1)
+        return torch.cat([torch.stack(b, dim=-1), normalized_boxes[..., 4:]], dim=-1)
 
     @staticmethod
     def box_xyxy_to_xywh(xyxy_boxes: torch.Tensor) -> torch.Tensor:
@@ -123,11 +143,12 @@ class TorchBoxManager(BoxManager):
         xywh_boxes
             Boxes in XYWH format with shape (N, 4).
         """
-        x_min, y_min, x_max, y_max = xyxy_boxes.unbind(1)
+        xyxy_boxes = TorchBoxManager._as_floating(xyxy_boxes)
+        x_min, y_min, x_max, y_max = xyxy_boxes[..., :4].unbind(-1)
         w = x_max - x_min
         h = y_max - y_min
         b = [x_min, y_min, w, h]
-        return torch.stack(b, dim=1)
+        return torch.cat([torch.stack(b, dim=-1), xyxy_boxes[..., 4:]], dim=-1)
 
     @staticmethod
     def denormalize_boxes(boxes: torch.Tensor, size: torch.Size) -> torch.Tensor:
@@ -146,9 +167,8 @@ class TorchBoxManager(BoxManager):
         denormalized_boxes
             Boxes in pixel coordinates
         """
-        img_w, img_h = size
-        denormalized_boxes = boxes * torch.tensor([img_w, img_h, img_w, img_h], device=boxes.device)
-        return denormalized_boxes
+        boxes = TorchBoxManager._as_floating(boxes)
+        return boxes * TorchBoxManager._coordinate_scale(boxes, size)
 
     @staticmethod
     def to_numpy_tuple(*tensors) -> Tuple:
@@ -244,8 +264,7 @@ class TorchBoxCoordinatesTranslator(BaseBoxCoordinatesTranslator):
         ValueError
             If image_size is None when required for non-normalized boxes.
         """
-        if not isinstance(box, torch.Tensor):
-            box = torch.tensor(box)
+        box = TorchBoxManager._as_floating(box)
 
         # Early return if input and output formats are identical
         if (

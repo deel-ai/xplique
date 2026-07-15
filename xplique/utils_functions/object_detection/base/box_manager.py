@@ -94,6 +94,24 @@ class NumpyBoxManager(BoxManager):
     """
 
     @staticmethod
+    def _as_floating(boxes: np.ndarray) -> np.ndarray:
+        """Return boxes in a floating dtype suitable for coordinate arithmetic."""
+        boxes = np.asarray(boxes)
+        if not np.issubdtype(boxes.dtype, np.floating):
+            boxes = boxes.astype(np.float32)
+        return boxes
+
+    @staticmethod
+    def _coordinate_scale(boxes: np.ndarray, size: Tuple[int, int]) -> np.ndarray:
+        """Build a scale that leaves prediction fields after coordinates unchanged."""
+        if boxes.shape[-1] < 4:
+            raise ValueError("Boxes must contain at least four coordinate columns.")
+        size = np.asarray(size, dtype=boxes.dtype).reshape(-1)
+        if size.size != 2:
+            raise ValueError("Image size must contain width and height.")
+        return np.concatenate([np.tile(size, 2), np.ones(boxes.shape[-1] - 4, dtype=boxes.dtype)])
+
+    @staticmethod
     def normalize_boxes(raw_boxes: np.ndarray, image_source_size: Tuple[int, int]) -> np.ndarray:
         """
         Normalize bounding box coordinates from pixel values to [0, 1] range.
@@ -113,13 +131,11 @@ class NumpyBoxManager(BoxManager):
         normalized_boxes
             Normalized boxes with coordinates in [0, 1] range, same shape as input.
         """
-        sx, sy = image_source_size
-        if sx == 0 or sy == 0:
+        raw_boxes = NumpyBoxManager._as_floating(raw_boxes)
+        image_source_size = np.asarray(image_source_size).reshape(-1)
+        if image_source_size.size != 2 or np.any(image_source_size == 0):
             raise ValueError("Image width and height must be greater than zero for normalization.")
-        normalized_boxes = raw_boxes.copy()
-        normalized_boxes[:, [0, 2]] /= sx
-        normalized_boxes[:, [1, 3]] /= sy
-        return normalized_boxes
+        return raw_boxes / NumpyBoxManager._coordinate_scale(raw_boxes, image_source_size)
 
     @staticmethod
     def box_cxcywh_to_xyxy(normalized_boxes: np.ndarray) -> np.ndarray:
@@ -140,12 +156,14 @@ class NumpyBoxManager(BoxManager):
         boxes
             Boxes in XYXY format of shape (N, 4).
         """
-        x_c = normalized_boxes[:, 0]
-        y_c = normalized_boxes[:, 1]
-        w = normalized_boxes[:, 2]
-        h = normalized_boxes[:, 3]
-        b = np.stack([x_c - 0.5 * w, y_c - 0.5 * h, x_c + 0.5 * w, y_c + 0.5 * h], axis=1)
-        return b
+        normalized_boxes = NumpyBoxManager._as_floating(normalized_boxes)
+        coordinates = normalized_boxes[..., :4]
+        x_c = coordinates[..., 0]
+        y_c = coordinates[..., 1]
+        w = coordinates[..., 2]
+        h = coordinates[..., 3]
+        b = np.stack([x_c - 0.5 * w, y_c - 0.5 * h, x_c + 0.5 * w, y_c + 0.5 * h], axis=-1)
+        return np.concatenate([b, normalized_boxes[..., 4:]], axis=-1)
 
     @staticmethod
     def box_xywh_to_xyxy(normalized_boxes: np.ndarray) -> np.ndarray:
@@ -166,12 +184,14 @@ class NumpyBoxManager(BoxManager):
         boxes
             Boxes in XYXY format of shape (N, 4).
         """
-        x = normalized_boxes[:, 0]
-        y = normalized_boxes[:, 1]
-        w = normalized_boxes[:, 2]
-        h = normalized_boxes[:, 3]
-        b = np.stack([x, y, x + w, y + h], axis=1)
-        return b
+        normalized_boxes = NumpyBoxManager._as_floating(normalized_boxes)
+        coordinates = normalized_boxes[..., :4]
+        x = coordinates[..., 0]
+        y = coordinates[..., 1]
+        w = coordinates[..., 2]
+        h = coordinates[..., 3]
+        b = np.stack([x, y, x + w, y + h], axis=-1)
+        return np.concatenate([b, normalized_boxes[..., 4:]], axis=-1)
 
     @staticmethod
     def box_xyxy_to_cxcywh(xyxy_boxes: np.ndarray) -> np.ndarray:
@@ -191,16 +211,18 @@ class NumpyBoxManager(BoxManager):
         boxes
             Boxes in CXCYWH format of shape (N, 4).
         """
-        x_min = xyxy_boxes[:, 0]
-        y_min = xyxy_boxes[:, 1]
-        x_max = xyxy_boxes[:, 2]
-        y_max = xyxy_boxes[:, 3]
+        xyxy_boxes = NumpyBoxManager._as_floating(xyxy_boxes)
+        coordinates = xyxy_boxes[..., :4]
+        x_min = coordinates[..., 0]
+        y_min = coordinates[..., 1]
+        x_max = coordinates[..., 2]
+        y_max = coordinates[..., 3]
         w = x_max - x_min
         h = y_max - y_min
         x_c = x_min + 0.5 * w
         y_c = y_min + 0.5 * h
-        b = np.stack([x_c, y_c, w, h], axis=1)
-        return b
+        b = np.stack([x_c, y_c, w, h], axis=-1)
+        return np.concatenate([b, xyxy_boxes[..., 4:]], axis=-1)
 
     @staticmethod
     def box_xyxy_to_xywh(xyxy_boxes: np.ndarray) -> np.ndarray:
@@ -220,14 +242,16 @@ class NumpyBoxManager(BoxManager):
         boxes
             Boxes in XYWH format of shape (N, 4).
         """
-        x_min = xyxy_boxes[:, 0]
-        y_min = xyxy_boxes[:, 1]
-        x_max = xyxy_boxes[:, 2]
-        y_max = xyxy_boxes[:, 3]
+        xyxy_boxes = NumpyBoxManager._as_floating(xyxy_boxes)
+        coordinates = xyxy_boxes[..., :4]
+        x_min = coordinates[..., 0]
+        y_min = coordinates[..., 1]
+        x_max = coordinates[..., 2]
+        y_max = coordinates[..., 3]
         w = x_max - x_min
         h = y_max - y_min
-        b = np.stack([x_min, y_min, w, h], axis=1)
-        return b
+        b = np.stack([x_min, y_min, w, h], axis=-1)
+        return np.concatenate([b, xyxy_boxes[..., 4:]], axis=-1)
 
     @staticmethod
     def denormalize_boxes(boxes: np.ndarray, size: Tuple[int, int]) -> np.ndarray:
@@ -249,9 +273,8 @@ class NumpyBoxManager(BoxManager):
         denormalized_boxes
             Boxes in pixel coordinates, same shape as input.
         """
-        img_w, img_h = size
-        denormalized_boxes = boxes * np.array([img_w, img_h, img_w, img_h])
-        return denormalized_boxes
+        boxes = NumpyBoxManager._as_floating(boxes)
+        return boxes * NumpyBoxManager._coordinate_scale(boxes, size)
 
     @staticmethod
     def to_numpy_tuple(*arrays) -> Tuple:
@@ -340,7 +363,7 @@ class NumpyBoxCoordinatesTranslator(BaseBoxCoordinatesTranslator):
         ValueError
             If image_size is None when required for non-normalized boxes.
         """
-        box = np.asarray(box, dtype=np.float32)
+        box = NumpyBoxManager._as_floating(box)
 
         # Early return if input and output formats are identical
         if (

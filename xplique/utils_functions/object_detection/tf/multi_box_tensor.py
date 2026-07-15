@@ -39,8 +39,7 @@ class TfMultiBoxTensor(BaseMultiBoxTensor):
         self.tensor = tensor
 
     def __len__(self) -> int:
-        # Get the number of features per box.
-        return self.tensor.shape[1]
+        return self.tensor.shape[0]
 
     @property
     def shape(self) -> tf.TensorShape:
@@ -128,7 +127,7 @@ class TfMultiBoxTensor(BaseMultiBoxTensor):
         if class_id is not None and confidence is not None:
             keep = (class_ids == class_id) & (scores >= confidence)
         elif class_id is None:
-            keep = scores > confidence
+            keep = scores >= confidence
         else:
             keep = class_ids == class_id
         filtered_tensor = tf.boolean_mask(self.tensor, keep)
