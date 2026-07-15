@@ -164,64 +164,73 @@ def object_detection_operator(
         # function to loop on for `tf.map_fn`
         obj, obj_ref = args
 
-        if obj is None or obj.shape[0] == 0:
-            return tf.constant(0.0, dtype=inputs.dtype)
+        # Reshape instead of branching so TensorFlow retains a statically known rank.
+        obj_ref = tf.reshape(obj_ref, (-1, tf.shape(obj_ref)[-1]))
+        obj_ref = tf.ensure_shape(obj_ref, [None, None])
 
-        # compute predicted boxes for a given image
-        # (nb_box_pred, 4), (nb_box_pred, 1), (nb_box_pred, nb_classes)
-        current_boxes, proba_detection, classification = _format_objects(obj)
-        size = tf.shape(current_boxes)[0]
+        # Tensor-mode detection outputs are zero-padded to equalize batch shapes.
+        obj = tf.boolean_mask(obj, tf.reduce_any(tf.not_equal(obj, 0), axis=-1))
+        obj_ref = tf.boolean_mask(obj_ref, tf.reduce_any(tf.not_equal(obj_ref, 0), axis=-1))
 
-        if tf.shape(obj_ref).shape[0] == 1:
-            obj_ref = tf.expand_dims(obj_ref, axis=0)
+        def compute_score():
+            # compute predicted boxes for a given image
+            # (nb_box_pred, 4), (nb_box_pred, 1), (nb_box_pred, nb_classes)
+            current_boxes, proba_detection, classification = _format_objects(obj)
+            size = tf.shape(current_boxes)[0]
 
-        # DRise consider the reference objectness to be 1
-        # (nb_box_ref, 4), _, (nb_box_ref, nb_classes)
-        boxes_refs, _, class_refs = _format_objects(obj_ref)
+            # DRise consider the reference objectness to be 1
+            # (nb_box_ref, 4), _, (nb_box_ref, nb_classes)
+            boxes_refs, _, class_refs = _format_objects(obj_ref)
 
-        # (nb_box_ref, nb_box_pred, 4)
-        boxes_refs = tf.repeat(tf.expand_dims(boxes_refs, axis=1), repeats=size, axis=1)
+            # (nb_box_ref, nb_box_pred, 4)
+            boxes_refs = tf.repeat(tf.expand_dims(boxes_refs, axis=1), repeats=size, axis=1)
 
-        # (nb_box_ref, nb_box_pred)
-        intersection_score = intersection_score_fn(boxes_refs, current_boxes)
+            # (nb_box_ref, nb_box_pred)
+            intersection_score = intersection_score_fn(boxes_refs, current_boxes)
 
-        # (nb_box_pred,)
-        detection_probability = tf.squeeze(proba_detection, axis=1)
+            # (nb_box_pred,)
+            detection_probability = tf.squeeze(proba_detection, axis=1)
 
-        # set detection probability to 1 if it should be included
-        detection_probability = tf.cond(
-            tf.cast(include_detection_probability, tf.bool),
-            true_fn=lambda: detection_probability,
-            false_fn=lambda: tf.ones_like(detection_probability),
+            # set detection probability to 1 if it should be included
+            detection_probability = tf.cond(
+                tf.cast(include_detection_probability, tf.bool),
+                true_fn=lambda: detection_probability,
+                false_fn=lambda: tf.ones_like(detection_probability),
+            )
+
+            # (nb_box_ref, nb_box_pred, nb_classes)
+            class_refs = tf.repeat(tf.expand_dims(class_refs, axis=1), repeats=size, axis=1)
+
+            # (nb_box_ref, nb_box_pred)
+            classification_score = tf.reduce_sum(class_refs * classification, axis=-1) / (
+                tf.norm(classification, axis=-1) * tf.norm(class_refs, axis=-1) + _EPSILON
+            )
+
+            # set classification score to 1 if it should be included
+            classification_score = tf.cond(
+                tf.cast(include_classification_score, tf.bool),
+                true_fn=lambda: classification_score,
+                false_fn=lambda: tf.ones_like(classification_score),
+            )
+
+            # Compute score as defined in DRise for all possible pair of boxes
+            # (nb_box_ref, nb_box_pred)
+            boxes_pairwise_scores = (
+                intersection_score * detection_probability * classification_score
+            )
+
+            # select for a reference box the most similar predicted box score
+            # (nb_box_ref,)
+            ref_boxes_scores = tf.reduce_max(boxes_pairwise_scores, axis=1)
+
+            # get an attribution for several boxes in the same time
+            return tf.reduce_mean(ref_boxes_scores)
+
+        return tf.cond(
+            tf.logical_and(tf.shape(obj)[0] > 0, tf.shape(obj_ref)[0] > 0),
+            compute_score,
+            lambda: tf.constant(0.0, dtype=inputs.dtype),
         )
-
-        # (nb_box_ref, nb_box_pred, nb_classes)
-        class_refs = tf.repeat(tf.expand_dims(class_refs, axis=1), repeats=size, axis=1)
-
-        # (nb_box_ref, nb_box_pred)
-        classification_score = tf.reduce_sum(class_refs * classification, axis=-1) / (
-            tf.norm(classification, axis=-1) * tf.norm(class_refs, axis=-1) + _EPSILON
-        )
-
-        # set classification score to 1 if it should be included
-        classification_score = tf.cond(
-            tf.cast(include_classification_score, tf.bool),
-            true_fn=lambda: classification_score,
-            false_fn=lambda: tf.ones_like(classification_score),
-        )
-
-        # Compute score as defined in DRise for all possible pair of boxes
-        # (nb_box_ref, nb_box_pred)
-        boxes_pairwise_scores = intersection_score * detection_probability * classification_score
-
-        # select for a reference box the most similar predicted box score
-        # (nb_box_ref,)
-        ref_boxes_scores = tf.reduce_max(boxes_pairwise_scores, axis=1)
-
-        # get an attribution for several boxes in the same time
-        # ()
-        image_score = tf.reduce_mean(ref_boxes_scores)
-        return image_score
 
     objects = model(inputs)
     return tf.map_fn(batch_loop, (objects, targets), fn_output_signature=tf.float32)

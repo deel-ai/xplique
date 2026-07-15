@@ -191,3 +191,44 @@ def test_all_object_detector_operators():
         [normal_phis, intersection_phis, probability_phis, classification_phis], 2
     ):
         assert not almost_equal(phi1, phi2)
+
+
+def test_object_detection_operator_ignores_zero_padded_detections_in_a_graph():
+    valid_predictions = tf.constant([[[0.0, 0.0, 2.0, 2.0, 0.5, 1.0, 0.0]]])
+    padded_predictions = tf.pad(valid_predictions, [[0, 0], [0, 2], [0, 0]])
+    inputs = tf.zeros((1, 1), dtype=tf.float32)
+
+    def valid_model(_):
+        return valid_predictions
+
+    def padded_model(_):
+        return padded_predictions
+
+    def empty_model(_):
+        return tf.zeros_like(padded_predictions)
+
+    valid_score = object_detection_operator(valid_model, inputs, valid_predictions)
+    padded_score = object_detection_operator(padded_model, inputs, padded_predictions)
+
+    previous_eager_setting = tf.config.functions_run_eagerly()
+    try:
+        tf.config.run_functions_eagerly(False)
+
+        @tf.function
+        def graph_operator(operator_inputs, targets):
+            assert tf.inside_function()
+            return object_detection_operator(padded_model, operator_inputs, targets)
+
+        @tf.function
+        def graph_empty_operator(operator_inputs, targets):
+            assert tf.inside_function()
+            return object_detection_operator(empty_model, operator_inputs, targets)
+
+        graph_score = graph_operator(inputs, padded_predictions)
+        empty_score = graph_empty_operator(inputs, padded_predictions)
+    finally:
+        tf.config.run_functions_eagerly(previous_eager_setting)
+
+    tf.debugging.assert_near(padded_score, valid_score)
+    tf.debugging.assert_near(graph_score, valid_score)
+    tf.debugging.assert_equal(empty_score, [0.0])
