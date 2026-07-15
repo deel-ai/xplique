@@ -5,6 +5,8 @@ This module provides a TensorFlow wrapper for classification predictions
 with a unified format compatible with the StructuredPrediction protocol.
 """
 
+from numbers import Integral
+
 import tensorflow as tf
 
 from xplique.commons.prediction_types import StructuredPrediction
@@ -93,24 +95,37 @@ class TfClassifierTensor(StructuredPrediction):
             return tf.expand_dims(self.tensor, axis=0)
         return self.tensor
 
-    # pylint: disable=unused-argument
     def filter(self, class_id=None, confidence=None):
         """
-        Filter predictions (no-op for classifiers).
+        Build a target for a selected classification class.
 
-        Classifiers don't have multiple detections to filter, so this method
-        simply returns self for interface compatibility.
+        Classifiers do not have detections to filter. When ``class_id`` is
+        provided, return a one-hot target with the same batch shape as the
+        predictions. ``confidence`` is ignored for classifiers.
 
         Parameters
         ----------
         class_id
-            Ignored for classifiers
+            Class to target.
         confidence
             Ignored for classifiers
 
         Returns
         -------
-        self
-            Returns self unchanged
+        filtered_tensor
+            One-hot target for ``class_id``, or self when no class is selected.
         """
-        return self
+        if class_id is None:
+            return self
+
+        if not isinstance(class_id, Integral) or isinstance(class_id, bool):
+            raise ValueError("class_id must be an integer.")
+
+        class_id = int(class_id)
+        num_classes = self.tensor.shape[-1]
+        if class_id < 0 or (num_classes is not None and class_id >= num_classes):
+            raise ValueError(f"class_id must be in [0, {num_classes}).")
+
+        target = tf.one_hot(class_id, tf.shape(self.tensor)[-1], dtype=self.tensor.dtype)
+        target = tf.broadcast_to(target, tf.shape(self.tensor))
+        return TfClassifierTensor(target)
