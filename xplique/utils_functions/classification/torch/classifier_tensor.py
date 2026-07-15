@@ -7,6 +7,8 @@ cannot explicitly inherit from the StructuredPrediction protocol but implements 
 interface via structural typing (duck typing).
 """
 
+from numbers import Integral
+
 import torch
 
 from xplique.commons.prediction_types import StructuredPrediction
@@ -24,7 +26,7 @@ class TorchClassifierTensor(torch.Tensor):
     xplique.commons.prediction_types.StructuredPrediction) via structural typing.
     The class complies with the protocol by implementing:
     - to_batched_tensor(): Adds batch dimension if needed
-    - filter(class_id, confidence): No-op for classifiers (returns self)
+    - filter(class_id, confidence): Creates a one-hot target for a selected class
     """
 
     @classmethod
@@ -63,27 +65,43 @@ class TorchClassifierTensor(torch.Tensor):
             return torch.unsqueeze(self, 0)
         return self
 
-    # pylint: disable=unused-argument
     def filter(self, class_id=None, confidence=None):
         """
-        Filter predictions (no-op for classifiers).
+        Build a target for a selected classification class.
 
-        Classifiers don't have multiple detections to filter, so this method
-        simply returns self for interface compatibility.
+        Classifiers do not have detections to filter. When ``class_id`` is
+        provided, return a one-hot target with the same batch shape as the
+        predictions. ``confidence`` is ignored for classifiers.
 
         Parameters
         ----------
         class_id
-            Ignored for classifiers
+            Class to target.
         confidence
             Ignored for classifiers
 
         Returns
         -------
-        self
-            Returns self unchanged
+        filtered_tensor
+            One-hot target for ``class_id``, or self when no class is selected.
         """
-        return self
+        if class_id is None:
+            return self
+
+        if not isinstance(class_id, Integral) or isinstance(class_id, bool):
+            raise ValueError("class_id must be an integer.")
+
+        class_id = int(class_id)
+        num_classes = self.shape[-1]
+        if class_id < 0 or class_id >= num_classes:
+            raise ValueError(f"class_id must be in [0, {num_classes}).")
+
+        target = torch.zeros_like(self)
+        target[..., class_id] = 1
+        # Ensure subclass identity is preserved regardless of upstream torch.zeros_like semantics.
+        if not isinstance(target, type(self)):
+            target = target.as_subclass(type(self))
+        return target
 
 
 # Verify structural compliance with StructuredPrediction protocol at import time.
