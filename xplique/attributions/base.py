@@ -34,11 +34,12 @@ def sanitize_input_output(explanation_method: Callable):
         inputs: Union[tf.data.Dataset, tf.Tensor, np.array],
         targets: Optional[Union[tf.Tensor, np.array]],
         *args,
+        **kwargs,
     ):
         # ensure we have tf.tensor
         inputs, targets = tensor_sanitize(inputs, targets)
         # then enter the explanation function
-        return explanation_method(self, inputs, targets, *args)
+        return explanation_method(self, inputs, targets, *args, **kwargs)
 
     return sanitize
 

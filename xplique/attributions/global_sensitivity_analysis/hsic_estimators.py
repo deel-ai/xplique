@@ -61,9 +61,7 @@ class HsicEstimator(ABC):
         score
           HSIC scores after post processing.
         """
-        # Reshape to (H, W, 1) and then swap the first two axes.
-        reshaped = tf.reshape(score, tf.shape(masks)[1:])
-        return tf.transpose(reshaped, perm=[1, 0, 2])
+        return tf.reshape(score, tf.shape(masks)[1:])
 
     @abstractmethod
     def input_kernel_func(self, X: tf.Tensor, Y: tf.Tensor) -> tf.Tensor:
@@ -140,8 +138,8 @@ class HsicEstimator(ABC):
         HSIC estimates
             Raw HSIC estimates in tensorflow
         """
-        # Rearrange to get (d, nb_design) where d = H*W*1.
-        X = rearrange(masks, "n h w c -> (c w h) n")
+        # Rearrange to get (d, nb_design) in HWC order.
+        X = rearrange(masks, "n h w c -> (h w c) n")
         # Add singleton dimensions: shape becomes (d, 1, nb_design, 1)
         X1 = rearrange(X, "d n -> d 1 n 1")
         # Swap last two axes: shape becomes (d, 1, 1, nb_design)
