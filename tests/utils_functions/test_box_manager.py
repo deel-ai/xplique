@@ -74,6 +74,12 @@ class BaseBoxManagerTests:
         expected = self.make_tensor([[40, 40, 60, 60], [0.25, 0.25, 0.35, 0.35]])
         assert self.allclose(result, expected)
 
+    def test_box_conversion_preserves_trailing_columns(self):
+        boxes = self.make_tensor([[40, 40, 20, 20, 0.8, 1.0]])
+        result = self.box_manager_cls.box_xywh_to_xyxy(boxes)
+        expected = self.make_tensor([[40, 40, 60, 60, 0.8, 1.0]])
+        assert self.allclose(result, expected)
+
     def test_box_xyxy_to_xywh(self):
         boxes = self.make_tensor([[40, 40, 60, 60], [0.25, 0.25, 0.35, 0.35]])
         result = self.box_manager_cls.box_xyxy_to_xywh(boxes)
@@ -179,4 +185,41 @@ class TestTfBoxManager(BaseBoxManagerTests):
 
     def allclose(self, a, b):
         return bool(tf.reduce_all(tf.abs(a - b) < 1e-5))
+
+
+def test_numpy_box_manager_handles_integer_boxes_and_metadata():
+    boxes = np.array([[50, 25, 100, 50, 1, 2]], dtype=np.int32)
+
+    normalized = NumpyBoxManager.normalize_boxes(boxes, (200, 100))
+    denormalized = NumpyBoxManager.denormalize_boxes(normalized, (200, 100))
+
+    assert np.issubdtype(normalized.dtype, np.floating)
+    np.testing.assert_allclose(normalized, [[0.25, 0.25, 0.5, 0.5, 1.0, 2.0]])
+    np.testing.assert_allclose(denormalized, [[50, 25, 100, 50, 1.0, 2.0]])
+
+
+@pytest.mark.skipif(not HAS_TORCH, reason="PyTorch not available")
+def test_torch_box_manager_handles_integer_boxes_and_metadata():
+    boxes = torch.tensor([[50, 25, 100, 50, 1, 2]], dtype=torch.int64)
+
+    normalized = TorchBoxManager.normalize_boxes(boxes, (200, 100))
+    denormalized = TorchBoxManager.denormalize_boxes(normalized, (200, 100))
+
+    assert normalized.dtype == torch.float32
+    assert torch.allclose(normalized, torch.tensor([[0.25, 0.25, 0.5, 0.5, 1.0, 2.0]]))
+    assert torch.allclose(denormalized, torch.tensor([[50, 25, 100, 50, 1.0, 2.0]]))
+
+
+def test_tf_box_manager_handles_integer_boxes_and_metadata_in_a_graph():
+    @tf.function
+    def normalize_and_denormalize(boxes):
+        normalized = TfBoxManager.normalize_boxes(boxes, (200, 100))
+        return normalized, TfBoxManager.denormalize_boxes(normalized, (200, 100))
+
+    boxes = tf.constant([[50, 25, 100, 50, 1, 2]], dtype=tf.int32)
+    normalized, denormalized = normalize_and_denormalize(boxes)
+
+    assert normalized.dtype == tf.float32
+    np.testing.assert_allclose(normalized, [[0.25, 0.25, 0.5, 0.5, 1.0, 2.0]])
+    np.testing.assert_allclose(denormalized, [[50, 25, 100, 50, 1.0, 2.0]])
 

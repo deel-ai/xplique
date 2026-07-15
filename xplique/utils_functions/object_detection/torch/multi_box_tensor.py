@@ -115,7 +115,7 @@ class TorchMultiBoxTensor(torch.Tensor):
         if class_id is not None and confidence is not None:
             keep = (class_ids == class_id) & (scores >= confidence)
         elif class_id is None:
-            keep = scores > confidence
+            keep = scores >= confidence
         else:
             keep = class_ids == class_id
         return self[keep, :]

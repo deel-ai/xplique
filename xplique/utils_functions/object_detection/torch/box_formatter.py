@@ -90,6 +90,8 @@ class TorchBaseBoxFormatter(BaseBoxFormatter, ABC):
         boxes = self.box_translator.translate(boxes, image_size=image_size)
         probas = predictions["probas"]
         scores = predictions["scores"]
+        if scores.ndim == 1:
+            scores = scores.unsqueeze(-1)
         return TorchMultiBoxTensor(
             torch.cat(
                 [
