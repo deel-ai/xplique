@@ -4,6 +4,7 @@ import tensorflow as tf
 import tensorflow_probability as tfp
 
 from xplique.attributions import HsicAttributionMethod
+from xplique.attributions.base import sanitize_input_output
 from xplique.attributions.global_sensitivity_analysis import (
     BinaryEstimator,
     RbfEstimator,
@@ -12,6 +13,32 @@ from xplique.attributions.global_sensitivity_analysis import (
 from xplique.attributions.global_sensitivity_analysis.kernels import Kernel
 
 from ..utils import generate_data, generate_model
+
+
+def test_nb_design_positional_compatibility():
+    model = generate_model((4, 4, 1), 2)
+
+    method = HsicAttributionMethod(model, 2, 8)
+    assert method.nb_design == 8
+    assert method.masks.shape[-1] == 1
+
+    multi_channel_method = HsicAttributionMethod(model, 2, 8, nb_channels=2)
+    assert multi_channel_method.masks.shape[-1] == 2
+
+
+def test_sanitize_input_output_forwards_keywords():
+    class DecoratedExplainer:
+        @sanitize_input_output
+        def explain(self, inputs, targets, verbose=False):
+            return inputs, targets, verbose
+
+    inputs, targets, verbose = DecoratedExplainer().explain(
+        np.ones((1, 2), dtype=np.float32), np.ones((1, 1), dtype=np.float32), verbose=True
+    )
+
+    assert isinstance(inputs, tf.Tensor)
+    assert isinstance(targets, tf.Tensor)
+    assert verbose
 
 
 def test_hsic_kernels_shape():
@@ -119,22 +146,21 @@ def test_hsic_invariant_to_design_permutation(Estimator):
 
 @pytest.mark.parametrize("Estimator", [SobolevEstimator, BinaryEstimator, RbfEstimator])
 def test_hsic_detects_dependent_dimension(Estimator):
-    nb_design, H, W, C = 64, 2, 1, 1  # two dimensions total
+    nb_design, H, W, C = 64, 2, 2, 2
     rng = tf.random.Generator.from_seed(7)
-    dep_dim = rng.uniform((nb_design,), dtype=tf.float32)  # this drives Y
-    indep_dim = rng.uniform((nb_design,), dtype=tf.float32)
-
-    # masks[..., 0,0,0] = dep_dim, masks[..., 1,0,0] = indep_dim
-    masks = tf.stack([dep_dim, indep_dim], axis=1)  # (nb_design, 2)
-    masks = tf.reshape(masks, (nb_design, H, W, C))  # (n,2,1,1)
+    dependent_position = (1, 0, 1)
+    dep_dim = rng.uniform((nb_design,), dtype=tf.float32)
+    mask_dimensions = [rng.uniform((nb_design,), dtype=tf.float32) for _ in range(H * W * C)]
+    dependent_index = np.ravel_multi_index(dependent_position, (H, W, C))
+    mask_dimensions[dependent_index] = dep_dim
+    masks = tf.reshape(tf.stack(mask_dimensions, axis=1), (nb_design, H, W, C))
 
     outputs = tf.identity(dep_dim)
     est = Estimator()
 
-    scores = est(masks, outputs, nb_design).numpy()  # shape (W,H,C) = (1,2,1)
-    scores_hw = np.transpose(scores, (1, 0, 2)).reshape(H)  # back to [H] order
-    assert np.argmax(scores_hw) == 0
-    assert scores_hw[0] > scores_hw[1] + 1e-3
+    scores = est(masks, outputs, nb_design).numpy()
+    assert scores.shape == (H, W, C)
+    assert np.unravel_index(np.argmax(scores), scores.shape) == dependent_position
 
 
 def test_output_rbf_width_tfp_matches_numpy():

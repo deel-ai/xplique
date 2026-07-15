@@ -28,8 +28,6 @@ class HsicAttributionMethod(GSABaseAttributionMethod):
         Model used for computing explanations.
     grid_size
         Cut the image in a grid of (grid_size, grid_size) to estimate an indice per cell.
-    nb_channels
-        Number of channels in the masks generation. Default is 1.
     nb_design
         Number of design for the sampler.
     sampler
@@ -51,13 +49,14 @@ class HsicAttributionMethod(GSABaseAttributionMethod):
         Function g to explain, g take 3 parameters (f, x, y) and should return a scalar,
         with f the model, x the inputs and y the targets. If None, use the standard
         operator g(f, x, y) = f(x)[y].
+    nb_channels
+        Number of channels in the masks generation. Default is 1.
     """
 
     def __init__(
         self,
         model,
         grid_size: int = 8,
-        nb_channels: int = 1,
         nb_design: int = 500,
         sampler: Optional[Sampler] = None,
         estimator: Optional[HsicEstimator] = None,
@@ -65,6 +64,8 @@ class HsicAttributionMethod(GSABaseAttributionMethod):
         batch_size: int = 256,
         estimator_batch_size: int = None,
         operator: Optional[Union[Tasks, str, OperatorSignature]] = None,
+        *,
+        nb_channels: int = 1,
     ):
         sampler = sampler if sampler is not None else TFSobolSequence(binary=True)
         estimator = estimator if estimator is not None else BinaryEstimator(output_kernel="rbf")

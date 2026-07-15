@@ -21,6 +21,17 @@ from xplique.attributions.global_sensitivity_analysis import (
 from ..utils import almost_equal, generate_data, generate_model
 
 
+def test_nb_design_positional_compatibility():
+    model = generate_model((4, 4, 1), 2)
+
+    method = SobolAttributionMethod(model, 2, 8)
+    assert method.nb_design == 8
+    assert method.masks.shape[-1] == 1
+
+    multi_channel_method = SobolAttributionMethod(model, 2, 8, nb_channels=2)
+    assert multi_channel_method.masks.shape[-1] == 2
+
+
 def test_output_shape():
     """The output size (h, w) must be the same as the input"""
 

@@ -24,8 +24,6 @@ class SobolAttributionMethod(GSABaseAttributionMethod):
         Model used for computing explanations.
     grid_size
         Cut the image in a grid of (grid_size, grid_size) to estimate an indice per cell.
-    nb_channels
-        Number of channels in the masks generation. Default is 1.
     nb_design
         Must be a power of two. Number of design, the number of forward
         will be: nb_design * (grid_size**2 * nb_channels + 2). Generally not above 32.
@@ -44,19 +42,22 @@ class SobolAttributionMethod(GSABaseAttributionMethod):
         Function g to explain, g take 3 parameters (f, x, y) and should return a scalar,
         with f the model, x the inputs and y the targets. If None, use the standard
         operator g(f, x, y) = f(x)[y].
+    nb_channels
+        Number of channels in the masks generation. Default is 1.
     """
 
     def __init__(
         self,
         model,
         grid_size: int = 8,
-        nb_channels: int = 1,
         nb_design: int = 32,
         sampler: Optional[ReplicatedSampler] = None,
         estimator: Optional[SobolEstimator] = None,
         perturbation_function: Optional[Union[Callable, str]] = "inpainting",
         batch_size=256,
         operator: Optional[Union[Tasks, str, OperatorSignature]] = None,
+        *,
+        nb_channels: int = 1,
     ):
         assert (nb_design & (nb_design - 1) == 0) and nb_design != 0, (
             "The number of design must be a power of two."
