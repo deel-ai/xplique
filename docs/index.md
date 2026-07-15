@@ -131,10 +131,17 @@ Finally, the _Metrics_ module covers the current metrics used in explainability.
 
 ## 🚀 Quick Start
 
-Xplique requires a version of python higher than 3.7 and several libraries including Tensorflow and Numpy. Installation can be done using Pypi:
+Xplique supports Python 3.10 through 3.13. Installation includes TensorFlow, NumPy, and other
+runtime dependencies:
 
-```python
+```bash
 pip install xplique
+```
+
+Install the optional PyTorch dependencies for PyTorch models and concept methods:
+
+```bash
+pip install "xplique[torch]"
 ```
 
 Now that Xplique is installed, here are some basic examples of what you can do with the available modules.
