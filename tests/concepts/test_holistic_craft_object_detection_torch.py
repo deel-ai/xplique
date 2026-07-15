@@ -45,7 +45,12 @@ class MockTorchvisionModel(torch.nn.Module):
             pooled_mean = pooled[i].mean().abs() + 1.0  # Add 1.0 to ensure decent scale
 
             # boxes: modulated by input features
-            boxes_base = torch.rand(5, 4, device=device)
+            boxes_base = torch.tensor(
+                [[0.1, 0.1, 0.3, 0.3], [0.2, 0.2, 0.4, 0.4], [0.3, 0.3, 0.5, 0.5],
+                 [0.4, 0.4, 0.6, 0.6], [0.5, 0.5, 0.7, 0.7]],
+                device=device,
+                dtype=x.dtype,
+            )
             boxes = boxes_base * pooled_mean * 100  # Scale to reasonable box sizes
 
             # scores: ensure some boxes have high confidence for filtering tests
@@ -57,8 +62,7 @@ class MockTorchvisionModel(torch.nn.Module):
 
             # labels: ensure first box is 'car' (index 3 in COCO) for saliency test filtering
             # This ensures at least one high-confidence box has the 'car' class
-            labels = torch.randint(0, 20, (5,), device=device)
-            labels[0] = 3  # 'car' class (COCO index)
+            labels = torch.tensor([3, 1, 7, 9, 11], device=device)
 
             pred = {
                 'boxes': boxes,
@@ -255,7 +259,7 @@ def device_param(request):
     device = torch.device(device_str)
     return device
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def image_data(device_param):
     """Fixture providing image data for tests."""
     rng = np.random.default_rng(seed=42)
@@ -280,7 +284,7 @@ def test_image_size(image_data):
     assert image.size == expected_size
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def model_data(image_data, device_param):
     """Create a mock Torchvision-style object detection model."""
     _, input_tensor = image_data
@@ -299,6 +303,18 @@ def test_model_outputs(model_data):
     assert 'boxes' in processed_results[0]
     assert 'scores' in processed_results[0]
     assert 'labels' in processed_results[0]
+
+
+def test_model_outputs_are_deterministic(image_data, model_data):
+    """The mock must produce identical detections for the same input."""
+    _, input_tensor = image_data
+    model, first_results = model_data
+    second_results = model(input_tensor)
+
+    for first, second in zip(first_results, second_results):
+        assert torch.equal(first['boxes'], second['boxes'])
+        assert torch.equal(first['scores'], second['scores'])
+        assert torch.equal(first['labels'], second['labels'])
 
 def test_gradients_model_original(image_data, model_data):
     """Fixture providing a mock latent extractor for tests."""
@@ -341,7 +357,7 @@ def test_box_model_wrapper():
     assert isinstance(output_tensor, torch.Tensor)
     assert output_tensor.shape == (2, 5, 25)  # (batch, num_boxes, features)
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def dataset_classes():
     """Fixture providing COCO dataset classes and metadata."""
     # COCO classes
@@ -369,7 +385,7 @@ def dataset_classes():
                 'truck': 'orange'}
     return classes, nb_classes, label_to_color
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def latent_extractor_data(dataset_classes, model_data, device_param):
     """Create latent extractor using MockExtractorBuilder."""
     classes_names, nb_classes, label_to_color = dataset_classes
@@ -433,7 +449,7 @@ def test_latent_extractor_saliency(image_data, dataset_classes,
     explanation = explainer.explain(input_tensor_tf_dim, targets=box_to_explain)
     assert explanation.shape == (1, 800, 800, 1)
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def craft_data(image_data, latent_extractor_data, device_param):
     """Fixture providing CRAFT instance for tests."""
     image, input_tensor = image_data

@@ -667,10 +667,5 @@ def test_craft_encode_differentiable_gradients(image_data, craft_data):
 
     # Verify gradients flowed back to input
     assert gradients is not None, "Gradients should flow back to input"
-
-    # Note: With mock model, NMF may produce NaN gradients due to Cholesky decomposition
-    # In real usage with actual models, gradients should be non-zero
-    # For testing, we just verify gradient computation doesn't crash
-    grad_sum = tf.reduce_sum(tf.abs(gradients))
-    if not tf.math.is_nan(grad_sum):
-        assert grad_sum > 0, "Gradients should be non-zero (if not NaN)"
+    assert tf.reduce_all(tf.math.is_finite(gradients)), "Gradients should be finite"
+    assert tf.reduce_sum(tf.abs(gradients)) > 0, "Gradients should be non-zero"
