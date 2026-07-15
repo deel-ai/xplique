@@ -4,13 +4,15 @@ PyTorch-specific latent extractor implementations for object detection models.
 
 from abc import abstractmethod
 from contextlib import nullcontext
-from math import ceil
 from typing import Callable, Generator, List, Optional, Union
 
 import torch
 
 from xplique.utils_functions.object_detection.base.box_formatter import (
     BaseBoxFormatter,
+)
+from xplique.utils_functions.object_detection.torch.box_model_wrapper import (
+    _pad_and_stack_box_predictions,
 )
 from xplique.utils_functions.object_detection.torch.multi_box_tensor import TorchMultiBoxTensor
 from xplique.utils_functions.output_as_list_mixin import OutputAsListMixin
@@ -97,7 +99,7 @@ class TorchLatentExtractor(OutputAsListMixin, LatentExtractor):
         latent_data_class=LatentData,
         output_formatter: Optional[BaseBoxFormatter] = None,
         batch_size: int = 8,
-        device: str = "cuda",
+        device: Optional[Union[str, torch.device]] = None,
     ):
         """
         Initialize PyTorch latent extractor with model and configuration.
@@ -117,8 +119,12 @@ class TorchLatentExtractor(OutputAsListMixin, LatentExtractor):
         batch_size
             Batch size for processing. Default is 8.
         device
-            Device for computation ('cuda' or 'cpu'). Default is 'cuda'.
+            Device for computation. If None, CUDA is used when available and CPU otherwise.
         """
+        if not isinstance(model, torch.nn.Module):
+            raise TypeError("model must be a torch.nn.Module")
+        if not isinstance(batch_size, int) or isinstance(batch_size, bool) or batch_size <= 0:
+            raise ValueError("batch_size must be a positive integer")
         super().__init__(
             model,
             input_to_latent_model,
@@ -127,9 +133,44 @@ class TorchLatentExtractor(OutputAsListMixin, LatentExtractor):
             output_formatter,
             batch_size,
         )
-        self.model = self.model.to(device)
-        self.device = device
+        self.device = self._resolve_device(device)
+        self.model = self.model.to(self.device)
         self.output_as_list = True
+
+    @staticmethod
+    def _resolve_device(device: Optional[Union[str, torch.device]]) -> torch.device:
+        """Select the default device and reject unavailable CUDA targets early."""
+        if device is None:
+            device = "cuda" if torch.cuda.is_available() else "cpu"
+        try:
+            resolved_device = torch.device(device)
+        except (TypeError, RuntimeError) as error:
+            raise ValueError(f"Invalid PyTorch device: {device!r}") from error
+
+        if resolved_device.type == "cuda":
+            if not torch.cuda.is_available():
+                raise ValueError("CUDA was requested but is not available")
+            if (
+                resolved_device.index is not None
+                and resolved_device.index >= torch.cuda.device_count()
+            ):
+                raise ValueError(f"CUDA device index {resolved_device.index} is not available")
+        return resolved_device
+
+    @staticmethod
+    def _prepare_inputs(inputs: torch.Tensor) -> torch.Tensor:
+        """Validate image inputs and add a batch dimension to one image."""
+        if not isinstance(inputs, torch.Tensor):
+            raise TypeError("inputs must be a torch.Tensor")
+        if inputs.ndim not in (3, 4):
+            raise ValueError(
+                "inputs must have rank 3 (a single image) or rank 4 (a batch of images)"
+            )
+        if inputs.numel() == 0:
+            raise ValueError("inputs must contain at least one value")
+        if inputs.ndim == 3:
+            inputs = inputs.unsqueeze(0)
+        return inputs
 
     @property
     def training(self) -> bool:
@@ -148,7 +189,7 @@ class TorchLatentExtractor(OutputAsListMixin, LatentExtractor):
         self.model.eval()
         return self
 
-    def to(self, device: str) -> "TorchLatentExtractor":
+    def to(self, device: Union[str, torch.device]) -> "TorchLatentExtractor":
         """
         Move model to specified device.
 
@@ -162,7 +203,8 @@ class TorchLatentExtractor(OutputAsListMixin, LatentExtractor):
         self
             Self reference for method chaining.
         """
-        self.model.to(device)
+        self.device = self._resolve_device(device)
+        self.model.to(self.device)
         return self
 
     def zero_grad(self) -> "TorchLatentExtractor":
@@ -191,13 +233,15 @@ class TorchLatentExtractor(OutputAsListMixin, LatentExtractor):
         outputs
             Model predictions, formatted and optionally stacked based on output_as_list setting.
         """
-        latent_data = self.input_to_latent_model(samples)
+        latent_data = self.input_to_latent(samples)
         outputs = self.latent_to_logit_model(latent_data)
         if self.output_formatter:
             outputs = self.output_formatter(outputs)
             if not self.output_as_list:
                 if isinstance(outputs, (list, tuple)):
-                    outputs = torch.stack(outputs, dim=0)
+                    outputs = _pad_and_stack_box_predictions(outputs)
+                elif hasattr(outputs, "to_batched_tensor"):
+                    outputs = outputs.to_batched_tensor()
         return outputs
 
     def input_to_latent(self, inputs: torch.Tensor) -> LatentData:
@@ -214,8 +258,7 @@ class TorchLatentExtractor(OutputAsListMixin, LatentExtractor):
         latent_data
             Latent representations extracted by input_to_latent_model.
         """
-        if len(inputs.shape) == 3:
-            inputs = inputs.unsqueeze(0)
+        inputs = self._prepare_inputs(inputs).to(self.device)
         latent_data = self.input_to_latent_model(inputs)
         return latent_data
 
@@ -239,16 +282,11 @@ class TorchLatentExtractor(OutputAsListMixin, LatentExtractor):
         latent_data
             LatentData object for each batch, with automatic memory management.
         """
-        if len(inputs.shape) == 3:
-            inputs = inputs.unsqueeze(0)
+        inputs = self._prepare_inputs(inputs)
 
-        nb_batchs = ceil(len(inputs) / self.batch_size)
-        start_ids = [i * self.batch_size for i in range(nb_batchs)]
-
-        context = nullcontext() if keep_gradients else torch.no_grad()
-        with context:
-            for i in start_ids:
-                i_end = min(i + self.batch_size, len(inputs))
+        for i in range(0, inputs.shape[0], self.batch_size):
+            i_end = min(i + self.batch_size, inputs.shape[0])
+            with nullcontext() if keep_gradients else torch.no_grad():
                 batch = inputs[i:i_end].to(self.device)
 
                 if resize:
@@ -257,8 +295,8 @@ class TorchLatentExtractor(OutputAsListMixin, LatentExtractor):
                     )
 
                 latent_data = self.input_to_latent_model(batch)
-                del batch
-                yield latent_data
+            del batch
+            yield latent_data
 
     def latent_to_logit(self, latent_data: LatentData) -> List[TorchMultiBoxTensor]:
         """

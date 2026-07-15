@@ -2,7 +2,7 @@
 PyTorch latent data and extractor builder for layered models.
 """
 
-from typing import Union
+from typing import Optional, Union
 
 import numpy as np
 import torch
@@ -161,7 +161,7 @@ class LayeredModelExtractorBuilder(LatentExtractorBuilder):
         cls,
         model: torch.nn.Module,
         split_layer: int,
-        device: str = "cuda",
+        device: Optional[Union[str, torch.device]] = None,
         batch_size: int = 1,
         **kwargs,
     ) -> "TorchLatentExtractor":
@@ -182,7 +182,7 @@ class LayeredModelExtractorBuilder(LatentExtractorBuilder):
             (e.g., -1 for the last layer, -2 for the second-to-last). The split
             targets the layer at this index, and h processes the remaining layers.
         device
-            Device to run computations on ('cuda' or 'cpu'). Default is 'cuda'.
+            Device to run computations on. If None, CUDA is used when available and CPU otherwise.
         batch_size
             Batch size for processing. Default is 1.
         **kwargs
@@ -200,6 +200,16 @@ class LayeredModelExtractorBuilder(LatentExtractorBuilder):
         """
         # Get all model children (sequential layers)
         children_list = list(model.children())
+        if not children_list:
+            raise ValueError("model must contain at least one child layer")
+        if not isinstance(split_layer, int) or isinstance(split_layer, bool):
+            raise ValueError("split_layer must be an integer layer index")
+        if not -len(children_list) <= split_layer < len(children_list):
+            raise ValueError(
+                f"split_layer must be between {-len(children_list)} and "
+                f"{len(children_list) - 1}, got {split_layer}"
+            )
+        split_index = split_layer % len(children_list)
 
         def g(images: torch.Tensor) -> LayeredLatentData:
             """
@@ -216,7 +226,7 @@ class LayeredModelExtractorBuilder(LatentExtractorBuilder):
                 LayeredLatentData containing split layer activations.
             """
             x = images
-            for layer in children_list[:split_layer]:
+            for layer in children_list[: split_index + 1]:
                 x = layer(x)
 
             # Extract activations at split layer
@@ -241,7 +251,7 @@ class LayeredModelExtractorBuilder(LatentExtractorBuilder):
             x = latent_data.activations
 
             # Process through remaining layers after split
-            for layer in children_list[split_layer:]:
+            for layer in children_list[split_index + 1 :]:
                 # Special handling for Sequential containers - check first child
                 # This handles cases like VGG's classifier which is a Sequential
                 first_child = None
