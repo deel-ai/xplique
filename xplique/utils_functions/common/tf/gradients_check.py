@@ -43,6 +43,13 @@ def _extract_all_tensors(obj: Any) -> List[tf.Tensor]:
     return []
 
 
+def _vjp_probes(tensor: tf.Tensor) -> List[tf.Tensor]:
+    """Return deterministic probes that do not reduce every output to its sum."""
+    alternating = tf.range(tf.size(tensor))
+    alternating = tf.cast(2 * tf.math.floormod(alternating, 2) - 1, tensor.dtype)
+    return [tf.ones_like(tensor), tf.reshape(alternating, tf.shape(tensor))]
+
+
 def check_model_gradients(func: Any, input_tensor: tf.Tensor, verbose: bool = False) -> bool:
     """
     Test gradients in both Eager and Graph modes for an object detection model.
@@ -89,7 +96,6 @@ def check_model_gradients(func: Any, input_tensor: tf.Tensor, verbose: bool = Fa
         if verbose:
             print(f"\n--- Testing {mode_name} mode ---")
 
-        result = False
         try:
             with tf.GradientTape(persistent=True) as tape:
                 tape.watch(input_tensor)
@@ -98,41 +104,37 @@ def check_model_gradients(func: Any, input_tensor: tf.Tensor, verbose: bool = Fa
                 # Extract all tensors recursively from the output structure
                 tensors = _extract_all_tensors(predictions)
 
-                if not tensors:
-                    if verbose:
-                        print("No tensors found in outputs")
-                    result = False
-                else:
-                    # Calculate the loss by summing all tensors
-                    loss = tf.add_n([tf.reduce_sum(t) for t in tensors])
+            if not tensors:
+                if verbose:
+                    print("No tensors found in outputs")
+                return False
 
-                    # Compute gradients
-                    # pylint: disable=broad-exception-caught
-                    try:
-                        gradients = tape.gradient(loss, input_tensor)
-                        if gradients is not None:
-                            if verbose:
-                                grad_sum = tf.reduce_sum(tf.abs(gradients))
-                                print(f"Gradients OK - sum={grad_sum.numpy():.6f}")
-                            result = True
-                        else:
-                            if verbose:
-                                print("No gradients or None gradients")
-                            result = False
-                    except Exception as e:
+            # Probe each output independently: summing outputs can cancel gradients,
+            # for example when a model returns probabilities that sum to one.
+            for tensor in tensors:
+                if not (tensor.dtype.is_floating or tensor.dtype.is_complex):
+                    continue
+                for probe in _vjp_probes(tensor):
+                    gradients = tape.gradient(tensor, input_tensor, output_gradients=probe)
+                    if gradients is None:
+                        continue
+                    is_finite = bool(tf.reduce_all(tf.math.is_finite(gradients)).numpy())
+                    is_nonzero = bool(tf.reduce_any(tf.not_equal(gradients, 0)).numpy())
+                    if is_finite and is_nonzero:
                         if verbose:
-                            print(f"Gradient computation error: {e}")
-                        result = False
+                            grad_sum = tf.reduce_sum(tf.abs(gradients))
+                            print(f"Gradients OK - sum={grad_sum.numpy():.6f}")
+                        return True
 
-            del tape
+            if verbose:
+                print("No finite, non-zero gradients")
+            return False
 
         # pylint: disable=broad-exception-caught
         except Exception as e:
             if verbose:
                 print(f"{mode_name} mode failed completely: {e}")
-            result = False
-
-        return result
+            return False
 
     # Test both modes — no global state is mutated.
     # Eager: call func directly (TF default behaviour).

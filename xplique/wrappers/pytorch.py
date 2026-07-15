@@ -24,7 +24,8 @@ class TorchWrapper(tf.keras.Model):
     is_channel_first
         A boolean that is true if the torch's model expect a channel dim and if this one come first
     requires_grad
-        A boolean that is true if the torch's model requires gradients
+        Whether gradients are available for the wrapped model. If False, inference
+        remains available but gradient-based explainers raise a RuntimeError.
     """
 
     def __init__(
@@ -94,22 +95,31 @@ class TorchWrapper(tf.keras.Model):
             The function that allow to compute the gradient of the PyTorch model and
             broadcast it for Tensorflow
         """
-        # transform your numpy inputs to torch
-        torch_inputs = self.np_img_to_torch(inputs).to(self.device)
-        torch_inputs.requires_grad_(self.requires_grad)
-
-        # make predictions
-        self.model.zero_grad()
-        outputs = self.model(torch_inputs)
+        # Transform inputs before enabling gradients so they remain leaf tensors.
+        torch_inputs = self.np_img_to_torch(inputs).to(self.device).detach()
+        if self.requires_grad:
+            with self.torch.enable_grad():
+                torch_inputs.requires_grad_(True)
+                outputs = self.model(torch_inputs)
+        else:
+            with self.torch.no_grad():
+                outputs = self.model(torch_inputs)
         output_tensor = tf.constant(outputs.cpu().detach().numpy())
 
         def grad(upstream):
-            self.torch.autograd.backward(
+            if not self.requires_grad:
+                raise RuntimeError(
+                    "TorchWrapper was created with requires_grad=False and cannot be used "
+                    "with gradient-based explainers."
+                )
+            (dx_torch,) = self.torch.autograd.grad(
                 outputs,
-                grad_tensors=self.from_numpy(upstream.numpy()).to(self.device),
-                retain_graph=False,
+                torch_inputs,
+                grad_outputs=self.from_numpy(upstream.numpy()).to(self.device),
+                allow_unused=True,
             )
-            dx_torch = torch_inputs.grad
+            if dx_torch is None:
+                return None
 
             dx_np = dx_torch.cpu().detach().numpy()
             if self.channel_first:

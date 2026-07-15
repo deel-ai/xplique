@@ -355,3 +355,34 @@ def test_model_with_nan_output(input_tensor):
     result = check_model_gradients(model, input_tensor)
     # The important thing is it doesn't crash
     assert not result, "Should detect no gradients due to NaN outputs"
+
+
+def test_model_with_cancelling_outputs(input_tensor):
+    """Test that independent VJP probes detect gradients hidden by output summation."""
+
+    def cancelling_model(x):
+        return tf.stack([x[..., 0], -x[..., 0]], axis=-1)
+
+    assert check_model_gradients(cancelling_model, input_tensor)
+
+
+def test_model_with_zero_gradient(input_tensor):
+    """Test that zero gradients are rejected."""
+
+    assert not check_model_gradients(lambda x: x * 0.0, input_tensor)
+
+
+def test_model_with_finite_gradient(input_tensor):
+    """Test that finite non-zero gradients are accepted."""
+
+    assert check_model_gradients(lambda x: x * 2.0, input_tensor)
+
+
+@pytest.mark.parametrize("invalid_gradient", [float("nan"), float("inf")])
+def test_model_with_nonfinite_gradient(input_tensor, invalid_gradient):
+    """Test that NaN and infinite gradients are rejected."""
+
+    def invalid_gradient_model(x):
+        return x * tf.cast(invalid_gradient, x.dtype)
+
+    assert not check_model_gradients(invalid_gradient_model, input_tensor)
