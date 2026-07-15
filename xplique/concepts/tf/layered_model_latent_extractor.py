@@ -152,28 +152,73 @@ class LayeredModelExtractorBuilder(LatentExtractorBuilder):
         Raises
         ------
         ValueError
-            If split_layer is not found in the model or is an invalid type.
+            If the model cannot be split at split_layer or uses unsupported input/output shapes.
         """
-        # Get the split layer (supports negative indexing)
-        split_layer_obj = model.layers[split_layer]
+        if not isinstance(model, tf.keras.Model):
+            raise ValueError("model must be a tf.keras.Model")
+        if not isinstance(split_layer, int) or isinstance(split_layer, bool):
+            raise ValueError("split_layer must be an integer layer index")
 
-        # Create sub-model from input to split layer output
-        g_model = tf.keras.Model(inputs=model.input, outputs=split_layer_obj.output)
+        layers = list(model.layers)
+        if not layers:
+            raise ValueError("model must contain at least one layer")
+        if not -len(layers) <= split_layer < len(layers):
+            raise ValueError(
+                f"split_layer must be between {-len(layers)} and {len(layers) - 1}, "
+                f"got {split_layer}"
+            )
 
-        # For h, we need to create a model from split layer's output to final output
-        # We'll create an input layer matching the split layer's output shape
-        h_input_shape = split_layer_obj.output.shape[1:]  # Remove batch dimension
-        h_input = tf.keras.Input(shape=h_input_shape)
+        try:
+            model_inputs = tf.nest.flatten(model.inputs)
+            model_outputs = tf.nest.flatten(model.outputs)
+        except (AttributeError, ValueError) as error:
+            raise ValueError("model must be built before creating a latent extractor") from error
+        if len(model_inputs) != 1 or len(model_outputs) != 1:
+            raise ValueError(
+                "LayeredModelExtractorBuilder only supports single-input, single-output models"
+            )
 
-        # Get layers after the split
-        layers_after_split = model.layers[model.layers.index(split_layer_obj) + 1 :]
+        split_layer_obj = layers[split_layer]
+        split_outputs = tf.nest.flatten(split_layer_obj.output)
+        if len(split_outputs) != 1:
+            raise ValueError("split_layer must produce exactly one tensor")
+        split_output = split_outputs[0]
 
-        # Build h_model by connecting layers sequentially
-        x = h_input
-        for layer in layers_after_split:
-            x = layer(x)
+        # Every path to the output must pass through split_output. Keras otherwise
+        # accepts a bypassed branch and silently reconnects it to the new h input.
+        pending_tensors = [model_outputs[0]]
+        visited_tensors = set()
+        while pending_tensors:
+            tensor = pending_tensors.pop()
+            if tensor is split_output:
+                continue
+            if id(tensor) in visited_tensors:
+                continue
+            visited_tensors.add(id(tensor))
 
-        h_model = tf.keras.Model(inputs=h_input, outputs=x)
+            history = getattr(tensor, "_keras_history", None)
+            if history is None:
+                continue
+            operation = history.operation
+            node = operation._inbound_nodes[history.node_index]
+            parent_tensors = tf.nest.flatten(node.input_tensors)
+            if not parent_tensors:
+                raise ValueError(
+                    "split_layer must form a graph cut: model outputs must depend only on "
+                    "the selected layer output"
+                )
+            pending_tensors.extend(parent_tensors)
+
+        try:
+            # Reuse the Functional graph rather than replaying layers in sequence. This
+            # preserves branches and merge layers such as residual Add connections.
+            g_model = tf.keras.Model(inputs=model_inputs[0], outputs=split_output)
+            h_model = tf.keras.Model(inputs=split_output, outputs=model_outputs[0])
+        except ValueError as error:
+            raise ValueError(
+                "split_layer must form a graph cut: model outputs must depend only on "
+                "the selected layer output"
+            ) from error
 
         def g(images: tf.Tensor) -> LayeredLatentData:
             """

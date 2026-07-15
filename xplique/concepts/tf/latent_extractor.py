@@ -1,12 +1,14 @@
 """TensorFlow-specific latent extractor for object detection models."""
 
-from math import ceil
 from typing import Callable, Generator, List, Optional, Tuple, Union
 
 import tensorflow as tf
 
 from xplique.utils_functions.object_detection.base.box_formatter import (
     BaseBoxFormatter,
+)
+from xplique.utils_functions.object_detection.tf.box_model_wrapper import (
+    _pad_and_stack_box_predictions,
 )
 from xplique.utils_functions.object_detection.tf.multi_box_tensor import TfMultiBoxTensor
 from xplique.utils_functions.output_as_list_mixin import OutputAsListMixin
@@ -53,6 +55,8 @@ class TfLatentExtractor(OutputAsListMixin, LatentExtractor):
         output_formatter: Optional[BaseBoxFormatter] = None,
         batch_size: int = 8,
     ) -> None:
+        if not isinstance(batch_size, int) or isinstance(batch_size, bool) or batch_size <= 0:
+            raise ValueError("batch_size must be a positive integer")
         super().__init__(
             model,
             input_to_latent_model,
@@ -62,6 +66,20 @@ class TfLatentExtractor(OutputAsListMixin, LatentExtractor):
             batch_size,
         )
         self.output_as_list = True
+
+    @staticmethod
+    def _prepare_inputs(inputs: tf.Tensor) -> tf.Tensor:
+        """Validate image inputs and add a batch dimension to one image."""
+        inputs = tf.convert_to_tensor(inputs)
+        if inputs.shape.rank not in (3, 4):
+            raise ValueError(
+                "inputs must have rank 3 (a single image) or rank 4 (a batch of images)"
+            )
+        if inputs.shape.num_elements() == 0:
+            raise ValueError("inputs must contain at least one value")
+        if inputs.shape.rank == 3:
+            inputs = tf.expand_dims(inputs, axis=0)
+        return inputs
 
     def forward(self, samples: tf.Tensor) -> Union[List["TfMultiBoxTensor"], tf.Tensor]:
         """
@@ -79,15 +97,17 @@ class TfLatentExtractor(OutputAsListMixin, LatentExtractor):
         -------
         outputs
             If output_as_list=True: List of MultiBoxTensor (one per image)
-            If output_as_list=False: Stacked tensor of shape (N, num_boxes, features)
+            If output_as_list=False: Zero-padded tensor of shape (N, max_num_boxes, features)
         """
-        latent_data = self.input_to_latent_model(samples)
+        latent_data = self.input_to_latent(samples)
         outputs = self.latent_to_logit_model(latent_data)
         if self.output_formatter:
             outputs = self.output_formatter(outputs)
             if not self.output_as_list:
-                if isinstance(outputs, list):
-                    outputs = tf.stack(outputs, axis=0)
+                if isinstance(outputs, (list, tuple)):
+                    outputs = _pad_and_stack_box_predictions(outputs)
+                elif hasattr(outputs, "to_batched_tensor"):
+                    outputs = outputs.to_batched_tensor()
                 else:
                     outputs = tf.expand_dims(outputs, axis=0)
         return outputs
@@ -109,8 +129,7 @@ class TfLatentExtractor(OutputAsListMixin, LatentExtractor):
         latent_data
             Extracted latent activations wrapped in LatentData container
         """
-        if len(inputs.shape) == 3:
-            inputs = tf.expand_dims(inputs, axis=0)
+        inputs = self._prepare_inputs(inputs)
         latent_data = self.input_to_latent_model(inputs)
         return latent_data
 
@@ -143,14 +162,13 @@ class TfLatentExtractor(OutputAsListMixin, LatentExtractor):
         latent_data
             LatentData object containing encoded activations for current batch
         """
-        if len(inputs.shape) == 3:
-            inputs = tf.expand_dims(inputs, axis=0)
+        inputs = self._prepare_inputs(inputs)
+        batch_count = inputs.shape[0]
+        if batch_count is None:
+            raise ValueError("inputs must have a known batch dimension")
 
-        nb_batchs = ceil(len(inputs) / self.batch_size)
-        start_ids = [i * self.batch_size for i in range(nb_batchs)]
-
-        for i in start_ids:
-            i_end = min(i + self.batch_size, len(inputs))
+        for i in range(0, batch_count, self.batch_size):
+            i_end = min(i + self.batch_size, batch_count)
             batch = inputs[i:i_end]
 
             if resize:
