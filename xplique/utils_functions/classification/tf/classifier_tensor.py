@@ -5,6 +5,7 @@ This module provides a TensorFlow wrapper for classification predictions
 with a unified format compatible with the StructuredPrediction protocol.
 """
 
+import warnings
 from numbers import Integral
 
 import tensorflow as tf
@@ -27,11 +28,20 @@ class TfClassifierTensor(StructuredPrediction):
     """
 
     def __init__(self, tensor: tf.Tensor):
+        tensor = tf.convert_to_tensor(tensor)
+        if tensor.shape.rank not in (1, 2):
+            raise ValueError("Classifier predictions must have rank 1 or 2.")
         self.tensor = tensor
 
     @classmethod
     def from_predictions(cls, predictions):
-        """Wrap raw classifier predictions unless they are already formatted."""
+        """Wrap raw classifier predictions unless they are already formatted.
+
+        Raises
+        ------
+        ValueError
+            If predictions rank is not 1 or 2.
+        """
         if isinstance(predictions, cls):
             return predictions
         return cls(predictions)
@@ -41,21 +51,49 @@ class TfClassifierTensor(StructuredPrediction):
         """Return the shape of the underlying tensor for compatibility."""
         return self.tensor.shape
 
+    @staticmethod
+    def _dim_as_int(tensor: tf.Tensor, axis: int) -> int:
+        """Return static dimension when available, else evaluate dynamic size eagerly."""
+        dim = tensor.shape[axis]
+        if dim is not None:
+            return int(dim)
+        return int(tf.shape(tensor)[axis])
+
+    @property
+    def num_classes(self) -> int:
+        """Number of classes in the prediction tensor."""
+        return self._dim_as_int(self.tensor, -1)
+
+    @property
+    def batch_size(self) -> int:
+        """Batch size of predictions (1 for rank-1 single predictions)."""
+        if self.tensor.shape.rank == 1:
+            return 1
+        return self._dim_as_int(self.tensor, 0)
+
+    @property
+    def is_empty(self) -> bool:
+        """Whether there are no predictions to explain."""
+        return self.batch_size == 0 or self.num_classes == 0
+
     def __len__(self):
         """
-        Return the number of classes (dimension 1 of the tensor).
+        Deprecated length of the classifier tensor.
 
-        For batched tensors with shape (batch, num_classes), returns num_classes.
-        For single predictions with shape (num_classes,), returns num_classes.
+        Use ``num_classes``, ``batch_size``, or ``is_empty`` instead.
 
         Returns
         -------
         length
             Number of classes in the classification output.
         """
-        if len(self.tensor.shape) == 1:
-            return int(self.tensor.shape[0])
-        return int(self.tensor.shape[1])
+        warnings.warn(
+            "len(TfClassifierTensor) is ambiguous and deprecated; use "
+            "num_classes, batch_size, or is_empty instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.num_classes
 
     def __tf_tensor__(self, dtype=None, name=None):
         """
@@ -91,9 +129,9 @@ class TfClassifierTensor(StructuredPrediction):
         batched_tensor
             Tensor with batch dimension: (1, num_classes) or (batch, num_classes)
         """
-        if len(self.tensor.shape) == 1:
-            return tf.expand_dims(self.tensor, axis=0)
-        return self.tensor
+        if self.tensor.shape.rank == 1:
+            return tf.convert_to_tensor(tf.expand_dims(self.tensor, axis=0))
+        return tf.convert_to_tensor(self.tensor)
 
     def filter(self, class_id=None, confidence=None):
         """
