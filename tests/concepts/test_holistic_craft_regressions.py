@@ -5,6 +5,7 @@ from contextlib import contextmanager
 import matplotlib.pyplot as plt
 import numpy as np
 import pytest
+from sklearn.exceptions import NotFittedError
 
 from xplique.concepts.craft import Factorization
 from xplique.concepts.holistic_craft import HolisticCraft, PartialExplainer
@@ -61,6 +62,10 @@ class _Factorizer:
         return activations
 
 
+class _UnfittedFactorizer(_Factorizer):
+    is_fitted = False
+
+
 class _ArrayLike:
     def __init__(self, values):
         self.values = values
@@ -102,6 +107,25 @@ class _Craft(HolisticCraft):
 
     def make_concept_decoder(self, latent_data):
         return object()
+
+
+class _DummyModel:
+    def __call__(self, _):
+        return np.ones((1, 1), dtype=np.float32)
+
+
+class _MinimalStructuredPrediction:
+    def __init__(self, empty):
+        self.is_empty = empty
+
+    def filter(self, class_id=None, confidence=None):
+        return self
+
+    def to_attribution_target(self, class_id=None):
+        return self
+
+    def to_batched_tensor(self):
+        return np.ones((1, 1), dtype=np.float32)
 
 
 def test_factorization_preserves_its_positional_field_order():
@@ -150,6 +174,76 @@ def test_invalid_explanation_shape_and_empty_extractions_raise_value_errors():
         empty_craft.compute_explanation_per_concept(
             np.ones((1, 2, 2, 1)), PartialExplainer(_Explainer)
         )
+
+
+def test_check_if_fitted_requires_factorization_and_fitted_factorizer():
+    craft = _Craft([])
+    craft.factorizer = _UnfittedFactorizer()
+    craft.factorization = Factorization(None, 0, None, craft.factorizer, None, np.eye(2))
+
+    with pytest.raises(NotFittedError):
+        craft.check_if_fitted()
+
+    craft.factorizer = _Factorizer()
+    craft.factorization = None
+    with pytest.raises(NotFittedError):
+        craft.check_if_fitted()
+
+
+def test_estimate_importance_accepts_operator_in_method_kwargs():
+    craft = _Craft([_LatentData(np.ones((1, 2, 2), dtype=np.float32))])
+    captured = {}
+
+    def _capture_partial_explainer(
+        _, partial_explainer, class_id=None, confidence=None, verbose=False
+    ):
+        captured.update(partial_explainer.kwargs)
+        return np.ones((1, 2), dtype=np.float32)
+
+    craft.compute_explanation_per_concept = _capture_partial_explainer
+
+    craft.estimate_importance(
+        images=np.ones((1, 2, 2, 1), dtype=np.float32),
+        operator=_DummyModel(),
+        class_id=0,
+        method="gradient_input",
+        reducer="sum",
+        spatial_reducer="mean",
+        aggregation_reducer="mean",
+    )
+    assert isinstance(captured["operator"], _DummyModel)
+    assert captured["reducer"] == "sum"
+
+    captured.clear()
+    craft.estimate_importance(
+        images=np.ones((1, 2, 2, 1), dtype=np.float32),
+        operator=_DummyModel(),
+        class_id=0,
+        method="sobol",
+        nb_channels=7,
+        spatial_reducer="mean",
+        aggregation_reducer="mean",
+    )
+    assert isinstance(captured["operator"], _DummyModel)
+    assert captured["nb_channels"] == 7
+
+
+def test_compute_explanation_accepts_structured_predictions_without_len():
+    craft = _Craft([_LatentData(np.ones((1, 2, 2), dtype=np.float32))])
+
+    craft.decode = lambda latent_data, coeffs_u: _MinimalStructuredPrediction(empty=True)
+    explanation = craft.compute_explanation_per_concept(
+        np.ones((1, 2, 2, 1), dtype=np.float32),
+        PartialExplainer(_Explainer),
+    )
+    assert explanation.shape == (1, 2, 2)
+
+    craft.decode = lambda latent_data, coeffs_u: _MinimalStructuredPrediction(empty=False)
+    explanation = craft.compute_explanation_per_concept(
+        np.ones((1, 2, 2, 1), dtype=np.float32),
+        PartialExplainer(_Explainer),
+    )
+    assert explanation.shape == (1, 2, 2)
 
 
 def test_display_validates_concept_order_and_handles_a_single_column():
