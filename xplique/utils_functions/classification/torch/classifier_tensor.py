@@ -7,6 +7,7 @@ cannot explicitly inherit from the StructuredPrediction protocol but implements 
 interface via structural typing (duck typing).
 """
 
+import warnings
 from numbers import Integral
 
 import torch
@@ -44,10 +45,46 @@ class TorchClassifierTensor(torch.Tensor):
 
     @classmethod
     def from_predictions(cls, predictions):
-        """Wrap raw classifier predictions unless they are already formatted."""
+        """Wrap raw classifier predictions unless they are already formatted.
+
+        Raises
+        ------
+        ValueError
+            If predictions rank is not 1 or 2.
+        """
         if isinstance(predictions, cls):
             return predictions
-        return cls(predictions)
+        tensor = torch.as_tensor(predictions)
+        if tensor.ndim not in (1, 2):
+            raise ValueError("Classifier predictions must have rank 1 or 2.")
+        return tensor.as_subclass(cls)
+
+    @property
+    def num_classes(self) -> int:
+        """Number of classes in the prediction tensor."""
+        return int(self.shape[-1])
+
+    @property
+    def batch_size(self) -> int:
+        """Batch size of predictions (1 for rank-1 single predictions)."""
+        if self.ndim == 1:
+            return 1
+        return int(self.shape[0])
+
+    @property
+    def is_empty(self) -> bool:
+        """Whether there are no predictions to explain."""
+        return self.batch_size == 0 or self.num_classes == 0
+
+    def __len__(self) -> int:
+        """Deprecated length accessor for classifier tensors."""
+        warnings.warn(
+            "len(TorchClassifierTensor) is ambiguous and deprecated; use "
+            "num_classes, batch_size, or is_empty instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return super().__len__()
 
     def to_batched_tensor(self) -> torch.Tensor:
         """
