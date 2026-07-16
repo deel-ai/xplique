@@ -69,12 +69,12 @@ class BaseBoxFormatter(ABC):
         """
         raise NotImplementedError("This method should be implemented in the subclass")
 
-    @abstractmethod
     def format_predictions(self, predictions: Any) -> BaseMultiBoxTensor:
         """
         Format predictions into the standardized MultiBoxTensor format.
 
-        This method must be implemented by framework-specific subclasses.
+        Subclasses may override this helper when they expose a separate
+        formatting step in addition to ``forward``.
 
         Parameters
         ----------
@@ -86,4 +86,4 @@ class BaseBoxFormatter(ABC):
         MultiBoxTensor
             Formatted predictions with boxes, scores, and class probabilities.
         """
-        raise NotImplementedError("This method should be implemented in the subclass")
+        raise NotImplementedError("format_predictions is optional and not implemented")
