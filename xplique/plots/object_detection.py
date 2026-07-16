@@ -240,9 +240,12 @@ def plot_images_detections(
     Raises
     ------
     ValueError
-        If the number of images and multibox_results are not equal.
+        If inputs are empty, or if the number of images and multibox_results are not equal.
     """
     # Validate inputs
+    if len(images) == 0 or len(multibox_results_list) == 0:
+        raise ValueError("images and multibox_results_list must contain at least one element")
+
     if len(images) != len(multibox_results_list):
         raise ValueError(
             f"Number of images ({len(images)}) must match number of multibox_results "
