@@ -319,15 +319,15 @@ class TfBoxCoordinatesTranslator(BaseBoxCoordinatesTranslator):
             box = TfBoxManager.normalize_boxes(box, image_size)
 
         # convert the input box to XYXY format if needed
-        if self.input_box_type.format.value == BoxFormat.CXCYWH.value:
+        if self.input_box_type.format is BoxFormat.CXCYWH:
             box = TfBoxManager.box_cxcywh_to_xyxy(box)
-        elif self.input_box_type.format.value == BoxFormat.XYWH.value:
+        elif self.input_box_type.format is BoxFormat.XYWH:
             box = TfBoxManager.box_xywh_to_xyxy(box)
 
         # now convert to the output format
-        if self.output_box_type.format.value == BoxFormat.CXCYWH.value:
+        if self.output_box_type.format is BoxFormat.CXCYWH:
             box = TfBoxManager.box_xyxy_to_cxcywh(box)
-        elif self.output_box_type.format.value == BoxFormat.XYWH.value:
+        elif self.output_box_type.format is BoxFormat.XYWH:
             box = TfBoxManager.box_xyxy_to_xywh(box)
 
         # denormalize the box to the output image size if needed

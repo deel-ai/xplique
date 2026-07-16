@@ -223,3 +223,16 @@ def test_tf_box_manager_handles_integer_boxes_and_metadata_in_a_graph():
     np.testing.assert_allclose(normalized, [[0.25, 0.25, 0.5, 0.5, 1.0, 2.0]])
     np.testing.assert_allclose(denormalized, [[50, 25, 100, 50, 1.0, 2.0]])
 
+
+def test_numpy_translator_uses_enum_members_for_format_checks():
+    translator = NumpyBoxCoordinatesTranslator(
+        input_box_type=BoxType(BoxFormat.CXCYWH, is_normalized=True),
+        output_box_type=BoxType(BoxFormat.XYXY, is_normalized=True),
+    )
+
+    translator.input_box_type.format = BoxFormat.XYWH.value
+    boxes = np.array([[0.3, 0.4, 0.1, 0.2]], dtype=np.float32)
+    result = translator.translate(boxes)
+
+    np.testing.assert_allclose(result, boxes)
+    assert not np.allclose(result, [[0.25, 0.3, 0.35, 0.5]])
