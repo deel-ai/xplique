@@ -38,7 +38,7 @@ def show_ax(img, ax, **kwargs):
         channel-last (H, W, C) format
     ax
         Matplotlib axis object on which to display the image
-    **kwargs
+    kwargs
         Additional keyword arguments passed to ax.imshow()
     """
     img = np.array(img, dtype=np.float32)
@@ -65,7 +65,7 @@ class PartialExplainer:
     explainer_class
         The explainer class to instantiate (e.g., GradientInput, SobolAttributionMethod).
         Must be callable and accept 'model' and 'batch_size' as keyword arguments.
-    **kwargs
+    kwargs
         Configuration arguments for the explainer (e.g., operator, reducer, grid_size).
         Should NOT include 'model' or 'batch_size' as these will be provided during
         instantiation.
@@ -1148,8 +1148,10 @@ class ConceptDecoder:
     Converts concept coefficients back to object detection predictions by
     reconstructing activations and passing them through the decoder network.
 
-    Parameters
+    Attributes
     ----------
+    parent_craft
+        HolisticCraft instance used to decode predictions
     latent_data
         Image-specific latent representation to use for decoding
     """
