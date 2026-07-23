@@ -2,6 +2,8 @@
 Utilities for displaying images with bounding boxes and optional heatmap overlays.
 """
 
+import warnings
+
 import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 import numpy as np
@@ -75,12 +77,40 @@ def _draw_boxes_on_ax(
     scores = multibox_results.scores()
     probas = multibox_results.probas()
 
+    image_size = _get_image_size(image)
+    img_w, img_h = image_size
+
+    _coordinate_upper_scale_limit = 3
+    _coordinate_lower_limit = 1.0
     found_labels = set()
     for box_coords, score, proba in zip(boxes, scores, probas):
-        translated = box_translator.translate(
-            box_coords[np.newaxis], image_size=_get_image_size(image)
-        )
+        if (
+            not box_translator.input_box_type.is_normalized
+            and max(float(c) for c in box_coords) < _coordinate_lower_limit
+        ):
+            warnings.warn(
+                f"Box coordinates {[float(c) for c in box_coords]} are all below "
+                f"{_coordinate_lower_limit} but is_normalized=False was declared. "
+                f"If boxes are in [0, 1] range use is_normalized=True.",
+                UserWarning,
+                stacklevel=2,
+            )
+
+        translated = box_translator.translate(box_coords[np.newaxis], image_size=image_size)
         xmin, ymin, xmax, ymax = box_translator.box_manager.to_numpy_tuple(*translated[0])
+
+        if box_translator.input_box_type.is_normalized:
+            if (
+                xmax > img_w * _coordinate_upper_scale_limit
+                or ymax > img_h * _coordinate_upper_scale_limit
+            ):
+                raise ValueError(
+                    f"Translated box coordinates ({xmin:.1f}, {ymin:.1f}, {xmax:.1f}, {ymax:.1f}) "
+                    f"far exceed image dimensions ({img_w}x{img_h}). "
+                    f"This usually means box_type.is_normalized does not match the actual boxes. "
+                    f"If boxes are pixel coordinates use is_normalized=False (default); "
+                    f"if boxes are in [0, 1] range use is_normalized=True."
+                )
         cl = box_translator.box_manager.probas_argmax(proba)
         color = label_to_color.get(classes_labels[cl])
         if color is None and verbose:
