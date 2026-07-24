@@ -21,7 +21,9 @@ class StructuredPrediction(Protocol):
 
     The protocol includes:
     - to_batched_tensor(): Ensures output has batch dimension for attribution methods
-    - filter(): Filters predictions based on class_id and/or confidence threshold
+    - filter(): Filters predictions based on confidence threshold (OD only, no-op for classifiers)
+    - to_attribution_target(): Builds the attribution target (OD: returns filtered boxes;
+      classifiers: builds a one-hot vector for the requested class_id)
     """
 
     def to_batched_tensor(self):
@@ -44,18 +46,42 @@ class StructuredPrediction(Protocol):
         Filter predictions by class ID and/or confidence threshold.
 
         For object detection, this filters bounding boxes by class and score.
-        For classifiers, this is typically a no-op returning self.
+        For classifiers, this is a no-op returning self (there are no boxes to filter).
 
         Parameters
         ----------
         class_id
-            Optional class ID to filter by (for object detection)
+            Optional class ID to filter by (for object detection only)
         confidence
-            Optional minimum confidence threshold (for object detection)
+            Optional minimum confidence threshold (for object detection only)
 
         Returns
         -------
         StructuredPrediction
             Filtered predictions (or self for classifiers)
+        """
+        ...
+
+    def to_attribution_target(self, class_id=None):
+        """
+        Build the attribution target for the requested class.
+
+        For object detection, the filtered boxes (from filter()) are already the
+        correct target — this returns self unchanged.
+        For classifiers, a one-hot vector is constructed for ``class_id`` since
+        the actual logit/probability values are not used by the attribution method
+        (only the class index and output shape matter).
+
+        Parameters
+        ----------
+        class_id
+            Class to target. For classifiers, builds one_hot(class_id, num_classes).
+            For object detection, ignored (boxes carry the class information).
+            If None, returns self unchanged for both types.
+
+        Returns
+        -------
+        StructuredPrediction
+            Attribution target ready for to_batched_tensor().
         """
         ...

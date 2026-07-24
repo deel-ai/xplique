@@ -564,10 +564,8 @@ class HolisticCraft(ABC):
             for i, enc in enumerate(encoded_data_list):
                 if verbose:
                     print(f"\rProcessing image {i + 1}/{total_images}...", end="", flush=True)
+                # Pass 1 (no gradients): plain forward pass to build attribution targets.
                 decoded_result = self.decode(enc.latent_data, enc.coeffs_u)
-
-                # Filter the output boxes predicted to get targets of the studied class
-                # for the explainer
                 filtered_result = decoded_result.filter(class_id=class_id, confidence=confidence)
                 expected_explanation_shape = (
                     1,
@@ -583,11 +581,14 @@ class HolisticCraft(ABC):
                             f"of shape {explanation.shape}"
                         )
                 else:
-                    targets = self._to_numpy(filtered_result.to_batched_tensor())
+                    targets = self._to_numpy(
+                        filtered_result.to_attribution_target(class_id).to_batched_tensor()
+                    )
                     decoder = self.make_concept_decoder(enc.latent_data)
                     explainer_instance = partial_explainer(model=decoder, batch_size=1)
 
-                    # Explain the importance of each concept w.r.t the targets
+                    # Pass 2 (differentiable): explainer calls ConceptDecoder internally to compute
+                    # gradients. Explain the importance of each concept w.r.t the targets.
                     explanation = explainer_instance.explain(enc.coeffs_u, targets)
                     explanation = explanation.numpy()
                     if explanation.shape != expected_explanation_shape:
