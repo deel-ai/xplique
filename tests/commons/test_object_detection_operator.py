@@ -232,3 +232,74 @@ def test_object_detection_operator_ignores_zero_padded_detections_in_a_graph():
     tf.debugging.assert_near(padded_score, valid_score)
     tf.debugging.assert_near(graph_score, valid_score)
     tf.debugging.assert_equal(empty_score, [0.0])
+
+
+def test_object_detection_operator_handles_different_detection_counts_per_input():
+    predictions = tf.constant(
+        [
+            [
+                [0.0, 0.0, 2.0, 2.0, 0.5, 1.0, 0.0],
+                [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            ],
+            [
+                [0.0, 0.0, 1.0, 1.0, 0.7, 1.0, 0.0],
+                [2.0, 2.0, 4.0, 4.0, 0.8, 0.0, 1.0],
+                [5.0, 5.0, 6.0, 6.0, 0.4, 1.0, 0.0],
+            ],
+            [
+                [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            ],
+        ],
+        dtype=tf.float32,
+    )
+    targets = tf.constant(
+        [
+            [
+                [0.0, 0.0, 2.0, 2.0, 1.0, 1.0, 0.0],
+                [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            ],
+            [
+                [0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 0.0],
+                [2.0, 2.0, 4.0, 4.0, 1.0, 0.0, 1.0],
+            ],
+            [
+                [0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 0.0],
+                [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            ],
+        ],
+        dtype=tf.float32,
+    )
+    inputs = tf.zeros((3, 1), dtype=tf.float32)
+
+    def model(_):
+        return predictions
+
+    def first_model(_):
+        return predictions[0:1, :1]
+
+    def second_model(_):
+        return predictions[1:2]
+
+    expected = tf.concat(
+        [
+            object_detection_operator(first_model, inputs[:1], targets[0:1, :1]),
+            object_detection_operator(second_model, inputs[1:2], targets[1:2]),
+            tf.constant([0.0]),
+        ],
+        axis=0,
+    )
+
+    batched_score = object_detection_operator(model, inputs, targets)
+
+    @tf.function
+    def graph_operator(operator_inputs, operator_targets):
+        assert tf.inside_function()
+        return object_detection_operator(model, operator_inputs, operator_targets)
+
+    graph_score = graph_operator(inputs, targets)
+
+    tf.debugging.assert_near(batched_score, expected)
+    tf.debugging.assert_near(graph_score, expected)

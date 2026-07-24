@@ -488,6 +488,24 @@ class HolisticCraft(ABC):
         if not isinstance(latent_data, LatentData):
             raise ValueError("decode() only accepts a single LatentData as input")
 
+        result = self._decode_coefficients(latent_data, coeffs_u)
+
+        # Public decoding returns one structured prediction. Internal attribution
+        # decoding uses _decode_coefficients() directly to handle perturbation batches.
+        if isinstance(result, list):
+            if len(result) != 1:
+                raise ValueError(
+                    f"Expected single-element list for single LatentData, "
+                    f"got {len(result)} elements"
+                )
+            result = result[0]
+
+        return result
+
+    def _decode_coefficients(
+        self, latent_data: LatentData, coeffs_u: Union[np.ndarray, Any]
+    ) -> Any:
+        """Reconstruct latent activations and return raw formatted predictions."""
         self.check_if_fitted()
 
         # Convert coeffs_u to framework tensor if needed
@@ -502,21 +520,7 @@ class HolisticCraft(ABC):
 
         # Set activations and decode through model
         latent_data.set_activations(activations)
-        result = self.latent_extractor.latent_to_logit(latent_data)
-
-        # latent_to_logit may return either:
-        # - A list with 1 element (e.g., PyTorch formatters always return lists)
-        # - A single tensor directly (e.g., TensorFlow with batch_size=1)
-        # Extract single prediction if in list form
-        if isinstance(result, list):
-            if len(result) != 1:
-                raise ValueError(
-                    f"Expected single-element list for single LatentData, "
-                    f"got {len(result)} elements"
-                )
-            result = result[0]
-
-        return result
+        return self.latent_extractor.latent_to_logit(latent_data)
 
     def compute_explanation_per_concept(
         self,
@@ -569,6 +573,8 @@ class HolisticCraft(ABC):
 
         explanation_list = []
 
+        # Targets and decoder metadata are prepared per image. Each explainer can
+        # still batch coefficient perturbations using the configured batch size.
         with self.latent_extractor.temporary_force_batch_size(1):
             # Encode images to get latent data and concept coefficients
             # The list is composed of 1 EncodedData per image because
@@ -603,7 +609,9 @@ class HolisticCraft(ABC):
                         filtered_result.to_attribution_target(class_id).to_batched_tensor()
                     )
                     decoder = self.make_concept_decoder(enc.latent_data)
-                    explainer_instance = partial_explainer(model=decoder, batch_size=1)
+                    explainer_instance = partial_explainer(
+                        model=decoder, batch_size=self.batch_size
+                    )
 
                     # Pass 2 (differentiable): explainer calls ConceptDecoder internally to compute
                     # gradients. Explain the importance of each concept w.r.t the targets.
@@ -1177,23 +1185,17 @@ class ConceptDecoder:
         Parameters
         ----------
         coeffs_u
-            Concept coefficients with batch size 1
+            Batched concept coefficients.
 
         Returns
         -------
         logits
-            Detection predictions as batched tensor
-
-        Raises
-        ------
-        ValueError
-            If coeffs_u batch size is not 1
+            Predictions as a dense batched tensor. Object detections are zero-padded
+            to the largest number of boxes in the batch.
         """
-        if coeffs_u.shape[0] != 1:
-            raise ValueError(
-                f"ConceptDecoder._decode() only accepts coeffs_u with "
-                f"batch size 1, got {coeffs_u.shape}"
-            )
-        nbc_tensor = self.parent_craft.decode(self.latent_data, coeffs_u)
-        logits = nbc_tensor.to_batched_tensor()
-        return logits
+        predictions = self.parent_craft._decode_coefficients(self.latent_data, coeffs_u)
+        return self._predictions_to_tensor(predictions)
+
+    def _predictions_to_tensor(self, predictions):
+        """Convert framework-specific structured predictions to a dense tensor."""
+        raise NotImplementedError
