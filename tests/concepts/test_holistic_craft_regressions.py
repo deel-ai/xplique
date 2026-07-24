@@ -38,14 +38,20 @@ class _Prediction:
 
 
 class _Extractor:
-    batch_size = 1
-
-    def __init__(self, latent_data):
+    def __init__(self, latent_data, batch_size=1):
         self.latent_data = latent_data
+        self.batch_size = batch_size
+        self.forced_batch_sizes = []
 
     @contextmanager
     def temporary_force_batch_size(self, batch_size):
-        yield
+        old_batch_size = self.batch_size
+        self.forced_batch_sizes.append(batch_size)
+        self.batch_size = batch_size
+        try:
+            yield
+        finally:
+            self.batch_size = old_batch_size
 
     def input_to_latent_generator(self, inputs, resize=None, keep_gradients=False):
         yield from self.latent_data
@@ -89,9 +95,11 @@ class _Framework:
 
 
 class _Craft(HolisticCraft):
-    def __init__(self, latent_data):
+    def __init__(self, latent_data, batch_size=1):
         factorizer = _Factorizer()
-        super().__init__(_Extractor(latent_data), number_of_concepts=2, factorizer=factorizer)
+        super().__init__(
+            _Extractor(latent_data, batch_size), number_of_concepts=2, factorizer=factorizer
+        )
         self.factorization = Factorization(None, 0, None, factorizer, None, np.eye(2))
         self.framework = "tf"
         self._framework_module = _Framework
@@ -155,6 +163,25 @@ def test_token_explanations_use_token_axes_and_framework_conversion():
     np.testing.assert_allclose(
         craft.reduce_to_reliability(token_explanations, np.array([1.0, 0.5])), [1.0, 0.5]
     )
+
+
+def test_explanations_use_configured_batch_size_for_perturbations():
+    explainer_batch_sizes = []
+
+    class RecordingExplainer(_Explainer):
+        def __init__(self, model, batch_size):
+            super().__init__(model, batch_size)
+            explainer_batch_sizes.append(batch_size)
+
+    craft = _Craft([_LatentData(np.ones((1, 2, 2), dtype=np.float32))], batch_size=4)
+    explanation = craft.compute_explanation_per_concept(
+        np.ones((1, 2, 2, 1)), PartialExplainer(RecordingExplainer)
+    )
+
+    assert explanation.shape == (1, 2, 2)
+    assert explainer_batch_sizes == [4]
+    assert craft.latent_extractor.forced_batch_sizes == [1]
+    assert craft.latent_extractor.batch_size == 4
 
 
 def test_invalid_explanation_shape_and_empty_extractions_raise_value_errors():

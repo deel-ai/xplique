@@ -6,6 +6,9 @@ import numpy as np
 import tensorflow as tf
 
 from xplique.concepts.factorizer import ConceptFactorizer
+from xplique.utils_functions.object_detection.tf.box_model_wrapper import (
+    _pad_and_stack_box_predictions,
+)
 
 from ..holistic_craft import ConceptDecoder, HolisticCraft
 from ..latent_extractor import LatentData
@@ -191,17 +194,6 @@ class ConceptDecoderTf(tf.keras.layers.Layer, ConceptDecoder):
         self.parent_craft = parent_craft
         self.latent_data = latent_data
 
-    # def set_latent_data(self, latent_data: LatentData) -> None:
-    #     """
-    #     Update the latent data for this decoder.
-
-    #     Parameters
-    #     ----------
-    #     latent_data
-    #         New latent representation to use
-    #     """
-    #     self.latent_data = latent_data
-
     def call(self, coeffs_u: tf.Tensor) -> tf.Tensor:
         """
         Decode concept coefficients to predictions.
@@ -209,26 +201,20 @@ class ConceptDecoderTf(tf.keras.layers.Layer, ConceptDecoder):
         Parameters
         ----------
         coeffs_u
-            Concept coefficients with batch size 1
+            Batched concept coefficients.
 
         Returns
         -------
         logits
-            Detection predictions as batched tensor
-
-        Raises
-        ------
-        ValueError
-            If coeffs_u batch size is not 1
+            Predictions as a dense batched tensor. Object detections are zero-padded
+            to the largest number of boxes in the batch.
         """
 
         return self._decode(coeffs_u)
 
-    #     if coeffs_u.shape[0] != 1:
-    #         raise ValueError(
-    #             f"ConceptDecoder.call() only accepts coeffs_u with "
-    #             f"batch size 1, got {coeffs_u.shape}"
-    #         )
-    #     nbc_tensor = self.parent_craft.decode(self.latent_data, coeffs_u)
-    #     logits = nbc_tensor.to_batched_tensor()
-    #     return logits
+    def _predictions_to_tensor(self, predictions) -> tf.Tensor:
+        if isinstance(predictions, (list, tuple)):
+            return _pad_and_stack_box_predictions(predictions)
+        if hasattr(predictions, "to_batched_tensor"):
+            return predictions.to_batched_tensor()
+        return predictions
