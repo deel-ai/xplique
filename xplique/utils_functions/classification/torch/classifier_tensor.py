@@ -67,23 +67,30 @@ class TorchClassifierTensor(torch.Tensor):
 
     def filter(self, class_id=None, confidence=None):
         """
-        Build a target for a selected classification class.
+        No-op for classifiers.
 
-        Classifiers do not have detections to filter. When ``class_id`` is
-        provided, return a one-hot target with the same batch shape as the
-        predictions. ``confidence`` is ignored for classifiers.
+        Classifiers do not have multiple detections to filter. Returns self
+        unchanged for interface compatibility with object detection types.
+        """
+        return self
+
+    def to_attribution_target(self, class_id=None):
+        """
+        Build a one-hot attribution target for a selected class.
+
+        The actual logit/probability values are not used by the attribution
+        method — only the class index and output shape matter. ``class_id``
+        selects which output neuron to differentiate through.
 
         Parameters
         ----------
         class_id
-            Class to target.
-        confidence
-            Ignored for classifiers
+            Class to target. If None, returns self (raw model output as target).
 
         Returns
         -------
-        filtered_tensor
-            One-hot target for ``class_id``, or self when no class is selected.
+        target
+            One-hot tensor for ``class_id``, or self when class_id is None.
         """
         if class_id is None:
             return self
@@ -98,7 +105,7 @@ class TorchClassifierTensor(torch.Tensor):
 
         target = torch.zeros_like(self)
         target[..., class_id] = 1
-        # Ensure subclass identity is preserved regardless of upstream torch.zeros_like semantics.
+        # Preserve subclass identity regardless of upstream torch.zeros_like semantics.
         if not isinstance(target, type(self)):
             target = target.as_subclass(type(self))
         return target

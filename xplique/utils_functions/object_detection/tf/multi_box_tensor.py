@@ -134,6 +134,16 @@ class TfMultiBoxTensor(BaseMultiBoxTensor):
         filtered_tensor = tf.boolean_mask(self.tensor, keep)
         return TfMultiBoxTensor(filtered_tensor)
 
+    def to_attribution_target(self, class_id=None):
+        """
+        Return self as the attribution target.
+
+        For object detection, filter() has already selected the relevant boxes;
+        the filtered box tensor (coordinates + scores) is directly the target
+        for the attribution method. ``class_id`` is ignored here.
+        """
+        return self
+
     def to_batched_tensor(self) -> tf.Tensor:
         """
         Add batch dimension to MultiBoxTensor.
