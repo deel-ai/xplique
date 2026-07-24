@@ -2,6 +2,7 @@
 Framework-agnostic CRAFT implementation for holistic model explanations.
 """
 
+import warnings
 from abc import ABC, abstractmethod
 from typing import Any, Callable, List, Optional, Tuple, Union
 
@@ -227,6 +228,16 @@ class HolisticCraft(ABC):
         needs_reshape = len(activations.shape) > 2  # (N,H,W,C) or (N,Tokens,C)
         if needs_reshape:
             activations_original_shape = activations.shape[:-1]
+            spatial_positions = int(np.prod(activations_original_shape[1:]))
+            if spatial_positions <= 1:
+                warnings.warn(
+                    f"Latent activations have only {spatial_positions} spatial position(s) "
+                    f"(shape {activations.shape}). CRAFT needs multiple spatial positions to "
+                    f"extract meaningful concepts. Check your split_layer, it may be set "
+                    f"too close to the end of the network (e.g. after a global pooling layer).",
+                    UserWarning,
+                    stacklevel=3,
+                )
             # Activations are already in numpy format, reshape for factorization
             activations = np.reshape(activations, (-1, activations.shape[-1]))
 
