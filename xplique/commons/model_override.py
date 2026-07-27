@@ -189,6 +189,24 @@ def has_relu_activation(layer: tf.keras.layers.Layer) -> bool:
     return layer.activation in [tf.nn.relu, tf.keras.activations.relu]
 
 
+def _clone_layer(layer: tf.keras.layers.Layer) -> tf.keras.layers.Layer:
+    """Clone a layer without deserializing the callable of an in-memory Lambda layer."""
+    if not isinstance(layer, tf.keras.layers.Lambda):
+        return layer.__class__.from_config(layer.get_config())
+
+    config = layer.get_config()
+    for lambda_argument in ("function", "output_shape", "mask", "arguments"):
+        config.pop(lambda_argument, None)
+
+    return layer.__class__(
+        function=layer.function,
+        output_shape=layer._output_shape,  # pylint: disable=W0212
+        mask=layer.mask,
+        arguments=dict(layer.arguments),
+        **config,
+    )
+
+
 def override_relu_gradient(model: tf.keras.Model, relu_policy: Callable) -> tf.keras.Model:
     """
     Given a model, commute all original ReLU by a new given ReLU policy.
@@ -204,7 +222,7 @@ def override_relu_gradient(model: tf.keras.Model, relu_policy: Callable) -> tf.k
     -------
     model_commuted
     """
-    cloned_model = clone_model(model)
+    cloned_model = clone_model(model, clone_function=_clone_layer)
     cloned_model.set_weights(model.get_weights())
 
     for layer_id in range(len(cloned_model.layers)):  # pylint: disable=C0200

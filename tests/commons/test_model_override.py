@@ -159,3 +159,37 @@ def test_open_relu():
     open_grads_3 = tape.gradient(y3d, x).numpy()[0]
 
     assert almost_equal(open_grads_3, 3.0 * x**2.0)
+
+
+def test_override_clones_lambda_without_deserialization():
+    """Ensure Lambda layers are cloned without mutating the source model."""
+    lambda_layer = tf.keras.layers.Lambda(
+        lambda inputs, scale: inputs * scale,
+        output_shape=(4,),
+        arguments={"scale": 2.0},
+        trainable=False,
+        dtype=tf.float64,
+    )
+    model = tf.keras.Sequential(
+        [
+            tf.keras.layers.Input((4,)),
+            tf.keras.layers.Activation(tf.nn.relu),
+            lambda_layer,
+        ]
+    )
+
+    cloned_model = override_relu_gradient(model, guided_relu_policy)
+    cloned_lambda = cloned_model.layers[-1]
+
+    assert cloned_lambda is not lambda_layer
+    assert cloned_lambda.function is lambda_layer.function
+    assert cloned_lambda.arguments == lambda_layer.arguments
+    assert cloned_lambda.arguments is not lambda_layer.arguments
+    assert cloned_lambda._output_shape == lambda_layer._output_shape
+    assert cloned_lambda.trainable is False
+    assert cloned_lambda.compute_dtype == "float64"
+    assert model.layers[0].activation in [tf.nn.relu, tf.keras.activations.relu]
+    assert cloned_model.layers[0].activation not in [tf.nn.relu, tf.keras.activations.relu]
+
+    inputs = tf.constant([[1.0, -1.0, 2.0, -2.0]])
+    assert almost_equal(model(inputs), cloned_model(inputs))
