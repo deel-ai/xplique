@@ -6,14 +6,14 @@ https://github.com/tensorflow/lucid/blob/master/lucid/optvis/param/color.py
 Credit is due to the original Lucid authors.
 """
 
+from pathlib import Path
+
 import numpy as np
 import tensorflow as tf
 
 from ..types import Callable, Optional, Tuple, Union
 
-IMAGENET_SPECTRUM_URL = (
-    "https://storage.googleapis.com/serrelab/loupe/spectrums/imagenet_decorrelated.npy"
-)
+IMAGENET_SPECTRUM_PATH = Path(__file__).with_name("spectrum_decorrelated.npy")
 
 
 def recorrelate_colors(images: tf.Tensor) -> tf.Tensor:
@@ -268,10 +268,7 @@ def init_maco_buffer(image_shape, dataset: Optional = None, std=1.0):
         # init randomly the phase and load the constrained spectrum (average spectrum)
         phase = np.random.normal(size=(3, *spectrum_shape), scale=std).astype(np.float32)
 
-        magnitude_path = tf.keras.utils.get_file(
-            "spectrum_decorrelated.npy", IMAGENET_SPECTRUM_URL, cache_subdir="spectrums"
-        )
-        magnitude = np.load(magnitude_path)
+        magnitude = np.load(IMAGENET_SPECTRUM_PATH)
         magnitude = tf.image.resize(np.moveaxis(magnitude, 0, -1), spectrum_shape).numpy()
         magnitude = np.moveaxis(magnitude, -1, 0)
     else:
