@@ -75,6 +75,24 @@ def test_init_maco_buffer():
         assert phase.shape[1:] == spectrum_size
 
 
+def test_init_maco_buffer_uses_packaged_spectrum(monkeypatch):
+    """Ensure the default ImageNet initialization does not require network access."""
+
+    def fail_download(*args, **kwargs):
+        del args, kwargs
+        raise AssertionError("init_maco_buffer must not download its default spectrum")
+
+    monkeypatch.setattr(tf.keras.utils, "get_file", fail_download)
+
+    magnitude, phase = init_maco_buffer((16, 24, 3))
+
+    assert magnitude.shape == (3, 16, 13)
+    assert phase.shape == (3, 16, 13)
+    assert magnitude.dtype == tf.float32
+    assert phase.dtype == tf.float32
+    assert np.all(np.isfinite(magnitude))
+
+
 def test_maco_image_param():
     """Ensure we can reconstruct an image from magnitude and phase"""
     img_size_to_magnitude_size = {

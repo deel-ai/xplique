@@ -73,6 +73,9 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools.packages.find]
 include = ["xplique*"]
 
+[tool.setuptools.package-data]
+"xplique.features_visualizations" = ["spectrum_decorrelated.npy"]
+
 [tool.bumpversion]
 current_version = "1.4.2"
 commit = true
