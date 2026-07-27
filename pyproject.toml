@@ -40,7 +40,7 @@ torch = [
 
 [dependency-groups]
 dev = [
-    "bump2version",
+    "bump-my-version",
     "build",
     "docutils",
     "markdown",
