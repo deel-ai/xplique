@@ -1,6 +1,6 @@
 [project]
 name = "xplique"
-version = "1.4.2"
+version = "2.0.0"
 description = "Explanations toolbox for TensorFlow 2"
 readme = "README.md"
 requires-python = ">=3.10,<3.14"
@@ -77,7 +77,7 @@ include = ["xplique*"]
 "xplique.features_visualizations" = ["spectrum_decorrelated.npy"]
 
 [tool.bumpversion]
-current_version = "1.4.2"
+current_version = "2.0.0"
 commit = true
 tag = false
 
