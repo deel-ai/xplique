@@ -27,9 +27,10 @@ jobs:
       - name: "Set up uv"
         uses: astral-sh/setup-uv@v6
 
-      - name: "Install Dependencies"
+      - name: "Install Documentation Dependencies"
         run: |
-          uv pip install --system -r pyproject.toml --group dev .
+          uv pip install --system --group docs
+          uv pip install --system --no-deps .
 
       - name: "Setup Docs Deploy"
         run: |
@@ -38,5 +39,5 @@ jobs:
 
       - name: "Deploy Github Pages"
         run: |
-          uv run mike deploy --push --update-aliases ${{ github.event.release.tag_name }} latest
-          uv run mike set-default --push latest
+          mike deploy --push --update-aliases ${{ github.event.release.tag_name }} latest
+          mike set-default --push latest
