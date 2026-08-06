@@ -19,7 +19,7 @@ At present, we made the following choices:
 - Try to unify the four families of approaches with a common API.
 
 !!! info
-    We are in the early stages of development and are looking for feedback on the API design and the methods we have chosen to implement. Also, we are counting on the community to furnish the collection of methods available. If you are willing to contribute reach us on the [GitHub](https://github.com/deel-ai/xplique) repository (with an issue, pull request, ...).
+    Feedback on the API and contributions to the collection of available methods are welcome. Please reach us on the [GitHub](https://github.com/deel-ai/xplique) repository with an issue or pull request.
 
 ## Common API ##
 
