@@ -28,6 +28,10 @@ tcav_score = tcav_renderer(samples, class_index, cav)
 
 ```
 
+## Related concept methods
+
+For automatic concept extraction, see [CRAFT](craft.md) and [Holistic CRAFT](holistic_craft.md).
+
 {{xplique.concepts.tcav.Tcav}}
 
 [^1]: [Interpretability Beyond Feature Attribution: Quantitative Testing with Concept Activation Vectors (TCAV) (2018).](https://arxiv.org/abs/1711.11279)
