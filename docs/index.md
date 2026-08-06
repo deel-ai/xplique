@@ -8,7 +8,7 @@
         <img src="https://img.shields.io/badge/Python-3.10, 3.11, 3.12, 3.13-efefef">
     </a>
     <a href="#">
-        <img src="https://img.shields.io/badge/Tensorflow-2.5, ..., 2.15-00008b">
+        <img src="https://img.shields.io/badge/Tensorflow-2.18, 2.19, 2.20-00008b">
     </a>
     <a href="https://github.com/deel-ai/xplique/actions/workflows/python-lints.yml">
         <img alt="PyLint" src="https://github.com/deel-ai/xplique/actions/workflows/python-lints.yml/badge.svg">
@@ -48,22 +48,19 @@
   <a href="api/example_based/api_example_based/">Example-based</a>
 </div>
 
-!!! warning
-    With the release of Keras 3.X since TensorFlow 2.16, some methods may not function as expected. We are actively working on a fix. In the meantime, we recommend using TensorFlow 2.15 or earlier versions for optimal compatibility.
+!!! info "What's new in v2.0.0"
+    Holistic CRAFT can extract and attribute concepts from classification and object detection models through `HolisticCraftTf` and `HolisticCraftTorch`. The release also introduces framework-specific latent extractors, `LayeredModelExtractorBuilder`, `PartialExplainer`, and `EncodedData`. Xplique 2.0.0 supports Python 3.10-3.13, TensorFlow 2.18-2.20, and optional PyTorch 2.5-2.10. Detector-specific adapters are under construction in the DEEL AI organization and will be pip-installable soon.
 
 The library is composed of several modules, the _Attributions Methods_ module implements various methods (e.g Saliency, Grad-CAM, FEM, Integrated-Gradients...), with explanations, examples and links to official papers.
 The _Feature Visualization_ module allows to see how neural networks build their understanding of images by finding inputs that maximize neurons, channels, layers or compositions of these elements.
-The _Concepts_ module allows you to extract human concepts from a model and to test their usefulness with respect to a class.
-Finally, the _Metrics_ module covers the current metrics used in explainability. Used in conjunction with the _Attribution Methods_ module, it allows you to test the different methods or evaluate the explanations of a model.
+The _Concepts_ module allows you to extract human concepts from a model and to test their usefulness with respect to a class. Holistic CRAFT extends concept extraction to full activation maps, including object detection models.
+Finally, the _Metrics_ module covers the current metrics used in explainability. Used in conjunction with the _Attribution Methods_ module, it allows you to test the different methods or evaluate the explanations of a model. The _Example-based_ module explains predictions by retrieving relevant examples from a dataset.
 
 <p align="center" width="100%">
     <img width="95%" src="./assets/modules.png">
 </p>
 
 <br>
-
-!!! info "🔔 **New Module Available!**"
-    We are proud to announce the release of the _Example-based_ module! This module is dedicated to methods that explain a model by retrieving relevant examples from a dataset. It includes methods that belong to different families: similar examples, contrastive (counter-factuals and semi-factuals) examples, and prototypes (as concepts based methods have a dedicated sections).
 
 ## 🔥 Tutorials
 
@@ -108,6 +105,8 @@ Finally, the _Metrics_ module covers the current metrics used in explainability.
     - [**Concepts Methods**: CRAFT: Getting started on Pytorch](https://colab.research.google.com/drive/16Jn2pQy4gi2qQYZFnuW6ZNtVAYiNyJHO)
     <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/16Jn2pQy4gi2qQYZFnuW6ZNtVAYiNyJHO) </sub>
 
+    - [**Concepts Methods**: Holistic CRAFT (TensorFlow and PyTorch)](api/concepts/holistic_craft.md)
+
     <p align="center" width="100%">
         <a href="https://colab.research.google.com/drive/1jmyhb89Bdz7H4G2KfK8uEVbSC-C_aht_">
             <img width="95%" src="./assets/craft.jpeg">
@@ -116,7 +115,6 @@ Finally, the _Metrics_ module covers the current metrics used in explainability.
 
     - [**Feature Visualization**: Getting started](https://colab.research.google.com/drive/1st43K9AH-UL4eZM1S4QdyrOi7Epa5K8v) <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1st43K9AH-UL4eZM1S4QdyrOi7Epa5K8v) </sub>
 
-    - [**Feature Visualization**: Getting started](https://colab.research.google.com/drive/1st43K9AH-UL4eZM1S4QdyrOi7Epa5K8v) <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1st43K9AH-UL4eZM1S4QdyrOi7Epa5K8v) </sub>
     <p align="center" width="100%">
         <a href="https://colab.research.google.com/drive/1st43K9AH-UL4eZM1S4QdyrOi7Epa5K8v"> 
             <img width="95%" src="assets/feature_viz.jpeg">
@@ -227,6 +225,41 @@ Now that Xplique is installed, here are some basic examples of what you can do w
 
     More information in the [CRAFT documentation](api/concepts/craft.md).
 
+    ### Holistic CRAFT
+
+    Holistic CRAFT works directly with full activation maps and can be used with classification models through the built-in layered extractor. Object-detection-specific extractor adapters are under construction and will be pip-installable soon.
+
+    ```python
+    from xplique.concepts import HolisticCraftTf
+    from xplique.concepts.tf.layered_model_latent_extractor import LayeredModelExtractorBuilder
+
+    latent_extractor = LayeredModelExtractorBuilder.build(
+        model,
+        split_layer=-3,
+        batch_size=8,
+    )
+    craft = HolisticCraftTf(latent_extractor, number_of_concepts=10)
+    craft.fit(images)
+    ```
+
+    For object detection, use the architecture-specific extractor builders from the companion `xplique-adapters` package when it becomes available:
+
+    ```python
+    # xplique-adapters is under construction and will be pip-installable soon.
+    from xplique.concepts import HolisticCraftTorch
+    from xplique_adapters.concepts.torch.latent_data_retinanet import RetinanetExtractorBuilder
+
+    latent_extractor = RetinanetExtractorBuilder.build(
+        model,
+        device="cuda",
+        nb_classes=91,
+        extraction_location="resnet",
+        extraction_layer=-1,
+    )
+    craft = HolisticCraftTorch(latent_extractor, number_of_concepts=10, device="cuda")
+    craft.fit(images, class_id=class_id)
+    ```
+
 
 ??? example "Feature Visualization"
 
@@ -275,7 +308,7 @@ Now that Xplique is installed, here are some basic examples of what you can do w
 
 ## 📦 What's Included
 
-There are 4 modules in Xplique, [Attribution methods](api/attributions/api_attributions.md), [Attribution metrics](api/attributions/metrics/api_metrics.md), [Concepts](api/concepts/cav.md), and [Feature visualization](api/feature_viz/feature_viz.md). In particular, the attribution methods module supports a huge diversity of tasks: [Classification](api/attributions/classification.md), [Regression](api/attributions/regression.md), [Object Detection](api/attributions/object_detection.md), and [Semantic Segmentation](api/attributions/semantic_segmentation.md). For diverse data types: [Images, Time Series, and Tabular data](api/attributions/api_attributions.md). The methods compatible with such task and methods compatible with Tensorflow or PyTorch are highlighted in the following table:
+There are 5 modules in Xplique: [Attribution methods](api/attributions/api_attributions.md), [Attribution metrics](api/attributions/metrics/api_metrics.md), [Concepts](api/concepts/cav.md), [Feature visualization](api/feature_viz/feature_viz.md), and [Example-based methods](api/example_based/api_example_based.md). In particular, the attribution methods module supports a huge diversity of tasks: [Classification](api/attributions/classification.md), [Regression](api/attributions/regression.md), [Object Detection](api/attributions/object_detection.md), and [Semantic Segmentation](api/attributions/semantic_segmentation.md). For diverse data types: [Images, Time Series, and Tabular data](api/attributions/api_attributions.md). Holistic CRAFT additionally supports concept-based explanations for object detection models. The methods compatible with such task and methods compatible with TensorFlow or PyTorch are highlighted in the following table:
 
 ??? abstract "Table of attributions available"
 
@@ -325,11 +358,10 @@ There are 4 modules in Xplique, [Attribution methods](api/attributions/api_attri
     | Average Stability       | TF, PyTorch** | Stability        | [Paper](https://arxiv.org/abs/2005.00631) |
     | MeGe                    | TF, PyTorch** | Representativity | [Paper](https://arxiv.org/abs/2009.04521) |
     | ReCo                    | TF, PyTorch** | Consistency      | [Paper](https://arxiv.org/abs/2009.04521) |
-    | Complexity              | TF, PyTorch** | Complexity       | [Paper](https://arxiv.org/abs/2005.0031) |
+    | Complexity              | TF, PyTorch** | Complexity       | [Paper](https://arxiv.org/abs/2005.00631) |
     | Sparseness              | TF, PyTorch** | Complexity       | [Paper](https://proceedings.mlr.press/v119/chalasani20a.html) |
     | RandomLogitMetric       | TF, PyTorch** | Randomization    | [Paper](https://arxiv.org/abs/1810.03292) |
     | ModelRandomizationMetric| TF, PyTorch** | Randomization    | [Paper](https://arxiv.org/abs/1810.03292) |
-    | (WIP) e-robustness      |
 
     TF : Tensorflow compatible
 
@@ -343,11 +375,11 @@ There are 4 modules in Xplique, [Attribution methods](api/attributions/api_attri
     | Testing CAV (TCAV)              | TF            | [Paper](https://arxiv.org/pdf/1711.11279.pdf) | |
     | CRAFT Tensorflow | TF | [Paper](https://arxiv.org/pdf/2211.10154.pdf) | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1jmyhb89Bdz7H4G2KfK8uEVbSC-C_aht_) |
     | CRAFT PyTorch  | PyTorch** | [Paper](https://arxiv.org/pdf/2211.10154.pdf) | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/16Jn2pQy4gi2qQYZFnuW6ZNtVAYiNyJHO) |
-    | (WIP) Robust TCAV               |               | | |
-    | (WIP) Automatic Concept Extraction (ACE)        | | |
+    | Holistic CRAFT TensorFlow | TF | [Holistic paper](https://arxiv.org/pdf/2306.07304.pdf) | [Documentation](api/concepts/holistic_craft.md) |
+    | Holistic CRAFT PyTorch | PyTorch** | [Holistic paper](https://arxiv.org/pdf/2306.07304.pdf) | [Documentation](api/concepts/holistic_craft.md) |
     TF : Tensorflow compatible
 
-    ** : See the [Xplique for Pytorch documentation](api/attributions/pytorch.md), and the [**PyTorch's model**: Getting started](https://colab.research.google.com/drive/1bMlO29_0K3YnTQBbbyKQyRfo8YjvDbhe)<sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1bMlO29_0K3YnTQBbbyKQyRfo8YjvDbhe) </sub> notebook
+    ** : See the [Xplique for PyTorch documentation](api/attributions/pytorch.md), and the [**PyTorch's model**: Getting started](https://colab.research.google.com/drive/1bMlO29_0K3YnTQBbbyKQyRfo8YjvDbhe)<sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1bMlO29_0K3YnTQBbbyKQyRfo8YjvDbhe) </sub> notebook
 
 ??? abstract "Table of Feature Visualization methods available"
 
@@ -363,7 +395,7 @@ There are 4 modules in Xplique, [Attribution methods](api/attributions/api_attri
 
     TF : Tensorflow compatible
 
-Even though we are only at the early stages, we have also recently added an [Example-based methods](api/example_based/api_example_based.md) module. Do not hesitate to give us feedback! Currently, the methods available are summarized in the following table:
+The [Example-based methods](api/example_based/api_example_based.md) module provides several families of example-based explanations. Feedback and contributions are welcome. The currently available methods are summarized in the following table:
 
 ??? abstract "Table of example-based methods available"
 
