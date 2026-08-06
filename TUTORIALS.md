@@ -58,7 +58,7 @@ Here is the lists of the available tutorial for now:
 | Fidelity      | Average Drop/Increase/Gain | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1nGP13qiQrsJMBx8TXgA69D-5ALoP3l9p) |
 | Complexity    | Complexity             | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/13boAsXGVKS0LaNzslOdjSkYIrpBJdh7K) |
 | Randomization | Randomization          | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/13lNkZqKajRJ63XllkQddgrPOYF1Xv9-Y) |
-| Stability     | AverageStability       | **(WIP)**                                                                                                                                                          |
+| Stability     | AverageStability       | [Documentation](docs/api/attributions/metrics/avg_stability.md)                                                                                                  |
 
 ## PyTorch Wrapper
 
@@ -72,7 +72,13 @@ Here is the lists of the available tutorial for now:
 
 ## Concepts extraction
 
-**WIP**
+| Category      | **Tutorial Name**      | Documentation / Notebook                                                                                                                                          |
+|:------------- | :--------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------: |
+| Labelled concept methods | CAV + TCAV           | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1iuEz46ZjgG97vTBH8p-vod3y14UETvVE) |
+| Automatic concept extraction | CRAFT TensorFlow | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1jmyhb89Bdz7H4G2KfK8uEVbSC-C_aht_) |
+| Automatic concept extraction | CRAFT PyTorch | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/16Jn2pQy4gi2qQYZFnuW6ZNtVAYiNyJHO) |
+| Automatic concept extraction | Holistic CRAFT TensorFlow | [Documentation](docs/api/concepts/holistic_craft.md) |
+| Automatic concept extraction | Holistic CRAFT PyTorch | [Documentation](docs/api/concepts/holistic_craft.md) |
 
 ## Feature Visualization
 

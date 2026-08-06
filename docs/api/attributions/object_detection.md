@@ -2,6 +2,9 @@
 
 [Attributions: Object Detection tutorial](https://colab.research.google.com/drive/1X3Yq7BduMKqTA0XEheoVIpOo3IvOrzWL) <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1X3Yq7BduMKqTA0XEheoVIpOo3IvOrzWL) </sub>
 
+!!! tip "Concept-based object detection explanations"
+    For concept-level explanations of object detection models, see [Holistic CRAFT](../concepts/holistic_craft.md). Its architecture-specific extractors cover RetinaNet, Faster R-CNN, FCOS, SSD, YOLO, and DETR through the companion `xplique-adapters` package, which is currently under construction and will be pip-installable soon.
+
 
 
 
