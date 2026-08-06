@@ -32,6 +32,9 @@ The concepts will be extracted from this latent space.
 !!!warning
     Please keep in mind that the activations must be positives (after relu or any positive activation function)
 
+!!! tip "When to use Holistic CRAFT"
+    Regular CRAFT extracts concepts from image crops and is a good fit for classification datasets. For object detection, scenes with multiple objects, or models where global spatial context matters, use [Holistic CRAFT](holistic_craft.md), which factorizes full activation maps instead.
+
 
 ## Example
 
