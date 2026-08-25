@@ -12,7 +12,7 @@ from xplique.utils_functions.object_detection.torch.box_model_wrapper import (
 )
 from xplique.wrappers import TorchWrapper
 
-from ..holistic_craft import ConceptDecoder, HolisticCraft
+from ..holistic_craft import ConceptDecoder, ConceptLocalizer, HolisticCraft
 from ..latent_extractor import LatentData
 from .factorizer import TorchSklearnNMFFactorizer
 from .latent_extractor import TorchLatentExtractor as LatentExtractor
@@ -189,6 +189,48 @@ class HolisticCraftTorch(HolisticCraft):
             torch_decoder.eval(), device=self.device, is_channel_first=False
         )
         return wrapped_decoder
+
+    def make_concept_localizer(
+        self,
+        concept_reducer: Union[str, Any] = "mean",
+    ) -> TorchWrapper:
+        """Create a PyTorch concept localizer for black-box attribution.
+
+        Parameters
+        ----------
+        concept_reducer
+            Reduction from coefficient maps to one scalar score per concept.
+
+        Returns
+        -------
+        localizer
+            Xplique ``TorchWrapper`` returning a tensor with shape
+            ``(batch_size, K)`` and gradients disabled.
+        """
+        torch_localizer = ConceptLocalizerTorch(self, concept_reducer).eval()
+        return TorchWrapper(
+            torch_localizer,
+            device=self.device,
+            is_channel_first=True,
+            requires_grad=False,
+        )
+
+
+class ConceptLocalizerTorch(nn.Module, ConceptLocalizer):
+    """PyTorch concept localizer module."""
+
+    def __init__(
+        self,
+        parent_craft: HolisticCraft,
+        concept_reducer: Union[str, Any] = "mean",
+    ) -> None:
+        super().__init__()
+        ConceptLocalizer.__init__(self, parent_craft, concept_reducer)
+
+    def forward(self, inputs: torch.Tensor) -> torch.Tensor:
+        """Return reduced concept scores for native NCHW inputs."""
+        scores = self._compute_scores(inputs)
+        return torch.as_tensor(scores, dtype=torch.float32, device=inputs.device)
 
 
 class ConceptDecoderTorch(nn.Module, ConceptDecoder):

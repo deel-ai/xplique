@@ -12,6 +12,7 @@ from matplotlib import pyplot as plt
 from matplotlib.figure import Figure
 from sklearn.exceptions import NotFittedError
 
+from xplique.attributions.base import BlackBoxExplainer, WhiteBoxExplainer
 from xplique.attributions.global_sensitivity_analysis.sobol_attribution_method import (
     SobolAttributionMethod,
 )
@@ -107,6 +108,114 @@ class PartialExplainer:
         return self.explainer_class(model=model, batch_size=batch_size, **self.kwargs)
 
 
+class ConceptLocalizer:
+    """Map input samples to one scalar score per learned concept.
+
+    Parameters
+    ----------
+    parent_craft
+        Fitted :class:`HolisticCraft` instance used to extract coefficients.
+    concept_reducer
+        Reduction applied over non-batch, non-concept coefficient dimensions.
+        Supported strings are ``"mean"``, ``"sum"``, and ``"max"``. A callable
+        may be supplied for custom reduction semantics.
+    """
+
+    parent_craft: "HolisticCraft"
+    concept_reducer: Union[str, Callable]
+
+    def __init__(
+        self,
+        parent_craft: "HolisticCraft",
+        concept_reducer: Union[str, Callable] = "mean",
+    ):
+        self.parent_craft = parent_craft
+        self.concept_reducer = concept_reducer
+        self._validate_reducer()
+
+    def _validate_reducer(self) -> None:
+        if isinstance(self.concept_reducer, str):
+            allowed_reducers = {"mean", "sum", "max"}
+            if self.concept_reducer not in allowed_reducers:
+                raise ValueError(
+                    "concept_reducer must be one of {'mean', 'sum', 'max'} "
+                    "or a callable returning shape (batch_size, number_of_concepts)."
+                )
+        elif not callable(self.concept_reducer):
+            raise ValueError(
+                "concept_reducer must be one of {'mean', 'sum', 'max'} "
+                "or a callable returning shape (batch_size, number_of_concepts)."
+            )
+
+    def _reduce_coefficients(self, coeffs_u: np.ndarray) -> np.ndarray:
+        """Reduce concept coefficients to one scalar score per concept and sample."""
+        coeffs_u = np.asarray(coeffs_u)
+        if coeffs_u.ndim < 2:
+            raise ValueError(
+                "Concept coefficients must have at least 2 dimensions: "
+                "(batch_size, number_of_concepts)."
+            )
+        if any(size == 0 for size in coeffs_u.shape):
+            raise ValueError(
+                f"Concept coefficients must not contain empty dimensions, got {coeffs_u.shape}."
+            )
+        if coeffs_u.shape[-1] != self.parent_craft.number_of_concepts:
+            raise ValueError(
+                f"Concept coefficients contain {coeffs_u.shape[-1]} concepts, expected "
+                f"{self.parent_craft.number_of_concepts}."
+            )
+
+        spatial_axes = tuple(range(1, coeffs_u.ndim - 1))
+        if not spatial_axes:
+            scores = coeffs_u
+        elif isinstance(self.concept_reducer, str):
+            reducers = {
+                "mean": np.mean,
+                "sum": np.sum,
+                "max": np.max,
+            }
+            scores = reducers[self.concept_reducer](coeffs_u, axis=spatial_axes)
+        else:
+            scores = self.concept_reducer(coeffs_u)
+
+        scores = np.asarray(scores)
+        expected_shape = (coeffs_u.shape[0], self.parent_craft.number_of_concepts)
+        if scores.shape != expected_shape:
+            raise ValueError(
+                f"Reduced concept scores must have shape {expected_shape}, got {scores.shape}."
+            )
+
+        scores = scores.astype(np.float32, copy=False)
+        if not np.all(np.isfinite(scores)):
+            raise ValueError("Reduced concept scores must contain only finite values.")
+        return scores
+
+    def _compute_scores(self, inputs: Any) -> np.ndarray:
+        """Encode inputs and reduce their concept coefficients."""
+        try:
+            coeffs_u = self.parent_craft.transform(inputs)
+        except NotImplementedError as error:
+            raise RuntimeError(
+                "The selected factorizer cannot encode unseen activations. "
+                "Input-to-concept localization requires factorizer.encode() "
+                "because attribution methods evaluate perturbed inputs."
+            ) from error
+        return self._reduce_coefficients(coeffs_u)
+
+
+class _NumpyCallableModelAdapter:
+    """Adapt a model to a plain callable returning numpy outputs."""
+
+    def __init__(self, model: Any):
+        self.model = model
+
+    def __call__(self, inputs):
+        outputs = self.model(inputs)
+        if hasattr(outputs, "numpy"):
+            outputs = outputs.numpy()
+        return outputs
+
+
 class HolisticCraft(ABC):
     """
     Framework-agnostic CRAFT implementation for holistic model explanations.
@@ -125,8 +234,14 @@ class HolisticCraft(ABC):
     The workflow involves:
     1. Extracting latent activations from a computer vision model
     2. Factorizing activations into interpretable concepts using NMF
-    3. Computing concept importance using gradient-based attribution methods
-    4. Visualizing concepts as spatial heatmaps overlaid on input images
+    3. Computing concept importance by attributing task predictions to concepts
+    4. Visualizing coefficient activation maps overlaid on input images
+    5. Optionally localizing concept scores to input regions with black-box attribution
+
+    Concept activation, concept importance, and concept localization answer different
+    questions. Coefficients describe how strongly a concept is present, importance
+    describes how much it contributes to a task prediction, and localization describes
+    which input regions drive a selected concept score.
 
     Parameters
     ----------
@@ -648,6 +763,265 @@ class HolisticCraft(ABC):
             ConceptDecoder instance with signature: (coeffs_u) -> predictions
         """
         raise NotImplementedError
+
+    @abstractmethod
+    def make_concept_localizer(
+        self,
+        concept_reducer: Union[str, Callable] = "mean",
+    ) -> Any:
+        """Create a callable mapping input images to one score per concept.
+
+        Parameters
+        ----------
+        concept_reducer
+            Reduction used to turn each concept coefficient map into a scalar
+            concept score.
+
+        Returns
+        -------
+        localizer
+            Framework-specific callable suitable for Xplique explainers.
+        """
+        raise NotImplementedError
+
+    def _validate_concept_ids(
+        self,
+        concept_ids: Optional[List[int]],
+        parameter_name: str = "concept_ids",
+    ) -> List[int]:
+        """Validate concept id selections and return them as a list."""
+        if concept_ids is None:
+            return list(range(self.number_of_concepts))
+
+        try:
+            concept_ids = list(concept_ids)
+        except TypeError as error:
+            raise ValueError(f"{parameter_name} must be an iterable of concept IDs") from error
+
+        if not concept_ids:
+            raise ValueError(f"{parameter_name} must contain at least one concept ID")
+        if len(concept_ids) > self.number_of_concepts:
+            raise ValueError(f"{parameter_name} cannot contain more IDs than number_of_concepts")
+        if any(
+            not isinstance(concept_id, (int, np.integer))
+            or isinstance(concept_id, bool)
+            or not 0 <= concept_id < self.number_of_concepts
+            for concept_id in concept_ids
+        ):
+            raise ValueError(
+                f"{parameter_name} concept IDs must be integers between 0 and "
+                f"{self.number_of_concepts - 1}"
+            )
+        if len(set(concept_ids)) != len(concept_ids):
+            raise ValueError(f"{parameter_name} cannot contain duplicate concept IDs")
+
+        return [int(concept_id) for concept_id in concept_ids]
+
+    def _prepare_localization_inputs(self, images: Union[np.ndarray, List[Any]]) -> np.ndarray:
+        """Prepare batched image inputs in NHWC format for attribution methods."""
+
+        def _is_torch_object(obj: Any) -> bool:
+            return type(obj).__module__.split(".")[0] == "torch"
+
+        if isinstance(images, list):
+            image_batch = []
+            for img in images:
+                image = np.asarray(self._to_numpy(img))
+                if image.ndim == 4 and image.shape[0] == 1:
+                    image = image[0]
+                if image.ndim != 3:
+                    raise ValueError(
+                        "images list entries must have shape (H, W, C), (C, H, W), or (1, C, H, W)."
+                    )
+                image_batch.append(image)
+            if not image_batch:
+                raise ValueError("images list must contain at least one image.")
+            images_np = np.stack(image_batch, axis=0)
+        else:
+            images_np = self._to_numpy(images)
+            images_np = np.asarray(images_np)
+
+        if images_np.ndim == 3:
+            images_np = np.expand_dims(images_np, axis=0)
+
+        if images_np.ndim != 4:
+            raise ValueError(
+                "images must be a non-empty image batch with shape (N, H, W, C) or (N, C, H, W)."
+            )
+        if images_np.shape[0] == 0 or min(images_np.shape[1:]) <= 0:
+            raise ValueError(
+                "images must contain at least one image with positive spatial dimensions."
+            )
+
+        if self.framework == "torch":
+            has_torch_inputs = _is_torch_object(images) or (
+                isinstance(images, list) and bool(images) and _is_torch_object(images[0])
+            )
+            is_channel_first = has_torch_inputs or (
+                images_np.shape[1] in (1, 3, 4) and images_np.shape[-1] not in (1, 3, 4)
+            )
+            if is_channel_first:
+                images_np = np.moveaxis(images_np, 1, -1)
+
+        return images_np.astype(np.float32, copy=False)
+
+    def compute_concept_attributions(
+        self,
+        images,
+        partial_explainer: PartialExplainer,
+        concept_ids: Optional[List[int]] = None,
+        concept_reducer: Union[str, Callable] = "mean",
+        verbose: bool = False,
+    ) -> np.ndarray:
+        """Compute input-space localization maps for selected learned concepts.
+
+        The fitted encoder and factorizer are exposed as a multi-output callable
+        whose output is one scalar score per concept. A standard black-box
+        attribution method then attributes each selected score to the input.
+
+        Parameters
+        ----------
+        images
+            Non-empty batch of images. TensorFlow inputs use ``(N, H, W, C)``;
+            PyTorch inputs use ``(N, C, H, W)``.
+        partial_explainer
+            Deferred black-box Xplique explainer configuration. Do not provide an
+            ``operator``; one-hot concept targets select the score directly.
+        concept_ids
+            Optional concept IDs to localize. Uncomputed result channels are
+            filled with ``NaN``. If omitted, all concepts are localized.
+        concept_reducer
+            Reduction from coefficient maps to scalar concept scores.
+        verbose
+            Whether to print progress once per concept.
+
+        Returns
+        -------
+        concept_maps
+            Float32 maps with shape ``(N, H, W, number_of_concepts)``.
+
+        Raises
+        ------
+        ValueError
+            If inputs, concept IDs, reducer, explainer type, or explainer output
+            shape is invalid.
+        RuntimeError
+            If the factorizer cannot encode perturbed, unseen activations.
+        """
+        self.check_if_fitted()
+
+        if not isinstance(partial_explainer, PartialExplainer):
+            raise TypeError(
+                f"partial_explainer must be a PartialExplainer instance, got "
+                f"{type(partial_explainer).__name__}."
+            )
+
+        if "operator" in partial_explainer.kwargs:
+            raise ValueError(
+                "Concept localization uses one-hot concept targets and does not accept a "
+                "custom operator. Omit the operator argument."
+            )
+
+        explainer_class = partial_explainer.explainer_class
+        if isinstance(explainer_class, type) and issubclass(explainer_class, WhiteBoxExplainer):
+            raise ValueError(
+                "Input-to-concept localization currently supports black-box attribution "
+                "methods only. The ConceptLocalizer uses factorizer.encode(), which is "
+                "not guaranteed to be differentiable. Use Rise, SobolAttributionMethod, "
+                "Occlusion, Lime, KernelShap, or another compatible black-box explainer."
+            )
+
+        selected_concepts = self._validate_concept_ids(concept_ids, parameter_name="concept_ids")
+        attribution_inputs = self._prepare_localization_inputs(images)
+        localizer = self.make_concept_localizer(concept_reducer)
+
+        explainer_model = localizer
+        if self.framework == "tf" and isinstance(explainer_class, type):
+            is_black_box_explainer = issubclass(explainer_class, BlackBoxExplainer)
+            if is_black_box_explainer:
+                explainer_model = _NumpyCallableModelAdapter(localizer)
+
+        explainer_instance = partial_explainer(model=explainer_model, batch_size=self.batch_size)
+
+        num_images, height, width, _ = attribution_inputs.shape
+        concept_maps = np.full(
+            (num_images, height, width, self.number_of_concepts),
+            np.nan,
+            dtype=np.float32,
+        )
+
+        total_concepts = len(selected_concepts)
+        for index, concept_id in enumerate(selected_concepts):
+            if verbose:
+                print(
+                    f"\rLocalizing concept {index + 1}/{total_concepts} (concept #{concept_id})...",
+                    end="",
+                    flush=True,
+                )
+
+            targets = np.zeros((num_images, self.number_of_concepts), dtype=np.float32)
+            targets[:, concept_id] = 1.0
+
+            single_concept_map = explainer_instance.explain(attribution_inputs, targets)
+            single_concept_map = self._to_numpy(single_concept_map)
+            if single_concept_map.ndim == 4:
+                if single_concept_map.shape[-1] != 1:
+                    raise ValueError(
+                        "Concept attribution maps must have one channel when returned as "
+                        f"rank-4 tensors, got {single_concept_map.shape}."
+                    )
+                single_concept_map = single_concept_map[..., 0]
+            elif single_concept_map.ndim != 3:
+                raise ValueError(
+                    "Concept attribution maps must have shape (N, H, W) or (N, H, W, 1), "
+                    f"got {single_concept_map.shape}."
+                )
+
+            expected_shape = (num_images, height, width)
+            if single_concept_map.shape != expected_shape:
+                raise ValueError(
+                    "Concept attribution map shape must match attribution inputs spatial "
+                    f"shape {expected_shape}, got {single_concept_map.shape}."
+                )
+            if not np.all(np.isfinite(single_concept_map)):
+                raise ValueError(
+                    f"Concept attribution map for concept {concept_id} must contain "
+                    "only finite values."
+                )
+
+            concept_maps[..., concept_id] = single_concept_map.astype(np.float32, copy=False)
+
+        if verbose:
+            print()
+
+        return concept_maps
+
+    def _prepare_concept_maps(
+        self,
+        concept_maps: np.ndarray,
+    ) -> Tuple[np.ndarray, List[int]]:
+        """Validate concept maps and identify which concept channels are available."""
+        concept_maps = np.asarray(concept_maps, dtype=np.float32)
+
+        if concept_maps.ndim != 4:
+            raise ValueError("concept_maps must have shape (N, H, W, n_concepts).")
+        if any(size == 0 for size in concept_maps.shape):
+            raise ValueError(
+                f"concept_maps must not contain empty dimensions, got {concept_maps.shape}."
+            )
+        if concept_maps.shape[-1] != self.number_of_concepts:
+            raise ValueError(
+                f"concept_maps contains {concept_maps.shape[-1]} concepts, expected "
+                f"{self.number_of_concepts}."
+            )
+
+        channel_is_uncomputed = np.all(np.isnan(concept_maps), axis=(0, 1, 2))
+        channel_is_computed = np.all(np.isfinite(concept_maps), axis=(0, 1, 2))
+        if not np.all(channel_is_uncomputed | channel_is_computed):
+            raise ValueError("Each concept map channel must be entirely finite or entirely NaN.")
+
+        available_concepts = np.flatnonzero(channel_is_computed).tolist()
+        return concept_maps, available_concepts
 
     def _prepare_display_concept_inputs(
         self,
