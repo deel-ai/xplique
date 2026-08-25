@@ -1079,36 +1079,8 @@ class HolisticCraft(ABC):
                 f"{self.number_of_concepts}"
             )
 
-        # convert images to HWC numpy format for display
-        if self.framework == "torch":
-            # channel first (C, H, W) -> channel last (H, W, C) for each image
-            images_np = np.stack([self._to_numpy(img.squeeze().permute(1, 2, 0)) for img in images])
-        else:
-            images_np = np.stack([self._to_numpy(img) for img in images])
-
-        if order is None:
-            concepts_id = list(range(self.number_of_concepts))
-        else:
-            try:
-                concepts_id = list(order)
-            except TypeError as error:
-                raise ValueError("order must be an iterable of concept IDs") from error
-            if not concepts_id:
-                raise ValueError("order must contain at least one concept ID")
-            if len(concepts_id) > self.number_of_concepts:
-                raise ValueError("order cannot contain more IDs than number_of_concepts")
-            if any(
-                not isinstance(concept_id, (int, np.integer))
-                or isinstance(concept_id, bool)
-                or not 0 <= concept_id < self.number_of_concepts
-                for concept_id in concepts_id
-            ):
-                raise ValueError(
-                    f"order concept IDs must be integers between 0 and "
-                    f"{self.number_of_concepts - 1}"
-                )
-            if len(set(concepts_id)) != len(concepts_id):
-                raise ValueError("order cannot contain duplicate concept IDs")
+        images_np = self._prepare_localization_inputs(images)
+        concepts_id = self._validate_concept_ids(order, parameter_name="order")
 
         return images_np, coeffs_u, concepts_id
 
@@ -1123,16 +1095,17 @@ class HolisticCraft(ABC):
     ) -> None:
         """Overlay a single concept heatmap on a single image.
 
-        Displays the image on the given axis, then overlays the concept activation
-        heatmap after filtering low activations, resizing to image resolution, and
-        clipping outlier values.
+        Displays the image on the given axis, then overlays the concept heatmap
+        after filtering low activations and clipping outlier values.
+        The heatmap may be either a latent concept activation map or an
+        input-space attribution map.
 
         Parameters
         ----------
         image
             Single image as HWC numpy array, shape (H, W, C)
         concept_heatmap
-            Raw concept activation map, shape (H', W')
+            Concept heatmap, shape (H', W') or (H', W', 1)
         concept_idx
             Index of the concept, used to select the colormap
         ax
@@ -1146,17 +1119,32 @@ class HolisticCraft(ABC):
             This parameter allows to avoid outliers in case of too extreme values.
             Default to 5.
         """
+        concept_heatmap = np.asarray(concept_heatmap, dtype=np.float32)
+        if concept_heatmap.ndim == 3 and concept_heatmap.shape[-1] == 1:
+            concept_heatmap = concept_heatmap[..., 0]
+        elif concept_heatmap.ndim != 2:
+            raise ValueError(
+                f"concept_heatmap must have shape (H, W) or (H, W, 1), got {concept_heatmap.shape}."
+            )
+
+        finite_mask = np.isfinite(concept_heatmap)
+        if not np.all(finite_mask):
+            raise ValueError("concept_heatmap must contain only finite values.")
+
         dsize = (image.shape[1], image.shape[0])  # cv2 expects (width, height)
 
         # Display the image
         show_ax(image, ax=ax)
 
         # only show concept if excess N-th percentile
-        sigma = np.percentile(concept_heatmap.flatten(), filter_percentile)
+        sigma = np.percentile(concept_heatmap, filter_percentile)
         heatmap = concept_heatmap * (concept_heatmap > sigma)
 
-        # resize the heatmap before clipping
-        heatmap = cv2.resize(heatmap[:, :, None], dsize=dsize, interpolation=cv2.INTER_CUBIC)
+        # resize the heatmap before clipping when needed
+        if heatmap.shape[:2] != image.shape[:2]:
+            heatmap = cv2.resize(heatmap[:, :, None], dsize=dsize, interpolation=cv2.INTER_CUBIC)
+        else:
+            heatmap = heatmap[:, :, None]
         heatmap = _clip_percentile(heatmap, clip_percentile)
 
         # Display the heatmap overlay
@@ -1170,6 +1158,7 @@ class HolisticCraft(ABC):
         filter_percentile: int = 80,
         clip_percentile: int = 5,
         order: Optional[List[int]] = None,
+        concept_maps: Optional[np.ndarray] = None,
     ) -> Figure:
         """
         Display concept heatmaps overlaid on images.
@@ -1197,15 +1186,43 @@ class HolisticCraft(ABC):
         order
             Optional list of concept IDs to specify display order. If None,
             concepts are shown in sequential order
+        concept_maps
+            Optional input-space concept attribution maps of shape
+            (N, H, W, n_concepts). When provided, maps are used for overlays
+            while `coeffs_u` keeps its original meaning.
 
         Returns
         -------
         fig
             matplotlib figure with len(images) rows and number_of_concepts columns
         """
-        images_np, coeffs_u, concepts_id = self._prepare_display_concept_inputs(
-            images, coeffs_u, order
-        )
+        if concept_maps is None:
+            images_np, coeffs_u, concepts_id = self._prepare_display_concept_inputs(
+                images, coeffs_u, order
+            )
+            heatmap_source = coeffs_u
+        else:
+            images_np = self._prepare_localization_inputs(images)
+            concepts_id = self._validate_concept_ids(order, parameter_name="order")
+            concept_maps, available_concepts = self._prepare_concept_maps(concept_maps)
+            if concept_maps.shape[0] != images_np.shape[0]:
+                raise ValueError(
+                    "concept_maps and images must contain the same number of samples, "
+                    f"got {concept_maps.shape[0]} and {images_np.shape[0]}."
+                )
+            if order is None:
+                concepts_id = available_concepts
+                if not concepts_id:
+                    raise ValueError("No computed concept maps are available to display.")
+            else:
+                unavailable = [
+                    concept_id for concept_id in concepts_id if concept_id not in available_concepts
+                ]
+                if unavailable:
+                    raise ValueError(
+                        f"Requested concept maps are not available for concept IDs: {unavailable}."
+                    )
+            heatmap_source = concept_maps
 
         nb_cols = len(concepts_id)
         nb_rows = len(images_np)
@@ -1221,7 +1238,7 @@ class HolisticCraft(ABC):
             for image_id, image in enumerate(images_np):
                 self.display_concept_heatmap(
                     image=image,
-                    concept_heatmap=coeffs_u[image_id, :, :, c_i],
+                    concept_heatmap=heatmap_source[image_id, :, :, c_i],
                     concept_idx=c_i,
                     ax=axs[image_id, i],
                     filter_percentile=filter_percentile,
@@ -1265,6 +1282,7 @@ class HolisticCraft(ABC):
         clip_percentile: int = 5,
         order: Optional[List[int]] = None,
         coeffs_u: Optional[np.ndarray] = None,
+        concept_maps: Optional[np.ndarray] = None,
     ) -> Figure:
         """Display top N images per concept ranked by average activation.
 
@@ -1284,6 +1302,10 @@ class HolisticCraft(ABC):
             Optional pre-computed concept coefficients. If None, will call
             self.transform(images) to compute them. Use this to pass the
             coefficients stored in factorization.coeffs_u after fit().
+        concept_maps
+            Optional input-space concept attribution maps of shape
+            (N, H, W, n_concepts) used only for display overlays. Top-image
+            ranking remains based on concept coefficients.
 
         Returns
         -------
@@ -1293,6 +1315,28 @@ class HolisticCraft(ABC):
         images_np, coeffs_u, concepts_id = self._prepare_display_concept_inputs(
             images, coeffs_u, order
         )
+
+        heatmap_source = coeffs_u
+        if concept_maps is not None:
+            concept_maps, available_concepts = self._prepare_concept_maps(concept_maps)
+            if concept_maps.shape[0] != images_np.shape[0]:
+                raise ValueError(
+                    "concept_maps and images must contain the same number of samples, "
+                    f"got {concept_maps.shape[0]} and {images_np.shape[0]}."
+                )
+            if order is None:
+                concepts_id = available_concepts
+                if not concepts_id:
+                    raise ValueError("No computed concept maps are available to display.")
+            else:
+                unavailable = [
+                    concept_id for concept_id in concepts_id if concept_id not in available_concepts
+                ]
+                if unavailable:
+                    raise ValueError(
+                        f"Requested concept maps are not available for concept IDs: {unavailable}."
+                    )
+            heatmap_source = concept_maps
 
         nb_rows = topk
         nb_cols = len(concepts_id)
@@ -1309,7 +1353,7 @@ class HolisticCraft(ABC):
             for j, image_id in enumerate(topk_images_ids[c_i]):
                 self.display_concept_heatmap(
                     image=images_np[image_id],
-                    concept_heatmap=coeffs_u[image_id, :, :, c_i],
+                    concept_heatmap=heatmap_source[image_id, :, :, c_i],
                     concept_idx=c_i,
                     ax=axs[j, i],
                     filter_percentile=filter_percentile,
