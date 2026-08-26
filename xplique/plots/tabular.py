@@ -41,12 +41,12 @@ def _select_features(explanations, max_display, features_name):
     return num_features_kept, features_idx_kept
 
 
-def _add_colorbar(cmap):
+def _add_colorbar(cmap, ax):
     """
     Add the color bar corresponding to cmap to the plot
     """
     mappa = cm.ScalarMappable(cmap=cmap)
-    colorbar = plt.colorbar(mappa, ticks=[0, 1])
+    colorbar = plt.colorbar(mappa, ax=ax, ticks=[0, 1])
     colorbar.set_ticklabels(["Low", "High"])
     colorbar.set_label("Feature value", size=12, labelpad=0)
     colorbar.ax.tick_params(labelsize=11, length=0)
@@ -350,7 +350,7 @@ def summary_plot_tabular(
 
     # draw the color bar
     if features_values is not None:
-        _add_colorbar(cmap)
+        _add_colorbar(cmap, plt.gca())
 
     # make the plot prettier
     plt.gca().xaxis.set_ticks_position("bottom")
