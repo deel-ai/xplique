@@ -9,10 +9,11 @@ from PIL import Image
 from torchvision import models
 
 import xplique
-from xplique.attributions import Saliency
+from xplique.attributions import Rise, Saliency, SobolAttributionMethod
 from xplique.attributions.gradient_input import GradientInput
 from xplique.concepts import HolisticCraftTorch as Craft
 from xplique.concepts.holistic_craft import PartialExplainer
+from xplique.concepts.torch.holistic_craft import ConceptLocalizerTorch
 from xplique.concepts.torch.layered_model_latent_extractor import LayeredModelExtractorBuilder
 from xplique.utils_functions.classification.torch.classifier_tensor import TorchClassifierTensor
 from xplique.utils_functions.common.torch.gradients_check import check_model_gradients
@@ -356,3 +357,105 @@ def test_craft_sobol_importance(image_data, craft_data):
     order = importances_sobol.argsort()[::-1]
     assert order.shape == (10,), "Should have ordering for all concepts"
     assert len(np.unique(order)) == 10, "All concepts should have unique ordering"
+
+
+def test_craft_make_concept_localizer_matches_reduced_transform(craft_data, device_param):
+    craft = craft_data
+    rng = np.random.default_rng(seed=3)
+    images_nchw = torch.tensor(
+        rng.normal(size=(2, 3, 224, 224)).astype(np.float32),
+        device=device_param,
+    )
+    images_nhwc = images_nchw.detach().cpu().numpy().transpose(0, 2, 3, 1).copy()
+
+    localizer = craft.make_concept_localizer("mean")
+    native_scores = ConceptLocalizerTorch(craft, "mean")(images_nchw)
+    scores = localizer(images_nhwc)
+    scores = scores.numpy()
+    coeffs_u = craft.transform(images_nchw)
+    expected = np.mean(coeffs_u, axis=(1, 2))
+
+    assert native_scores.shape == (2, craft.number_of_concepts)
+    assert native_scores.dtype == torch.float32
+    assert native_scores.device == images_nchw.device
+    assert torch.isfinite(native_scores).all()
+    np.testing.assert_allclose(native_scores.detach().cpu().numpy(), expected, rtol=5e-4, atol=2e-3)
+    assert scores.shape == (2, craft.number_of_concepts)
+    assert scores.dtype == np.float32
+    assert np.all(np.isfinite(scores))
+    np.testing.assert_allclose(scores, expected, rtol=5e-4, atol=2e-3)
+    assert localizer.requires_grad is False
+    assert localizer.device == craft.device
+    assert localizer.model.training is False
+
+
+def test_craft_compute_concept_attributions_rise_smoke(craft_data, device_param, monkeypatch):
+    craft = craft_data
+    rng = np.random.default_rng(seed=4)
+    torch.manual_seed(4)
+    images_nchw = torch.tensor(
+        rng.normal(size=(1, 3, 224, 224)).astype(np.float32),
+        device=device_param,
+    )
+
+    def fail_if_differentiable_encoding_called(_):
+        raise AssertionError("black-box localization must not use encode_differentiable")
+
+    monkeypatch.setattr(
+        craft.factorizer,
+        "encode_differentiable",
+        fail_if_differentiable_encoding_called,
+    )
+
+    rise = PartialExplainer(
+        Rise,
+        nb_samples=8,
+        grid_size=2,
+        preservation_probability=0.5,
+    )
+    maps = craft.compute_concept_attributions(
+        images_nchw,
+        partial_explainer=rise,
+        concept_ids=[1],
+    )
+
+    assert maps.shape == (1, 224, 224, craft.number_of_concepts)
+    assert maps.dtype == np.float32
+    assert np.all(np.isfinite(maps[..., 1]))
+    assert np.all(np.isnan(np.delete(maps, 1, axis=-1)))
+
+
+def test_craft_compute_concept_attributions_sobol_smoke(craft_data, device_param, monkeypatch):
+    craft = craft_data
+    rng = np.random.default_rng(seed=5)
+    torch.manual_seed(5)
+    images_nchw = torch.tensor(
+        rng.normal(size=(1, 3, 224, 224)).astype(np.float32),
+        device=device_param,
+    )
+
+    def fail_if_differentiable_encoding_called(_):
+        raise AssertionError("black-box localization must not use encode_differentiable")
+
+    monkeypatch.setattr(
+        craft.factorizer,
+        "encode_differentiable",
+        fail_if_differentiable_encoding_called,
+    )
+
+    sobol = PartialExplainer(
+        SobolAttributionMethod,
+        grid_size=2,
+        nb_design=2,
+        perturbation_function="inpainting",
+    )
+    maps = craft.compute_concept_attributions(
+        images_nchw,
+        partial_explainer=sobol,
+        concept_ids=[0],
+    )
+
+    assert maps.shape == (1, 224, 224, craft.number_of_concepts)
+    assert maps.dtype == np.float32
+    assert np.all(np.isfinite(maps[..., 0]))
+    assert np.all(np.isnan(np.delete(maps, 0, axis=-1)))
