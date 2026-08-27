@@ -42,9 +42,7 @@ def _select_features(explanations, max_display, features_name):
 
 
 def _add_colorbar(cmap, ax):
-    """
-    Add the color bar corresponding to cmap to the plot
-    """
+    """Add the color bar corresponding to `cmap` attached to the given Axes."""
     mappa = cm.ScalarMappable(cmap=cmap)
     colorbar = plt.colorbar(mappa, ax=ax, ticks=[0, 1])
     colorbar.set_ticklabels(["Low", "High"])
