@@ -118,7 +118,12 @@ class ConceptLocalizer:
     concept_reducer
         Reduction applied over non-batch, non-concept coefficient dimensions.
         Supported strings are ``"mean"``, ``"sum"``, and ``"max"``. A callable
-        may be supplied for custom reduction semantics.
+        may be supplied for custom reduction semantics. Callable reducers receive
+        the complete coefficient array with shape
+        ``(batch_size, *spatial_dimensions, number_of_concepts)`` and must return
+        an array with shape ``(batch_size, number_of_concepts)``. Coefficients are
+        reduced as-is, so signed factorizers retain their sign; use a callable
+        reducer such as a mean absolute value when magnitude is desired.
     """
 
     parent_craft: "HolisticCraft"
@@ -886,6 +891,15 @@ class HolisticCraft(ABC):
         -------
         concept_maps
             Float32 maps with shape ``(N, H, W, number_of_concepts)``.
+
+        Notes
+        -----
+        Localization evaluates the fitted factorizer on perturbed inputs, so the
+        factorizer must support out-of-sample ``encode()``. The localizer keeps
+        signed concept scores unchanged; use a custom reducer when concept
+        magnitude rather than signed activation is intended. White-box explainers
+        are rejected when ``explainer_class`` is a class. Callable factories are
+        allowed and are responsible for producing a compatible black-box explainer.
 
         Raises
         ------
