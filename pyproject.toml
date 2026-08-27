@@ -1,6 +1,6 @@
 [project]
 name = "xplique"
-version = "2.0.0"
+version = "2.0.1"
 description = "Explanations toolbox for TensorFlow 2"
 readme = "README.md"
 requires-python = ">=3.10,<3.14"
@@ -92,15 +92,14 @@ include = ["xplique*"]
 "xplique.features_visualizations" = ["spectrum_decorrelated.npy"]
 
 [tool.bumpversion]
-current_version = "2.0.0"
+current_version = "2.0.1"
 commit = true
 tag = false
 
 [[tool.bumpversion.files]]
-filename = "pyproject.toml"
-
-[[tool.bumpversion.files]]
 filename = "xplique/__init__.py"
+search = '__version__ = "{current_version}"'
+replace = '__version__ = "{new_version}"'
 
 [tool.ruff]
 line-length = 100
