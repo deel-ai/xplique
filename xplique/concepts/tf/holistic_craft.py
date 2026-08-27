@@ -176,7 +176,7 @@ class HolisticCraftTf(HolisticCraft):
     def make_concept_localizer(
         self,
         concept_reducer: Union[str, Any] = "mean",
-    ) -> tf.keras.layers.Layer:
+    ) -> ConceptLocalizer:
         """Create a TensorFlow concept localizer for black-box attribution.
 
         Parameters
@@ -187,24 +187,22 @@ class HolisticCraftTf(HolisticCraft):
         Returns
         -------
         localizer
-            Keras layer returning a tensor with shape ``(batch_size, K)``.
+            Callable returning a tensor with shape ``(batch_size, K)``.
         """
         return ConceptLocalizerTf(self, concept_reducer)
 
 
-class ConceptLocalizerTf(tf.keras.layers.Layer, ConceptLocalizer):
-    """TensorFlow concept localizer layer."""
+class ConceptLocalizerTf(ConceptLocalizer):
+    """TensorFlow concept localizer callable."""
 
     def __init__(
         self,
         parent_craft: HolisticCraft,
         concept_reducer: Union[str, Any] = "mean",
-        **kwargs: Any,
     ) -> None:
-        super().__init__(**kwargs)
         ConceptLocalizer.__init__(self, parent_craft, concept_reducer)
 
-    def call(self, inputs: Any) -> tf.Tensor:
+    def __call__(self, inputs: Any) -> tf.Tensor:
         """Return reduced concept scores for a batch of inputs."""
         scores = self._compute_scores(inputs)
         return tf.convert_to_tensor(scores, dtype=tf.float32)

@@ -12,7 +12,7 @@ from matplotlib import pyplot as plt
 from matplotlib.figure import Figure
 from sklearn.exceptions import NotFittedError
 
-from xplique.attributions.base import BlackBoxExplainer, WhiteBoxExplainer
+from xplique.attributions.base import WhiteBoxExplainer
 from xplique.attributions.global_sensitivity_analysis.sobol_attribution_method import (
     SobolAttributionMethod,
 )
@@ -201,19 +201,6 @@ class ConceptLocalizer:
                 "because attribution methods evaluate perturbed inputs."
             ) from error
         return self._reduce_coefficients(coeffs_u)
-
-
-class _NumpyCallableModelAdapter:
-    """Adapt a model to a plain callable returning numpy outputs."""
-
-    def __init__(self, model: Any):
-        self.model = model
-
-    def __call__(self, inputs):
-        outputs = self.model(inputs)
-        if hasattr(outputs, "numpy"):
-            outputs = outputs.numpy()
-        return outputs
 
 
 class HolisticCraft(ABC):
@@ -923,6 +910,8 @@ class HolisticCraft(ABC):
             )
 
         explainer_class = partial_explainer.explainer_class
+        # Class-based white-box explainers can be rejected explicitly. Callable factories
+        # are intentionally left to their own validation because their class is unknown.
         if isinstance(explainer_class, type) and issubclass(explainer_class, WhiteBoxExplainer):
             raise ValueError(
                 "Input-to-concept localization currently supports black-box attribution "
@@ -935,13 +924,7 @@ class HolisticCraft(ABC):
         attribution_inputs = self._prepare_localization_inputs(images)
         localizer = self.make_concept_localizer(concept_reducer)
 
-        explainer_model = localizer
-        if self.framework == "tf" and isinstance(explainer_class, type):
-            is_black_box_explainer = issubclass(explainer_class, BlackBoxExplainer)
-            if is_black_box_explainer:
-                explainer_model = _NumpyCallableModelAdapter(localizer)
-
-        explainer_instance = partial_explainer(model=explainer_model, batch_size=self.batch_size)
+        explainer_instance = partial_explainer(model=localizer, batch_size=self.batch_size)
 
         num_images, height, width, _ = attribution_inputs.shape
         concept_maps = np.full(
