@@ -804,8 +804,8 @@ class HolisticCraft(ABC):
 
         return [int(concept_id) for concept_id in concept_ids]
 
-    def _prepare_localization_inputs(self, images: Union[np.ndarray, List[Any]]) -> np.ndarray:
-        """Prepare batched image inputs in NHWC format for attribution methods."""
+    def _normalize_image_batch_to_nhwc(self, images: Union[np.ndarray, List[Any]]) -> np.ndarray:
+        """Normalize batched image inputs to NHWC float32 for attribution and display."""
 
         def _is_torch_object(obj: Any) -> bool:
             return type(obj).__module__.split(".")[0] == "torch"
@@ -921,7 +921,7 @@ class HolisticCraft(ABC):
             )
 
         selected_concepts = self._validate_concept_ids(concept_ids, parameter_name="concept_ids")
-        attribution_inputs = self._prepare_localization_inputs(images)
+        attribution_inputs = self._normalize_image_batch_to_nhwc(images)
         localizer = self.make_concept_localizer(concept_reducer)
 
         explainer_instance = partial_explainer(model=localizer, batch_size=self.batch_size)
@@ -1006,6 +1006,36 @@ class HolisticCraft(ABC):
         available_concepts = np.flatnonzero(channel_is_computed).tolist()
         return concept_maps, available_concepts
 
+    def _resolve_concept_map_source(
+        self,
+        concept_maps: np.ndarray,
+        images_np: np.ndarray,
+        concepts_id: List[int],
+        order: Optional[List[int]],
+    ) -> Tuple[np.ndarray, List[int]]:
+        """Validate display maps and resolve the concept columns to display."""
+        concept_maps, available_concepts = self._prepare_concept_maps(concept_maps)
+        if concept_maps.shape[0] != images_np.shape[0]:
+            raise ValueError(
+                "concept_maps and images must contain the same number of samples, "
+                f"got {concept_maps.shape[0]} and {images_np.shape[0]}."
+            )
+
+        if order is None:
+            if not available_concepts:
+                raise ValueError("No computed concept maps are available to display.")
+            concepts_id = available_concepts
+        else:
+            unavailable = [
+                concept_id for concept_id in concepts_id if concept_id not in available_concepts
+            ]
+            if unavailable:
+                raise ValueError(
+                    f"Requested concept maps are not available for concept IDs: {unavailable}."
+                )
+
+        return concept_maps, concepts_id
+
     def _prepare_display_concept_inputs(
         self,
         images: Union[np.ndarray, List[Any]],
@@ -1062,7 +1092,7 @@ class HolisticCraft(ABC):
                 f"{self.number_of_concepts}"
             )
 
-        images_np = self._prepare_localization_inputs(images)
+        images_np = self._normalize_image_batch_to_nhwc(images)
         concepts_id = self._validate_concept_ids(order, parameter_name="order")
 
         return images_np, coeffs_u, concepts_id
@@ -1185,27 +1215,11 @@ class HolisticCraft(ABC):
             )
             heatmap_source = coeffs_u
         else:
-            images_np = self._prepare_localization_inputs(images)
+            images_np = self._normalize_image_batch_to_nhwc(images)
             concepts_id = self._validate_concept_ids(order, parameter_name="order")
-            concept_maps, available_concepts = self._prepare_concept_maps(concept_maps)
-            if concept_maps.shape[0] != images_np.shape[0]:
-                raise ValueError(
-                    "concept_maps and images must contain the same number of samples, "
-                    f"got {concept_maps.shape[0]} and {images_np.shape[0]}."
-                )
-            if order is None:
-                concepts_id = available_concepts
-                if not concepts_id:
-                    raise ValueError("No computed concept maps are available to display.")
-            else:
-                unavailable = [
-                    concept_id for concept_id in concepts_id if concept_id not in available_concepts
-                ]
-                if unavailable:
-                    raise ValueError(
-                        f"Requested concept maps are not available for concept IDs: {unavailable}."
-                    )
-            heatmap_source = concept_maps
+            heatmap_source, concepts_id = self._resolve_concept_map_source(
+                concept_maps, images_np, concepts_id, order
+            )
 
         nb_cols = len(concepts_id)
         nb_rows = len(images_np)
@@ -1301,25 +1315,9 @@ class HolisticCraft(ABC):
 
         heatmap_source = coeffs_u
         if concept_maps is not None:
-            concept_maps, available_concepts = self._prepare_concept_maps(concept_maps)
-            if concept_maps.shape[0] != images_np.shape[0]:
-                raise ValueError(
-                    "concept_maps and images must contain the same number of samples, "
-                    f"got {concept_maps.shape[0]} and {images_np.shape[0]}."
-                )
-            if order is None:
-                concepts_id = available_concepts
-                if not concepts_id:
-                    raise ValueError("No computed concept maps are available to display.")
-            else:
-                unavailable = [
-                    concept_id for concept_id in concepts_id if concept_id not in available_concepts
-                ]
-                if unavailable:
-                    raise ValueError(
-                        f"Requested concept maps are not available for concept IDs: {unavailable}."
-                    )
-            heatmap_source = concept_maps
+            heatmap_source, concepts_id = self._resolve_concept_map_source(
+                concept_maps, images_np, concepts_id, order
+            )
 
         nb_rows = topk
         nb_cols = len(concepts_id)
