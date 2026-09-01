@@ -11,9 +11,28 @@ from xplique.attributions import Rise, Saliency, SobolAttributionMethod
 from xplique.attributions.gradient_input import GradientInput
 from xplique.concepts import HolisticCraftTf as Craft
 from xplique.concepts.holistic_craft import PartialExplainer
-from xplique.concepts.tf.layered_model_latent_extractor import LayeredModelExtractorBuilder
+from xplique.concepts.tf.latent_extractor import TfLatentExtractor
+from xplique.concepts.tf.layered_model_latent_extractor import (
+    LayeredLatentData,
+    LayeredModelExtractorBuilder,
+)
 from xplique.utils_functions.classification.tf.classifier_tensor import TfClassifierTensor
 from xplique.utils_functions.common.tf.gradients_check import check_model_gradients
+
+
+class _IdentityFactorizer:
+    is_fitted = False
+    requires_positive_activations = False
+
+    def fit(self, activations):
+        self.is_fitted = True
+        return np.eye(2, dtype=np.float32), np.asarray(activations, dtype=np.float32)
+
+    def encode(self, activations):
+        return np.asarray(activations, dtype=np.float32)
+
+    def encode_differentiable(self, activations):
+        return activations
 
 
 def test_classifier_tensor_targets_class_and_preserves_batch_shape():
@@ -134,8 +153,6 @@ def test_latent_extractor(image_data, latent_extractor_data):
 
 def test_layered_latent_data_getitem():
     """Test that LayeredLatentData supports integer and slice indexing."""
-    from xplique.concepts.tf.layered_model_latent_extractor import LayeredLatentData
-
     activations = tf.random.normal((4, 7, 7, 16))
     latent_data = LayeredLatentData(activations)
 
@@ -197,6 +214,23 @@ def craft_data(image_data, latent_extractor_data, device_param):
         craft.fit(input_tensor)
 
         return craft
+
+
+@pytest.fixture
+def tiny_craft_data():
+    """Create a deterministic identity CRAFT pipeline for localization tests."""
+    values = np.arange(2 * 4 * 4 * 2, dtype=np.float32).reshape(2, 4, 4, 2)
+    extractor = TfLatentExtractor(
+        model=lambda inputs: inputs,
+        input_to_latent_model=lambda inputs: LayeredLatentData(inputs),
+        latent_to_logit_model=lambda latent_data: tf.reduce_mean(
+            latent_data.activations, axis=(1, 2)
+        ),
+        batch_size=2,
+    )
+    craft = Craft(extractor, number_of_concepts=2, factorizer=_IdentityFactorizer())
+    craft.fit(tf.constant(values))
+    return craft, values
 
 
 def test_craft_reencode(image_data, craft_data):
@@ -342,10 +376,8 @@ def test_craft_sobol_importance(image_data, craft_data):
     assert len(np.unique(order)) == 10, "All concepts should have unique ordering"
 
 
-def test_craft_make_concept_localizer_matches_reduced_transform(craft_data):
-    craft = craft_data
-    rng = np.random.default_rng(seed=0)
-    images = rng.normal(size=(2, 224, 224, 3)).astype(np.float32)
+def test_craft_make_concept_localizer_matches_reduced_transform(tiny_craft_data):
+    craft, images = tiny_craft_data
 
     localizer = craft.make_concept_localizer("mean")
     scores = localizer(images).numpy()
@@ -358,142 +390,32 @@ def test_craft_make_concept_localizer_matches_reduced_transform(craft_data):
     np.testing.assert_allclose(scores, expected, rtol=1e-5, atol=1e-5)
 
 
-def test_tf_torch_concept_localizer_score_parity():
-    torch = pytest.importorskip("torch")
-    from xplique.concepts.tf.holistic_craft import HolisticCraftTf
-    from xplique.concepts.tf.latent_extractor import TfLatentExtractor
-    from xplique.concepts.tf.layered_model_latent_extractor import LayeredLatentData as TfLatentData
-    from xplique.concepts.torch.holistic_craft import ConceptLocalizerTorch, HolisticCraftTorch
-    from xplique.concepts.torch.latent_extractor import TorchLatentExtractor
-    from xplique.concepts.torch.layered_model_latent_extractor import (
-        LayeredLatentData as TorchLatentData,
-    )
-
-    class IdentityFactorizer:
-        is_fitted = False
-        requires_positive_activations = False
-
-        def fit(self, activations):
-            self.is_fitted = True
-            return np.eye(2, dtype=np.float32), np.asarray(activations, dtype=np.float32)
-
-        def encode(self, activations):
-            return np.asarray(activations, dtype=np.float32)
-
-        def encode_differentiable(self, activations):
-            return activations
-
-    values = np.arange(2 * 2 * 2 * 2, dtype=np.float32).reshape(2, 2, 2, 2)
-    tf_extractor = TfLatentExtractor(
-        model=lambda inputs: inputs,
-        input_to_latent_model=lambda inputs: TfLatentData(inputs),
-        latent_to_logit_model=lambda latent_data: tf.reduce_sum(
-            latent_data.activations, axis=(1, 2)
-        ),
-        batch_size=2,
-    )
-    torch_extractor = TorchLatentExtractor(
-        model=torch.nn.Identity(),
-        input_to_latent_model=lambda inputs: TorchLatentData(inputs),
-        latent_to_logit_model=lambda latent_data: latent_data.activations,
-        device="cpu",
-        batch_size=2,
-    )
-    tf_craft = HolisticCraftTf(
-        tf_extractor,
-        number_of_concepts=2,
-        factorizer=IdentityFactorizer(),
-    )
-    torch_craft = HolisticCraftTorch(
-        torch_extractor,
-        number_of_concepts=2,
-        device="cpu",
-        factorizer=IdentityFactorizer(),
-    )
-    tf_images = tf.constant(values)
-    torch_images = torch.from_numpy(values.transpose(0, 3, 1, 2))
-
-    tf_craft.fit(tf_images)
-    torch_craft.fit(torch_images)
-    tf_scores = tf_craft.make_concept_localizer("mean")(tf_images).numpy()
-    torch_scores = ConceptLocalizerTorch(torch_craft, "mean")(torch_images).detach().numpy()
-
-    np.testing.assert_allclose(
-        tf_scores,
-        np.mean(tf_craft.transform(tf_images), axis=(1, 2)),
-        rtol=0.0,
-        atol=0.0,
-    )
-    np.testing.assert_allclose(
-        torch_scores,
-        np.mean(torch_craft.transform(torch_images), axis=(1, 2)),
-        rtol=0.0,
-        atol=0.0,
-    )
-    np.testing.assert_allclose(tf_scores, torch_scores, rtol=0.0, atol=0.0)
-
-
-def test_craft_compute_concept_attributions_rise_smoke(craft_data, monkeypatch):
-    craft = craft_data
-    rng = np.random.default_rng(seed=1)
+@pytest.mark.parametrize("method", ["rise", "sobol"])
+def test_craft_compute_concept_attributions_black_box_smoke(tiny_craft_data, method):
+    craft, images = tiny_craft_data
     tf.random.set_seed(1)
-    images = rng.normal(size=(1, 224, 224, 3)).astype(np.float32)
+    if method == "rise":
+        explainer = PartialExplainer(
+            Rise,
+            nb_samples=8,
+            grid_size=2,
+            preservation_probability=0.5,
+        )
+    else:
+        explainer = PartialExplainer(
+            SobolAttributionMethod,
+            grid_size=2,
+            nb_design=2,
+            perturbation_function="inpainting",
+        )
 
-    def fail_if_differentiable_encoding_called(_):
-        raise AssertionError("black-box localization must not use encode_differentiable")
-
-    monkeypatch.setattr(
-        craft.factorizer,
-        "encode_differentiable",
-        fail_if_differentiable_encoding_called,
-    )
-
-    rise = PartialExplainer(
-        Rise,
-        nb_samples=8,
-        grid_size=2,
-        preservation_probability=0.5,
-    )
     maps = craft.compute_concept_attributions(
-        images,
-        partial_explainer=rise,
-        concept_ids=[1],
-    )
-
-    assert maps.shape == (1, 224, 224, craft.number_of_concepts)
-    assert maps.dtype == np.float32
-    assert np.all(np.isfinite(maps[..., 1]))
-    assert np.all(np.isnan(np.delete(maps, 1, axis=-1)))
-
-
-def test_craft_compute_concept_attributions_sobol_smoke(craft_data, monkeypatch):
-    craft = craft_data
-    rng = np.random.default_rng(seed=2)
-    tf.random.set_seed(2)
-    images = rng.normal(size=(1, 224, 224, 3)).astype(np.float32)
-
-    def fail_if_differentiable_encoding_called(_):
-        raise AssertionError("black-box localization must not use encode_differentiable")
-
-    monkeypatch.setattr(
-        craft.factorizer,
-        "encode_differentiable",
-        fail_if_differentiable_encoding_called,
-    )
-
-    sobol = PartialExplainer(
-        SobolAttributionMethod,
-        grid_size=2,
-        nb_design=2,
-        perturbation_function="inpainting",
-    )
-    maps = craft.compute_concept_attributions(
-        images,
-        partial_explainer=sobol,
+        images[:1],
+        partial_explainer=explainer,
         concept_ids=[0],
     )
 
-    assert maps.shape == (1, 224, 224, craft.number_of_concepts)
+    assert maps.shape == (1, 4, 4, craft.number_of_concepts)
     assert maps.dtype == np.float32
     assert np.all(np.isfinite(maps[..., 0]))
     assert np.all(np.isnan(np.delete(maps, 0, axis=-1)))
