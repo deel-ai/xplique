@@ -115,11 +115,6 @@ class _Framework:
     float32 = np.float32
 
 
-class _NumpyConceptLocalizer(ConceptLocalizer):
-    def __call__(self, inputs):
-        return self._compute_scores(inputs)
-
-
 class _Craft(HolisticCraft):
     def __init__(
         self,
@@ -139,7 +134,6 @@ class _Craft(HolisticCraft):
         self.factorization = Factorization(None, 0, None, factorizer, None, concept_bank)
         self.framework = "tf"
         self._framework_module = _Framework
-        self.localizer_build_count = 0
 
     def latent_to_concept_differentiable(self, latent_data):
         return latent_data.activations
@@ -152,10 +146,6 @@ class _Craft(HolisticCraft):
 
     def make_concept_decoder(self, latent_data):
         return object()
-
-    def make_concept_localizer(self, concept_reducer="mean"):
-        self.localizer_build_count += 1
-        return _NumpyConceptLocalizer(self, concept_reducer)
 
 
 class _DummyModel:
@@ -350,6 +340,8 @@ def test_concept_localizer_reducers_handle_spatial_and_global_coefficients():
     localizer = craft.make_concept_localizer("mean")
     inputs = np.ones((2, 4, 4, 3), dtype=np.float32)
 
+    assert isinstance(localizer, ConceptLocalizer)
+
     scores_mean = localizer(inputs)
     expected_mean = np.mean(craft.transform(inputs), axis=(1, 2))
     np.testing.assert_allclose(scores_mean, expected_mean)
@@ -364,11 +356,13 @@ def test_concept_localizer_reducers_handle_spatial_and_global_coefficients():
     np.testing.assert_allclose(scores_max, expected_max)
 
     tokens = np.arange(2 * 4 * 3, dtype=np.float32).reshape(2, 4, 3)
-    token_scores = localizer._reduce_coefficients(tokens)
+    token_craft = _Craft([_LatentData(tokens)], batch_size=2, number_of_concepts=3)
+    token_scores = token_craft.make_concept_localizer()(inputs)
     np.testing.assert_allclose(token_scores, np.mean(tokens, axis=1))
 
     globals_only = np.arange(2 * 3, dtype=np.float32).reshape(2, 3)
-    global_scores = localizer._reduce_coefficients(globals_only)
+    global_craft = _Craft([_LatentData(globals_only)], batch_size=2, number_of_concepts=3)
+    global_scores = global_craft.make_concept_localizer()(inputs)
     np.testing.assert_allclose(global_scores, globals_only)
 
 
@@ -397,34 +391,41 @@ def test_concept_localizer_reducer_validation_and_shape_errors():
             np.ones((2, 4, 4, 3), dtype=np.float32)
         )
 
+    empty_batch_craft = _Craft(
+        [_LatentData(np.empty((0, 3), dtype=np.float32))],
+        number_of_concepts=3,
+    )
     with pytest.raises(ValueError, match="empty dimensions"):
-        craft.make_concept_localizer("mean")._reduce_coefficients(
-            np.empty((0, 2, 2, 3), dtype=np.float32)
-        )
+        empty_batch_craft.make_concept_localizer()(np.ones((1, 2, 2, 3), dtype=np.float32))
+
+    empty_spatial_craft = _Craft(
+        [_LatentData(np.empty((2, 0), dtype=np.float32))],
+        number_of_concepts=3,
+    )
     with pytest.raises(ValueError, match="empty dimensions"):
-        craft.make_concept_localizer("max")._reduce_coefficients(
-            np.empty((2, 0, 2, 3), dtype=np.float32)
-        )
+        empty_spatial_craft.make_concept_localizer("max")(np.ones((1, 2, 2, 3), dtype=np.float32))
     with pytest.raises(ValueError, match="finite"):
         craft.make_concept_localizer(lambda coeffs: np.full((2, 3), np.nan))(
             np.ones((2, 4, 4, 3), dtype=np.float32)
         )
 
-    localizer = craft.make_concept_localizer("mean")
+    invalid_rank_craft = _Craft(
+        [_LatentData(np.array([1.0, 2.0], dtype=np.float32))],
+        number_of_concepts=2,
+    )
     with pytest.raises(ValueError, match="at least 2 dimensions"):
-        localizer._reduce_coefficients(np.array([1.0, 2.0], dtype=np.float32))
+        invalid_rank_craft.make_concept_localizer()(np.ones((1, 2, 2, 1), dtype=np.float32))
 
 
 def test_compute_concept_attributions_orchestration_and_targets():
     craft = _make_spatial_craft(number_of_concepts=3)
     images = np.ones((2, 4, 4, 3), dtype=np.float32)
 
-    records = {"models": [], "batch_sizes": [], "inputs": [], "targets": []}
+    records = {"batch_sizes": [], "inputs": [], "targets": []}
 
     class RecordingExplainer:
         def __init__(self, model, batch_size):
             self.model = model
-            records["models"].append(model)
             records["batch_sizes"].append(batch_size)
 
         def explain(self, inputs, targets):
@@ -441,8 +442,6 @@ def test_compute_concept_attributions_orchestration_and_targets():
         concept_ids=[2, 0],
     )
 
-    assert craft.localizer_build_count == 1
-    assert len(records["models"]) == 1
     assert records["batch_sizes"] == [craft.batch_size]
     assert len(records["inputs"]) == 2
     np.testing.assert_array_equal(records["inputs"][0], images)
@@ -476,16 +475,12 @@ def test_compute_concept_attributions_validates_inputs_and_explainer_type():
 
     with pytest.raises(ValueError, match="between 0"):
         craft.compute_concept_attributions(images, PartialExplainer(_Explainer), concept_ids=[3])
-    assert craft.localizer_build_count == 0
     with pytest.raises(ValueError, match="duplicate"):
         craft.compute_concept_attributions(images, PartialExplainer(_Explainer), concept_ids=[1, 1])
-    assert craft.localizer_build_count == 0
     with pytest.raises(ValueError, match="at least one"):
         craft.compute_concept_attributions(images, PartialExplainer(_Explainer), concept_ids=[])
-    assert craft.localizer_build_count == 0
     with pytest.raises(ValueError, match="between 0"):
         craft.compute_concept_attributions(images, PartialExplainer(_Explainer), concept_ids=[True])
-    assert craft.localizer_build_count == 0
     with pytest.raises(ValueError, match="one channel"):
         craft.compute_concept_attributions(images, PartialExplainer(ShapeExplainer))
 
@@ -512,7 +507,6 @@ def test_compute_concept_attributions_rejects_invalid_image_batches(images):
 
     with pytest.raises(ValueError, match="images"):
         craft.compute_concept_attributions(images, PartialExplainer(_Explainer), concept_ids=[0])
-    assert craft.localizer_build_count == 0
 
 
 def test_compute_concept_attributions_rejects_explicit_operators_before_setup():
@@ -525,7 +519,28 @@ def test_compute_concept_attributions_rejects_explicit_operators_before_setup():
 
     with pytest.raises(ValueError, match="does not accept a custom operator"):
         craft.compute_concept_attributions(images, partial_explainer, concept_ids=[0])
-    assert craft.localizer_build_count == 0
+
+
+def test_compute_concept_attributions_accepts_explicit_none_operator():
+    craft = _make_spatial_craft(number_of_concepts=3)
+    images = np.ones((2, 4, 4, 3), dtype=np.float32)
+
+    class SingleChannelExplainer(_Explainer):
+        def __init__(self, model, batch_size, operator=None):
+            super().__init__(model, batch_size)
+            assert operator is None
+
+        def explain(self, coeffs_u, targets):
+            del targets
+            return np.ones(coeffs_u.shape[:3] + (1,), dtype=np.float32)
+
+    maps = craft.compute_concept_attributions(
+        images,
+        PartialExplainer(SingleChannelExplainer, operator=None),
+        concept_ids=[0],
+    )
+
+    assert np.all(np.isfinite(maps[..., 0]))
 
 
 def test_compute_concept_attributions_all_concepts_are_finite_by_default():
@@ -701,6 +716,52 @@ def test_display_concept_heatmap_resizing_and_finite_validation(monkeypatch):
     plt.close(figure)
 
 
+def test_display_concept_heatmap_uses_absolute_magnitude(monkeypatch):
+    craft = _make_spatial_craft(number_of_concepts=3)
+    image = np.ones((2, 2, 3), dtype=np.float32)
+    heatmap = np.array([[-10.0, 1.0], [2.0, 3.0]], dtype=np.float32)
+    displayed = []
+
+    monkeypatch.setattr(
+        "xplique.concepts.holistic_craft.show_ax",
+        lambda img, ax, **kwargs: displayed.append(np.asarray(img)),
+    )
+    monkeypatch.setattr(
+        "xplique.concepts.holistic_craft._clip_percentile",
+        lambda values, percentile: values,
+    )
+
+    figure, ax = plt.subplots(1, 1)
+    craft.display_concept_heatmap(
+        image,
+        heatmap,
+        concept_idx=0,
+        ax=ax,
+        filter_percentile=75,
+    )
+
+    overlay = displayed[1][..., 0]
+    assert overlay[0, 0] == 10.0
+    assert np.count_nonzero(overlay) == 1
+    plt.close(figure)
+
+    monkeypatch.setattr(
+        "xplique.concepts.holistic_craft.cv2.resize",
+        lambda *args, **kwargs: np.full((4, 4), -1.0, dtype=np.float32),
+    )
+    displayed.clear()
+    figure, ax = plt.subplots(1, 1)
+    craft.display_concept_heatmap(
+        np.ones((4, 4, 3), dtype=np.float32),
+        heatmap,
+        concept_idx=0,
+        ax=ax,
+        filter_percentile=75,
+    )
+    assert np.all(displayed[1] >= 0.0)
+    plt.close(figure)
+
+
 def test_semantic_localization_follows_spatial_concept_dependencies():
     craft = _Craft(
         latent_data=None,
@@ -708,6 +769,11 @@ def test_semantic_localization_follows_spatial_concept_dependencies():
         extractor=_SemanticExtractor(),
     )
     images = np.ones((1, 4, 4, 2), dtype=np.float32)
+
+    def fail_if_differentiable_encoding_called(_):
+        raise AssertionError("black-box localization must not use encode_differentiable")
+
+    craft.factorizer.encode_differentiable = fail_if_differentiable_encoding_called
 
     class PixelOcclusionExplainer:
         def __init__(self, model, batch_size):

@@ -1,6 +1,6 @@
 """TensorFlow-specific wrapper for HolisticCraft."""
 
-from typing import Any, Optional, Union
+from typing import Any, Callable, Optional, Union
 
 import numpy as np
 import tensorflow as tf
@@ -175,7 +175,7 @@ class HolisticCraftTf(HolisticCraft):
 
     def make_concept_localizer(
         self,
-        concept_reducer: Union[str, Any] = "mean",
+        concept_reducer: Union[str, Callable] = "mean",
     ) -> ConceptLocalizer:
         """Create a TensorFlow concept localizer for black-box attribution.
 
@@ -194,13 +194,6 @@ class HolisticCraftTf(HolisticCraft):
 
 class ConceptLocalizerTf(ConceptLocalizer):
     """TensorFlow concept localizer callable."""
-
-    def __init__(
-        self,
-        parent_craft: HolisticCraft,
-        concept_reducer: Union[str, Any] = "mean",
-    ) -> None:
-        ConceptLocalizer.__init__(self, parent_craft, concept_reducer)
 
     def __call__(self, inputs: Any) -> tf.Tensor:
         """Return reduced concept scores for a batch of inputs."""
