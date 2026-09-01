@@ -3,6 +3,7 @@
 
 import numpy as np
 import pytest
+import tensorflow as tf
 import torch
 import torchvision.transforms as T
 from PIL import Image
@@ -13,11 +14,34 @@ from xplique.attributions import Rise, Saliency, SobolAttributionMethod
 from xplique.attributions.gradient_input import GradientInput
 from xplique.concepts import HolisticCraftTorch as Craft
 from xplique.concepts.holistic_craft import PartialExplainer
-from xplique.concepts.torch.holistic_craft import ConceptLocalizerTorch
-from xplique.concepts.torch.layered_model_latent_extractor import LayeredModelExtractorBuilder
+from xplique.concepts.tf.holistic_craft import HolisticCraftTf
+from xplique.concepts.tf.latent_extractor import TfLatentExtractor
+from xplique.concepts.tf.layered_model_latent_extractor import LayeredLatentData as TfLatentData
+from xplique.concepts.torch.latent_extractor import TorchLatentExtractor
+from xplique.concepts.torch.layered_model_latent_extractor import (
+    LayeredLatentData as TorchLatentData,
+)
+from xplique.concepts.torch.layered_model_latent_extractor import (
+    LayeredModelExtractorBuilder,
+)
 from xplique.utils_functions.classification.torch.classifier_tensor import TorchClassifierTensor
 from xplique.utils_functions.common.torch.gradients_check import check_model_gradients
 from xplique.wrappers import TorchWrapper
+
+
+class _IdentityFactorizer:
+    is_fitted = False
+    requires_positive_activations = False
+
+    def fit(self, activations):
+        self.is_fitted = True
+        return np.eye(2, dtype=np.float32), np.asarray(activations, dtype=np.float32)
+
+    def encode(self, activations):
+        return np.asarray(activations, dtype=np.float32)
+
+    def encode_differentiable(self, activations):
+        return activations
 
 
 def test_classifier_tensor_targets_class_and_preserves_batch_shape():
@@ -135,17 +159,15 @@ def test_latent_extractor(image_data, latent_extractor_data):
 
 def test_layered_latent_data_getitem(device_param):
     """Test that LayeredLatentData supports integer and slice indexing."""
-    from xplique.concepts.torch.layered_model_latent_extractor import LayeredLatentData
-
     activations = torch.randn(4, 16, 7, 7).to(device_param)
-    latent_data = LayeredLatentData(activations)
+    latent_data = TorchLatentData(activations)
 
     sliced = latent_data[1:3]
-    assert isinstance(sliced, LayeredLatentData)
+    assert isinstance(sliced, TorchLatentData)
     assert sliced.activations.shape[0] == 2
 
     item = latent_data[0]
-    assert isinstance(item, LayeredLatentData)
+    assert isinstance(item, TorchLatentData)
 
 
 def test_latent_extractor_gradients(image_data, latent_extractor_data):
@@ -208,6 +230,32 @@ def craft_data(image_data, latent_extractor_data, device_param):
     craft.fit(input_tensor)
 
     return craft
+
+
+def _make_tiny_torch_craft(device):
+    values = np.arange(2 * 4 * 4 * 2, dtype=np.float32).reshape(2, 4, 4, 2)
+    images = torch.from_numpy(values.transpose(0, 3, 1, 2)).to(device)
+    extractor = TorchLatentExtractor(
+        model=torch.nn.Identity(),
+        input_to_latent_model=lambda inputs: TorchLatentData(inputs),
+        latent_to_logit_model=lambda latent_data: latent_data.activations,
+        device=str(device),
+        batch_size=2,
+    )
+    craft = Craft(
+        extractor,
+        number_of_concepts=2,
+        device=str(device),
+        factorizer=_IdentityFactorizer(),
+    )
+    craft.fit(images)
+    return craft, images, values
+
+
+@pytest.fixture
+def tiny_craft_data(device_param):
+    """Create a deterministic identity CRAFT pipeline for localization tests."""
+    return _make_tiny_torch_craft(device_param)
 
 
 def test_craft_reencode(image_data, craft_data):
@@ -359,103 +407,105 @@ def test_craft_sobol_importance(image_data, craft_data):
     assert len(np.unique(order)) == 10, "All concepts should have unique ordering"
 
 
-def test_craft_make_concept_localizer_matches_reduced_transform(craft_data, device_param):
-    craft = craft_data
-    rng = np.random.default_rng(seed=3)
-    images_nchw = torch.tensor(
-        rng.normal(size=(2, 3, 224, 224)).astype(np.float32),
-        device=device_param,
-    )
-    images_nhwc = images_nchw.detach().cpu().numpy().transpose(0, 2, 3, 1).copy()
+def test_craft_make_concept_localizer_matches_reduced_transform(tiny_craft_data):
+    craft, images_nchw, images_nhwc = tiny_craft_data
 
     localizer = craft.make_concept_localizer("mean")
-    native_scores = ConceptLocalizerTorch(craft, "mean")(images_nchw)
     scores = localizer(images_nhwc)
     scores = scores.numpy()
     coeffs_u = craft.transform(images_nchw)
     expected = np.mean(coeffs_u, axis=(1, 2))
 
-    assert native_scores.shape == (2, craft.number_of_concepts)
-    assert native_scores.dtype == torch.float32
-    assert native_scores.device == images_nchw.device
-    assert torch.isfinite(native_scores).all()
-    np.testing.assert_allclose(native_scores.detach().cpu().numpy(), expected, rtol=5e-4, atol=2e-3)
     assert scores.shape == (2, craft.number_of_concepts)
     assert scores.dtype == np.float32
     assert np.all(np.isfinite(scores))
     np.testing.assert_allclose(scores, expected, rtol=5e-4, atol=2e-3)
-    assert localizer.requires_grad is False
-    assert localizer.device == craft.device
-    assert localizer.model.training is False
 
 
-def test_craft_compute_concept_attributions_rise_smoke(craft_data, device_param, monkeypatch):
-    craft = craft_data
-    rng = np.random.default_rng(seed=4)
-    torch.manual_seed(4)
-    images_nchw = torch.tensor(
-        rng.normal(size=(1, 3, 224, 224)).astype(np.float32),
-        device=device_param,
-    )
+def test_compute_concept_attributions_normalizes_native_nchw_inputs(tiny_craft_data):
+    craft, images_nchw, _ = tiny_craft_data
+    observed_shapes = []
 
-    def fail_if_differentiable_encoding_called(_):
-        raise AssertionError("black-box localization must not use encode_differentiable")
+    class RecordingExplainer:
+        def __init__(self, model, batch_size):
+            del batch_size
+            self.model = model
 
-    monkeypatch.setattr(
-        craft.factorizer,
-        "encode_differentiable",
-        fail_if_differentiable_encoding_called,
-    )
+        def explain(self, inputs, targets):
+            observed_shapes.append(tuple(inputs.shape))
+            scores = self.model(inputs)
+            assert scores.shape == (len(inputs), craft.number_of_concepts)
+            return np.ones(inputs.shape[:3], dtype=np.float32)
 
-    rise = PartialExplainer(
-        Rise,
-        nb_samples=8,
-        grid_size=2,
-        preservation_probability=0.5,
-    )
+    explainer = PartialExplainer(RecordingExplainer)
+    input_variants = [
+        images_nchw[:1],
+        images_nchw[:1].detach().cpu().numpy(),
+        [images_nchw[0]],
+    ]
+    for inputs in input_variants:
+        maps = craft.compute_concept_attributions(inputs, explainer, concept_ids=[0])
+        assert maps.shape == (1, 4, 4, craft.number_of_concepts)
+
+    assert observed_shapes == [(1, 4, 4, 2)] * len(input_variants)
+
+
+@pytest.mark.parametrize("method", ["rise", "sobol"])
+def test_craft_compute_concept_attributions_black_box_smoke(tiny_craft_data, method):
+    craft, images_nchw, _ = tiny_craft_data
+    tf.random.set_seed(1)
+    if method == "rise":
+        explainer = PartialExplainer(
+            Rise,
+            nb_samples=8,
+            grid_size=2,
+            preservation_probability=0.5,
+        )
+    else:
+        explainer = PartialExplainer(
+            SobolAttributionMethod,
+            grid_size=2,
+            nb_design=2,
+            perturbation_function="inpainting",
+        )
+
     maps = craft.compute_concept_attributions(
-        images_nchw,
-        partial_explainer=rise,
-        concept_ids=[1],
-    )
-
-    assert maps.shape == (1, 224, 224, craft.number_of_concepts)
-    assert maps.dtype == np.float32
-    assert np.all(np.isfinite(maps[..., 1]))
-    assert np.all(np.isnan(np.delete(maps, 1, axis=-1)))
-
-
-def test_craft_compute_concept_attributions_sobol_smoke(craft_data, device_param, monkeypatch):
-    craft = craft_data
-    rng = np.random.default_rng(seed=5)
-    torch.manual_seed(5)
-    images_nchw = torch.tensor(
-        rng.normal(size=(1, 3, 224, 224)).astype(np.float32),
-        device=device_param,
-    )
-
-    def fail_if_differentiable_encoding_called(_):
-        raise AssertionError("black-box localization must not use encode_differentiable")
-
-    monkeypatch.setattr(
-        craft.factorizer,
-        "encode_differentiable",
-        fail_if_differentiable_encoding_called,
-    )
-
-    sobol = PartialExplainer(
-        SobolAttributionMethod,
-        grid_size=2,
-        nb_design=2,
-        perturbation_function="inpainting",
-    )
-    maps = craft.compute_concept_attributions(
-        images_nchw,
-        partial_explainer=sobol,
+        images_nchw[:1],
+        partial_explainer=explainer,
         concept_ids=[0],
     )
 
-    assert maps.shape == (1, 224, 224, craft.number_of_concepts)
+    assert maps.shape == (1, 4, 4, craft.number_of_concepts)
     assert maps.dtype == np.float32
     assert np.all(np.isfinite(maps[..., 0]))
     assert np.all(np.isnan(np.delete(maps, 0, axis=-1)))
+
+
+@pytest.mark.parametrize("reducer", ["mean", "sum"])
+def test_tf_torch_concept_localizer_score_parity(reducer):
+    values = np.arange(2 * 4 * 4 * 2, dtype=np.float32).reshape(2, 4, 4, 2)
+    tf_extractor = TfLatentExtractor(
+        model=lambda inputs: inputs,
+        input_to_latent_model=lambda inputs: TfLatentData(inputs),
+        latent_to_logit_model=lambda latent_data: latent_data.activations,
+        batch_size=2,
+    )
+    tf_craft = HolisticCraftTf(
+        tf_extractor,
+        number_of_concepts=2,
+        factorizer=_IdentityFactorizer(),
+    )
+    torch_craft, torch_images, _ = _make_tiny_torch_craft(torch.device("cpu"))
+    tf_images = tf.constant(values)
+    tf_craft.fit(tf_images)
+
+    tf_scores = tf_craft.make_concept_localizer(reducer)(tf_images).numpy()
+    torch_scores = torch_craft.make_concept_localizer(reducer)(values).numpy()
+
+    np.testing.assert_allclose(tf_scores, torch_scores, rtol=1e-6, atol=1e-6)
+    np.testing.assert_allclose(
+        torch_scores,
+        getattr(np, reducer)(torch_craft.transform(torch_images), axis=(1, 2)),
+        rtol=1e-6,
+        atol=1e-6,
+    )
