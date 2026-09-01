@@ -207,6 +207,10 @@ class ConceptLocalizer:
             ) from error
         return self._reduce_coefficients(coeffs_u)
 
+    def __call__(self, inputs: Any) -> np.ndarray:
+        """Return reduced concept scores for a batch of inputs."""
+        return self._compute_scores(inputs)
+
 
 class HolisticCraft(ABC):
     """
@@ -756,11 +760,10 @@ class HolisticCraft(ABC):
         """
         raise NotImplementedError
 
-    @abstractmethod
     def make_concept_localizer(
         self,
         concept_reducer: Union[str, Callable] = "mean",
-    ) -> Any:
+    ) -> ConceptLocalizer:
         """Create a callable mapping input images to one score per concept.
 
         Parameters
@@ -772,9 +775,9 @@ class HolisticCraft(ABC):
         Returns
         -------
         localizer
-            Framework-specific callable suitable for Xplique explainers.
+            Callable suitable for Xplique explainers.
         """
-        raise NotImplementedError
+        return ConceptLocalizer(self, concept_reducer)
 
     def _validate_concept_ids(
         self,
@@ -809,12 +812,8 @@ class HolisticCraft(ABC):
 
         return [int(concept_id) for concept_id in concept_ids]
 
-    def _normalize_image_batch_to_nhwc(self, images: Union[np.ndarray, List[Any]]) -> np.ndarray:
-        """Normalize batched image inputs to NHWC float32 for attribution and display."""
-
-        def _is_torch_object(obj: Any) -> bool:
-            return type(obj).__module__.split(".")[0] == "torch"
-
+    def _to_numpy_image_batch(self, images: Union[np.ndarray, List[Any]]) -> np.ndarray:
+        """Convert image inputs to a validated rank-4 NumPy batch."""
         if isinstance(images, list):
             image_batch = []
             for img in images:
@@ -822,9 +821,12 @@ class HolisticCraft(ABC):
                 if image.ndim == 4 and image.shape[0] == 1:
                     image = image[0]
                 if image.ndim != 3:
-                    raise ValueError(
-                        "images list entries must have shape (H, W, C), (C, H, W), or (1, C, H, W)."
+                    expected_shape = (
+                        "(C, H, W) or (1, C, H, W)"
+                        if self.framework == "torch"
+                        else "(H, W, C) or (1, H, W, C)"
                     )
+                    raise ValueError(f"images list entries must have shape {expected_shape}.")
                 image_batch.append(image)
             if not image_batch:
                 raise ValueError("images list must contain at least one image.")
@@ -837,23 +839,21 @@ class HolisticCraft(ABC):
             images_np = np.expand_dims(images_np, axis=0)
 
         if images_np.ndim != 4:
-            raise ValueError(
-                "images must be a non-empty image batch with shape (N, H, W, C) or (N, C, H, W)."
-            )
+            expected_shape = "(N, C, H, W)" if self.framework == "torch" else "(N, H, W, C)"
+            raise ValueError(f"images must be a non-empty image batch with shape {expected_shape}.")
         if images_np.shape[0] == 0 or min(images_np.shape[1:]) <= 0:
             raise ValueError(
                 "images must contain at least one image with positive spatial dimensions."
             )
 
+        return images_np
+
+    def _normalize_image_batch_to_nhwc(self, images: Union[np.ndarray, List[Any]]) -> np.ndarray:
+        """Convert a framework-native image batch to NHWC float32."""
+        images_np = self._to_numpy_image_batch(images)
+
         if self.framework == "torch":
-            has_torch_inputs = _is_torch_object(images) or (
-                isinstance(images, list) and bool(images) and _is_torch_object(images[0])
-            )
-            is_channel_first = has_torch_inputs or (
-                images_np.shape[1] in (1, 3, 4) and images_np.shape[-1] not in (1, 3, 4)
-            )
-            if is_channel_first:
-                images_np = np.moveaxis(images_np, 1, -1)
+            images_np = np.moveaxis(images_np, 1, -1)
 
         return images_np.astype(np.float32, copy=False)
 
@@ -863,7 +863,6 @@ class HolisticCraft(ABC):
         partial_explainer: PartialExplainer,
         concept_ids: Optional[List[int]] = None,
         concept_reducer: Union[str, Callable] = "mean",
-        verbose: bool = False,
     ) -> np.ndarray:
         """Compute input-space localization maps for selected learned concepts.
 
@@ -877,16 +876,13 @@ class HolisticCraft(ABC):
             Non-empty batch of images. TensorFlow inputs use ``(N, H, W, C)``;
             PyTorch inputs use ``(N, C, H, W)``.
         partial_explainer
-            Deferred black-box Xplique explainer configuration. Do not provide an
-            ``operator``; one-hot concept targets select the score directly.
+            Deferred black-box Xplique explainer configuration. Omit ``operator``
+            or leave it as ``None``; one-hot concept targets select the score directly.
         concept_ids
             Optional concept IDs to localize. Uncomputed result channels are
             filled with ``NaN``. If omitted, all concepts are localized.
         concept_reducer
             Reduction from coefficient maps to scalar concept scores.
-        verbose
-            Whether to print progress once per concept.
-
         Returns
         -------
         concept_maps
@@ -917,7 +913,7 @@ class HolisticCraft(ABC):
                 f"{type(partial_explainer).__name__}."
             )
 
-        if "operator" in partial_explainer.kwargs:
+        if partial_explainer.kwargs.get("operator") is not None:
             raise ValueError(
                 "Concept localization uses one-hot concept targets and does not accept a "
                 "custom operator. Omit the operator argument."
@@ -947,15 +943,7 @@ class HolisticCraft(ABC):
             dtype=np.float32,
         )
 
-        total_concepts = len(selected_concepts)
-        for index, concept_id in enumerate(selected_concepts):
-            if verbose:
-                print(
-                    f"\rLocalizing concept {index + 1}/{total_concepts} (concept #{concept_id})...",
-                    end="",
-                    flush=True,
-                )
-
+        for concept_id in selected_concepts:
             targets = np.zeros((num_images, self.number_of_concepts), dtype=np.float32)
             targets[:, concept_id] = 1.0
 
@@ -987,9 +975,6 @@ class HolisticCraft(ABC):
                 )
 
             concept_maps[..., concept_id] = single_concept_map.astype(np.float32, copy=False)
-
-        if verbose:
-            print()
 
         return concept_maps
 
@@ -1024,8 +1009,7 @@ class HolisticCraft(ABC):
         self,
         concept_maps: np.ndarray,
         images_np: np.ndarray,
-        concepts_id: List[int],
-        order: Optional[List[int]],
+        requested_concepts: Optional[List[int]],
     ) -> Tuple[np.ndarray, List[int]]:
         """Validate display maps and resolve the concept columns to display."""
         concept_maps, available_concepts = self._prepare_concept_maps(concept_maps)
@@ -1035,18 +1019,21 @@ class HolisticCraft(ABC):
                 f"got {concept_maps.shape[0]} and {images_np.shape[0]}."
             )
 
-        if order is None:
+        if requested_concepts is None:
             if not available_concepts:
                 raise ValueError("No computed concept maps are available to display.")
             concepts_id = available_concepts
         else:
             unavailable = [
-                concept_id for concept_id in concepts_id if concept_id not in available_concepts
+                concept_id
+                for concept_id in requested_concepts
+                if concept_id not in available_concepts
             ]
             if unavailable:
                 raise ValueError(
                     f"Requested concept maps are not available for concept IDs: {unavailable}."
                 )
+            concepts_id = requested_concepts
 
         return concept_maps, concepts_id
 
@@ -1123,9 +1110,10 @@ class HolisticCraft(ABC):
         """Overlay a single concept heatmap on a single image.
 
         Displays the image on the given axis, then overlays the concept heatmap
-        after filtering low activations and clipping outlier values.
+        after filtering low-magnitude activations and clipping outlier values.
         The heatmap may be either a latent concept activation map or an
-        input-space attribution map.
+        input-space attribution map. Absolute magnitudes are displayed, so signed
+        attribution direction is intentionally not represented.
 
         Parameters
         ----------
@@ -1154,11 +1142,10 @@ class HolisticCraft(ABC):
                 f"concept_heatmap must have shape (H, W) or (H, W, 1), got {concept_heatmap.shape}."
             )
 
-        finite_mask = np.isfinite(concept_heatmap)
-        if not np.all(finite_mask):
+        if not np.all(np.isfinite(concept_heatmap)):
             raise ValueError("concept_heatmap must contain only finite values.")
 
-        dsize = (image.shape[1], image.shape[0])  # cv2 expects (width, height)
+        concept_heatmap = np.abs(concept_heatmap)
 
         # Display the image
         show_ax(image, ax=ax)
@@ -1169,7 +1156,9 @@ class HolisticCraft(ABC):
 
         # resize the heatmap before clipping when needed
         if heatmap.shape[:2] != image.shape[:2]:
+            dsize = (image.shape[1], image.shape[0])  # cv2 expects (width, height)
             heatmap = cv2.resize(heatmap[:, :, None], dsize=dsize, interpolation=cv2.INTER_CUBIC)
+            heatmap = np.maximum(heatmap, 0.0)
         else:
             heatmap = heatmap[:, :, None]
         heatmap = _clip_percentile(heatmap, clip_percentile)
@@ -1230,9 +1219,11 @@ class HolisticCraft(ABC):
             heatmap_source = coeffs_u
         else:
             images_np = self._normalize_image_batch_to_nhwc(images)
-            concepts_id = self._validate_concept_ids(order, parameter_name="order")
+            requested_concepts = (
+                None if order is None else self._validate_concept_ids(order, parameter_name="order")
+            )
             heatmap_source, concepts_id = self._resolve_concept_map_source(
-                concept_maps, images_np, concepts_id, order
+                concept_maps, images_np, requested_concepts
             )
 
         nb_cols = len(concepts_id)
@@ -1329,8 +1320,9 @@ class HolisticCraft(ABC):
 
         heatmap_source = coeffs_u
         if concept_maps is not None:
+            requested_concepts = None if order is None else concepts_id
             heatmap_source, concepts_id = self._resolve_concept_map_source(
-                concept_maps, images_np, concepts_id, order
+                concept_maps, images_np, requested_concepts
             )
 
         nb_rows = topk
