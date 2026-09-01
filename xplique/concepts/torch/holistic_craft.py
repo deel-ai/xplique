@@ -1,6 +1,6 @@
 """PyTorch-specific wrapper for HolisticCraft."""
 
-from typing import Any, Optional, Union
+from typing import Any, Callable, Optional, Union
 
 import numpy as np
 import torch
@@ -192,7 +192,7 @@ class HolisticCraftTorch(HolisticCraft):
 
     def make_concept_localizer(
         self,
-        concept_reducer: Union[str, Any] = "mean",
+        concept_reducer: Union[str, Callable] = "mean",
     ) -> TorchWrapper:
         """Create a PyTorch concept localizer for black-box attribution.
 
@@ -222,7 +222,7 @@ class ConceptLocalizerTorch(nn.Module, ConceptLocalizer):
     def __init__(
         self,
         parent_craft: HolisticCraft,
-        concept_reducer: Union[str, Any] = "mean",
+        concept_reducer: Union[str, Callable] = "mean",
     ) -> None:
         super().__init__()
         ConceptLocalizer.__init__(self, parent_craft, concept_reducer)
