@@ -4,6 +4,11 @@ on:
   release:
     types: [published]
   workflow_dispatch:
+    inputs:
+      version:
+        description: "Documentation version to deploy"
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -38,6 +43,10 @@ jobs:
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
 
       - name: "Deploy Github Pages"
+        env:
+          DOCS_VERSION: ${{ github.event.release.tag_name || inputs.version }}
         run: |
-          mike deploy --push --update-aliases ${{ github.event.release.tag_name }} latest
-          mike set-default --push latest
+          mike delete latest
+          mike deploy --update-aliases "$DOCS_VERSION" latest
+          mike set-default latest
+          git push origin gh-pages

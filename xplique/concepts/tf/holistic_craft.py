@@ -1,6 +1,6 @@
 """TensorFlow-specific wrapper for HolisticCraft."""
 
-from typing import Any, Optional, Union
+from typing import Any, Callable, Optional, Union
 
 import numpy as np
 import tensorflow as tf
@@ -10,7 +10,7 @@ from xplique.utils_functions.object_detection.tf.box_model_wrapper import (
     _pad_and_stack_box_predictions,
 )
 
-from ..holistic_craft import ConceptDecoder, HolisticCraft
+from ..holistic_craft import ConceptDecoder, ConceptLocalizer, HolisticCraft
 from ..latent_extractor import LatentData
 from .factorizer import TfSklearnNMFFactorizer
 from .latent_extractor import TfLatentExtractor as LatentExtractor
@@ -172,6 +172,33 @@ class HolisticCraftTf(HolisticCraft):
         """
 
         return ConceptDecoderTf(self, latent_data)
+
+    def make_concept_localizer(
+        self,
+        concept_reducer: Union[str, Callable] = "mean",
+    ) -> ConceptLocalizer:
+        """Create a TensorFlow concept localizer for black-box attribution.
+
+        Parameters
+        ----------
+        concept_reducer
+            Reduction from coefficient maps to one scalar score per concept.
+
+        Returns
+        -------
+        localizer
+            Callable returning a tensor with shape ``(batch_size, K)``.
+        """
+        return ConceptLocalizerTf(self, concept_reducer)
+
+
+class ConceptLocalizerTf(ConceptLocalizer):
+    """TensorFlow concept localizer callable."""
+
+    def __call__(self, inputs: Any) -> tf.Tensor:
+        """Return reduced concept scores for a batch of inputs."""
+        scores = self._compute_scores(inputs)
+        return tf.convert_to_tensor(scores, dtype=tf.float32)
 
 
 class ConceptDecoderTf(tf.keras.layers.Layer, ConceptDecoder):
