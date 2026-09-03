@@ -59,7 +59,7 @@ class PartialExplainer:
 
     This class stores an explainer class and its configuration kwargs, allowing
     the explainer to be instantiated later when the model and batch_size become
-    available during concept importance estimation.
+    available during concept importance estimation or concept localization.
 
     Parameters
     ----------
@@ -83,7 +83,7 @@ class PartialExplainer:
         if "model" in kwargs or "batch_size" in kwargs:
             raise ValueError(
                 "PartialExplainer should not receive 'model' or 'batch_size' arguments. "
-                "These will be provided automatically during importance estimation."
+                "These will be provided automatically during explanation."
             )
 
         self.explainer_class = explainer_class
@@ -124,6 +124,25 @@ class ConceptLocalizer:
         an array with shape ``(batch_size, number_of_concepts)``. Coefficients are
         reduced as-is, so signed factorizers retain their sign; use a callable
         reducer such as a mean absolute value when magnitude is desired.
+
+    Returns
+    -------
+    concept_scores
+        Float32 concept scores with shape
+        ``(batch_size, number_of_concepts)``.
+
+    Notes
+    -----
+    The parent CRAFT instance must be fitted. Localization repeatedly evaluates
+    ``factorizer.encode()`` on perturbed inputs, so the factorizer must support
+    out-of-sample encoding.
+
+    Raises
+    ------
+    ValueError
+        If the reducer, concept coefficients, or reduced scores are invalid.
+    RuntimeError
+        If the factorizer cannot encode unseen activations.
     """
 
     parent_craft: "HolisticCraft"
@@ -770,12 +789,20 @@ class HolisticCraft(ABC):
         ----------
         concept_reducer
             Reduction used to turn each concept coefficient map into a scalar
-            concept score.
+            concept score. Supported strings are ``"mean"``, ``"sum"``, and
+            ``"max"``. A callable must return shape
+            ``(batch_size, number_of_concepts)``.
 
         Returns
         -------
         localizer
-            Callable suitable for Xplique explainers.
+            Callable suitable for Xplique black-box explainers, returning
+            float32 scores with shape ``(batch_size, number_of_concepts)``.
+
+        Raises
+        ------
+        ValueError
+            If ``concept_reducer`` is invalid.
         """
         return ConceptLocalizer(self, concept_reducer)
 
@@ -874,19 +901,22 @@ class HolisticCraft(ABC):
         ----------
         images
             Non-empty batch of images. TensorFlow inputs use ``(N, H, W, C)``;
-            PyTorch inputs use ``(N, C, H, W)``.
+            PyTorch inputs use ``(N, C, H, W)``. A single image or a list of
+            images in the corresponding framework layout is also accepted.
         partial_explainer
             Deferred black-box Xplique explainer configuration. Omit ``operator``
             or leave it as ``None``; one-hot concept targets select the score directly.
         concept_ids
-            Optional concept IDs to localize. Uncomputed result channels are
-            filled with ``NaN``. If omitted, all concepts are localized.
+            Optional iterable of unique concept IDs to localize. Uncomputed
+            result channels are filled entirely with ``NaN``. If omitted, all
+            concepts are localized.
         concept_reducer
             Reduction from coefficient maps to scalar concept scores.
         Returns
         -------
         concept_maps
             Float32 maps with shape ``(N, H, W, number_of_concepts)``.
+            Channel ``k`` always corresponds to concept ``k``.
 
         Notes
         -----
@@ -899,6 +929,10 @@ class HolisticCraft(ABC):
 
         Raises
         ------
+        NotFittedError
+            If CRAFT has not been fitted.
+        TypeError
+            If ``partial_explainer`` is not a :class:`PartialExplainer`.
         ValueError
             If inputs, concept IDs, reducer, explainer type, or explainer output
             shape is invalid.
@@ -1205,7 +1239,10 @@ class HolisticCraft(ABC):
         concept_maps
             Optional input-space concept attribution maps of shape
             (N, H, W, n_concepts). When provided, maps are used for overlays
-            while `coeffs_u` keeps its original meaning.
+            while `coeffs_u` keeps its original meaning. Each concept channel
+            must be either entirely finite or entirely ``NaN``. If ``order`` is
+            None, only finite channels are displayed. Signed maps are displayed
+            by absolute magnitude.
 
         Returns
         -------
@@ -1307,7 +1344,10 @@ class HolisticCraft(ABC):
         concept_maps
             Optional input-space concept attribution maps of shape
             (N, H, W, n_concepts) used only for display overlays. Top-image
-            ranking remains based on concept coefficients.
+            ranking remains based on mean concept coefficients. Each concept
+            channel must be either entirely finite or entirely ``NaN``. If
+            ``order`` is None, only finite channels are displayed. Signed maps
+            are displayed by absolute magnitude.
 
         Returns
         -------

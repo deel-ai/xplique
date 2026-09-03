@@ -64,8 +64,10 @@ Holistic CRAFT follows the same core principle as CRAFT but operates on full ima
     Third-party NMF implementations may not have this limitation
     (e.g., the Semi-NMF from the Overcomplete library).
 
-3. **Estimate Importance**: Use any attribution methods available in Xplique (gradient-based, perturbation-based) to rank concept importance
-4. **Visualize**: Generate concept heatmaps overlaid on images to show "what" and "where"
+3. **Measure Concept Activation**: Use concept coefficients to measure how strongly each concept is present and rank representative images
+4. **Estimate Concept Importance**: Attribute task predictions to concept coefficients to measure how much each concept contributes to the model output
+5. **Visualize Coefficients**: Resize latent coefficient maps and overlay them on input images
+6. **Localize Concepts**: Optionally use a black-box attribution method to identify which input regions drive a selected concept score
 
 Like regular CRAFT, Holistic CRAFT requires splitting the model into two parts: $(g, h)$ such that $f(x) = (g \cdot h)(x)$. The model $g$ maps input to latent space (activation maps), and $h$ maps latent space to predictions. Concepts are extracted from these activation maps in latent space.
 
@@ -76,6 +78,37 @@ This split is implemented through three abstractions:
 - **`LatentExtractor`**: Wraps both $g$ (`input_to_latent_model`) and $h$ (`latent_to_logit_model`). It orchestrates the full forward pass, batching, device management, and output formatting. The `TorchLatentExtractor` and `TfLatentExtractor` subclasses provide framework-specific implementations.
 
 - **`LatentExtractorBuilder`**: A factory that constructs a `LatentExtractor` for a specific model architecture. It handles all the architecture-specific wiring (defining how to split the model, which layer to extract from, and how to format outputs) so that the rest of the CRAFT pipeline remains model-agnostic.
+
+## Concept Activation, Importance, and Localization
+
+Holistic CRAFT exposes three related quantities that answer different questions:
+
+| Quantity | Definition | Question answered |
+|---|---|---|
+| **Concept activation** | The spatial coefficient map $U_k(x)$, or a reduction of it | How strongly is concept $k$ present? |
+| **Concept importance** | Attribution of the final task prediction to concept $k$ | How much does concept $k$ contribute to the prediction? |
+| **Concept localization** | Attribution of the concept score $s_k(x) = R(U_k(x))$ to the input | Which input regions drive the concept score? |
+
+Concept importance and concept localization follow opposite attribution directions:
+
+```text
+concept coefficients -> final prediction -> concept importance
+
+input image -> concept scores -> input attribution -> concept localization
+```
+
+A coefficient heatmap is a latent-space map resized to the input resolution. A localization
+map is an input-space attribution produced by perturbing the input and observing changes in a
+selected concept score. The maps can therefore differ, especially when the latent
+representation is coarse or its positions have large receptive fields.
+
+Top-image ranking always uses concept coefficients because they represent concept presence.
+Attribution-map magnitude is not a replacement for concept activation.
+
+!!!note
+    Coefficient and localization maps are explanations, not segmentation masks. Black-box
+    localization is not automatically more correct than coefficient visualization; it answers
+    the more specific question of which input perturbations change a selected concept score.
 
 
 ## Example
@@ -90,8 +123,8 @@ from xplique_adapters.concepts.torch.latent_data_retinanet import RetinanetExtra
 # Build a latent extractor that splits the model into g(.) and h(.)
 # This provides the input_to_latent (g) and latent_to_logit (h) functions
 latent_extractor = RetinanetExtractorBuilder.build(
-    model, 
-    device="cuda", 
+    model,
+    device="cuda",
     nb_classes=91,
     extraction_location='resnet', # Choose 'resnet' or 'fpn'
     extraction_layer=-1  # Extract from last ResNet feature layer
@@ -162,14 +195,167 @@ explanation_vargrad = craft.compute_explanation_per_concept(
     confidence=0.3,
 )
 
-# Reduce the spatial dimension of the explanation 
+# Reduce the spatial dimension of the explanation
 # to compute the final concepts importances
 importances_vargrad = craft.reduce_to_importance(
     explanation=explanation_vargrad,
 )
 ```
 
-### Using a Different NMF Factorizer
+## Localizing Concepts with Black-Box Attribution
+
+`ConceptLocalizer` exposes the fitted encoder and factorizer as a callable that returns one
+scalar score per learned concept. `compute_concept_attributions()` builds this callable,
+constructs one-hot concept targets, and applies a compatible black-box explainer to each
+requested concept.
+
+For an input batch with shape `(N, H, W, C)`, the returned maps have shape
+`(N, H, W, number_of_concepts)`. Channel `k` always corresponds to concept `k`. When only a
+subset is requested, uncomputed channels are filled entirely with `NaN` so that they cannot
+be confused with valid zero attributions.
+
+TensorFlow callers pass channel-last images. PyTorch callers pass their native channel-first
+`(N, C, H, W)` images to the same high-level method; Xplique handles the layout conversion
+for the wrapped localizer.
+
+### Localizing Concepts with RISE
+
+```python
+from xplique.attributions import Rise
+from xplique.concepts import PartialExplainer
+
+rise = PartialExplainer(
+    Rise,
+    nb_samples=2000,
+    grid_size=7,
+    preservation_probability=0.5,
+    mask_value=0.0,
+)
+
+rise_maps = craft.compute_concept_attributions(
+    images,
+    partial_explainer=rise,
+    concept_ids=[0, 3, 7],
+    concept_reducer="mean",
+)
+
+craft.display_images_per_concept(
+    display_images,
+    concept_maps=rise_maps,
+    order=[0, 3, 7],
+)
+```
+
+`concept_reducer="mean"` reduces every spatial coefficient map to the scalar score that RISE
+attributes to the input. It is the default and is consistent with the mean coefficient
+activation used to rank representative images. The localizer preserves signed scores; a
+custom callable reducer can be used when concept magnitude is intended instead.
+
+Do not pass a task `operator` to `PartialExplainer` for concept localization. One-hot targets
+are created internally to select concept scores directly.
+
+### Localizing Concepts with Sobol
+
+The same API works with `SobolAttributionMethod`:
+
+```python
+from xplique.attributions import SobolAttributionMethod
+
+sobol = PartialExplainer(
+    SobolAttributionMethod,
+    grid_size=8,
+    nb_design=32,
+    perturbation_function="inpainting",
+)
+
+sobol_maps = craft.compute_concept_attributions(
+    images,
+    partial_explainer=sobol,
+    concept_ids=[0, 3, 7],
+)
+
+craft.display_images_per_concept(
+    display_images,
+    concept_maps=sobol_maps,
+    order=[0, 3, 7],
+)
+```
+
+`nb_design` must be a nonzero power of two. Keep Sobol's default `nb_channels=1`: concept
+localization computes a separate single-channel attribution map for each selected concept.
+This differs from Sobol-based concept importance, which attributes the final task prediction
+to concept coefficients.
+
+### Coefficient Maps and Localization Maps
+
+Use `coeffs_u` to display latent coefficient maps:
+
+```python
+craft.display_images_per_concept(
+    display_images,
+    coeffs_u=coefficients,
+    order=selected_concepts,
+)
+```
+
+Use `concept_maps` to display input-space localization maps:
+
+```python
+craft.display_images_per_concept(
+    display_images,
+    concept_maps=rise_maps,
+    order=selected_concepts,
+)
+```
+
+When displaying the top images, coefficients still determine the ranking and localization
+maps only determine the overlay:
+
+```python
+craft.display_top_images_per_concept(
+    display_images,
+    coeffs_u=coefficients,
+    concept_maps=rise_maps,
+    order=selected_concepts,
+    topk=3,
+)
+```
+
+If `order` is omitted, display methods show only the concept channels that were computed.
+Explicitly requesting an uncomputed `NaN` channel raises a `ValueError`. Signed localization
+maps are displayed by absolute magnitude; attribution direction is not represented by the
+current renderer.
+
+!!!warning "Computational cost"
+    Black-box localization evaluates the encoder and `factorizer.encode()` for many perturbed
+    inputs and runs a separate attribution pass for every selected concept. Estimate concept
+    importance first, then localize only a small number of important concepts. Reduce the
+    number of images, RISE samples, Sobol designs, or grid resolution for exploratory runs.
+
+!!!warning "Perturbations use preprocessed inputs"
+    Perturbation parameters operate in the model's preprocessed input space. For example,
+    `mask_value=0.0` is neutral or black only if zero has that meaning after preprocessing.
+    With standard ImageNet normalization, zero generally corresponds to the dataset mean
+    rather than a raw black pixel. Sobol inpainting and blurring must be interpreted relative
+    to the same model-ready representation.
+
+!!!warning "Factorizer compatibility"
+    Localization evaluates the fitted factorizer on unseen, perturbed activations. The
+    factorizer must therefore support out-of-sample `encode()`. Activations should not be
+    clipped merely to satisfy a factorizer because that would change the function being
+    explained.
+
+!!!warning "Black-box scope"
+    Input-to-concept localization currently supports black-box attribution methods only.
+    Ordinary `factorizer.encode()` is not guaranteed to be differentiable, so white-box
+    explainers such as Gradient Input or Integrated Gradients are rejected.
+
+!!!warning "Interpretation"
+    Localization maps measure sensitivity of a concept score to input perturbations. They are
+    not object boundaries or segmentation labels. RISE and Sobol can also produce different
+    maps because they use different perturbation and aggregation strategies.
+
+## Using a Different NMF Factorizer
 
 By default, the standard Sklearn NMF is used to factorize the concepts.
 But other types of factorizers are supported, such as the ones provided
@@ -220,7 +406,7 @@ class CustomLatentData(LatentData):
     def get_activations(self, as_numpy: bool = True, keep_gradients: bool = False):
         """Extract activations from the specified layer."""
         activations = self.fpn_outs[self.extraction_layer]
-        
+
         if not keep_gradients:
             activations = activations.detach()
 
@@ -264,7 +450,7 @@ class CustomExtractorBuilder(LatentExtractorBuilder):
         extraction_layer: int = -1,
         batch_size: int = 1
     ) -> TorchLatentExtractor:
-        
+
         # Define g(.) function: input → latent activations
         def g(self, x):
             # Example: extract from backbone/feature pyramid
@@ -297,7 +483,7 @@ class CustomExtractorBuilder(LatentExtractorBuilder):
             batch_size=batch_size,
             device=device
         )
-        
+
         # Store extraction layer for later use
         latent_extractor.extraction_layer = extraction_layer
         return latent_extractor
@@ -343,6 +529,8 @@ craft.display_images_per_concept(input_images[:5])
 {{xplique.concepts.holistic_craft.HolisticCraft}}
 
 {{xplique.concepts.holistic_craft.PartialExplainer}}
+
+{{xplique.concepts.holistic_craft.ConceptLocalizer}}
 
 ## References
 
