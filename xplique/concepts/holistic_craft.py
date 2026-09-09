@@ -1069,40 +1069,10 @@ class HolisticCraft(ABC):
 
         return concept_maps, concepts_id
 
-    def _prepare_display_concept_inputs(
-        self,
-        images: Union[np.ndarray, List[Any]],
-        coeffs_u: Optional[np.ndarray],
-        order: Optional[List[int]],
-    ) -> Tuple[np.ndarray, np.ndarray, List[int]]:
-        """Normalise images and coefficients for display methods.
-
-        Computes concept coefficients when not provided, reshapes token-based
-        coefficients to spatial form, converts images to HWC numpy arrays, and
-        resolves the ordered list of concept IDs.
-
-        Parameters
-        ----------
-        images
-            Input images as a batch tensor or list of tensors/arrays
-        coeffs_u
-            Pre-computed concept coefficients, or None to compute via transform()
-        order
-            Optional list of concept IDs. If None, uses sequential order.
-
-        Returns
-        -------
-        images_np
-            Images as HWC numpy arrays, shape (N, H, W, C)
-        coeffs_u
-            Concept coefficients, shape (N, H, W, n_concepts)
-        concepts_id
-            Ordered list of concept IDs to display
-        """
-        # encode images
+    def _prepare_coefficients_for_display(self, images, coeffs_u):
+        """Compute coefficients if needed and ensure they have a spatial layout."""
         if coeffs_u is None:
             coeffs_u = self.transform(images)
-            # coeffs_u shape is (N, H, W, C) or (N, Tokens, C)
 
         if len(coeffs_u.shape) == 3:
             # Reshape (N, Tokens, C) to (N, H, W, C)
@@ -1125,10 +1095,7 @@ class HolisticCraft(ABC):
                 f"{self.number_of_concepts}"
             )
 
-        images_np = self._normalize_image_batch_to_nhwc(images)
-        concepts_id = self._validate_concept_ids(order, parameter_name="order")
-
-        return images_np, coeffs_u, concepts_id
+        return coeffs_u
 
     def display_concept_heatmap(
         self,
@@ -1235,7 +1202,7 @@ class HolisticCraft(ABC):
             Optional list of concept IDs to specify display order. If None,
             concepts are shown in sequential order
         concept_maps
-            Optional input-space concept attribution maps of shape
+            Optional concept localization maps of shape
             (N, H, W, n_concepts). When provided, maps are used for overlays
             while `coeffs_u` keeps its original meaning. Each concept channel
             must be either entirely finite or entirely ``NaN``. If ``order`` is
@@ -1247,13 +1214,12 @@ class HolisticCraft(ABC):
         fig
             matplotlib figure with len(images) rows and number_of_concepts columns
         """
+        images_np = self._normalize_image_batch_to_nhwc(images)
         if concept_maps is None:
-            images_np, coeffs_u, concepts_id = self._prepare_display_concept_inputs(
-                images, coeffs_u, order
-            )
+            coeffs_u = self._prepare_coefficients_for_display(images, coeffs_u)
+            concepts_id = self._validate_concept_ids(order, parameter_name="order")
             heatmap_source = coeffs_u
         else:
-            images_np = self._normalize_image_batch_to_nhwc(images)
             requested_concepts = (
                 None if order is None else self._validate_concept_ids(order, parameter_name="order")
             )
@@ -1340,7 +1306,7 @@ class HolisticCraft(ABC):
             self.transform(images) to compute them. Use this to pass the
             coefficients stored in factorization.coeffs_u after fit().
         concept_maps
-            Optional input-space concept attribution maps of shape
+            Optional concept localization maps of shape
             (N, H, W, n_concepts) used only for display overlays. Top-image
             ranking remains based on mean concept coefficients. Each concept
             channel must be either entirely finite or entirely ``NaN``. If
@@ -1352,9 +1318,9 @@ class HolisticCraft(ABC):
         fig
             matplotlib figure with topk rows and number_of_concepts columns
         """
-        images_np, coeffs_u, concepts_id = self._prepare_display_concept_inputs(
-            images, coeffs_u, order
-        )
+        images_np = self._normalize_image_batch_to_nhwc(images)
+        coeffs_u = self._prepare_coefficients_for_display(images, coeffs_u)
+        concepts_id = self._validate_concept_ids(order, parameter_name="order")
 
         heatmap_source = coeffs_u
         if concept_maps is not None:

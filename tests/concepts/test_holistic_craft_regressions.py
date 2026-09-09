@@ -323,7 +323,7 @@ def test_display_validates_concept_order_and_handles_a_single_column():
 
     with pytest.raises(ValueError, match="between 0"):
         craft.display_images_per_concept(images, coeffs_u, order=[2])
-    with pytest.raises(ValueError, match="more IDs"):
+    with pytest.raises(ValueError, match="duplicate"):
         craft.display_images_per_concept(images, coeffs_u, order=[0, 1, 0])
 
     figure = craft.display_images_per_concept(images, coeffs_u, order=[0])
@@ -629,13 +629,15 @@ def test_attribute_concepts_to_inputs_rejects_whitebox_and_non_inductive_factori
 
 def test_display_accepts_concept_maps_and_preserves_ranking_behavior():
     craft = _make_spatial_craft(number_of_concepts=3)
-    images = np.ones((2, 4, 4, 3), dtype=np.float32)
+    images = np.zeros((2, 4, 4, 3), dtype=np.float32)
+    images[1] = 1.0
     coeffs_u = np.zeros((2, 2, 2, 3), dtype=np.float32)
     coeffs_u[0, :, :, 0] = 10.0
     coeffs_u[1, :, :, 0] = 1.0
 
     concept_maps = np.full((2, 4, 4, 3), np.nan, dtype=np.float32)
-    concept_maps[..., 0] = 0.0
+    concept_maps[0, ..., 0] = 0.0
+    concept_maps[1, ..., 0] = 100.0
     concept_maps[..., 2] = 2.0
 
     displayed_maps = []
@@ -659,7 +661,7 @@ def test_display_accepts_concept_maps_and_preserves_ranking_behavior():
     figure = craft.display_images_per_concept(images, coeffs_u=coeffs_u, concept_maps=concept_maps)
     assert len(figure.axes) == 4
     assert [entry[1] for entry in displayed_maps] == [0, 0, 2, 2]
-    np.testing.assert_allclose([entry[2].max() for entry in displayed_maps], [0.0, 0.0, 2.0, 2.0])
+    np.testing.assert_allclose([entry[2].max() for entry in displayed_maps], [0.0, 100.0, 2.0, 2.0])
     plt.close(figure)
 
     with pytest.raises(ValueError, match="not available"):
@@ -679,13 +681,7 @@ def test_display_accepts_concept_maps_and_preserves_ranking_behavior():
             order=[0],
         )
 
-    rank_calls = []
-
-    def recording_topk(captured_coeffs, topk):
-        rank_calls.append(np.array(captured_coeffs))
-        return np.array([[0], [0], [0]], dtype=int)
-
-    craft.get_topk_images_per_concept = recording_topk
+    displayed_maps.clear()
     figure = craft.display_top_images_per_concept(
         images,
         topk=1,
