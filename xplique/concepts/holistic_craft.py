@@ -989,33 +989,24 @@ class HolisticCraft(ABC):
             targets[:, concept_id] = 1.0
 
             single_concept_map = explainer_instance.explain(attribution_inputs, targets)
-            single_concept_map = self._to_numpy(single_concept_map)
-            if single_concept_map.ndim == 4:
-                if single_concept_map.shape[-1] != 1:
-                    raise ValueError(
-                        "Concept attribution maps must have one channel when returned as "
-                        f"rank-4 tensors, got {single_concept_map.shape}."
-                    )
+            single_concept_map = np.asarray(self._to_numpy(single_concept_map))
+            if single_concept_map.ndim == 4 and single_concept_map.shape[-1] == 1:
                 single_concept_map = single_concept_map[..., 0]
-            elif single_concept_map.ndim != 3:
-                raise ValueError(
-                    "Concept attribution maps must have shape (N, H, W) or (N, H, W, 1), "
-                    f"got {single_concept_map.shape}."
-                )
 
             expected_shape = (num_images, height, width)
             if single_concept_map.shape != expected_shape:
                 raise ValueError(
-                    "Concept attribution map shape must match attribution inputs spatial "
-                    f"shape {expected_shape}, got {single_concept_map.shape}."
+                    "Concept attribution maps must have shape (N, H, W) or (N, H, W, 1); "
+                    f"expected {expected_shape}, got {single_concept_map.shape}."
                 )
+            single_concept_map = single_concept_map.astype(np.float32, copy=False)
             if not np.all(np.isfinite(single_concept_map)):
                 raise ValueError(
                     f"Concept attribution map for concept {concept_id} must contain "
                     "only finite values."
                 )
 
-            concept_maps[..., concept_id] = single_concept_map.astype(np.float32, copy=False)
+            concept_maps[..., concept_id] = single_concept_map
 
         return concept_maps
 
