@@ -227,7 +227,7 @@ class _ConceptLocalizer:
         return self._reduce_coefficients(coeffs_u)
 
     def __call__(self, inputs: Any) -> np.ndarray:
-        """Return reduced concept scores for a batch of inputs."""
+        """Return float32 activation scores with shape ``(batch_size, n_concepts)``."""
         return self._compute_scores(inputs)
 
 
@@ -246,17 +246,16 @@ class HolisticCraft(ABC):
     and Concept Importance Estimation (2023).
     https://arxiv.org/pdf/2306.07304
 
-    The workflow involves:
-    1. Extracting latent activations from a computer vision model
-    2. Factorizing activations into interpretable concepts using NMF
-    3. Computing concept importance by attributing task predictions to concepts
-    4. Visualizing coefficient activation maps overlaid on input images
-    5. Optionally localizing concept scores to input regions with black-box attribution
+    Holistic CRAFT exposes four related quantities:
 
-    Concept activation, concept importance, and concept localization answer different
-    questions. Coefficients describe how strongly a concept is present, importance
-    describes how much it contributes to a task prediction, and localization describes
-    which input regions drive a selected concept score.
+    - A concept activation map is the spatial factorization coefficient map
+      ``U_k(x)``, represented by ``coeffs_u``.
+    - A concept activation score reduces ``U_k(x)`` to one scalar per input.
+    - Concept importance attributes a task prediction to concept activations.
+    - A concept localization map attributes a concept activation score to the input.
+
+    Use :meth:`display_images_per_concept` to visualize concept activation maps,
+    or :meth:`attribute_concepts_to_inputs` to compute concept localization maps.
 
     Parameters
     ----------

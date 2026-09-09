@@ -53,10 +53,16 @@ The builder takes the model and a layer index to define the split point. Everyth
 
 ## Workflow
 
-Holistic CRAFT follows the same core principle as CRAFT but operates on full images instead of patches:
+Holistic CRAFT follows the same principle as CRAFT but operates on full images instead of
+patches:
 
-1. **Extract Activations**: Pass input images through the model's encoder (g) to obtain spatial activation maps from an intermediate layer
-2. **Factorize Concepts**: Apply Non-negative Matrix Factorization (NMF) to these activation maps to discover recurring spatial patterns (concepts)
+1. **Extract activations**: pass model inputs through the encoder $g$ to obtain intermediate
+   activations.
+2. **Factorize concepts**: factorize the activations to discover recurring concepts.
+3. **Measure concept activation**: encode each image as concept activation maps in `coeffs_u`.
+4. **Estimate concept importance**: attribute the task prediction to the concept activations.
+5. **Interpret concepts**: either visualize concept activation maps or attribute concept
+   activation scores to the input to obtain concept localization maps.
 
 !!!warning
     Activations must be non-negative to use the standard NMF. Ensure a ReLU
@@ -64,12 +70,27 @@ Holistic CRAFT follows the same core principle as CRAFT but operates on full ima
     Third-party NMF implementations may not have this limitation
     (e.g., the Semi-NMF from the Overcomplete library).
 
-3. **Measure Concept Activation**: Use concept coefficients to measure how strongly each concept is present and rank representative images
-4. **Estimate Concept Importance**: Attribute task predictions to concept coefficients to measure how much each concept contributes to the model output
-5. **Visualize Coefficients**: Resize latent coefficient maps and overlay them on input images
-6. **Localize Concepts**: Optionally use a black-box attribution method to identify which input regions drive a selected concept score
+The corresponding methods form a compact end-to-end sequence:
 
-Like regular CRAFT, Holistic CRAFT requires splitting the model into two parts: $(g, h)$ such that $f(x) = (g \cdot h)(x)$. The model $g$ maps input to latent space (activation maps), and $h$ maps latent space to predictions. Concepts are extracted from these activation maps in latent space.
+The example assumes that `images`, the task `operator`, `class_id`, and a configured
+`partial_explainer` are already available.
+
+```python
+# 1. Fit concepts.
+craft.fit(images)
+# 2. Compute concept activation maps.
+coeffs_u = craft.transform(images)
+# 3. Estimate concept importance.
+importances = craft.estimate_importance(images, operator, class_id)
+# 4. Interpret concept activation maps.
+craft.display_images_per_concept(images, coeffs_u=coeffs_u)
+# Alternatively, compute concept localization maps with a PartialExplainer.
+concept_maps = craft.attribute_concepts_to_inputs(images, partial_explainer)
+```
+
+Like regular CRAFT, Holistic CRAFT splits the model into $(g, h)$ such that
+$f(x) = h(g(x))$. The encoder $g$ maps an input to latent activations, and $h$ maps those
+activations to predictions. Concepts are extracted in this latent space.
 
 This split is implemented through three abstractions:
 
@@ -81,34 +102,49 @@ This split is implemented through three abstractions:
 
 ## Concept Activation, Importance, and Localization
 
-Holistic CRAFT exposes three related quantities that answer different questions:
+Holistic CRAFT exposes four related quantities with distinct meanings:
 
 | Quantity | Definition | Question answered |
 |---|---|---|
-| **Concept activation** | The spatial coefficient map $U_k(x)$, or a reduction of it | How strongly is concept $k$ present? |
-| **Concept importance** | Attribution of the final task prediction to concept $k$ | How much does concept $k$ contribute to the prediction? |
-| **Concept localization** | Attribution of the concept score $s_k(x) = R(U_k(x))$ to the input | Which input regions drive the concept score? |
+| **Concept activation map** | Spatial factorization coefficients $U_k(x)$, stored in `coeffs_u` | Where and how strongly is concept $k$ activated in latent space? |
+| **Concept activation score** | A scalar reduction $s_k(x) = R(U_k(x))$ | How strongly is concept $k$ activated overall? |
+| **Concept importance** | Attribution of the task prediction to concept activations | How much do the activations contribute to the task prediction? |
+| **Concept localization map** | Attribution of a concept activation score to the input | Which input regions drive the activation score? |
 
-Concept importance and concept localization follow opposite attribution directions:
+For a CNN activation tensor `(N, H', W', C)`, factorization preserves the spatial axes and
+produces `coeffs_u` with shape `(N, H', W', K)`. Thus, $U_k(x)$ is a concept activation map.
+Spatial vision-transformer tokens can likewise form a concept activation map when the latent
+extractor maps them back to their patch grid.
+If the extracted representation has no spatial axes, `coeffs_u` has shape `(N, K)` and each
+coefficient is already global; no spatial concept activation map is available to resize.
+
+Concept importance and concept localization follow different attribution directions:
 
 ```text
-concept coefficients -> final prediction -> concept importance
+concept activations -> task prediction -> concept importance
 
-input image -> concept scores -> input attribution -> concept localization
+input -> concept activation score -> input attribution -> concept localization map
 ```
 
-A coefficient heatmap is a latent-space map resized to the input resolution. A localization
-map is an input-space attribution produced by perturbing the input and observing changes in a
-selected concept score. The maps can therefore differ, especially when the latent
-representation is coarse or its positions have large receptive fields.
+Gradient-based concept importance is supported because Holistic CRAFT can decode concept
+activations toward the task prediction. Input-to-concept localization instead follows the
+fitted NumPy factorizer's `encode()` path, which is not differentiable, and therefore requires
+a black-box attribution method.
 
-Top-image ranking always uses concept coefficients because they represent concept presence.
-Attribution-map magnitude is not a replacement for concept activation.
+### Interpretation Alternatives
 
-!!!note
-    Coefficient and localization maps are explanations, not segmentation masks. Black-box
-    localization is not automatically more correct than coefficient visualization; it answers
-    the more specific question of which input perturbations change a selected concept score.
+Choose the representation that matches the question:
+
+| Alternative | Use | Meaning |
+|---|---|---|
+| **Concept activation map visualization** | Pass `coeffs_u` to a display method | Resizes latent $U_k(x)$ to show where the factorization activates |
+| **Concept localization map** | Call `attribute_concepts_to_inputs()` and pass the result as `concept_maps` | Shows which input perturbations change $s_k(x)$ |
+
+These alternatives can differ when latent maps are coarse or positions have large receptive
+fields. Neither is a segmentation mask. Top-image ranking always uses `coeffs_u`, not the
+magnitude of a concept localization map. Black-box localization is not inherently more
+accurate than concept activation map visualization, and different black-box methods can
+produce different maps.
 
 
 ## Example
@@ -140,10 +176,10 @@ craft = Craft(
 # Fit CRAFT on input images to discover concepts
 craft.fit(input_images, class_id=class_id)
 
-# Display discovered concepts as heatmaps overlaid on images
+# Display concept activation maps overlaid on images
 craft.display_images_per_concept(images=input_images[:5])
 
-# Display top 3 images for each concept ranked by activation
+# Display top 3 images for each concept ranked by concept activation score
 craft.display_top_images_per_concept(images=input_images, topk=3)
 
 # Estimate concept importance on the 20 first images using Gradient×Input method
@@ -170,7 +206,7 @@ importances_sobol = craft.estimate_importance(
 
 ```
 
-### Using Different Attribution Methods to Compute the Concept Importances
+### Using Different Attribution Methods to Compute Concept Importance
 
 Holistic CRAFT supports various attribution methods for concept importance estimation:
 
@@ -195,8 +231,7 @@ explanation_vargrad = craft.compute_explanation_per_concept(
     confidence=0.3,
 )
 
-# Reduce the spatial dimension of the explanation
-# to compute the final concepts importances
+# Reduce the spatial dimensions to compute concept importance
 importances_vargrad = craft.reduce_to_importance(
     explanation=explanation_vargrad,
 )
@@ -204,10 +239,10 @@ importances_vargrad = craft.reduce_to_importance(
 
 ## Localizing Concepts with Black-Box Attribution
 
-`ConceptLocalizer` exposes the fitted encoder and factorizer as a callable that returns one
-scalar score per learned concept. `compute_concept_attributions()` builds this callable,
-constructs one-hot concept targets, and applies a compatible black-box explainer to each
-requested concept.
+`attribute_concepts_to_inputs()` exposes the fitted encoder and factorizer as a callable that
+returns one concept activation score per learned concept. It creates one-hot concept targets
+and applies a compatible black-box explainer to each requested concept. No task `operator` is
+needed because the targets select concept activation scores directly.
 
 For an input batch with shape `(N, H, W, C)`, the returned maps have shape
 `(N, H, W, number_of_concepts)`. Channel `k` always corresponds to concept `k`. When only a
@@ -218,48 +253,11 @@ TensorFlow callers pass channel-last images. PyTorch callers pass their native c
 `(N, C, H, W)` images to the same high-level method; Xplique handles the layout conversion
 for the wrapped localizer.
 
-### Localizing Concepts with RISE
-
-```python
-from xplique.attributions import Rise
-from xplique.concepts import PartialExplainer
-
-rise = PartialExplainer(
-    Rise,
-    nb_samples=2000,
-    grid_size=7,
-    preservation_probability=0.5,
-    mask_value=0.0,
-)
-
-rise_maps = craft.compute_concept_attributions(
-    images,
-    partial_explainer=rise,
-    concept_ids=[0, 3, 7],
-    concept_reducer="mean",
-)
-
-craft.display_images_per_concept(
-    display_images,
-    concept_maps=rise_maps,
-    order=[0, 3, 7],
-)
-```
-
-`concept_reducer="mean"` reduces every spatial coefficient map to the scalar score that RISE
-attributes to the input. It is the default and is consistent with the mean coefficient
-activation used to rank representative images. The localizer preserves signed scores; a
-custom callable reducer can be used when concept magnitude is intended instead.
-
-Do not pass a task `operator` to `PartialExplainer` for concept localization. One-hot targets
-are created internally to select concept scores directly.
-
-### Localizing Concepts with Sobol
-
-The same API works with `SobolAttributionMethod`:
+### Sobol Example
 
 ```python
 from xplique.attributions import SobolAttributionMethod
+from xplique.concepts import PartialExplainer
 
 sobol = PartialExplainer(
     SobolAttributionMethod,
@@ -268,55 +266,52 @@ sobol = PartialExplainer(
     perturbation_function="inpainting",
 )
 
-sobol_maps = craft.compute_concept_attributions(
-    images,
+# `model_images` are preprocessed inputs; `display_images` are matching display images.
+concept_maps = craft.attribute_concepts_to_inputs(
+    model_images,
     partial_explainer=sobol,
     concept_ids=[0, 3, 7],
+    concept_reducer="mean",
 )
 
 craft.display_images_per_concept(
     display_images,
-    concept_maps=sobol_maps,
+    concept_maps=concept_maps,
     order=[0, 3, 7],
 )
 ```
 
-`nb_design` must be a nonzero power of two. Keep Sobol's default `nb_channels=1`: concept
-localization computes a separate single-channel attribution map for each selected concept.
-This differs from Sobol-based concept importance, which attributes the final task prediction
-to concept coefficients.
+`concept_reducer="mean"` reduces every $U_k(x)$ to the concept activation score attributed to
+the input. It is the default and matches the reduction used to rank representative images.
+The localizer preserves signed scores; use a custom callable reducer only when another scalar
+definition is intended.
 
-### Coefficient Maps and Localization Maps
+`nb_design` must be a nonzero power of two. Keep Sobol's default `nb_channels=1`: localization
+computes a separate single-channel map for each selected concept. Sobol-based concept
+importance is a different operation: it attributes the task prediction to concept
+activations.
 
-Use `coeffs_u` to display latent coefficient maps:
+RISE is an alternative black-box configuration; pass `rise` as `partial_explainer` to the same
+method:
 
 ```python
-craft.display_images_per_concept(
-    display_images,
-    coeffs_u=coefficients,
-    order=selected_concepts,
+from xplique.attributions import Rise
+
+rise = PartialExplainer(
+    Rise, nb_samples=2000, grid_size=7, preservation_probability=0.5, mask_value=0.0
 )
 ```
 
-Use `concept_maps` to display input-space localization maps:
+When displaying top images with a concept localization map, `coeffs_u` still determines the
+ranking and `concept_maps` determines only the overlay:
 
 ```python
-craft.display_images_per_concept(
-    display_images,
-    concept_maps=rise_maps,
-    order=selected_concepts,
-)
-```
-
-When displaying the top images, coefficients still determine the ranking and localization
-maps only determine the overlay:
-
-```python
+coeffs_u = craft.transform(model_images)
 craft.display_top_images_per_concept(
     display_images,
-    coeffs_u=coefficients,
-    concept_maps=rise_maps,
-    order=selected_concepts,
+    coeffs_u=coeffs_u,
+    concept_maps=concept_maps,
+    order=[0, 3, 7],
     topk=3,
 )
 ```
@@ -327,17 +322,16 @@ maps are displayed by absolute magnitude; attribution direction is not represent
 current renderer.
 
 !!!warning "Computational cost"
-    Black-box localization evaluates the encoder and `factorizer.encode()` for many perturbed
-    inputs and runs a separate attribution pass for every selected concept. Estimate concept
-    importance first, then localize only a small number of important concepts. Reduce the
-    number of images, RISE samples, Sobol designs, or grid resolution for exploratory runs.
+    Cost scales with concepts x images x perturbations because localization evaluates the
+    encoder and `factorizer.encode()` for each perturbation and selected concept. Rank concepts
+    by importance first, then localize a small subset. Reduce images, samples or designs, and
+    grid resolution for exploratory runs.
 
-!!!warning "Perturbations use preprocessed inputs"
-    Perturbation parameters operate in the model's preprocessed input space. For example,
-    `mask_value=0.0` is neutral or black only if zero has that meaning after preprocessing.
-    With standard ImageNet normalization, zero generally corresponds to the dataset mean
-    rather than a raw black pixel. Sobol inpainting and blurring must be interpreted relative
-    to the same model-ready representation.
+!!!warning "Model and display inputs"
+    `model_images` must be model-ready, preprocessed inputs; perturbations operate in that
+    space. For example, zero after ImageNet normalization represents the dataset mean, not a
+    raw black pixel. `display_images` may instead contain human-readable RGB images, but must
+    have the same order and spatial correspondence as `model_images`.
 
 !!!warning "Factorizer compatibility"
     Localization evaluates the fitted factorizer on unseen, perturbed activations. The
@@ -346,14 +340,10 @@ current renderer.
     explained.
 
 !!!warning "Black-box scope"
-    Input-to-concept localization currently supports black-box attribution methods only.
-    Ordinary `factorizer.encode()` is not guaranteed to be differentiable, so white-box
-    explainers such as Gradient Input or Integrated Gradients are rejected.
-
-!!!warning "Interpretation"
-    Localization maps measure sensitivity of a concept score to input perturbations. They are
-    not object boundaries or segmentation labels. RISE and Sobol can also produce different
-    maps because they use different perturbation and aggregation strategies.
+    Input-to-concept localization supports black-box attribution methods only. Do not use
+    Integrated Gradients for localization: the NumPy `factorizer.encode()` path is not
+    differentiable. This does not prevent gradient-based concept importance, which follows
+    the separate concept-activation-to-task-prediction path.
 
 ## Using a Different NMF Factorizer
 
@@ -529,8 +519,6 @@ craft.display_images_per_concept(input_images[:5])
 {{xplique.concepts.holistic_craft.HolisticCraft}}
 
 {{xplique.concepts.holistic_craft.PartialExplainer}}
-
-{{xplique.concepts.holistic_craft.ConceptLocalizer}}
 
 ## References
 
