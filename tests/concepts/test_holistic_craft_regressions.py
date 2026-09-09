@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt  # pylint: disable=wrong-import-position
 
 from xplique.attributions.gradient_input import GradientInput
 from xplique.concepts.craft import Factorization
-from xplique.concepts.holistic_craft import ConceptLocalizer, HolisticCraft, PartialExplainer
+from xplique.concepts.holistic_craft import HolisticCraft, PartialExplainer
 from xplique.concepts.latent_extractor import LatentData
 
 
@@ -340,8 +340,6 @@ def test_concept_localizer_reducers_handle_spatial_and_global_coefficients():
     localizer = craft.make_concept_localizer("mean")
     inputs = np.ones((2, 4, 4, 3), dtype=np.float32)
 
-    assert isinstance(localizer, ConceptLocalizer)
-
     scores_mean = localizer(inputs)
     expected_mean = np.mean(craft.transform(inputs), axis=(1, 2))
     np.testing.assert_allclose(scores_mean, expected_mean)
@@ -360,10 +358,12 @@ def test_concept_localizer_reducers_handle_spatial_and_global_coefficients():
     token_scores = token_craft.make_concept_localizer()(inputs)
     np.testing.assert_allclose(token_scores, np.mean(tokens, axis=1))
 
-    globals_only = np.arange(2 * 3, dtype=np.float32).reshape(2, 3)
+    globals_only = np.arange(-3, 3, dtype=np.float32).reshape(2, 3)
     global_craft = _Craft([_LatentData(globals_only)], batch_size=2, number_of_concepts=3)
     global_scores = global_craft.make_concept_localizer()(inputs)
     np.testing.assert_allclose(global_scores, globals_only)
+    callable_global_scores = global_craft.make_concept_localizer(lambda coeffs: coeffs)(inputs)
+    np.testing.assert_allclose(callable_global_scores, globals_only)
 
 
 def test_concept_localizer_reducer_validation_and_shape_errors():

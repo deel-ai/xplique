@@ -10,7 +10,7 @@ from xplique.utils_functions.object_detection.tf.box_model_wrapper import (
     _pad_and_stack_box_predictions,
 )
 
-from ..holistic_craft import ConceptDecoder, ConceptLocalizer, HolisticCraft
+from ..holistic_craft import ConceptDecoder, HolisticCraft, _ConceptLocalizer
 from ..latent_extractor import LatentData
 from .factorizer import TfSklearnNMFFactorizer
 from .latent_extractor import TfLatentExtractor as LatentExtractor
@@ -176,7 +176,7 @@ class HolisticCraftTf(HolisticCraft):
     def make_concept_localizer(
         self,
         concept_reducer: Union[str, Callable] = "mean",
-    ) -> ConceptLocalizer:
+    ) -> _ConceptLocalizer:
         """Create a TensorFlow concept localizer for black-box attribution.
 
         Parameters
@@ -189,14 +189,14 @@ class HolisticCraftTf(HolisticCraft):
         localizer
             Callable returning a tensor with shape ``(batch_size, K)``.
         """
-        return ConceptLocalizerTf(self, concept_reducer)
+        return _ConceptLocalizerTf(self, concept_reducer)
 
 
-class ConceptLocalizerTf(ConceptLocalizer):
-    """TensorFlow concept localizer callable."""
+class _ConceptLocalizerTf(_ConceptLocalizer):
+    """TensorFlow adapter for concept activation scores."""
 
     def __call__(self, inputs: Any) -> tf.Tensor:
-        """Return reduced concept scores for a batch of inputs."""
+        """Return concept activation scores for a batch of inputs."""
         scores = self._compute_scores(inputs)
         return tf.convert_to_tensor(scores, dtype=tf.float32)
 
