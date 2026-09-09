@@ -108,8 +108,13 @@ class PartialExplainer:
         return self.explainer_class(model=model, batch_size=batch_size, **self.kwargs)
 
 
-class ConceptLocalizer:
-    """Map input samples to one scalar score per learned concept.
+class _ConceptLocalizer:
+    """Expose concept activation scores as outputs of an attribution model.
+
+    The localizer extracts latent activations from each input, encodes them as
+    concept coefficients, and reduces every concept activation map to one score.
+    Black-box explainers use these scores as targets to produce concept
+    localization maps in the input space.
 
     Parameters
     ----------
@@ -124,12 +129,6 @@ class ConceptLocalizer:
         an array with shape ``(batch_size, number_of_concepts)``. Coefficients are
         reduced as-is, so signed factorizers retain their sign; use a callable
         reducer such as a mean absolute value when magnitude is desired.
-
-    Returns
-    -------
-    concept_scores
-        Float32 concept scores with shape
-        ``(batch_size, number_of_concepts)``.
 
     Notes
     -----
@@ -146,7 +145,7 @@ class ConceptLocalizer:
     """
 
     parent_craft: "HolisticCraft"
-    concept_reducer: Union[str, Callable]
+    concept_reducer: Callable
 
     def __init__(
         self,
@@ -154,18 +153,24 @@ class ConceptLocalizer:
         concept_reducer: Union[str, Callable] = "mean",
     ):
         self.parent_craft = parent_craft
-        self.concept_reducer = concept_reducer
-        self._validate_reducer()
-
-    def _validate_reducer(self) -> None:
-        if isinstance(self.concept_reducer, str):
-            allowed_reducers = {"mean", "sum", "max"}
-            if self.concept_reducer not in allowed_reducers:
+        reducers = {
+            "mean": np.mean,
+            "sum": np.sum,
+            "max": np.max,
+        }
+        if isinstance(concept_reducer, str):
+            try:
+                self.concept_reducer = reducers[concept_reducer]
+            except KeyError as error:
                 raise ValueError(
                     "concept_reducer must be one of {'mean', 'sum', 'max'} "
                     "or a callable returning shape (batch_size, number_of_concepts)."
-                )
-        elif not callable(self.concept_reducer):
+                ) from error
+            self._is_builtin_reducer = True
+        elif callable(concept_reducer):
+            self.concept_reducer = concept_reducer
+            self._is_builtin_reducer = False
+        else:
             raise ValueError(
                 "concept_reducer must be one of {'mean', 'sum', 'max'} "
                 "or a callable returning shape (batch_size, number_of_concepts)."
@@ -190,15 +195,10 @@ class ConceptLocalizer:
             )
 
         spatial_axes = tuple(range(1, coeffs_u.ndim - 1))
-        if not spatial_axes:
+        if not spatial_axes and self._is_builtin_reducer:
             scores = coeffs_u
-        elif isinstance(self.concept_reducer, str):
-            reducers = {
-                "mean": np.mean,
-                "sum": np.sum,
-                "max": np.max,
-            }
-            scores = reducers[self.concept_reducer](coeffs_u, axis=spatial_axes)
+        elif self._is_builtin_reducer:
+            scores = self.concept_reducer(coeffs_u, axis=spatial_axes)
         else:
             scores = self.concept_reducer(coeffs_u)
 
@@ -206,12 +206,12 @@ class ConceptLocalizer:
         expected_shape = (coeffs_u.shape[0], self.parent_craft.number_of_concepts)
         if scores.shape != expected_shape:
             raise ValueError(
-                f"Reduced concept scores must have shape {expected_shape}, got {scores.shape}."
+                f"Concept activation scores must have shape {expected_shape}, got {scores.shape}."
             )
 
         scores = scores.astype(np.float32, copy=False)
         if not np.all(np.isfinite(scores)):
-            raise ValueError("Reduced concept scores must contain only finite values.")
+            raise ValueError("Concept activation scores must contain only finite values.")
         return scores
 
     def _compute_scores(self, inputs: Any) -> np.ndarray:

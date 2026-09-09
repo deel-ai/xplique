@@ -12,7 +12,7 @@ from xplique.utils_functions.object_detection.torch.box_model_wrapper import (
 )
 from xplique.wrappers import TorchWrapper
 
-from ..holistic_craft import ConceptDecoder, ConceptLocalizer, HolisticCraft
+from ..holistic_craft import ConceptDecoder, HolisticCraft, _ConceptLocalizer
 from ..latent_extractor import LatentData
 from .factorizer import TorchSklearnNMFFactorizer
 from .latent_extractor import TorchLatentExtractor as LatentExtractor
@@ -207,7 +207,7 @@ class HolisticCraftTorch(HolisticCraft):
             Xplique ``TorchWrapper`` returning a tensor with shape
             ``(batch_size, K)`` and gradients disabled.
         """
-        torch_localizer = ConceptLocalizerTorch(self, concept_reducer).eval()
+        torch_localizer = _ConceptLocalizerTorch(self, concept_reducer).eval()
         return TorchWrapper(
             torch_localizer,
             device=self.device,
@@ -216,8 +216,8 @@ class HolisticCraftTorch(HolisticCraft):
         )
 
 
-class ConceptLocalizerTorch(nn.Module, ConceptLocalizer):
-    """PyTorch concept localizer module."""
+class _ConceptLocalizerTorch(nn.Module, _ConceptLocalizer):
+    """PyTorch module adapting concept activation scores for ``TorchWrapper``."""
 
     def __init__(
         self,
@@ -225,10 +225,10 @@ class ConceptLocalizerTorch(nn.Module, ConceptLocalizer):
         concept_reducer: Union[str, Callable] = "mean",
     ) -> None:
         super().__init__()
-        ConceptLocalizer.__init__(self, parent_craft, concept_reducer)
+        _ConceptLocalizer.__init__(self, parent_craft, concept_reducer)
 
     def forward(self, inputs: torch.Tensor) -> torch.Tensor:
-        """Return reduced concept scores for native NCHW inputs."""
+        """Return concept activation scores for native NCHW inputs."""
         scores = self._compute_scores(inputs)
         return torch.as_tensor(scores, dtype=torch.float32, device=inputs.device)
 
