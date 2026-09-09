@@ -407,7 +407,7 @@ def test_craft_make_concept_localizer_matches_reduced_transform(tiny_craft_data)
     np.testing.assert_allclose(scores, expected, rtol=5e-4, atol=2e-3)
 
 
-def test_compute_concept_attributions_normalizes_native_nchw_inputs(tiny_craft_data):
+def test_attribute_concepts_to_inputs_normalizes_native_nchw_inputs(tiny_craft_data):
     craft, images_nchw, _ = tiny_craft_data
     observed_shapes = []
 
@@ -429,14 +429,14 @@ def test_compute_concept_attributions_normalizes_native_nchw_inputs(tiny_craft_d
         [images_nchw[0]],
     ]
     for inputs in input_variants:
-        maps = craft.compute_concept_attributions(inputs, explainer, concept_ids=[0])
+        maps = craft.attribute_concepts_to_inputs(inputs, explainer, concept_ids=[0])
         assert maps.shape == (1, 4, 4, craft.number_of_concepts)
 
     assert observed_shapes == [(1, 4, 4, 2)] * len(input_variants)
 
 
 @pytest.mark.parametrize("method", ["rise", "sobol"])
-def test_craft_compute_concept_attributions_black_box_smoke(tiny_craft_data, method):
+def test_craft_attribute_concepts_to_inputs_black_box_smoke(tiny_craft_data, method):
     craft, images_nchw, _ = tiny_craft_data
     tf.random.set_seed(1)
     if method == "rise":
@@ -454,7 +454,7 @@ def test_craft_compute_concept_attributions_black_box_smoke(tiny_craft_data, met
             perturbation_function="inpainting",
         )
 
-    maps = craft.compute_concept_attributions(
+    maps = craft.attribute_concepts_to_inputs(
         images_nchw[:1],
         partial_explainer=explainer,
         concept_ids=[0],
@@ -466,8 +466,8 @@ def test_craft_compute_concept_attributions_black_box_smoke(tiny_craft_data, met
     assert np.all(np.isnan(np.delete(maps, 0, axis=-1)))
 
 
-@pytest.mark.parametrize("reducer", ["mean", "sum"])
-def test_tf_torch_concept_localizer_score_parity(reducer):
+@pytest.mark.parametrize("reducer", ["mean", "sum", "max"])
+def test_tf_torch_concept_localizer_score_parity(reducer, identity_factorizer):
     values = np.arange(2 * 4 * 4 * 2, dtype=np.float32).reshape(2, 4, 4, 2)
     tf_extractor = TfLatentExtractor(
         model=lambda inputs: inputs,
@@ -478,9 +478,9 @@ def test_tf_torch_concept_localizer_score_parity(reducer):
     tf_craft = HolisticCraftTf(
         tf_extractor,
         number_of_concepts=2,
-        factorizer=_IdentityFactorizer(),
+        factorizer=identity_factorizer(),
     )
-    torch_craft, torch_images, _ = _make_tiny_torch_craft(torch.device("cpu"))
+    torch_craft, torch_images, _ = _make_tiny_torch_craft(torch.device("cpu"), identity_factorizer)
     tf_images = tf.constant(values)
     tf_craft.fit(tf_images)
 
