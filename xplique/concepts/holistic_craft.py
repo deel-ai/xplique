@@ -822,8 +822,6 @@ class HolisticCraft(ABC):
 
         if not concept_ids:
             raise ValueError(f"{parameter_name} must contain at least one concept ID")
-        if len(concept_ids) > self.number_of_concepts:
-            raise ValueError(f"{parameter_name} cannot contain more IDs than number_of_concepts")
         if any(
             not isinstance(concept_id, (int, np.integer))
             or isinstance(concept_id, bool)
