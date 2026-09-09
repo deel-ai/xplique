@@ -376,7 +376,7 @@ def test_craft_make_concept_localizer_matches_reduced_transform(tiny_craft_data)
 
 
 @pytest.mark.parametrize("method", ["rise", "sobol"])
-def test_craft_compute_concept_attributions_black_box_smoke(tiny_craft_data, method):
+def test_craft_attribute_concepts_to_inputs_black_box_smoke(tiny_craft_data, method):
     craft, images = tiny_craft_data
     tf.random.set_seed(1)
     if method == "rise":
@@ -394,7 +394,7 @@ def test_craft_compute_concept_attributions_black_box_smoke(tiny_craft_data, met
             perturbation_function="inpainting",
         )
 
-    maps = craft.compute_concept_attributions(
+    maps = craft.attribute_concepts_to_inputs(
         images[:1],
         partial_explainer=explainer,
         concept_ids=[0],

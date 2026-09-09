@@ -417,7 +417,7 @@ def test_concept_localizer_reducer_validation_and_shape_errors():
         invalid_rank_craft.make_concept_localizer()(np.ones((1, 2, 2, 1), dtype=np.float32))
 
 
-def test_compute_concept_attributions_orchestration_and_targets():
+def test_attribute_concepts_to_inputs_orchestration_and_targets():
     craft = _make_spatial_craft(number_of_concepts=3)
     images = np.ones((2, 4, 4, 3), dtype=np.float32)
 
@@ -436,7 +436,7 @@ def test_compute_concept_attributions_orchestration_and_targets():
             assert scores.shape == (inputs.shape[0], craft.number_of_concepts)
             return np.full(inputs.shape[:3], fill_value=float(concept_id), dtype=np.float32)
 
-    maps = craft.compute_concept_attributions(
+    maps = craft.attribute_concepts_to_inputs(
         images,
         partial_explainer=PartialExplainer(RecordingExplainer),
         concept_ids=[2, 0],
@@ -458,7 +458,7 @@ def test_compute_concept_attributions_orchestration_and_targets():
     np.testing.assert_allclose(maps[..., 0], 0.0)
 
 
-def test_compute_concept_attributions_validates_inputs_and_explainer_type():
+def test_attribute_concepts_to_inputs_validates_inputs_and_explainer_type():
     craft = _make_spatial_craft(number_of_concepts=3)
     images = np.ones((2, 4, 4, 3), dtype=np.float32)
 
@@ -471,18 +471,18 @@ def test_compute_concept_attributions_validates_inputs_and_explainer_type():
             return np.ones((inputs.shape[0], inputs.shape[1], inputs.shape[2], 2), dtype=np.float32)
 
     with pytest.raises(TypeError, match="PartialExplainer"):
-        craft.compute_concept_attributions(images, partial_explainer=ShapeExplainer)
+        craft.attribute_concepts_to_inputs(images, partial_explainer=ShapeExplainer)
 
     with pytest.raises(ValueError, match="between 0"):
-        craft.compute_concept_attributions(images, PartialExplainer(_Explainer), concept_ids=[3])
+        craft.attribute_concepts_to_inputs(images, PartialExplainer(_Explainer), concept_ids=[3])
     with pytest.raises(ValueError, match="duplicate"):
-        craft.compute_concept_attributions(images, PartialExplainer(_Explainer), concept_ids=[1, 1])
+        craft.attribute_concepts_to_inputs(images, PartialExplainer(_Explainer), concept_ids=[1, 1])
     with pytest.raises(ValueError, match="at least one"):
-        craft.compute_concept_attributions(images, PartialExplainer(_Explainer), concept_ids=[])
+        craft.attribute_concepts_to_inputs(images, PartialExplainer(_Explainer), concept_ids=[])
     with pytest.raises(ValueError, match="between 0"):
-        craft.compute_concept_attributions(images, PartialExplainer(_Explainer), concept_ids=[True])
-    with pytest.raises(ValueError, match="one channel"):
-        craft.compute_concept_attributions(images, PartialExplainer(ShapeExplainer))
+        craft.attribute_concepts_to_inputs(images, PartialExplainer(_Explainer), concept_ids=[True])
+    with pytest.raises(ValueError, match=r"\(N, H, W\).+\(N, H, W, 1\)"):
+        craft.attribute_concepts_to_inputs(images, PartialExplainer(ShapeExplainer))
 
     class NonFiniteExplainer(ShapeExplainer):
         def explain(self, inputs, targets):
@@ -490,7 +490,7 @@ def test_compute_concept_attributions_validates_inputs_and_explainer_type():
             return np.full(inputs.shape[:3], np.nan, dtype=np.float32)
 
     with pytest.raises(ValueError, match="finite"):
-        craft.compute_concept_attributions(images, PartialExplainer(NonFiniteExplainer))
+        craft.attribute_concepts_to_inputs(images, PartialExplainer(NonFiniteExplainer))
 
 
 @pytest.mark.parametrize(
@@ -502,26 +502,46 @@ def test_compute_concept_attributions_validates_inputs_and_explainer_type():
         [],
     ],
 )
-def test_compute_concept_attributions_rejects_invalid_image_batches(images):
+def test_attribute_concepts_to_inputs_rejects_invalid_image_batches(images):
     craft = _make_spatial_craft(number_of_concepts=3)
 
     with pytest.raises(ValueError, match="images"):
-        craft.compute_concept_attributions(images, PartialExplainer(_Explainer), concept_ids=[0])
+        craft.attribute_concepts_to_inputs(images, PartialExplainer(_Explainer), concept_ids=[0])
 
 
-def test_compute_concept_attributions_rejects_explicit_operators_before_setup():
+def test_attribute_concepts_to_inputs_warns_and_ignores_explicit_operator():
     craft = _make_spatial_craft(number_of_concepts=3)
     images = np.ones((2, 4, 4, 3), dtype=np.float32)
+    received_targets = []
+
+    class TargetRecordingExplainer:
+        def __init__(self, model, batch_size):
+            del batch_size
+            self.model = model
+
+        def explain(self, inputs, targets):
+            received_targets.append(targets.copy())
+            self.model(inputs)
+            return np.ones(inputs.shape[:3], dtype=np.float32)
+
+    def operator(model, inputs, targets):
+        del targets
+        return model(inputs)
+
     partial_explainer = PartialExplainer(
-        _Explainer,
-        operator=lambda model, inputs, targets: model(inputs),
+        TargetRecordingExplainer,
+        operator=operator,
     )
 
-    with pytest.raises(ValueError, match="does not accept a custom operator"):
-        craft.compute_concept_attributions(images, partial_explainer, concept_ids=[0])
+    with pytest.warns(UserWarning, match="operator is ignored"):
+        maps = craft.attribute_concepts_to_inputs(images, partial_explainer, concept_ids=[1])
+
+    np.testing.assert_array_equal(received_targets, [[[0.0, 1.0, 0.0], [0.0, 1.0, 0.0]]])
+    assert np.all(np.isfinite(maps[..., 1]))
+    assert partial_explainer.kwargs == {"operator": operator}
 
 
-def test_compute_concept_attributions_accepts_explicit_none_operator():
+def test_attribute_concepts_to_inputs_accepts_explicit_none_operator():
     craft = _make_spatial_craft(number_of_concepts=3)
     images = np.ones((2, 4, 4, 3), dtype=np.float32)
 
@@ -534,7 +554,7 @@ def test_compute_concept_attributions_accepts_explicit_none_operator():
             del targets
             return np.ones(coeffs_u.shape[:3] + (1,), dtype=np.float32)
 
-    maps = craft.compute_concept_attributions(
+    maps = craft.attribute_concepts_to_inputs(
         images,
         PartialExplainer(SingleChannelExplainer, operator=None),
         concept_ids=[0],
@@ -543,7 +563,7 @@ def test_compute_concept_attributions_accepts_explicit_none_operator():
     assert np.all(np.isfinite(maps[..., 0]))
 
 
-def test_compute_concept_attributions_all_concepts_are_finite_by_default():
+def test_attribute_concepts_to_inputs_all_concepts_are_finite_by_default():
     craft = _make_spatial_craft(number_of_concepts=3)
     images = np.ones((2, 4, 4, 3), dtype=np.float32)
 
@@ -555,7 +575,7 @@ def test_compute_concept_attributions_all_concepts_are_finite_by_default():
             concept_id = int(np.argmax(targets[0]))
             return np.full(inputs.shape[:3], concept_id + 1.0, dtype=np.float32)
 
-    maps = craft.compute_concept_attributions(images, PartialExplainer(ConstantExplainer))
+    maps = craft.attribute_concepts_to_inputs(images, PartialExplainer(ConstantExplainer))
     assert maps.shape == (2, 4, 4, 3)
     assert np.all(np.isfinite(maps))
     np.testing.assert_allclose(maps[..., 0], 1.0)
@@ -563,12 +583,12 @@ def test_compute_concept_attributions_all_concepts_are_finite_by_default():
     np.testing.assert_allclose(maps[..., 2], 3.0)
 
 
-def test_compute_concept_attributions_rejects_whitebox_explainers_and_non_inductive_factorizer():
+def test_attribute_concepts_to_inputs_rejects_whitebox_and_non_inductive_factorizer():
     craft = _make_spatial_craft(number_of_concepts=3)
     images = np.ones((2, 4, 4, 3), dtype=np.float32)
 
     with pytest.raises(ValueError, match="black-box attribution"):
-        craft.compute_concept_attributions(images, PartialExplainer(GradientInput))
+        craft.attribute_concepts_to_inputs(images, PartialExplainer(GradientInput))
 
     craft_non_inductive = _make_spatial_craft(
         number_of_concepts=3,
@@ -585,7 +605,7 @@ def test_compute_concept_attributions_rejects_whitebox_explainers_and_non_induct
             return np.ones(inputs.shape[:3], dtype=np.float32)
 
     with pytest.raises(RuntimeError, match="cannot encode unseen activations"):
-        craft_non_inductive.compute_concept_attributions(
+        craft_non_inductive.attribute_concepts_to_inputs(
             images,
             PartialExplainer(PassThroughExplainer),
             concept_ids=[0],
@@ -600,7 +620,7 @@ def test_compute_concept_attributions_rejects_whitebox_explainers_and_non_induct
             raise NotImplementedError("explainer operation is unavailable")
 
     with pytest.raises(NotImplementedError, match="explainer operation"):
-        craft.compute_concept_attributions(
+        craft.attribute_concepts_to_inputs(
             images,
             PartialExplainer(ExplainerNotImplemented),
             concept_ids=[0],
@@ -794,7 +814,7 @@ def test_semantic_localization_follows_spatial_concept_dependencies():
                     )
             return maps
 
-    maps = craft.compute_concept_attributions(
+    maps = craft.attribute_concepts_to_inputs(
         images,
         partial_explainer=PartialExplainer(PixelOcclusionExplainer),
     )

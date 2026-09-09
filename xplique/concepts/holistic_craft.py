@@ -884,7 +884,7 @@ class HolisticCraft(ABC):
 
         return images_np.astype(np.float32, copy=False)
 
-    def compute_concept_attributions(
+    def attribute_concepts_to_inputs(
         self,
         images,
         partial_explainer: PartialExplainer,
@@ -911,7 +911,7 @@ class HolisticCraft(ABC):
             result channels are filled entirely with ``NaN``. If omitted, all
             concepts are localized.
         concept_reducer
-            Reduction from coefficient maps to scalar concept scores.
+            Reduction from concept activation maps to concept activation scores.
         Returns
         -------
         concept_maps
@@ -922,7 +922,7 @@ class HolisticCraft(ABC):
         -----
         Localization evaluates the fitted factorizer on perturbed inputs, so the
         factorizer must support out-of-sample ``encode()``. The localizer keeps
-        signed concept scores unchanged; use a custom reducer when concept
+        signed concept activation scores unchanged; use a custom reducer when concept
         magnitude rather than signed activation is intended. White-box explainers
         are rejected when ``explainer_class`` is a class. Callable factories are
         allowed and are responsible for producing a compatible black-box explainer.
@@ -947,10 +947,13 @@ class HolisticCraft(ABC):
                 f"{type(partial_explainer).__name__}."
             )
 
-        if partial_explainer.kwargs.get("operator") is not None:
-            raise ValueError(
-                "Concept localization uses one-hot concept targets and does not accept a "
-                "custom operator. Omit the operator argument."
+        explainer_kwargs = dict(partial_explainer.kwargs)
+        if explainer_kwargs.pop("operator", None) is not None:
+            warnings.warn(
+                "The operator is ignored when attributing concepts to inputs; one-hot concept "
+                "targets select the activation score directly.",
+                UserWarning,
+                stacklevel=2,
             )
 
         explainer_class = partial_explainer.explainer_class
@@ -959,7 +962,7 @@ class HolisticCraft(ABC):
         if isinstance(explainer_class, type) and issubclass(explainer_class, WhiteBoxExplainer):
             raise ValueError(
                 "Input-to-concept localization currently supports black-box attribution "
-                "methods only. The ConceptLocalizer uses factorizer.encode(), which is "
+                "methods only. The concept localizer uses factorizer.encode(), which is "
                 "not guaranteed to be differentiable. Use Rise, SobolAttributionMethod, "
                 "Occlusion, Lime, KernelShap, or another compatible black-box explainer."
             )
@@ -968,7 +971,11 @@ class HolisticCraft(ABC):
         attribution_inputs = self._normalize_image_batch_to_nhwc(images)
         localizer = self.make_concept_localizer(concept_reducer)
 
-        explainer_instance = partial_explainer(model=localizer, batch_size=self.batch_size)
+        explainer_instance = partial_explainer.explainer_class(
+            model=localizer,
+            batch_size=self.batch_size,
+            **explainer_kwargs,
+        )
 
         num_images, height, width, _ = attribution_inputs.shape
         concept_maps = np.full(
