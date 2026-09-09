@@ -689,8 +689,8 @@ def test_display_accepts_concept_maps_and_preserves_ranking_behavior():
         concept_maps=concept_maps,
         order=[0],
     )
-    assert len(rank_calls) == 1
-    np.testing.assert_array_equal(rank_calls[0], coeffs_u)
+    # Coefficients rank image 0 first even though image 1 has the larger localization map.
+    np.testing.assert_allclose(displayed_maps[-1][0], 0.0)
     assert displayed_maps[-1][1] == 0
     np.testing.assert_allclose(displayed_maps[-1][2], 0.0)
     plt.close(figure)
