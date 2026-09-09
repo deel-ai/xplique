@@ -782,14 +782,14 @@ class HolisticCraft(ABC):
     def make_concept_localizer(
         self,
         concept_reducer: Union[str, Callable] = "mean",
-    ) -> ConceptLocalizer:
+    ) -> _ConceptLocalizer:
         """Create a callable mapping input images to one score per concept.
 
         Parameters
         ----------
         concept_reducer
-            Reduction used to turn each concept coefficient map into a scalar
-            concept score. Supported strings are ``"mean"``, ``"sum"``, and
+            Reduction used to turn each concept activation map into a concept
+            activation score. Supported strings are ``"mean"``, ``"sum"``, and
             ``"max"``. A callable must return shape
             ``(batch_size, number_of_concepts)``.
 
@@ -804,7 +804,7 @@ class HolisticCraft(ABC):
         ValueError
             If ``concept_reducer`` is invalid.
         """
-        return ConceptLocalizer(self, concept_reducer)
+        return _ConceptLocalizer(self, concept_reducer)
 
     def _validate_concept_ids(
         self,
