@@ -20,21 +20,6 @@ from xplique.utils_functions.classification.tf.classifier_tensor import TfClassi
 from xplique.utils_functions.common.tf.gradients_check import check_model_gradients
 
 
-class _IdentityFactorizer:
-    is_fitted = False
-    requires_positive_activations = False
-
-    def fit(self, activations):
-        self.is_fitted = True
-        return np.eye(2, dtype=np.float32), np.asarray(activations, dtype=np.float32)
-
-    def encode(self, activations):
-        return np.asarray(activations, dtype=np.float32)
-
-    def encode_differentiable(self, activations):
-        return activations
-
-
 def test_classifier_tensor_targets_class_and_preserves_batch_shape():
     predictions = TfClassifierTensor(tf.constant([[0.1, 0.2, 0.7], [0.3, 0.6, 0.1]]))
 
@@ -217,7 +202,7 @@ def craft_data(image_data, latent_extractor_data, device_param):
 
 
 @pytest.fixture
-def tiny_craft_data():
+def tiny_craft_data(identity_factorizer):
     """Create a deterministic identity CRAFT pipeline for localization tests."""
     values = np.arange(2 * 4 * 4 * 2, dtype=np.float32).reshape(2, 4, 4, 2)
     extractor = TfLatentExtractor(
@@ -228,7 +213,7 @@ def tiny_craft_data():
         ),
         batch_size=2,
     )
-    craft = Craft(extractor, number_of_concepts=2, factorizer=_IdentityFactorizer())
+    craft = Craft(extractor, number_of_concepts=2, factorizer=identity_factorizer())
     craft.fit(tf.constant(values))
     return craft, values
 

@@ -29,21 +29,6 @@ from xplique.utils_functions.common.torch.gradients_check import check_model_gra
 from xplique.wrappers import TorchWrapper
 
 
-class _IdentityFactorizer:
-    is_fitted = False
-    requires_positive_activations = False
-
-    def fit(self, activations):
-        self.is_fitted = True
-        return np.eye(2, dtype=np.float32), np.asarray(activations, dtype=np.float32)
-
-    def encode(self, activations):
-        return np.asarray(activations, dtype=np.float32)
-
-    def encode_differentiable(self, activations):
-        return activations
-
-
 def test_classifier_tensor_targets_class_and_preserves_batch_shape():
     predictions = TorchClassifierTensor.from_predictions(
         torch.tensor([[0.1, 0.2, 0.7], [0.3, 0.6, 0.1]])
@@ -232,7 +217,7 @@ def craft_data(image_data, latent_extractor_data, device_param):
     return craft
 
 
-def _make_tiny_torch_craft(device):
+def _make_tiny_torch_craft(device, factorizer_class):
     values = np.arange(2 * 4 * 4 * 2, dtype=np.float32).reshape(2, 4, 4, 2)
     images = torch.from_numpy(values.transpose(0, 3, 1, 2)).to(device)
     extractor = TorchLatentExtractor(
@@ -246,16 +231,16 @@ def _make_tiny_torch_craft(device):
         extractor,
         number_of_concepts=2,
         device=str(device),
-        factorizer=_IdentityFactorizer(),
+        factorizer=factorizer_class(),
     )
     craft.fit(images)
     return craft, images, values
 
 
 @pytest.fixture
-def tiny_craft_data(device_param):
+def tiny_craft_data(device_param, identity_factorizer):
     """Create a deterministic identity CRAFT pipeline for localization tests."""
-    return _make_tiny_torch_craft(device_param)
+    return _make_tiny_torch_craft(device_param, identity_factorizer)
 
 
 def test_craft_reencode(image_data, craft_data):
