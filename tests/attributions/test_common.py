@@ -3,6 +3,7 @@ import tensorflow as tf
 
 from xplique.attributions import (
     FEM,
+    Banzhaf,
     DeconvNet,
     GradCAM,
     GradCAMPP,
@@ -37,6 +38,7 @@ def _default_methods(model, output_layer_index=None, bs=32):
         FEM(model, batch_size=bs),
         Occlusion(model, bs, patch_size=10, patch_stride=10),
         Rise(model, bs, nb_samples=2),
+        Banzhaf(model, bs, nb_samples=2),
         GuidedBackprop(model, output_layer_index, bs),
         DeconvNet(model, output_layer_index, bs),
         GradCAMPP(model, output_layer_index, bs),
@@ -169,6 +171,7 @@ def test_data_types_shapes():
         FEM: {},
         Occlusion: {},
         Rise: {"nb_samples": 2},
+        Banzhaf: {"nb_samples": 2},
         Lime: {"nb_samples": 2},
         KernelShap: {"nb_samples": 2},
         SobolAttributionMethod: {"grid_size": 2, "nb_design": 2},
@@ -193,7 +196,7 @@ def test_data_types_shapes():
 
             explanation = explainer(inputs, targets)
 
-            if len(input_shape) == 3:  # image => explanation (n, h, w, 1)
+            if len(input_shape) == 3 and method is not Banzhaf:
                 assert almost_equal(np.array(explanation.shape), np.array(inputs.shape[:-1] + (1,)))
             else:
                 assert almost_equal(np.array(explanation.shape), np.array(inputs.shape))
