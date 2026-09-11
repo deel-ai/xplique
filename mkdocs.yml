@@ -6,6 +6,7 @@ nav:
   - Attributions methods:
       - API Description: api/attributions/api_attributions.md
       - Methods: 
+        - Banzhaf: api/attributions/methods/banzhaf.md
         - DeconvNet: api/attributions/methods/deconvnet.md
         - FEM: api/attributions/methods/fem.md
         - ForGRad: api/attributions/methods/forgrad.md
