@@ -79,6 +79,20 @@ Xplique includes the following black-box attributions:
 
 
 
+### Concept-channel approaches ###
+
+[Banzhaf](methods/banzhaf.md) provides signed concept-channel attributions. It explains
+already-encoded, dense
+channel-last coefficients with a decoder or coefficient-consuming model, without re-encoding
+perturbations. Each player is a channel with at least one exactly nonzero coefficient after
+float32 sanitization, masked jointly across all positions. Fixed-target scalar scores yield
+signed conditional contrasts.
+
+The output has the input shape, but broadcasts one global effect per channel: it is not a
+spatial map. Average over position axes, rather than summing, to recover concept effects.
+See the method page for support validation, exact versus antithetic sampling, eager execution,
+and batching/reproducibility requirements. This API does not change CRAFT or concept extraction.
+
 ### Gradient-based approaches ###
 
 Those approaches are also called white-box methods as **they require a full access to the model's architecture**, notably it must **allow computing gradients**. Indeed, the core idea with the gradient-based approaches is to use back-propagation, not to update the model’s weights (which is already trained) but to reveal the most contributing inputs, potentially in a specific layer. All methods are available when the model works with TensorFlow but most methods also work with PyTorch (see [Xplique for PyTorch documentation](pytorch.md))
