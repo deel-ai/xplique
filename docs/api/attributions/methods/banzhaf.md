@@ -121,6 +121,17 @@ Exact masks follow increasing binary integers, with the lowest active channel as
 significant bit. A zero effect can indicate a null concept or cancellation: balanced XOR and
 parity games can have zero marginal effects despite depending on each channel.
 
+## Comparison with KernelBanzhaf
+
+[KernelBanzhaf](kernel_banzhaf.md) inherits the same signature, defaults, and input/output,
+masking, scalar-target, and seed contracts, but fits centered full-rank least squares instead
+of conditional sample means. Exact enumeration gives the same effects for arbitrary games,
+up to numerical precision. Sampled effects generally differ: complementary masks balance
+columns without guaranteeing orthogonality. KernelBanzhaf rejects rank-deficient designs
+before model or operator calls for the affected input, with no resampling or regularized
+fallback; Banzhaf does not require full rank. See its [rank requirements](kernel_banzhaf.md#rank-requirements)
+before choosing a sampled budget.
+
 ## Example
 
 This functional Keras model decodes two concept coefficients with a fixed dictionary, then

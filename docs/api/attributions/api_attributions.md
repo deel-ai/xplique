@@ -81,16 +81,21 @@ Xplique includes the following black-box attributions:
 
 ### Concept-channel approaches ###
 
-[Banzhaf](methods/banzhaf.md) provides signed concept-channel attributions. It explains
+[Banzhaf](methods/banzhaf.md) and [KernelBanzhaf](methods/kernel_banzhaf.md) provide signed
+concept-channel attributions. They explain
 already-encoded, dense
 channel-last coefficients with a decoder or coefficient-consuming model, without re-encoding
 perturbations. Each player is a channel with at least one exactly nonzero coefficient after
 float32 sanitization, masked jointly across all positions. Fixed-target scalar scores yield
-signed conditional contrasts.
+signed effects. Banzhaf uses conditional-mean contrasts; KernelBanzhaf uses centered,
+full-rank least squares. Exact enumeration agrees for arbitrary games, but sampled estimates
+generally differ because balanced masks need not have orthogonal columns. KernelBanzhaf can
+reject sampled designs before evaluating the affected input; a larger sampled budget does not
+guarantee rank. See its [rank requirements](methods/kernel_banzhaf.md#rank-requirements).
 
 The output has the input shape, but broadcasts one global effect per channel: it is not a
 spatial map. Average over position axes, rather than summing, to recover concept effects.
-See the method page for support validation, exact versus antithetic sampling, eager execution,
+See the method pages for support validation, exact versus antithetic sampling, eager execution,
 and batching/reproducibility requirements. This API does not change CRAFT or concept extraction.
 
 ### Gradient-based approaches ###
