@@ -3,7 +3,7 @@ Attributions methods availables
 """
 
 from . import global_sensitivity_analysis
-from .concept_attributions import Banzhaf
+from .concept_attributions import Banzhaf, KernelBanzhaf
 from .deconvnet import DeconvNet
 from .fem import FEM
 from .global_sensitivity_analysis import HsicAttributionMethod, SobolAttributionMethod
@@ -21,6 +21,7 @@ from .saliency import Saliency
 
 __all__ = [
     "Banzhaf",
+    "KernelBanzhaf",
     "global_sensitivity_analysis",
     "DeconvNet",
     "FEM",
