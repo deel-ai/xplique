@@ -16,6 +16,7 @@ nav:
         - Guided Backprop: api/attributions/methods/guided_backpropagation.md
         - Hsic Attribution Method: api/attributions/methods/hsic.md
         - Integrated Gradient: api/attributions/methods/integrated_gradients.md
+        - KernelBanzhaf: api/attributions/methods/kernel_banzhaf.md
         - KernelSHAP: api/attributions/methods/kernel_shap.md
         - Lime: api/attributions/methods/lime.md
         - Occlusion sensitivity: api/attributions/methods/occlusion.md
