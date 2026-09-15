@@ -81,22 +81,29 @@ Xplique includes the following black-box attributions:
 
 ### Concept-channel approaches ###
 
-[Banzhaf](methods/banzhaf.md) and [KernelBanzhaf](methods/kernel_banzhaf.md) provide signed
-concept-channel attributions. They explain
-already-encoded, dense
-channel-last coefficients with a decoder or coefficient-consuming model, without re-encoding
-perturbations. Each player is a channel with at least one exactly nonzero coefficient after
-float32 sanitization, masked jointly across all positions. Fixed-target scalar scores yield
-signed effects. Banzhaf uses conditional-mean contrasts; KernelBanzhaf uses centered,
-full-rank least squares. Exact enumeration agrees for arbitrary games, but sampled estimates
-generally differ because balanced masks need not have orthogonal columns. KernelBanzhaf can
-reject sampled designs before evaluating the affected input; a larger sampled budget does not
-guarantee rank. See its [rank requirements](methods/kernel_banzhaf.md#rank-requirements).
+[Banzhaf](methods/banzhaf.md), [KernelBanzhaf](methods/kernel_banzhaf.md), and
+[SparseSobol](methods/sparse_sobol.md) explain already-encoded, dense channel-last coefficients
+with a decoder or coefficient-consuming model, without re-encoding perturbations. Each player is
+a channel with at least one exactly nonzero coefficient after float32 sanitization, masked jointly
+across all positions against a global channel zero baseline.
+
+Banzhaf and KernelBanzhaf provide signed effects under binary retention masks. Banzhaf uses
+conditional-mean contrasts; KernelBanzhaf uses centered, full-rank least squares. Exact enumeration
+agrees for arbitrary games, but sampled estimates generally differ because balanced masks need not
+have orthogonal columns. KernelBanzhaf can reject sampled designs before evaluating the affected
+input; a larger sampled budget does not guarantee rank. See its
+[rank requirements](methods/kernel_banzhaf.md#rank-requirements).
+
+SparseSobol instead reports unsigned Jansen total-order sensitivity indices, including
+interactions, under either continuous uniform attenuation or binary Bernoulli retention. These
+distributions define different games. Its IID replicated Monte Carlo design costs
+`nb_design * (active_channels + 2)` model evaluations per nonempty input; it is not the
+image-oriented [SobolAttributionMethod](methods/sobol.md).
 
 The output has the input shape, but broadcasts one global effect per channel: it is not a
 spatial map. Average over position axes, rather than summing, to recover concept effects.
-See the method pages for support validation, exact versus antithetic sampling, eager execution,
-and batching/reproducibility requirements. This API does not change CRAFT or concept extraction.
+See the method pages for support validation, designs and estimators, eager execution, and
+batching/reproducibility requirements. This API does not change CRAFT or concept extraction.
 
 ### Gradient-based approaches ###
 
