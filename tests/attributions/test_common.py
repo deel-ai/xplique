@@ -19,6 +19,7 @@ from xplique.attributions import (
     Saliency,
     SmoothGrad,
     SobolAttributionMethod,
+    SparseSobol,
     SquareGrad,
     VarGrad,
 )
@@ -41,6 +42,7 @@ def _default_methods(model, output_layer_index=None, bs=32):
         Rise(model, bs, nb_samples=2),
         Banzhaf(model, bs, nb_samples=2),
         KernelBanzhaf(model, bs, nb_samples=8),
+        SparseSobol(model, bs, nb_design=2),
         GuidedBackprop(model, output_layer_index, bs),
         DeconvNet(model, output_layer_index, bs),
         GradCAMPP(model, output_layer_index, bs),
@@ -175,6 +177,7 @@ def test_data_types_shapes():
         Rise: {"nb_samples": 2},
         Banzhaf: {"nb_samples": 2},
         KernelBanzhaf: {"nb_samples": 128},
+        SparseSobol: {"nb_design": 2},
         Lime: {"nb_samples": 2},
         KernelShap: {"nb_samples": 2},
         SobolAttributionMethod: {"grid_size": 2, "nb_design": 2},
@@ -199,7 +202,7 @@ def test_data_types_shapes():
 
             explanation = explainer(inputs, targets)
 
-            if len(input_shape) == 3 and method not in (Banzhaf, KernelBanzhaf):
+            if len(input_shape) == 3 and method not in (Banzhaf, KernelBanzhaf, SparseSobol):
                 assert almost_equal(np.array(explanation.shape), np.array(inputs.shape[:-1] + (1,)))
             else:
                 assert almost_equal(np.array(explanation.shape), np.array(inputs.shape))
