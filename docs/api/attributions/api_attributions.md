@@ -81,11 +81,12 @@ Xplique includes the following black-box attributions:
 
 ### Concept-channel approaches ###
 
-[Banzhaf](methods/banzhaf.md), [KernelBanzhaf](methods/kernel_banzhaf.md), and
-[SparseSobol](methods/sparse_sobol.md) explain already-encoded, dense channel-last coefficients
-with a decoder or coefficient-consuming model, without re-encoding perturbations. Each player is
-a channel with at least one exactly nonzero coefficient after float32 sanitization, masked jointly
-across all positions against a global channel zero baseline.
+[Banzhaf](methods/banzhaf.md), [KernelBanzhaf](methods/kernel_banzhaf.md),
+[SparseSobol](methods/sparse_sobol.md), and [SparseHSIC](methods/sparse_hsic.md) explain
+already-encoded, dense channel-last coefficients with a decoder or coefficient-consuming model,
+without re-encoding perturbations. Each player is a channel with at least one exactly nonzero
+coefficient after float32 sanitization, masked jointly across all positions against a global
+channel zero baseline.
 
 Banzhaf and KernelBanzhaf provide signed effects under binary retention masks. Banzhaf uses
 conditional-mean contrasts; KernelBanzhaf uses centered, full-rank least squares. Exact enumeration
@@ -99,6 +100,13 @@ interactions, under either continuous uniform attenuation or binary Bernoulli re
 distributions define different games. Its IID replicated Monte Carlo design costs
 `nb_design * (active_channels + 2)` model evaluations per nonempty input; it is not the
 image-oriented [SobolAttributionMethod](methods/sobol.md).
+
+SparseHSIC reports unsigned marginal dependence between each binary channel-retention mask and the
+fixed scalar score. It uses exactly `nb_samples` IID Bernoulli masks per nonempty input, with no
+enumeration, antithetic pairing, balancing, or resampling. Unlike SparseSobol, it is not a
+total-order measure; unlike Banzhaf, it has no effect sign. Marginal dependence can vanish for XOR
+or parity interactions even when the score jointly depends on every channel. It is distinct from
+the spatial, image-oriented [HsicAttributionMethod](methods/hsic.md).
 
 The output has the input shape, but broadcasts one global effect per channel: it is not a
 spatial map. Average over position axes, rather than summing, to recover concept effects.
