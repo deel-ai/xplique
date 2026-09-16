@@ -24,6 +24,7 @@ nav:
         - Saliency: api/attributions/methods/saliency.md
         - SmoothGrad: api/attributions/methods/smoothgrad.md
         - Sobol Attribution Method: api/attributions/methods/sobol.md
+        - SparseHSIC: api/attributions/methods/sparse_hsic.md
         - SparseSobol: api/attributions/methods/sparse_sobol.md
         - SquareGrad: api/attributions/methods/square_grad.md
         - VarGrad: api/attributions/methods/vargrad.md
