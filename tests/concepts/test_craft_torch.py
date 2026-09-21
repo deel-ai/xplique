@@ -8,10 +8,10 @@ from xplique.concepts import CraftTorch as Craft
 
 
 def generate_torch_data(x_shape=(3, 32, 32), num_labels=10, samples=100):
-    x = torch.tensor(np.random.rand(samples, *x_shape).astype(np.float32))
-    y = F.one_hot(
-        torch.tensor(np.random.randint(0, num_labels, samples), dtype=torch.int64), num_labels
-    )
+    rng = np.random.default_rng(0)
+    x = torch.from_numpy(rng.random((samples, *x_shape), dtype=np.float32))
+    labels = torch.arange(samples) % num_labels
+    y = F.one_hot(labels, num_labels)
 
     return x, y
 
@@ -39,6 +39,13 @@ def generate_torch_model(input_shape=(3, 32, 32, 3), output_shape=10):
     flatten_size = c_out * h_out * w_out
 
     model.append(nn.Linear(int(flatten_size), output_shape))
+
+    # Keep the test activations positive and non-degenerate across runs.
+    with torch.no_grad():
+        weights = torch.arange(1, model[0].weight.numel() + 1, dtype=model[0].weight.dtype)
+        model[0].weight.copy_(weights.reshape_as(model[0].weight))
+        model[0].bias.fill_(0.1)
+    model.eval()
 
     return model
 
@@ -68,8 +75,10 @@ def test_shape():
             g = nn.Sequential(*list(model.children())[:index_layer_g])
             h = nn.Sequential(*list(model.children())[index_layer_h:])
 
-            # The activations must be positives
-            assert torch.all(g(x) >= 0.0)
+            # The activations must be non-negative and non-degenerate.
+            activations = g(x)
+            assert torch.all(activations >= 0.0)
+            assert torch.any(activations > 0.0)
 
             # Initialize Craft
             number_of_concepts = 10
@@ -96,6 +105,7 @@ def test_shape():
             assert crops.shape[2] == crops.shape[3] == patch_size  # Check patch sizes
             assert crops.shape[0] == crops_u.shape[0]  # Check numbers of patches
             assert crops_u.shape[1] == w.shape[0]
+            assert np.any(w > 0.0)  # The concept bank must not be all zeros.
 
             # Importance estimation
             importances = craft.estimate_importance()
