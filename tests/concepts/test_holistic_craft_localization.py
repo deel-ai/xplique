@@ -1,7 +1,5 @@
 """Framework-agnostic tests for HolisticCraft concept localization."""
 
-from contextlib import contextmanager
-
 import matplotlib
 import numpy as np
 import pytest
@@ -26,41 +24,13 @@ class _LatentData(LatentData):
         self.activations = values
 
 
-class _Prediction:
-    def filter(self, class_id=None, confidence=None):
-        return self
-
-    def to_attribution_target(self, class_id=None):
-        return self
-
-    def to_batched_tensor(self):
-        return np.ones((1, 1), dtype=np.float32)
-
-    def __len__(self):
-        return 1
-
-
 class _Extractor:
     def __init__(self, latent_data, batch_size=1):
         self.latent_data = latent_data
         self.batch_size = batch_size
-        self.forced_batch_sizes = []
-
-    @contextmanager
-    def temporary_force_batch_size(self, batch_size):
-        old_batch_size = self.batch_size
-        self.forced_batch_sizes.append(batch_size)
-        self.batch_size = batch_size
-        try:
-            yield
-        finally:
-            self.batch_size = old_batch_size
 
     def input_to_latent_generator(self, inputs, resize=None, keep_gradients=False):
         yield from self.latent_data
-
-    def latent_to_logit(self, latent_data):
-        return _Prediction()
 
 
 class _SemanticExtractor:
@@ -101,10 +71,6 @@ class _Explainer:
         return _ArrayLike(np.ones_like(coeffs_u))
 
 
-class _Framework:
-    float32 = np.float32
-
-
 class _Craft(HolisticCraft):
     def __init__(
         self,
@@ -123,7 +89,6 @@ class _Craft(HolisticCraft):
         concept_bank = np.eye(number_of_concepts, dtype=np.float32)
         self.factorization = Factorization(None, 0, None, factorizer, None, concept_bank)
         self.framework = "tf"
-        self._framework_module = _Framework
 
     def latent_to_concept_differentiable(self, latent_data):
         return latent_data.activations
