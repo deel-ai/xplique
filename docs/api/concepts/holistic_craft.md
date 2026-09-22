@@ -14,7 +14,7 @@ The crop-based approach works well for classification because images of classifi
 
 ## Supported Object Detection Models
 
-Holistic CRAFT works with various object detection architectures through specialized latent extractors provided by the `xplique-adapters` package:
+Holistic CRAFT works with various object detection architectures through specialized latent extractors provided by the companion `xplique-adapters` package. This package is under construction in the DEEL AI organization and will be pip-installable soon; the detector examples below use its planned API:
 
 **PyTorch (torchvision & ultralytics):**
 - **RetinaNet** - `RetinanetExtractorBuilder`
@@ -340,9 +340,34 @@ craft.display_images_per_concept(input_images[:5])
 
 ## API Reference
 
-{{xplique.concepts.holistic_craft.HolisticCraft}}
+`EncodedData` is the named tuple returned by `HolisticCraft.encode()`. It contains the
+image-specific `latent_data` and its concept coefficients, `coeffs_u`. `LatentData` is
+the framework-independent interface used to read and replace intermediate activations.
 
-{{xplique.concepts.holistic_craft.PartialExplainer}}
+The public core API consists of `HolisticCraft`, `PartialExplainer`, and `EncodedData`
+from the `xplique.concepts` package. The framework-independent `LatentData`,
+`LatentExtractor`, and `LatentExtractorBuilder` classes are available from
+`xplique.concepts.latent_extractor`. `PartialExplainer` defers attribution-explainer
+construction until a model and batch size are available.
+
+### TensorFlow
+
+`HolisticCraftTf` is the TensorFlow implementation. `TfLatentExtractor` provides the
+TensorFlow latent extraction and decoding interface.
+
+For generic layered TensorFlow models, use `LayeredModelExtractorBuilder` from
+`xplique.concepts.tf.layered_model_latent_extractor`.
+
+### PyTorch
+
+`HolisticCraftTorch` is the PyTorch implementation. `TorchLatentData` stores the
+framework-specific activations, and `TorchLatentExtractor` handles PyTorch latent
+extraction and decoding.
+
+For generic layered PyTorch models, use `LayeredModelExtractorBuilder` from
+`xplique.concepts.torch.layered_model_latent_extractor`. The PyTorch-specific
+`TorchSklearnNMFFactorizer` and optional `OvercompleteFactorizer` are available from
+`xplique.concepts.torch.factorizer`.
 
 ## References
 

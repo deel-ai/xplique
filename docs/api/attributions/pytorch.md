@@ -6,6 +6,8 @@
 
 - Other tutorials applying Xplique to PyTorch models: [Attributions: Object Detection](https://colab.research.google.com/drive/1X3Yq7BduMKqTA0XEheoVIpOo3IvOrzWL), [Attributions: Semantic Segmentation](https://colab.research.google.com/drive/1AHg7KO1fCOX5nZLGZfxkZ2-DLPPdSfbX)
 
+- For concept-based explanations of PyTorch models, see [Holistic CRAFT](../concepts/holistic_craft.md), including its object detection support.
+
 !!!note
     We should point out that what we did with PyTorch should be possible for other frameworks. Do not hesitate to give it a try and to make a PR if you have been successful!
 
@@ -44,7 +46,7 @@ score_saliency = metric(explanations)
 
 ## Does it work for every module?
 
-It has been tested on both the `attributions` and the `metrics` modules.
+It has been tested on the `attributions`, `metrics`, and `concepts` modules. Holistic CRAFT adds a native PyTorch path for concept extraction, including object detection models.
 
 
 
@@ -81,6 +83,10 @@ Not yet, but it works for most of them (even for gradient-based ones!):
 ## Does it work for all tasks?
 
 It works for all tasks covered by Xplique, see [the tasks covered and how to specify them](api_attributions.md#the-tasks-covered).
+
+### Concept-based explanations
+
+PyTorch classification and object detection models can be explained with `HolisticCraftTorch` through the latent extractor builders described in the [Holistic CRAFT documentation](../concepts/holistic_craft.md). Detector-specific builders are provided by the `xplique-adapters` companion package, which is under construction and will be pip-installable soon.
 
 
 

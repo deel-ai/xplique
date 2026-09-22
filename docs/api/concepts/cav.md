@@ -25,6 +25,10 @@ cav = cav_renderer(positive_examples, random_examples)
 
 ```
 
+## Related concept methods
+
+For automatic concept extraction, see [CRAFT](craft.md) and [Holistic CRAFT](holistic_craft.md).
+
 {{xplique.concepts.cav.Cav}}
 
 [^1]: [Interpretability Beyond Feature Attribution: Quantitative Testing with Concept Activation Vectors (TCAV) (2018).](https://arxiv.org/abs/1711.11279)
