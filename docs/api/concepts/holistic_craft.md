@@ -60,9 +60,10 @@ patches:
    activations.
 2. **Factorize concepts**: factorize the activations to discover recurring concepts.
 3. **Measure concept activation**: encode each image as concept activation maps in `coeffs_u`.
-4. **Estimate concept importance**: attribute the task prediction to the concept activations.
-5. **Interpret concepts**: either visualize concept activation maps or attribute concept
-   activation scores to the input to obtain concept localization maps.
+4. **Estimate concept importance**: attribute the task prediction to concept activations
+   (by perturbing them with Sobol, or using a gradient-based method).
+5. **Interpret concepts**: either visualize concept activation maps or perturb the input
+   and attribute changes in concept activation scores to obtain localization maps.
 
 !!!warning
     Activations must be non-negative to use the standard NMF. Ensure a ReLU
@@ -118,18 +119,25 @@ extractor maps them back to their patch grid.
 If the extracted representation has no spatial axes, `coeffs_u` has shape `(N, K)` and each
 coefficient is already global; no spatial concept activation map is available to resize.
 
-Concept importance and concept localization follow different attribution directions:
+With the default spatial mean reducer, $s_k(x) = \operatorname{mean}_{i,j} U_k(x)_{i,j}$.
+Resizing $U_k(x)$ therefore gives a CAM-style map for the *concept score*: the spatial map
+underlying that score is displayed directly. Unlike Grad-CAM, this visualization does not
+use gradients or class-prediction weights.
+
+For perturbation-based methods, concept importance and localization look at different quantities:
 
 ```text
-concept activations -> task prediction -> concept importance
+Concept importance (Sobol): perturb latent concept activations
+    -> measure the task prediction -> attribute it to concepts
 
-input -> concept activation score -> input attribution -> concept localization map
+Concept localization (RISE/Sobol): perturb input regions
+    -> measure concept activation score s_k(x) -> attribute it to input regions
 ```
 
-Gradient-based concept importance is supported because Holistic CRAFT can decode concept
-activations toward the task prediction. Input-to-concept localization instead follows the
-fitted NumPy factorizer's `encode()` path, which is not differentiable, and therefore requires
-a black-box attribution method.
+Concept importance also supports gradient-based methods because Holistic CRAFT can decode
+concept activations toward the task prediction. Input-to-concept localization instead follows
+the fitted NumPy factorizer's `encode()` path, which is not differentiable, and therefore
+requires a black-box attribution method.
 
 ### Interpretation Alternatives
 
@@ -137,7 +145,7 @@ Choose the representation that matches the question:
 
 | Alternative | Use | Meaning |
 |---|---|---|
-| **Concept activation map visualization** | Pass `coeffs_u` to a display method | Resizes latent $U_k(x)$ to show where the factorization activates |
+| **Concept activation map visualization** | Pass `coeffs_u` to a display method | Resizes latent $U_k(x)$ as a CAM-style map for the concept score (with spatial mean reduction) |
 | **Concept localization map** | Call `attribute_concepts_to_inputs()` and pass the result as `concept_maps` | Shows which input perturbations change $s_k(x)$ |
 
 These alternatives can differ when latent maps are coarse or positions have large receptive
@@ -288,8 +296,8 @@ definition is intended.
 
 `nb_design` must be a nonzero power of two. Keep Sobol's default `nb_channels=1`: localization
 computes a separate single-channel map for each selected concept. Sobol-based concept
-importance is a different operation: it attributes the task prediction to concept
-activations.
+importance is a different operation: it perturbs latent concept activations and attributes
+changes in the task prediction to concepts, rather than perturbing inputs to measure $s_k(x)$.
 
 RISE is an alternative black-box configuration; pass `rise` as `partial_explainer` to the same
 method:
