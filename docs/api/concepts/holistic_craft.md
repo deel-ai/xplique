@@ -259,7 +259,8 @@ be confused with valid zero attributions.
 
 TensorFlow callers pass channel-last images. PyTorch callers pass their native channel-first
 `(N, C, H, W)` images to the same high-level method; Xplique handles the layout conversion
-for the wrapped localizer.
+for the shared localizer. Calling `make_concept_localizer()` directly expects channel-last
+images for either backend and returns a float32 TensorFlow tensor of concept scores.
 
 ### Sobol Example
 

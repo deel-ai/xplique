@@ -1,6 +1,6 @@
 """PyTorch-specific wrapper for HolisticCraft."""
 
-from typing import Any, Callable, Optional, Union
+from typing import Any, Optional, Union
 
 import numpy as np
 import torch
@@ -12,7 +12,7 @@ from xplique.utils_functions.object_detection.torch.box_model_wrapper import (
 )
 from xplique.wrappers import TorchWrapper
 
-from ..holistic_craft import ConceptDecoder, HolisticCraft, _ConceptLocalizer
+from ..holistic_craft import ConceptDecoder, HolisticCraft
 from ..latent_extractor import LatentData
 from .factorizer import TorchSklearnNMFFactorizer
 from .latent_extractor import TorchLatentExtractor as LatentExtractor
@@ -190,47 +190,10 @@ class HolisticCraftTorch(HolisticCraft):
         )
         return wrapped_decoder
 
-    def make_concept_localizer(
-        self,
-        concept_reducer: Union[str, Callable] = "mean",
-    ) -> TorchWrapper:
-        """Create a PyTorch concept localizer for black-box attribution.
-
-        Parameters
-        ----------
-        concept_reducer
-            Reduction from coefficient maps to one scalar score per concept.
-
-        Returns
-        -------
-        localizer
-            Xplique ``TorchWrapper`` returning a tensor with shape
-            ``(batch_size, K)`` and gradients disabled.
-        """
-        torch_localizer = _ConceptLocalizerTorch(self, concept_reducer).eval()
-        return TorchWrapper(
-            torch_localizer,
-            device=self.device,
-            is_channel_first=True,
-            requires_grad=False,
-        )
-
-
-class _ConceptLocalizerTorch(nn.Module, _ConceptLocalizer):
-    """PyTorch module adapting concept activation scores for ``TorchWrapper``."""
-
-    def __init__(
-        self,
-        parent_craft: HolisticCraft,
-        concept_reducer: Union[str, Callable] = "mean",
-    ) -> None:
-        super().__init__()
-        _ConceptLocalizer.__init__(self, parent_craft, concept_reducer)
-
-    def forward(self, inputs: torch.Tensor) -> torch.Tensor:
-        """Return concept activation scores for native NCHW inputs."""
-        scores = self._compute_scores(inputs)
-        return torch.as_tensor(scores, dtype=torch.float32, device=inputs.device)
+    def _prepare_localizer_inputs(self, inputs: Any) -> torch.Tensor:
+        """Convert an Xplique NHWC batch to the Torch extractor's NCHW layout."""
+        images = np.asarray(self._to_numpy(inputs), dtype=np.float32)
+        return torch.as_tensor(np.moveaxis(images, -1, 1), device=self.device)
 
 
 class ConceptDecoderTorch(nn.Module, ConceptDecoder):
