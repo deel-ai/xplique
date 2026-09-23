@@ -8,6 +8,7 @@ from typing import Any, Callable, List, Optional, Tuple, Union
 
 import cv2
 import numpy as np
+import tensorflow as tf
 from matplotlib import pyplot as plt
 from matplotlib.figure import Figure
 from sklearn.exceptions import NotFittedError
@@ -114,7 +115,9 @@ class _ConceptLocalizer:
     The localizer extracts latent activations from each input, encodes them as
     concept coefficients, and reduces every concept activation map to one score.
     Black-box explainers use these scores as targets to produce concept
-    localization maps in the input space.
+    localization maps in the input space. It accepts channel-last image batches
+    from Xplique and returns float32 TensorFlow tensors; PyTorch CRAFT converts
+    these inputs to channel-first tensors before encoding.
 
     Parameters
     ----------
@@ -226,9 +229,10 @@ class _ConceptLocalizer:
             ) from error
         return self._reduce_coefficients(coeffs_u)
 
-    def __call__(self, inputs: Any) -> np.ndarray:
+    def __call__(self, inputs: Any) -> tf.Tensor:
         """Return float32 activation scores with shape ``(batch_size, n_concepts)``."""
-        return self._compute_scores(inputs)
+        native_inputs = self.parent_craft._prepare_localizer_inputs(inputs)
+        return tf.convert_to_tensor(self._compute_scores(native_inputs), dtype=tf.float32)
 
 
 class HolisticCraft(ABC):
@@ -796,7 +800,8 @@ class HolisticCraft(ABC):
         -------
         localizer
             Callable suitable for Xplique black-box explainers, returning
-            float32 scores with shape ``(batch_size, number_of_concepts)``.
+            float32 TensorFlow scores with shape ``(batch_size, number_of_concepts)``.
+            Expects channel-last image batches for either backend.
 
         Raises
         ------
@@ -804,6 +809,10 @@ class HolisticCraft(ABC):
             If ``concept_reducer`` is invalid.
         """
         return _ConceptLocalizer(self, concept_reducer)
+
+    def _prepare_localizer_inputs(self, inputs: Any) -> Any:
+        """Pass through inputs already in the extractor's native layout."""
+        return inputs
 
     def _validate_concept_ids(
         self,

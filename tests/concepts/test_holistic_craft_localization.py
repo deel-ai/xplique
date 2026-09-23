@@ -123,7 +123,7 @@ def test_concept_localizer_reducers_handle_spatial_and_global_coefficients():
     scores_mean = localizer(inputs)
     expected_mean = np.mean(craft.transform(inputs), axis=(1, 2))
     np.testing.assert_allclose(scores_mean, expected_mean)
-    assert scores_mean.dtype == np.float32
+    assert scores_mean.numpy().dtype == np.float32
 
     scores_sum = craft.make_concept_localizer("sum")(inputs)
     expected_sum = np.sum(craft.transform(inputs), axis=(1, 2))
@@ -160,7 +160,7 @@ def test_concept_localizer_reducer_validation_and_shape_errors():
     )
     callable_inputs = np.ones((2, 4, 4, 3), dtype=np.float32)
     callable_scores = callable_localizer(callable_inputs)
-    assert callable_scores.dtype == np.float32
+    assert callable_scores.numpy().dtype == np.float32
     np.testing.assert_allclose(
         callable_scores,
         np.mean(np.abs(craft.transform(callable_inputs)), axis=(1, 2)),
