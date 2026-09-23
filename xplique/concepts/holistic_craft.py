@@ -811,7 +811,10 @@ class HolisticCraft(ABC):
         return _ConceptLocalizer(self, concept_reducer)
 
     def _prepare_localizer_inputs(self, inputs: Any) -> Any:
-        """Pass through inputs already in the extractor's native layout."""
+        """Pass through inputs already in the extractor's native layout.
+        This method is a no-op in TensorFlow, but is overridden in
+        Torch to adjust for the convention of using images in shapes (B, C, H, W).
+        """
         return inputs
 
     def _validate_concept_ids(
