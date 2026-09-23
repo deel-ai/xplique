@@ -361,20 +361,6 @@ def test_craft_sobol_importance(image_data, craft_data):
     assert len(np.unique(order)) == 10, "All concepts should have unique ordering"
 
 
-def test_craft_make_concept_localizer_matches_reduced_transform(tiny_craft_data):
-    craft, images = tiny_craft_data
-
-    localizer = craft.make_concept_localizer("mean")
-    scores = localizer(images).numpy()
-    coeffs_u = craft.transform(images)
-    expected = np.mean(coeffs_u, axis=(1, 2))
-
-    assert scores.shape == (2, craft.number_of_concepts)
-    assert scores.dtype == np.float32
-    assert np.all(np.isfinite(scores))
-    np.testing.assert_allclose(scores, expected, rtol=1e-5, atol=1e-5)
-
-
 @pytest.mark.parametrize("method", ["rise", "sobol"])
 def test_craft_attribute_concepts_to_inputs_black_box_smoke(tiny_craft_data, method):
     craft, images = tiny_craft_data

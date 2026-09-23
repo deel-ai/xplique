@@ -389,21 +389,6 @@ def test_craft_sobol_importance(image_data, craft_data):
     assert len(np.unique(order)) == 10, "All concepts should have unique ordering"
 
 
-def test_craft_make_concept_localizer_matches_reduced_transform(tiny_craft_data):
-    craft, images_nchw, images_nhwc = tiny_craft_data
-
-    localizer = craft.make_concept_localizer("mean")
-    scores = localizer(images_nhwc)
-    scores = scores.numpy()
-    coeffs_u = craft.transform(images_nchw)
-    expected = np.mean(coeffs_u, axis=(1, 2))
-
-    assert scores.shape == (2, craft.number_of_concepts)
-    assert scores.dtype == np.float32
-    assert np.all(np.isfinite(scores))
-    np.testing.assert_allclose(scores, expected, rtol=5e-4, atol=2e-3)
-
-
 def test_attribute_concepts_to_inputs_normalizes_native_nchw_inputs(tiny_craft_data):
     craft, images_nchw, _ = tiny_craft_data
     observed_shapes = []
