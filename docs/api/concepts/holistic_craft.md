@@ -169,6 +169,67 @@ importances_vargrad = craft.reduce_to_importance(
 )
 ```
 
+### Whole-channel concept effects through `PartialExplainer`
+
+The concept-channel explainers take **already-encoded, channel-last coefficients** as input.
+Holistic CRAFT supplies these coefficients, a decoder that maps perturbed coefficients to
+predictions, and fixed targets for each image. Holistic CRAFT's current decoder reconstructs
+activations by multiplying coefficients with the concept bank. For a factorizer with different
+decoding semantics, use a decoder that implements those semantics before interpreting effects.
+The explainer never re-encodes masked coefficients.
+For example, after fitting a classification `craft` instance:
+
+```python
+import xplique
+
+from xplique.attributions import Banzhaf
+from xplique.concepts import PartialExplainer
+
+explanation = craft.compute_explanation_per_concept(
+    images=input_images[:20],
+    class_id=class_id,
+    partial_explainer=PartialExplainer(
+        Banzhaf,
+        operator=xplique.Tasks.CLASSIFICATION,
+        nb_samples=1024,
+        seed=0,
+    ),
+)
+
+# One signed score effect per image and concept, without multiplying by H * W.
+per_image_effects = craft.reduce_to_importance(
+    explanation,
+    spatial_reducer="mean",
+    abs_before_reduce=False,
+    aggregation_reducer=None,
+)
+```
+
+`compute_explanation_per_concept` passes the decoder and `craft.batch_size` to
+`PartialExplainer`. The operator selects a **fixed target** across the perturbations of an
+image and must produce one finite scalar score per perturbation. For structured predictions,
+provide an appropriate fixed-target operator in the decoder/operator layer. Inputs with no
+active concept channels are skipped without model evaluations.
+
+The returned array has the same shape as the coefficients: `(N, H, W, K)` for maps or
+`(N, T, K)` for tokens. A scalar effect is **broadcast** over positions in each channel;
+it is not a concept-localization heatmap. Average (or select) positions to get `(N, K)`;
+do not sum them. Holistic CRAFT's default `abs_before_reduce=True` discards signs, so set
+it to `False` when interpreting Banzhaf effects. Aggregate across images only after
+deciding how to handle positive and negative effects.
+
+| Explainer | `PartialExplainer` configuration | Reported quantity |
+| --- | --- | --- |
+| [Banzhaf](../attributions/methods/banzhaf.md) | `PartialExplainer(Banzhaf, nb_samples=1024, seed=0, operator=operator)` | Signed conditional-mean effect |
+| [KernelBanzhaf](../attributions/methods/kernel_banzhaf.md) | `PartialExplainer(KernelBanzhaf, nb_samples=1024, seed=0, operator=operator)` | Signed centered-regression effect; requires full rank |
+| [SparseSobol](../attributions/methods/sparse_sobol.md) | `PartialExplainer(SparseSobol, nb_design=32, mask_distribution="bernoulli", seed=0, operator=operator)` | Unsigned total-order sensitivity; `nb_design * (d + 2)` evaluations for `d` active channels |
+| [SparseHSIC](../attributions/methods/sparse_hsic.md) | `PartialExplainer(SparseHSIC, nb_samples=1024, seed=0, operator=operator)` | Unsigned marginal dependence |
+
+Each image is explained in its own call, so the stateless random design starts with
+input index zero for every image. With the same seed and active-channel count,
+different images can receive the same design. Set the PyTorch model to evaluation mode
+when using `HolisticCraftTorch` and its `TorchWrapper` decoder.
+
 ### Using a Different NMF Factorizer
 
 By default, the standard Sklearn NMF is used to factorize the concepts.
