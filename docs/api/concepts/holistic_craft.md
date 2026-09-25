@@ -1,6 +1,9 @@
 # Holistic CRAFT
 
 <sub>
+    <img src="https://upload.wikimedia.org/wikipedia/commons/d/d0/Google_Colaboratory_SVG_Logo.svg" width="20">
+</sub>[View concept localization TensorFlow tutorial](https://colab.research.google.com/drive/19eg2uU95A_LW1hQ1ENrhGI41lLK35UHu) |
+<sub>
     <img src="https://upload.wikimedia.org/wikipedia/commons/9/91/Octicons-mark-github.svg" width="20">
 </sub>[View source](https://github.com/deel-ai/xplique/blob/master/xplique/concepts/holistic_craft.py) |
 📰 [CRAFT Paper](https://arxiv.org/pdf/2211.10154) |
