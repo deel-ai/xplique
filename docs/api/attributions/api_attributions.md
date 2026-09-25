@@ -124,7 +124,8 @@ The ordinary `explain()` output has the input shape, but broadcasts one global e
 it is not a spatial map. Average over position axes, rather than summing, to recover concept
 effects. The separate interaction method returns one indexed result per input without spatial axes.
 See the method pages for support validation, designs and estimators, eager execution, and
-batching/reproducibility requirements. This API does not change CRAFT or concept extraction.
+batching/reproducibility requirements. Holistic CRAFT can consume indexed interactions separately
+from coefficient-shaped explanations.
 
 ### Gradient-based approaches ###
 

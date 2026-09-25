@@ -315,6 +315,37 @@ input index zero for every image. With the same seed and active-channel count,
 different images can receive the same design. Set the PyTorch model to evaluation mode
 when using `HolisticCraftTorch` and its `TorchWrapper` decoder.
 
+### Indexed concept interactions
+
+`compute_interactions_per_concept(images, partial_explainer, class_id=None,
+confidence=None, verbose=False, *, pairs=None, pair_batch_size=256)` uses the same per-image
+encoding, fixed-target selection, and decoder as `compute_explanation_per_concept`, but calls
+`explain_interactions()` on an interaction-capable explainer such as
+[SparseHSIC](../attributions/methods/sparse_hsic.md):
+
+```python
+from xplique.attributions import SparseHSIC
+from xplique.concepts import PartialExplainer
+
+results = craft.compute_interactions_per_concept(
+    input_images,
+    PartialExplainer(SparseHSIC, operator=operator, nb_samples=1024, seed=0),
+    class_id=class_id,
+    pairs=None,
+    pair_batch_size=256,
+)
+for result in results:
+    if result is not None:
+        print(result.pair_indices, result.interaction_scores)
+```
+
+The returned list aligns with images. An image without a selected target is `None`, distinct
+from a computed zero score or a requested pair containing an inactive channel. Unrequested pairs
+are absent. Each computed result has ambient pair indices and no spatial axes; it is not passed
+through `reduce_to_importance`. Each image has its own input-index-zero mask design. The usual
+CRAFT unmasked decoder pass selects a fixed target before any masked evaluations. In PyTorch,
+result fields remain TensorFlow tensors through `TorchWrapper`.
+
 ## Localizing Concepts with Black-Box Attribution
 
 `attribute_concepts_to_inputs()` exposes the fitted encoder and factorizer as a callable that
