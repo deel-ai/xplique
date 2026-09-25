@@ -7,7 +7,7 @@ import pytest
 import tensorflow as tf
 
 from xplique import Tasks
-from xplique.attributions import Banzhaf
+from xplique.attributions import Banzhaf, ConceptInteractionResult, SparseHSIC
 from xplique.concepts import HolisticCraftTf, PartialExplainer
 from xplique.concepts.latent_extractor import LatentData
 from xplique.utils_functions.classification.tf.classifier_tensor import TfClassifierTensor
@@ -114,3 +114,45 @@ def test_classification_operator_uses_the_selected_class():
         class_id=0,
     )
     np.testing.assert_allclose(explanation[:, 0, 0], EXPECTED_BANZHAF, atol=1e-5)
+
+
+def test_sparse_hsic_interactions_use_fixed_targets_and_per_image_seeds():
+    extractor = _Extractor()
+    craft = fitted_craft(HolisticCraftTf, extractor)
+    calls = []
+
+    def score(model, inputs, targets):
+        calls.append(len(inputs))
+        np.testing.assert_array_equal(targets, np.tile([[1.0, 0.0]], (len(inputs), 1)))
+        return tf.reduce_sum(model(inputs) * targets, axis=-1)
+
+    requested = np.array([[0, 2], [0, 1]], np.int64)
+    results = craft.compute_interactions_per_concept(
+        COEFFICIENTS,
+        PartialExplainer(SparseHSIC, operator=score, seed=9, nb_samples=7),
+        class_id=0,
+        pairs=requested,
+        pair_batch_size=1,
+    )
+    assert len(results) == 2
+    assert calls == [3, 3, 1] * 2
+    assert extractor.batch_size == 3
+    assert craft.factorizer.encode_calls == 2
+    for index, encoded in enumerate(craft.encode(COEFFICIENTS)):
+        result = results[index]
+        assert isinstance(result, ConceptInteractionResult)
+        assert result.n_concepts == 3
+        np.testing.assert_array_equal(result.active_ids, [0, 1] if index == 0 else [0, 2])
+        np.testing.assert_array_equal(result.pair_indices, requested)
+        assert result.interaction_scores[index] == 0  # requested pair contains an inactive ID
+        direct = SparseHSIC(
+            craft.make_concept_decoder(encoded.latent_data),
+            batch_size=3,
+            operator=score,
+            seed=9,
+            nb_samples=7,
+        ).explain_interactions(encoded.coeffs_u, [[1.0, 0.0]], pairs=requested, pair_batch_size=4)[
+            0
+        ]
+        np.testing.assert_array_equal(result.main_effects, direct.main_effects)
+        np.testing.assert_array_equal(result.interaction_scores, direct.interaction_scores)

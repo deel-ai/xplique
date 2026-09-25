@@ -93,6 +93,16 @@ class _BadShapeExplainer(_Explainer):
         return _ArrayLike(np.ones(coeffs_u.shape[:-1] + (1,)))
 
 
+class _InteractionExplainer(_Explainer):
+    def explain_interactions(self, coeffs_u, targets, *, pairs=None, pair_batch_size=256):
+        return [(coeffs_u.shape, targets, pairs, pair_batch_size)]
+
+
+class _FailingInteractionExplainer(_InteractionExplainer):
+    def explain_interactions(self, coeffs_u, targets, *, pairs=None, pair_batch_size=256):
+        raise RuntimeError("interaction failure")
+
+
 class _Framework:
     float32 = np.float32
 
@@ -284,6 +294,43 @@ def test_compute_explanation_accepts_structured_predictions_without_len():
         PartialExplainer(_Explainer),
     )
     assert explanation.shape == (1, 2, 2)
+
+
+def test_interaction_results_preserve_image_alignment_and_skip_missing_targets():
+    craft = _Craft([_LatentData(np.ones((1, 2, 2), np.float32)) for _ in range(2)])
+    predictions = iter(
+        [_MinimalStructuredPrediction(empty=True), _MinimalStructuredPrediction(empty=False)]
+    )
+    craft.decode = lambda latent_data, coeffs_u: next(predictions)
+    results = craft.compute_interactions_per_concept(
+        np.ones((2, 2, 2, 1)),
+        PartialExplainer(_InteractionExplainer),
+        pairs=np.array([[0, 1]]),
+        pair_batch_size=1,
+    )
+    assert len(results) == 2
+    assert results[0] is None
+    assert results[1][0] == (1, 2, 2)
+    assert results[1][3] == 1
+    assert craft.latent_extractor.batch_size == 1
+
+
+def test_interaction_rejection_and_failure_restore_extraction_batch_size():
+    craft = _Craft([_LatentData(np.ones((1, 2, 2), np.float32))], batch_size=4)
+    with pytest.raises(TypeError, match="explain_interactions"):
+        craft.compute_interactions_per_concept(np.ones((1, 2, 2, 1)), PartialExplainer(_Explainer))
+    assert craft.latent_extractor.forced_batch_sizes == []
+    with pytest.raises(RuntimeError, match="interaction failure"):
+        craft.compute_interactions_per_concept(
+            np.ones((1, 2, 2, 1)), PartialExplainer(_FailingInteractionExplainer)
+        )
+    assert craft.latent_extractor.batch_size == 4
+    empty = _Craft([], batch_size=4)
+    with pytest.raises(ValueError, match="No latent data"):
+        empty.compute_interactions_per_concept(
+            np.ones((1, 2, 2, 1)), PartialExplainer(_InteractionExplainer)
+        )
+    assert empty.latent_extractor.batch_size == 4
 
 
 def test_display_validates_concept_order_and_handles_a_single_column():
