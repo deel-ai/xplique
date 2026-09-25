@@ -43,6 +43,17 @@ class SparseSobol(_ConceptChannelExplainer):
     variance at 1e-12, and does not clip finite-sample indices to [0, 1]. Constant
     outputs produce zero indices. Returned values are unsigned total-order
     sensitivities, not signed Banzhaf effects or spatial attribution maps.
+
+    References
+    ----------
+    Sobol' (2001), "Global Sensitivity Indices for Nonlinear Mathematical Models
+    and Their Monte Carlo Estimates", https://doi.org/10.1016/S0378-4754(00)00270-6.
+    Jansen (1999), "Analysis of Variance Designs for Model Output",
+    https://doi.org/10.1016/S0010-4655(98)00154-4.
+    Fel et al. (2021), "Look at the Variance! Efficient Black-box Explanations
+    with Sobol-based Sensitivity Analysis", https://arxiv.org/abs/2111.04138.
+    Fel et al. (2023), "CRAFT: Concept Recursive Activation FacTorization for
+    Explainability", https://arxiv.org/abs/2211.10154.
     """
 
     def __init__(

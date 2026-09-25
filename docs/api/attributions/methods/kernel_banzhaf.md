@@ -66,6 +66,11 @@ $$
 
 The solve uses an SVD in `float64`, requires full column rank, and casts effects to `float32`.
 There is no ridge regularization or minimum-norm fallback for rank-deficient designs.
+The centered, unweighted regression is the Banzhaf formulation introduced by
+[Liu et al. (2025)](#references): each retained channel contributes `+0.5` and each
+removed channel `-0.5` to a design row. Centering the observed scores has no effect on
+the fitted coefficients here because the exact and complementary sampled designs have
+zero-mean columns.
 
 With exact enumeration, `X.T @ X = (Q / 4) * I`, so the solution equals Banzhaf's uniform
 conditional-mean contrasts for **arbitrary games**, not just additive scores, up to numerical
@@ -74,6 +79,14 @@ make columns orthogonal. Least-squares coefficients therefore need not equal Ban
 conditional-mean estimates, even on the same masks. Positive effects increase the score and
 negative effects suppress it; zero effects can reflect cancellation, including balanced XOR
 or parity interactions.
+
+Liu et al. also study complementary-pair sampling. This implementation applies their
+regression to the **active channels of one already-encoded input**, switches to exhaustive
+enumeration when it fits the budget, and refuses rank-deficient samples. The paper's
+empirical or theoretical accuracy results should not be read as guarantees for every
+sampled concept-channel game. Despite the name, [KernelSHAP](kernel_shap.md) estimates
+Shapley values using a different regression weighting
+([Lundberg and Lee, 2017](#references)).
 
 ## Rank requirements
 
@@ -125,3 +138,10 @@ explainer = KernelBanzhaf(model, operator=fixed_score, nb_samples=4, seed=0)
 effects = explainer.explain(coefficients, targets)
 np.testing.assert_allclose(effects.numpy(), [[2.0, -6.0], [0.0, -3.0]], atol=1e-6)
 ```
+
+## References
+
+- Liu, Y., Witter, R. T., Korn, F., et al. (2025). [Kernel Banzhaf: A Fast and Robust
+  Estimator for Banzhaf Values](https://arxiv.org/abs/2410.08336). arXiv:2410.08336.
+- Lundberg, S. M., and Lee, S.-I. (2017). [A Unified Approach to Interpreting Model
+  Predictions](https://arxiv.org/abs/1705.07874). *NeurIPS*.

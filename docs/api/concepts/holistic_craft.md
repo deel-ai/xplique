@@ -249,6 +249,13 @@ importances_vargrad = craft.reduce_to_importance(
 
 ### Whole-channel concept effects through `PartialExplainer`
 
+Concept extraction and importance estimation are separate steps in
+[CRAFT](https://arxiv.org/abs/2211.10154) and the
+[Holistic framework](https://arxiv.org/abs/2306.07304). Game-theoretic
+[ConceptSHAP](https://proceedings.neurips.cc/paper/2020/hash/ecb287ff763c169694f682af52c1f309-Abstract.html)
+is another approach to assigning importance to discovered concepts. The four estimators below
+use their own definitions of importance rather than computing ConceptSHAP values.
+
 The concept-channel explainers take **already-encoded, channel-last coefficients** as input.
 Holistic CRAFT supplies these coefficients, a decoder that maps perturbed coefficients to
 predictions, and fixed targets for each image. Holistic CRAFT's current decoder reconstructs
@@ -594,6 +601,14 @@ craft.display_images_per_concept(input_images[:5])
 
 ## References
 
-[^1]: [CRAFT: Concept Recursive Activation FacTorization for Explainability (2023).](https://arxiv.org/pdf/2211.10154.pdf)
-
-[^2]: [A Holistic Approach to Unifying Automatic Concept Extraction and Concept Importance Estimation (2023).](https://arxiv.org/pdf/2306.07304.pdf)
+- Fel, T., Picard, A., Bethune, L., et al. (2023). [CRAFT: Concept Recursive Activation
+  FacTorization for Explainability](https://arxiv.org/abs/2211.10154). *CVPR*.
+- Fel, T., Boutin, V., Moayeri, M., et al. (2023). [A Holistic Approach to Unifying Automatic
+  Concept Extraction and Concept Importance Estimation](https://arxiv.org/abs/2306.07304).
+  *NeurIPS*.
+- Yeh, C.-K., Kim, B., Arik, S., et al. (2020). [On Completeness-aware Concept-Based
+  Explanations in Deep Neural Networks](https://proceedings.neurips.cc/paper/2020/hash/ecb287ff763c169694f682af52c1f309-Abstract.html).
+  *NeurIPS*.
+- Lazard, T., Bouzid, K., Hense, J., et al. (2026). [Sparse concept attribution for
+  histomorphological hypothesis generation from whole-slide
+  classifiers](https://arxiv.org/abs/2609.02985). arXiv:2609.02985.

@@ -9,6 +9,10 @@ The indices are unsigned variance sensitivities, including each channel's intera
 order. They are **not Banzhaf effects**: their sign does not indicate whether retaining a concept
 raises or lowers the score, and they need not behave like conditional-mean contrasts.
 
+This adapts total-order global sensitivity analysis ([Sobol', 2001](#references)) to
+already-encoded concept channels; concept importance by such interventions is also central
+to [CRAFT (Fel et al., 2023)](#references).
+
 ## API
 
 ```python
@@ -127,7 +131,7 @@ some other sensitivity workflows.
 ## Jansen estimator
 
 Let $f(A_j)$ and $f(C_{i,j})$ be the fixed-target scores for row $j$. SparseSobol reports Jansen's
-total-order estimate
+total-order estimate ([Jansen, 1999](#references))
 
 $$
 \widehat{S}_{T_i} =
@@ -152,6 +156,10 @@ grid masks and returns a spatial attribution map. SparseSobol instead accepts al
 channel-last coefficients, limits the design to their exact active channels, applies global
 channel masks, and returns input-shaped broadcast channel indices. Choose the method according to
 the variables in the attribution game, not merely because both use total-order Sobol indices.
+
+The image-oriented Sobol attribution method is described by
+[Fel et al. (2021)](#references); neither that image sampling design nor CRAFT's concept
+pipeline is identical to the IID, active-support design used here.
 
 ## Example
 
@@ -182,8 +190,16 @@ explainer = SparseSobol(
 indices = explainer(coefficients, targets)  # shape (1, 3); indices[0, 2] is exactly zero
 ```
 
-## Reference
+## References
 
-Jansen, M. J. W. (1999). [Analysis of variance designs for model
-output](https://doi.org/10.1016/S0010-4655(98)00154-4). *Computer Physics Communications*,
-117(1-2), 35-43.
+- Sobol', I. M. (2001). [Global Sensitivity Indices for Nonlinear Mathematical Models and
+  Their Monte Carlo Estimates](https://doi.org/10.1016/S0378-4754(00)00270-6).
+  *Mathematics and Computers in Simulation*, 55(1–3), 271–280.
+- Jansen, M. J. W. (1999). [Analysis of variance designs for model
+  output](https://doi.org/10.1016/S0010-4655(98)00154-4). *Computer Physics Communications*,
+  117(1-2), 35-43.
+- Fel, T., Cadène, R., Chalvidal, M., et al. (2021). [Look at the Variance! Efficient
+  Black-box Explanations with Sobol-based Sensitivity Analysis](https://arxiv.org/abs/2111.04138).
+  *NeurIPS*.
+- Fel, T., Picard, A., Bethune, L., et al. (2023). [CRAFT: Concept Recursive Activation
+  FacTorization for Explainability](https://arxiv.org/abs/2211.10154). *CVPR*.

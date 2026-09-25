@@ -102,10 +102,21 @@ $$
 \qquad M \sim \operatorname{Bernoulli}(1/2)^d.
 $$
 
+This is the uniform-coalition Banzhaf value for the **local coefficient-removal game**
+([Banzhaf, 1965](#references); [Dubey and Shapley, 1979](#references)). The players here
+are active concept channels, and the value function is the model's fixed-target score after
+zeroing omitted channels. The same game-theoretic value can also be written as an average of
+one-channel marginal differences across all coalitions of the other active channels.
+
 The estimator subtracts the mean of scores for masks with channel `k` off from the mean for
 masks with that channel on. Enumeration gives the exact uniform-coalition contrast; the
 antithetic design estimates it with balanced conditional sample means. Complementary masks
 may differ in multiple channels, so they are not individual one-channel marginal differences.
+Reusing each evaluated coalition score across all channels follows the conditional-mean
+sample-reuse estimator discussed by [Wang and Jia (2023)](#references). Appending complements
+is this implementation's balanced paired design, related to antithetic sampling studied by
+[Staudacher and Pollmann (2023)](#references); that study does not establish an accuracy
+guarantee for this particular concept-channel game.
 
 For evaluated masks `m_i`, the same estimator can be written as
 
@@ -131,6 +142,15 @@ columns without guaranteeing orthogonality. KernelBanzhaf rejects rank-deficient
 before model or operator calls for the affected input, with no resampling or regularized
 fallback; Banzhaf does not require full rank. See its [rank requirements](kernel_banzhaf.md#rank-requirements)
 before choosing a sampled budget.
+
+## Related attribution methods
+
+[KernelSHAP](kernel_shap.md) uses a different coalition weighting to estimate Shapley values
+([Lundberg and Lee, 2017](#references)); Banzhaf is not constrained to allocate the
+full-versus-empty score difference. [RISE](rise.md) uses randomized input masks for image
+saliency ([Petsiuk et al., 2018](#references)), whereas this method compares the mean score
+*with* a concept channel to the mean score *without* it. Neither comparison implies that
+pixel-based estimators operate on the same intervention or baseline as concept removal.
 
 ## Example
 
@@ -177,3 +197,19 @@ np.testing.assert_allclose(dataset_effects.numpy(), effects.numpy())
 
 Both inputs use exact enumeration because their active supports have at most two channels.
 The negative effect of the second channel is retained rather than clipped or made absolute.
+
+## References
+
+- Banzhaf, J. F. (1965). *Weighted Voting Doesn't Work: A Mathematical Analysis*.
+  Rutgers Law Review, 19(2), 317–343.
+- Dubey, P., and Shapley, L. S. (1979). [Mathematical Properties of the Banzhaf Power
+  Index](https://doi.org/10.1287/moor.4.2.99). *Mathematics of Operations Research*, 4(2), 99–131.
+- Wang, J. T., and Jia, R. (2023). [Data Banzhaf: A Robust Data Valuation Framework for
+  Machine Learning](https://proceedings.mlr.press/v206/wang23e.html). *AISTATS*.
+- Staudacher, J., and Pollmann, T. (2023). [Assessing Antithetic Sampling for Approximating
+  Shapley, Banzhaf, and Owen Values](https://doi.org/10.3390/appliedmath3040049).
+  *AppliedMath*, 3(4), 957–988.
+- Lundberg, S. M., and Lee, S.-I. (2017). [A Unified Approach to Interpreting Model
+  Predictions](https://arxiv.org/abs/1705.07874). *NeurIPS*.
+- Petsiuk, V., Das, A., and Saenko, K. (2018). [RISE: Randomized Input Sampling for
+  Explanation of Black-box Models](https://arxiv.org/abs/1806.07421). *BMVC*.

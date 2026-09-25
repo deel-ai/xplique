@@ -9,6 +9,9 @@ sensitivity indices: a large score indicates dependence, but does not say whethe
 channel raises or lowers the model score and does not isolate all interactions involving that
 channel.
 
+HSIC originates with [Gretton et al. (2005)](#references); its use for black-box
+attribution was developed by [Novello, Fel, and Vigouroux (2022)](#references).
+
 ## API
 
 ```python
@@ -134,6 +137,10 @@ to zero. If the median distance exceeds the finite `float64` range, distances ar
 common positive rescaling; this leaves the RBF distance-to-bandwidth ratios unchanged. Scores are
 otherwise not normalized and have no upper clipping.
 
+The IID active-channel masks, binary equality kernel, median-positive-distance bandwidth,
+and memory-reduced computation specify this implementation; citing HSIC or image-oriented
+HSIC attribution does not imply that their sampling and bandwidth choices are the same.
+
 ## Interpretation and related methods
 
 SparseHSIC is a marginal dependence measure. In a balanced XOR or parity game, any one mask bit
@@ -144,7 +151,8 @@ that necessarily captures every interaction.
 
 [HsicAttributionMethod](hsic.md) is image-oriented: it perturbs spatial patches and returns a
 spatial attribution map. SparseHSIC instead perturbs the exact active channels of already-encoded
-coefficients and broadcasts global channel scores back to the input shape.
+coefficients and broadcasts global channel scores back to the input shape. The image-oriented
+method is described by [Novello et al. (2022)](#references).
 
 [SparseSobol](sparse_sobol.md) reports unsigned Jansen total-order variance sensitivity, including
 interactions involving a channel, using a replicated design and more than $n$ evaluations when
@@ -172,8 +180,11 @@ explainer = SparseHSIC(model, operator=fixed_score, nb_samples=256, seed=7)
 scores = explainer(coefficients, targets)  # shape (1, 3); scores[0, 2] is exactly zero
 ```
 
-## Reference
+## References
 
-Gretton, A., Bousquet, O., Smola, A., and Scholkopf, B. (2005).
-[Measuring statistical dependence with Hilbert-Schmidt
-norms](https://doi.org/10.1007/11564089_7). *Algorithmic Learning Theory*, 63-77.
+- Gretton, A., Bousquet, O., Smola, A., and Schölkopf, B. (2005).
+  [Measuring statistical dependence with Hilbert-Schmidt
+  norms](https://doi.org/10.1007/11564089_7). *Algorithmic Learning Theory*, 63-77.
+- Novello, P., Fel, T., and Vigouroux, D. (2022). [Making Sense of Dependence: Efficient
+  Black-box Explanations Using Dependence Measure](https://arxiv.org/abs/2206.06219).
+  *NeurIPS*.

@@ -60,6 +60,14 @@ class SparseHSIC(_ConceptChannelExplainer):
     HSIC normalization by nb_samples squared and float64 arithmetic, then casts
     results to float32. Its algebra requires O(nb_samples**2 + nb_samples*d)
     memory rather than constructing a (d, nb_samples, nb_samples) tensor.
+
+    References
+    ----------
+    Gretton et al. (2005), "Measuring Statistical Dependence with Hilbert-Schmidt
+    Norms", https://doi.org/10.1007/11564089_7.
+    Novello, Fel, and Vigouroux (2022), "Making Sense of Dependence: Efficient
+    Black-box Explanations Using Dependence Measure",
+    https://arxiv.org/abs/2206.06219.
     """
 
     def __init__(

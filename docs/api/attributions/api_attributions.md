@@ -88,6 +88,15 @@ without re-encoding perturbations. Each player is a channel with at least one ex
 coefficient after float32 sanitization, masked jointly across all positions against a global
 channel zero baseline.
 
+Concept attribution builds on work distinguishing learned concept representations from their
+importance to a prediction:
+[ConceptSHAP (Yeh et al., 2020)](https://proceedings.neurips.cc/paper/2020/hash/ecb287ff763c169694f682af52c1f309-Abstract.html),
+[CRAFT (Fel et al., 2023)](https://arxiv.org/abs/2211.10154), and
+[the Holistic framework (Fel et al., 2023)](https://arxiv.org/abs/2306.07304).
+These explainers address the importance step for **already learned** concept coefficients.
+Here “sparse” means restricting the attribution game to channels active in an input, not a
+new concept extraction method or a shared estimator across all four APIs.
+
 Banzhaf and KernelBanzhaf provide signed effects under binary retention masks. Banzhaf uses
 conditional-mean contrasts; KernelBanzhaf uses centered, full-rank least squares. Exact enumeration
 agrees for arbitrary games, but sampled estimates generally differ because balanced masks need not

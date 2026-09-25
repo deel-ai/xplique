@@ -43,6 +43,17 @@ class Banzhaf(_ConceptChannelExplainer):
     Execution is eager. Inputs are sanitized to float32 before exact support
     detection. Returned effects have the input shape and are broadcast across
     positions; average rather than sum positions to recover channel effects.
+
+    References
+    ----------
+    Banzhaf (1965), "Weighted Voting Doesn't Work: A Mathematical Analysis";
+    Dubey and Shapley (1979), "Mathematical Properties of the Banzhaf Power
+    Index", https://doi.org/10.1287/moor.4.2.99.
+    Wang and Jia (2023), "Data Banzhaf: A Robust Data Valuation Framework for
+    Machine Learning", https://proceedings.mlr.press/v206/wang23e.html.
+    Staudacher and Pollmann (2023), "Assessing Antithetic Sampling for
+    Approximating Shapley, Banzhaf, and Owen Values",
+    https://doi.org/10.3390/appliedmath3040049.
     """
 
     def __init__(
@@ -130,6 +141,11 @@ class KernelBanzhaf(Banzhaf):
     fallback. Final effects are float32, broadcast to the coefficient shape.
     Empty support returns zeros without inference. Execution is eager, and all
     support, target, batching, and reproducibility conventions of Banzhaf apply.
+
+    References
+    ----------
+    Liu et al. (2025), "Kernel Banzhaf: A Fast and Robust Estimator for
+    Banzhaf Values", https://arxiv.org/abs/2410.08336.
     """
 
     def _sample_masks(self, nb_active: int, input_index: int) -> tf.Tensor:
