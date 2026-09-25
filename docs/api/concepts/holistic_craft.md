@@ -56,13 +56,12 @@ The builder takes the model and a layer index to define the split point. Everyth
 Holistic CRAFT follows the same principle as CRAFT but operates on full images instead of
 patches:
 
-1. **Extract activations**: pass model inputs through the encoder $g$ to obtain intermediate
-   activations.
-2. **Factorize concepts**: factorize the activations to discover recurring concepts.
-3. **Measure concept activation**: encode each image as concept activation maps in `coeffs_u`.
-4. **Estimate concept importance**: attribute the task prediction to concept activations
+1. **Fit concepts**: pass model inputs through the encoder $g$ to obtain intermediate
+   activations, then factorize them to discover recurring concepts.
+2. **Measure concept activation**: encode each image as concept activation maps in `coeffs_u`.
+3. **Estimate concept importance**: attribute the task prediction to concept activations
    (by perturbing them with Sobol, or using a gradient-based method).
-5. **Interpret concepts**: either visualize concept activation maps or perturb the input
+4. **Interpret concepts**: either visualize concept activation maps or perturb the input
    and attribute changes in concept activation scores to obtain localization maps.
 
 !!!warning
