@@ -14,6 +14,7 @@ from matplotlib.figure import Figure
 from sklearn.exceptions import NotFittedError
 
 from xplique.attributions.base import WhiteBoxExplainer
+from xplique.attributions.concept_attributions import ConceptInteractionResult
 from xplique.attributions.global_sensitivity_analysis.sobol_attribution_method import (
     SobolAttributionMethod,
 )
@@ -722,15 +723,9 @@ class HolisticCraft(ABC):
                 if verbose:
                     print(f"\rProcessing image {i + 1}/{total_images}...", end="", flush=True)
                 # Pass 1 (no gradients): plain forward pass to build attribution targets.
-                decoded_result = self.decode(enc.latent_data, enc.coeffs_u)
-                filtered_result = decoded_result.filter(class_id=class_id, confidence=confidence)
+                targets = self._concept_attribution_target(enc, class_id, confidence)
                 expected_explanation_shape = tuple(enc.coeffs_u.shape)
-                is_empty = (
-                    bool(filtered_result.is_empty)
-                    if hasattr(filtered_result, "is_empty")
-                    else len(filtered_result) == 0
-                )
-                if is_empty:  # No detection
+                if targets is None:  # No detection
                     explanation = np.zeros(expected_explanation_shape)
                     if verbose:
                         print(
@@ -738,9 +733,6 @@ class HolisticCraft(ABC):
                             f"of shape {explanation.shape}"
                         )
                 else:
-                    targets = self._to_numpy(
-                        filtered_result.to_attribution_target(class_id).to_batched_tensor()
-                    )
                     decoder = self.make_concept_decoder(enc.latent_data)
                     explainer_instance = partial_explainer(
                         model=decoder, batch_size=self.batch_size
@@ -761,6 +753,96 @@ class HolisticCraft(ABC):
                 # Print newline after all images are processed
                 print()
         return np.concatenate(explanation_list, axis=0)
+
+    def _concept_attribution_target(
+        self, enc: EncodedData, class_id: Optional[int], confidence: Optional[float]
+    ) -> Optional[np.ndarray]:
+        """Select a fixed target from the unmasked per-image prediction, if any."""
+        decoded_result = self.decode(enc.latent_data, enc.coeffs_u)
+        filtered_result = decoded_result.filter(class_id=class_id, confidence=confidence)
+        is_empty = (
+            bool(filtered_result.is_empty)
+            if hasattr(filtered_result, "is_empty")
+            else len(filtered_result) == 0
+        )
+        if is_empty:
+            return None
+        return self._to_numpy(filtered_result.to_attribution_target(class_id).to_batched_tensor())
+
+    def compute_interactions_per_concept(
+        self,
+        images: np.ndarray,
+        partial_explainer: PartialExplainer,
+        class_id: Optional[int] = None,
+        confidence: Optional[float] = None,
+        verbose: bool = False,
+        *,
+        pairs=None,
+        pair_batch_size: int = 256,
+    ) -> List[Optional[ConceptInteractionResult]]:
+        """Estimate indexed concept interactions for each encoded image.
+
+        Parameters
+        ----------
+        images
+            Images to encode and explain.
+        partial_explainer
+            Deferred explainer supporting ``explain_interactions`` (e.g. SparseHSIC).
+        class_id
+            Class used to select fixed attribution targets.
+        confidence
+            Confidence threshold for filtering predictions.
+        verbose
+            Print progress when True.
+        pairs
+            Optional integer ambient pair indices (P, 2), forwarded unchanged.
+        pair_batch_size
+            Maximum pair-feature chunk size, independent of decoder inference batching.
+
+        Returns
+        -------
+        results
+            One result per encoded image. None denotes no selected target, not
+            a computed zero interaction. Results contain no spatial axes.
+
+        Raises
+        ------
+        TypeError
+            If partial_explainer does not support interactions.
+        ValueError
+            If encoding produces no latent data or interaction arguments are invalid.
+        """
+        if not isinstance(partial_explainer, PartialExplainer):
+            raise TypeError("partial_explainer must be a PartialExplainer instance.")
+        if not callable(getattr(partial_explainer.explainer_class, "explain_interactions", None)):
+            raise TypeError("partial_explainer must support explain_interactions().")
+
+        results = []
+        with self.latent_extractor.temporary_force_batch_size(1):
+            encoded_data_list = self.encode(images)
+            if not encoded_data_list:
+                raise ValueError("No latent data extracted from inputs.")
+
+            for index, enc in enumerate(encoded_data_list):
+                if verbose:
+                    print(
+                        f"\rProcessing image {index + 1}/{len(encoded_data_list)}...",
+                        end="",
+                        flush=True,
+                    )
+                targets = self._concept_attribution_target(enc, class_id, confidence)
+                if targets is None:
+                    results.append(None)
+                    continue
+                decoder = self.make_concept_decoder(enc.latent_data)
+                explainer = partial_explainer(model=decoder, batch_size=self.batch_size)
+                result = explainer.explain_interactions(
+                    enc.coeffs_u, targets, pairs=pairs, pair_batch_size=pair_batch_size
+                )
+                results.append(result[0])
+            if verbose:
+                print()
+        return results
 
     @abstractmethod
     def make_concept_decoder(self, latent_data: LatentData) -> Any:
