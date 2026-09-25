@@ -3,6 +3,8 @@
 SparseHSIC measures the marginal statistical dependence between each active concept channel's
 binary retention mask and a fixed scalar model score. It operates on already-encoded,
 channel-last coefficients and assigns one unsigned dependence score to each whole channel.
+Its separate `explain_interactions()` method computes singleton and pairwise dependence from a
+shared mask design and the same masked model evaluations.
 
 The scores are marginal HSIC estimates. They are not signed effects and are not total-order
 sensitivity indices: a large score indicates dependence, but does not say whether retaining the
@@ -19,6 +21,12 @@ SparseHSIC(model, batch_size=32, operator=None, nb_samples=1024, seed=0)
 ```
 
 {{xplique.attributions.SparseHSIC}}
+
+```python
+explainer.explain_interactions(inputs, targets=None, *, pairs=None, pair_batch_size=256)
+```
+
+{{xplique.attributions.ConceptInteractionResult}}
 
 ## Parameters in-depth
 
@@ -92,6 +100,20 @@ coefficient is zero. Inactive channels have exactly zero attribution. The output
 channel dependence scores, not a spatial localization map. Average over position axes, rather
 than summing, to recover an `(N, K)` matrix.
 
+`explain_interactions()` returns a list of `ConceptInteractionResult` objects, one per input;
+an empty batch returns `[]`. Each result has an ambient Python integer `n_concepts`, ascending
+`active_ids` of shape `(d,)` (`int64`), singleton `main_effects` of shape `(d,)` (`float32`),
+ambient `pair_indices` of shape `(P, 2)` (`int64`), and aligned `interaction_scores` of shape
+`(P,)` (`float32`). No result field has spatial axes. Main effects match `explain()` when both
+methods use the same deterministic mask design; separate method calls perform separate inference.
+
+By default `pairs=None` evaluates every distinct active pair with `i < j`, in lexicographic
+order. Pass an integer array/tensor of shape `(P, 2)` to request ambient pairs in a specific row
+order, including an empty integer array of shape `(0, 2)` for no pairs. Indices must satisfy
+`0 <= i < j < n_concepts`; duplicates, booleans, floats, and reversed pairs are rejected. A
+requested pair containing an inactive channel has an **exact zero** score; an unrequested pair is
+**absent**, not zero. The method requires fixed targets except when given a paired dataset.
+
 ## Kernels and bandwidth
 
 For mask rows $m_i$ and $m_j$, channel $k$ uses the equality kernel
@@ -141,6 +163,31 @@ The IID active-channel masks, binary equality kernel, median-positive-distance b
 and memory-reduced computation specify this implementation; citing HSIC or image-oriented
 HSIC attribution does not imply that their sampling and bandwidth choices are the same.
 
+## Pairwise decomposition
+
+The centered binary kernel of [Novello, Fel, and Vigouroux (2022)](#references) is
+$k_0(a,b)=\mathbf{1}[a=b]-1/2$. The paper's joint kernel for channels $i,j$ is
+$(1+k_{0,i})(1+k_{0,j})$. Subtracting the singleton components leaves
+$K^{\mathrm{int}}_{ij}=K_{0,i}\odot K_{0,j}$, **not** a signed synergy score. With
+$s_i=2M_i-1$, $w_{ij}=s_i\odot s_j$, and $q_{ij}=Hw_{ij}$, the efficient estimate is
+
+$$
+\widehat I_{ij}=\frac{q_{ij}^{\mathsf T}Lq_{ij}}{4n^2}.
+$$
+
+The sign products are centered *after* multiplication; multiplying empirically centered
+singleton columns is incorrect for an unbalanced finite design. Both singleton and pairwise
+effects use one uncentered output RBF Gram $L$ per input. The normalization $n^{-2}$ matches
+this implementation's existing singleton scores; the paper uses $(n-1)^{-2}$. All pair
+scores use `float64` algebra and return `float32`, with negative roundoff clamped to zero.
+Constant output scores produce exact zero singleton and pair effects.
+
+`pair_batch_size` must be a positive integer and limits the pair-feature chunk size independently
+of the model inference `batch_size`. For $d$ active concepts, $P$ selected active pairs, and
+chunk size $B$, computation takes $n$ masked evaluations, $O(n^2d+n^2P)$ kernel arithmetic,
+and $O(n^2+nd+nB)$ working memory, plus $O(P)$ indexed result storage. All-pairs output and
+runtime remain quadratic in $d$; chunking only limits intermediate pair memory.
+
 ## Interpretation and related methods
 
 SparseHSIC is a marginal dependence measure. In a balanced XOR or parity game, any one mask bit
@@ -148,6 +195,13 @@ can be independent of the output even though the output depends jointly on every
 population marginal HSIC is then zero; a finite IID sample can still report nonzero Monte Carlo
 noise. SparseHSIC should therefore not be interpreted as a signed contribution or as a measure
 that necessarily captures every interaction.
+
+Pairwise dependence can reveal XOR even when its singleton scores vanish, but three-way parity
+can have zero singleton **and** pair components. IID finite designs introduce estimation noise
+for components that vanish in the population. Do not screen pairs solely by singleton score:
+this would discard XOR-like cases. Since the output RBF kernel measures dependence in feature
+space, an additive scalar model need not have zero pair components. Pair effects are not signed
+synergy, second-order Sobol indices, or game-theoretic interaction values.
 
 [HsicAttributionMethod](hsic.md) is image-oriented: it perturbs spatial patches and returns a
 spatial attribution map. SparseHSIC instead perturbs the exact active channels of already-encoded
@@ -179,6 +233,26 @@ targets = tf.ones((1, 1), dtype=tf.float32)
 explainer = SparseHSIC(model, operator=fixed_score, nb_samples=256, seed=7)
 scores = explainer(coefficients, targets)  # shape (1, 3); scores[0, 2] is exactly zero
 ```
+
+For XOR, use a fixed scalar score and inspect the indexed pair result:
+
+```python
+import tensorflow as tf
+from xplique.attributions import SparseHSIC
+
+def xor_score(model, masked, targets):
+    del model, targets
+    bits = tf.cast(masked > 0, tf.int32)
+    return tf.cast(tf.math.floormod(bits[:, 0] + bits[:, 1], 2), tf.float32)
+
+explainer = SparseHSIC(lambda inputs: inputs, operator=xor_score, nb_samples=1024, seed=7)
+interaction = explainer.explain_interactions([[1.0, 1.0, 0.0]], [[1.0]])[0]
+pair = interaction.pair_indices[tf.argmax(interaction.interaction_scores)].numpy()
+assert list(pair) == [0, 1]
+```
+
+The third, inactive channel is excluded. In a finite IID run, the singleton effects can be
+small rather than identically zero.
 
 ## References
 

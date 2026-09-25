@@ -114,11 +114,15 @@ SparseHSIC reports unsigned marginal dependence between each binary channel-rete
 fixed scalar score. It uses exactly `nb_samples` IID Bernoulli masks per nonempty input, with no
 enumeration, antithetic pairing, balancing, or resampling. Unlike SparseSobol, it is not a
 total-order measure; unlike Banzhaf, it has no effect sign. Marginal dependence can vanish for XOR
-or parity interactions even when the score jointly depends on every channel. It is distinct from
-the spatial, image-oriented [HsicAttributionMethod](methods/hsic.md).
+or parity interactions even when the score jointly depends on every channel.
+`SparseHSIC.explain_interactions()` also reports indexed, unsigned pairwise HSIC decomposition
+components from the same sampled evaluations as its singleton scores. An XOR pair can be detected
+even when both singleton scores vanish. It is distinct from the spatial, image-oriented
+[HsicAttributionMethod](methods/hsic.md).
 
-The output has the input shape, but broadcasts one global effect per channel: it is not a
-spatial map. Average over position axes, rather than summing, to recover concept effects.
+The ordinary `explain()` output has the input shape, but broadcasts one global effect per channel:
+it is not a spatial map. Average over position axes, rather than summing, to recover concept
+effects. The separate interaction method returns one indexed result per input without spatial axes.
 See the method pages for support validation, designs and estimators, eager execution, and
 batching/reproducibility requirements. This API does not change CRAFT or concept extraction.
 
