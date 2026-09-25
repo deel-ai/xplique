@@ -78,6 +78,7 @@ Here is the lists of the availables tutorial for now:
 |  |  |  |
 | Automatic concept extraction      | CRAFT Tensorflow          | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1jmyhb89Bdz7H4G2KfK8uEVbSC-C_aht_) |
 | Automatic concept extraction      | CRAFT Pytorch             | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/16Jn2pQy4gi2qQYZFnuW6ZNtVAYiNyJHO) |
+| Automatic concept extraction      | Holistic CRAFT: Concept localization (TensorFlow) | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/19eg2uU95A_LW1hQ1ENrhGI41lLK35UHu) |
 
 ## Feature Visualization
 

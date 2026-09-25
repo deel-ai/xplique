@@ -107,6 +107,7 @@ Finally, the _Metrics_ module covers the current metrics used in explainability.
     <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1jmyhb89Bdz7H4G2KfK8uEVbSC-C_aht_) </sub>
     - [**Concepts Methods**: CRAFT: Getting started on Pytorch](https://colab.research.google.com/drive/16Jn2pQy4gi2qQYZFnuW6ZNtVAYiNyJHO)
     <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/16Jn2pQy4gi2qQYZFnuW6ZNtVAYiNyJHO) </sub>
+    - [**Concepts Methods**: Holistic CRAFT concept localization (TensorFlow)](https://colab.research.google.com/drive/19eg2uU95A_LW1hQ1ENrhGI41lLK35UHu) <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/19eg2uU95A_LW1hQ1ENrhGI41lLK35UHu) </sub>
 
     <p align="center" width="100%">
         <a href="https://colab.research.google.com/drive/1jmyhb89Bdz7H4G2KfK8uEVbSC-C_aht_">
@@ -343,6 +344,7 @@ There are 4 modules in Xplique, [Attribution methods](api/attributions/api_attri
     | Testing CAV (TCAV)              | TF            | [Paper](https://arxiv.org/pdf/1711.11279.pdf) | |
     | CRAFT Tensorflow | TF | [Paper](https://arxiv.org/pdf/2211.10154.pdf) | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1jmyhb89Bdz7H4G2KfK8uEVbSC-C_aht_) |
     | CRAFT PyTorch  | PyTorch** | [Paper](https://arxiv.org/pdf/2211.10154.pdf) | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/16Jn2pQy4gi2qQYZFnuW6ZNtVAYiNyJHO) |
+    | Holistic CRAFT (concept localization) | TF | [Paper](https://arxiv.org/pdf/2306.07304.pdf) | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/19eg2uU95A_LW1hQ1ENrhGI41lLK35UHu) |
     | (WIP) Robust TCAV               |               | | |
     | (WIP) Automatic Concept Extraction (ACE)        | | |
     TF : Tensorflow compatible
