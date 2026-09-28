@@ -15,6 +15,8 @@ from sklearn.exceptions import NotFittedError
 
 from xplique.attributions.base import WhiteBoxExplainer
 from xplique.attributions.concept_attributions import ConceptInteractionResult
+from xplique.attributions.concept_attributions.base import _check_integer
+from xplique.attributions.concept_attributions.interactions import _validate_pairs
 from xplique.attributions.global_sensitivity_analysis.sobol_attribution_method import (
     SobolAttributionMethod,
 )
@@ -835,10 +837,13 @@ class HolisticCraft(ABC):
             If partial_explainer does not support interactions.
         ValueError
             If encoding produces no latent data or interaction arguments are invalid.
+            pairs and pair_batch_size are validated before any image is encoded.
         """
         _check_partial_explainer(partial_explainer)
         if not getattr(partial_explainer.explainer_class, "_supports_interactions", False):
             raise TypeError("partial_explainer must support explain_interactions().")
+        _validate_pairs(pairs, self.number_of_concepts)
+        _check_integer(pair_batch_size, "pair_batch_size must be a positive integer.", 1)
 
         results = []
         with self.latent_extractor.temporary_force_batch_size(1):
@@ -851,6 +856,7 @@ class HolisticCraft(ABC):
                 result = explainer.explain_interactions(
                     enc.coeffs_u, targets, pairs=pairs, pair_batch_size=pair_batch_size
                 )
+                assert len(result) == 1, "Each encoded image must yield one interaction result."
                 results.append(result[0])
         return results
 

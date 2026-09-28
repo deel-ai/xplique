@@ -105,6 +105,11 @@ class _FailingInteractionExplainer(_InteractionExplainer):
         raise RuntimeError("interaction failure")
 
 
+class _BatchedInteractionExplainer(_InteractionExplainer):
+    def explain_interactions(self, coeffs_u, targets, *, pairs=None, pair_batch_size=256):
+        return [None, None]
+
+
 class _Framework:
     float32 = np.float32
 
@@ -333,6 +338,32 @@ def test_interaction_rejection_and_failure_restore_extraction_batch_size():
             np.ones((1, 2, 2, 1)), PartialExplainer(_InteractionExplainer)
         )
     assert empty.latent_extractor.batch_size == 4
+
+
+@pytest.mark.parametrize(
+    "arguments",
+    [{"pairs": [[0, 2]]}, {"pairs": [[1, 0]]}, {"pair_batch_size": 0}, {"pair_batch_size": 1.5}],
+)
+def test_interaction_arguments_validated_before_encoding(arguments):
+    craft = _Craft([_LatentData(np.ones((1, 2, 2), np.float32))])
+
+    def forbidden(images):
+        pytest.fail("Interaction arguments must be validated before encoding")
+
+    craft.encode = forbidden
+    with pytest.raises(ValueError):
+        craft.compute_interactions_per_concept(
+            np.ones((1, 2, 2, 1)), PartialExplainer(_InteractionExplainer), **arguments
+        )
+    assert craft.latent_extractor.forced_batch_sizes == []
+
+
+def test_multiple_interaction_results_per_image_rejected():
+    craft = _Craft([_LatentData(np.ones((1, 2, 2), np.float32))])
+    with pytest.raises(AssertionError, match="one interaction result"):
+        craft.compute_interactions_per_concept(
+            np.ones((1, 2, 2, 1)), PartialExplainer(_BatchedInteractionExplainer)
+        )
 
 
 def test_display_validates_concept_order_and_handles_a_single_column():
