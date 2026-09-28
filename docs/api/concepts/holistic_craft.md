@@ -247,6 +247,107 @@ importances_vargrad = craft.reduce_to_importance(
 )
 ```
 
+### Whole-channel concept effects through `PartialExplainer`
+
+Concept extraction and importance estimation are separate steps in
+[CRAFT](https://arxiv.org/abs/2211.10154) and the
+[Holistic framework](https://arxiv.org/abs/2306.07304). Game-theoretic
+[ConceptSHAP](https://proceedings.neurips.cc/paper/2020/hash/ecb287ff763c169694f682af52c1f309-Abstract.html)
+is another approach to assigning importance to discovered concepts. The four estimators below
+use their own definitions of importance rather than computing ConceptSHAP values.
+
+The concept-channel explainers take **already-encoded, channel-last coefficients** as input.
+Holistic CRAFT supplies these coefficients, a decoder that maps perturbed coefficients to
+predictions, and fixed targets for each image. Holistic CRAFT's current decoder reconstructs
+activations by multiplying coefficients with the concept bank. For a factorizer with different
+decoding semantics, use a decoder that implements those semantics before interpreting effects.
+The explainer never re-encodes masked coefficients.
+For example, after fitting a classification `craft` instance:
+
+```python
+import xplique
+
+from xplique.attributions import Banzhaf
+from xplique.concepts import PartialExplainer
+
+explanation = craft.compute_explanation_per_concept(
+    images=input_images[:20],
+    class_id=class_id,
+    partial_explainer=PartialExplainer(
+        Banzhaf,
+        operator=xplique.Tasks.CLASSIFICATION,
+        nb_samples=1024,
+        seed=0,
+    ),
+)
+
+# One signed score effect per image and concept, without multiplying by H * W.
+per_image_effects = craft.reduce_to_importance(
+    explanation,
+    spatial_reducer="mean",
+    abs_before_reduce=False,
+    aggregation_reducer=None,
+)
+```
+
+`compute_explanation_per_concept` passes the decoder and `craft.batch_size` to
+`PartialExplainer`. The operator selects a **fixed target** across the perturbations of an
+image and must produce one finite scalar score per perturbation. For structured predictions,
+provide an appropriate fixed-target operator in the decoder/operator layer. Inputs with no
+active concept channels are skipped without model evaluations.
+
+The returned array has the same shape as the coefficients: `(N, H, W, K)` for maps or
+`(N, T, K)` for tokens. A scalar effect is **broadcast** over positions in each channel;
+it is not a concept-localization heatmap. Average (or select) positions to get `(N, K)`;
+do not sum them. Holistic CRAFT's default `abs_before_reduce=True` discards signs, so set
+it to `False` when interpreting Banzhaf effects. Aggregate across images only after
+deciding how to handle positive and negative effects.
+
+| Explainer | `PartialExplainer` configuration | Reported quantity |
+| --- | --- | --- |
+| [Banzhaf](../attributions/methods/banzhaf.md) | `PartialExplainer(Banzhaf, nb_samples=1024, seed=0, operator=operator)` | Signed conditional-mean effect |
+| [KernelBanzhaf](../attributions/methods/kernel_banzhaf.md) | `PartialExplainer(KernelBanzhaf, nb_samples=1024, seed=0, operator=operator)` | Signed centered-regression effect; requires full rank |
+| [SparseSobol](../attributions/methods/sparse_sobol.md) | `PartialExplainer(SparseSobol, nb_design=32, mask_distribution="bernoulli", seed=0, operator=operator)` | Unsigned total-order sensitivity; `nb_design * (d + 2)` evaluations for `d` active channels |
+| [SparseHSIC](../attributions/methods/sparse_hsic.md) | `PartialExplainer(SparseHSIC, nb_samples=1024, seed=0, operator=operator)` | Unsigned marginal dependence |
+
+Each image is explained in its own call, so the stateless random design starts with
+input index zero for every image. With the same seed and active-channel count,
+different images can receive the same design. Set the PyTorch model to evaluation mode
+when using `HolisticCraftTorch` and its `TorchWrapper` decoder.
+
+### Indexed concept interactions
+
+`compute_interactions_per_concept(images, partial_explainer, class_id=None,
+confidence=None, verbose=False, *, pairs=None, pair_batch_size=256)` uses the same per-image
+encoding, fixed-target selection, and decoder as `compute_explanation_per_concept`, but calls
+`explain_interactions()` on an interaction-capable explainer such as
+[SparseHSIC](../attributions/methods/sparse_hsic.md). Explainers without interaction support
+are rejected with a `TypeError` before any encoding. The result format is described in the
+[shared concept-channel contract](../attributions/api_attributions.md#shared-concept-channel-contract):
+
+```python
+from xplique.attributions import SparseHSIC
+from xplique.concepts import PartialExplainer
+
+results = craft.compute_interactions_per_concept(
+    input_images,
+    PartialExplainer(SparseHSIC, operator=operator, nb_samples=1024, seed=0),
+    class_id=class_id,
+    pairs=None,
+    pair_batch_size=256,
+)
+for result in results:
+    if result is not None:
+        print(result.pair_indices, result.interaction_scores)
+```
+
+The returned list aligns with images. An image without a selected target is `None`, distinct
+from a computed zero score or a requested pair containing an inactive channel. Unrequested pairs
+are absent. Each computed result has ambient pair indices and no spatial axes; it is not passed
+through `reduce_to_importance`. Each image has its own input-index-zero mask design. The usual
+CRAFT unmasked decoder pass selects a fixed target before any masked evaluations. In PyTorch,
+result fields remain TensorFlow tensors through `TorchWrapper`.
+
 ## Localizing Concepts with Black-Box Attribution
 
 `attribute_concepts_to_inputs()` exposes the fitted encoder and factorizer as a callable that
@@ -533,6 +634,14 @@ craft.display_images_per_concept(input_images[:5])
 
 ## References
 
-[^1]: [CRAFT: Concept Recursive Activation FacTorization for Explainability (2023).](https://arxiv.org/pdf/2211.10154.pdf)
-
-[^2]: [A Holistic Approach to Unifying Automatic Concept Extraction and Concept Importance Estimation (2023).](https://arxiv.org/pdf/2306.07304.pdf)
+- Fel, T., Picard, A., Bethune, L., et al. (2023). [CRAFT: Concept Recursive Activation
+  FacTorization for Explainability](https://arxiv.org/abs/2211.10154). *CVPR*.
+- Fel, T., Boutin, V., Moayeri, M., et al. (2023). [A Holistic Approach to Unifying Automatic
+  Concept Extraction and Concept Importance Estimation](https://arxiv.org/abs/2306.07304).
+  *NeurIPS*.
+- Yeh, C.-K., Kim, B., Arik, S., et al. (2020). [On Completeness-aware Concept-Based
+  Explanations in Deep Neural Networks](https://proceedings.neurips.cc/paper/2020/hash/ecb287ff763c169694f682af52c1f309-Abstract.html).
+  *NeurIPS*.
+- Lazard, T., Bouzid, K., Hense, J., et al. (2026). [Sparse concept attribution for
+  histomorphological hypothesis generation from whole-slide
+  classifiers](https://arxiv.org/abs/2609.02985). arXiv:2609.02985.

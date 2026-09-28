@@ -3,6 +3,13 @@ Attributions methods availables
 """
 
 from . import global_sensitivity_analysis
+from .concept_attributions import (
+    Banzhaf,
+    ConceptInteractionResult,
+    KernelBanzhaf,
+    SparseHSIC,
+    SparseSobol,
+)
 from .deconvnet import DeconvNet
 from .fem import FEM
 from .global_sensitivity_analysis import HsicAttributionMethod, SobolAttributionMethod
@@ -19,6 +26,11 @@ from .rise import Rise
 from .saliency import Saliency
 
 __all__ = [
+    "Banzhaf",
+    "KernelBanzhaf",
+    "SparseHSIC",
+    "SparseSobol",
+    "ConceptInteractionResult",
     "global_sensitivity_analysis",
     "DeconvNet",
     "FEM",
