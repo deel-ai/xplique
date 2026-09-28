@@ -1,5 +1,12 @@
 # SparseHSIC
 
+For signed pairwise mixed effects, see [Banzhaf](banzhaf.md#pairwise-interactions)
+or [KernelBanzhaf](kernel_banzhaf.md#pairwise-interactions). For pure or
+total-pair score-variance sensitivities, see
+[SparseSobol](sparse_sobol.md#pairwise-interactions). HSIC pairs measure
+output-kernel dependence instead; even additive scalar scores need not have
+zero pair components under its RBF output kernel.
+
 SparseHSIC measures the marginal statistical dependence between each active concept channel's
 binary retention mask and a fixed scalar model score. It operates on already-encoded,
 channel-last coefficients and assigns one unsigned dependence score to each whole channel.

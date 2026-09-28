@@ -29,7 +29,8 @@ class ConceptInteractionResult:
     Notes
     -----
     The meaning of the scores is defined by the explainer producing the result
-    (e.g. SparseHSIC reports unsigned HSIC dependence components).
+    (e.g. SparseHSIC reports unsigned HSIC dependence components, whereas
+    SparseSobol reports total-order singletons and pure or total pairs).
     Tensor-valued fields should be compared individually; value equality of
     entire result objects is intentionally undefined.
     """

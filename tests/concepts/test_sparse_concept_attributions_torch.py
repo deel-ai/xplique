@@ -8,7 +8,13 @@ import tensorflow as tf
 import torch
 
 from xplique import Tasks
-from xplique.attributions import Banzhaf, ConceptInteractionResult, SparseHSIC
+from xplique.attributions import (
+    Banzhaf,
+    ConceptInteractionResult,
+    KernelBanzhaf,
+    SparseHSIC,
+    SparseSobol,
+)
 from xplique.concepts import HolisticCraftTorch, PartialExplainer
 from xplique.concepts.latent_extractor import LatentData
 from xplique.utils_functions.classification.torch.classifier_tensor import TorchClassifierTensor
@@ -166,3 +172,45 @@ def test_sparse_hsic_interactions_with_wrapped_torch_decoder():
     finally:
         tf.config.run_functions_eagerly(eager)
     assert tf.config.functions_run_eagerly() == eager
+
+
+@pytest.mark.parametrize(
+    "cls,kwargs",
+    [
+        (Banzhaf, {"nb_samples": 4}),
+        (KernelBanzhaf, {"nb_samples": 4}),
+        (SparseSobol, {"nb_design": 4, "interaction_kind": "pure"}),
+        (SparseSobol, {"nb_design": 4, "interaction_kind": "total"}),
+    ],
+)
+def test_other_interactions_through_craft_torch(cls, kwargs):
+    craft = fitted_craft(HolisticCraftTorch, _Extractor(), device="cpu")
+
+    def score(model, inputs, targets):
+        np.testing.assert_array_equal(targets, np.tile([[1.0, 0.0]], (len(inputs), 1)))
+        return tf.reduce_sum(model(inputs) * targets, axis=-1)
+
+    eager = tf.config.functions_run_eagerly()
+    try:
+        results = craft.compute_interactions_per_concept(
+            COEFFICIENTS,
+            PartialExplainer(cls, operator=score, seed=9, **kwargs),
+            class_id=0,
+            pairs=[[0, 2], [0, 1]],
+            pair_batch_size=1,
+        )
+        for index, encoded in enumerate(craft.encode(COEFFICIENTS)):
+            direct = cls(
+                craft.make_concept_decoder(encoded.latent_data),
+                batch_size=3,
+                operator=score,
+                seed=9,
+                **kwargs,
+            ).explain_interactions(encoded.coeffs_u, [[1.0, 0.0]], pairs=[[0, 2], [0, 1]])[0]
+            np.testing.assert_array_equal(results[index].main_effects, direct.main_effects)
+            np.testing.assert_array_equal(
+                results[index].interaction_scores, direct.interaction_scores
+            )
+            assert results[index].interaction_scores[index] == 0
+    finally:
+        tf.config.run_functions_eagerly(eager)

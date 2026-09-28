@@ -7,7 +7,13 @@ import pytest
 import tensorflow as tf
 
 from xplique import Tasks
-from xplique.attributions import Banzhaf, ConceptInteractionResult, SparseHSIC
+from xplique.attributions import (
+    Banzhaf,
+    ConceptInteractionResult,
+    KernelBanzhaf,
+    SparseHSIC,
+    SparseSobol,
+)
 from xplique.concepts import HolisticCraftTf, PartialExplainer
 from xplique.concepts.latent_extractor import LatentData
 from xplique.utils_functions.classification.tf.classifier_tensor import TfClassifierTensor
@@ -156,3 +162,41 @@ def test_sparse_hsic_interactions_use_fixed_targets_and_per_image_seeds():
         ]
         np.testing.assert_array_equal(result.main_effects, direct.main_effects)
         np.testing.assert_array_equal(result.interaction_scores, direct.interaction_scores)
+
+
+@pytest.mark.parametrize(
+    "cls,kwargs",
+    [
+        (Banzhaf, {"nb_samples": 4}),
+        (KernelBanzhaf, {"nb_samples": 4}),
+        (SparseSobol, {"nb_design": 4, "interaction_kind": "pure"}),
+        (SparseSobol, {"nb_design": 4, "interaction_kind": "total"}),
+    ],
+)
+def test_other_interactions_through_craft_tf(cls, kwargs):
+    craft = fitted_craft(HolisticCraftTf, _Extractor())
+
+    def score(model, inputs, targets):
+        np.testing.assert_array_equal(targets, np.tile([[1.0, 0.0]], (len(inputs), 1)))
+        return tf.reduce_sum(model(inputs) * targets, axis=-1)
+
+    requested = [[0, 2], [0, 1]]
+    results = craft.compute_interactions_per_concept(
+        COEFFICIENTS,
+        PartialExplainer(cls, operator=score, seed=9, **kwargs),
+        class_id=0,
+        pairs=requested,
+        pair_batch_size=1,
+    )
+    for index, encoded in enumerate(craft.encode(COEFFICIENTS)):
+        direct = cls(
+            craft.make_concept_decoder(encoded.latent_data),
+            batch_size=3,
+            operator=score,
+            seed=9,
+            **kwargs,
+        ).explain_interactions(encoded.coeffs_u, [[1.0, 0.0]], pairs=requested)[0]
+        np.testing.assert_array_equal(results[index].pair_indices, requested)
+        np.testing.assert_array_equal(results[index].main_effects, direct.main_effects)
+        np.testing.assert_array_equal(results[index].interaction_scores, direct.interaction_scores)
+        assert results[index].interaction_scores[index] == 0

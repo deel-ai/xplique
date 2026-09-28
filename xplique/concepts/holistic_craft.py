@@ -809,7 +809,8 @@ class HolisticCraft(ABC):
         images
             Images to encode and explain.
         partial_explainer
-            Deferred explainer supporting ``explain_interactions`` (e.g. SparseHSIC).
+            Deferred explainer supporting ``explain_interactions`` (SparseHSIC,
+            SparseSobol, Banzhaf or KernelBanzhaf).
         class_id
             Class used to select fixed attribution targets.
         confidence
@@ -819,7 +820,8 @@ class HolisticCraft(ABC):
         pairs
             Optional integer ambient pair indices (P, 2), forwarded unchanged.
         pair_batch_size
-            Maximum pair-feature chunk size, independent of decoder inference batching.
+            Pair chunk size, independent of decoder inference batching. Quadratic
+            KernelBanzhaf still fits all active pairs in one regression.
 
         Returns
         -------

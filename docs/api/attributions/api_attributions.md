@@ -190,10 +190,13 @@ average over the position axes or select one representative position. Do not sum
 multiply each score by the number of positions. For `(N, K)` inputs, no reduction is needed.
 
 **Interactions.** `explainer.explain_interactions(inputs, targets=None, *, pairs=None,
-pair_batch_size=256)` computes singleton and pairwise scores from one shared mask design and the
-same masked model evaluations per input. It is currently implemented by
-[SparseHSIC](methods/sparse_hsic.md); the other methods raise `NotImplementedError` before any
-validation or inference.
+pair_batch_size=256)` is available for all four methods. Banzhaf reports signed
+mixed differences; KernelBanzhaf estimates those differences by full-rank quadratic
+regression; SparseSobol reports pure or total-pair variance sensitivities; and
+SparseHSIC reports unsigned output-kernel dependence components. Banzhaf and
+SparseHSIC reuse their existing evaluated masks. KernelBanzhaf reuses the masks
+but requires a full active-pair regression; SparseSobol evaluates additional pair
+hybrids when necessary. These scores have different units and need not agree.
 
 {{xplique.attributions.ConceptInteractionResult}}
 
@@ -210,8 +213,13 @@ order, including an empty integer array of shape `(0, 2)` for no pairs. Indices 
 `0 <= i < j < n_concepts`; duplicates, booleans, floats, and reversed pairs are rejected. A
 requested pair containing an inactive channel has an **exact zero** score; an unrequested pair is
 **absent**, not zero. The method requires fixed targets except when given a paired dataset.
-`pair_batch_size` must be a positive integer and limits the pair-feature chunk size independently
-of the model inference `batch_size`.
+`pair_batch_size` must be a positive integer and controls pair-feature chunks or
+Sobol pair-hybrid blocks independently of the model inference `batch_size`.
+KernelBanzhaf must still fit the complete active pair design even if only a few
+pairs are requested; its SVD is not bounded by `pair_batch_size`. SparseSobol
+`main_effects` remains **total-order** while its pair scores have the selected
+pure or total-pair interpretation. Unrequested active pairs are absent from the
+result, although they participate in the KernelBanzhaf regression.
 
 ### Gradient-based approaches ###
 

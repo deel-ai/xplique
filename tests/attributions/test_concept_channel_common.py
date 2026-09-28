@@ -80,9 +80,7 @@ METHODS = [
         id="SparseHSIC",
     ),
 ]
-# Add a method here once it implements _estimate_pair_chunk.
-INTERACTION_METHODS = [param for param in METHODS if param.id in ("SparseHSIC",)]
-UNSUPPORTED_INTERACTION_METHODS = [param for param in METHODS if param not in INTERACTION_METHODS]
+INTERACTION_METHODS = METHODS
 
 
 @pytest.fixture(params=METHODS)
@@ -382,11 +380,10 @@ def test_inference_only_torch_wrapper(method):
 
 
 @pytest.mark.parametrize("pairs", [None, [[0, 1]], "invalid"])
-@pytest.mark.parametrize("unsupported", UNSUPPORTED_INTERACTION_METHODS)
-def test_unsupported_interactions_fail_before_validation_or_inference(unsupported, pairs):
+def test_unsupported_interactions_fail_before_validation_or_inference(pairs):
     """Methods without a pair estimator reject interactions before any other work."""
-    explainer = _make(unsupported, operator=_forbidden)
-    assert not unsupported.cls._supports_interactions
+    explainer = _ConceptChannelExplainer(_sum, operator=_forbidden)
+    assert not explainer._supports_interactions
     with pytest.raises(NotImplementedError, match="explain_interactions"):
         explainer.explain_interactions([[1.0, 2.0]], [[1.0]], pairs=pairs, pair_batch_size=0)
 
@@ -525,6 +522,7 @@ def test_torch_wrapper_interactions_require_no_gradients(interaction_method):
         tf.config.run_functions_eagerly(eager)
 
 
+@pytest.mark.parametrize("interaction_method", [METHODS[0], METHODS[3]])
 def test_chunk_bounds_and_inference_budget_independent_of_pair_count(
     interaction_method, monkeypatch
 ):
@@ -574,4 +572,8 @@ def test_dataset_and_split_call_seed_semantics(interaction_method):
         np.testing.assert_array_equal(left.interaction_scores, right.interaction_scores)
     split = explainer.explain_interactions(inputs[1:], targets[1:])[0]
     np.testing.assert_array_equal(split.main_effects, grouped[0].main_effects)
-    assert not np.array_equal(grouped[1].main_effects, split.main_effects)
+    if interaction_method.cls in (Banzhaf, KernelBanzhaf):
+        # Three active channels fit in the exhaustive design, independent of seed.
+        np.testing.assert_array_equal(grouped[1].main_effects, split.main_effects)
+    else:
+        assert not np.array_equal(grouped[1].main_effects, split.main_effects)
