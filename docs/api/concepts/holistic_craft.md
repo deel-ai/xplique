@@ -321,7 +321,9 @@ when using `HolisticCraftTorch` and its `TorchWrapper` decoder.
 confidence=None, verbose=False, *, pairs=None, pair_batch_size=256)` uses the same per-image
 encoding, fixed-target selection, and decoder as `compute_explanation_per_concept`, but calls
 `explain_interactions()` on an interaction-capable explainer such as
-[SparseHSIC](../attributions/methods/sparse_hsic.md):
+[SparseHSIC](../attributions/methods/sparse_hsic.md). Explainers without interaction support
+are rejected with a `TypeError` before any encoding. The result format is described in the
+[shared concept-channel contract](../attributions/api_attributions.md#shared-concept-channel-contract):
 
 ```python
 from xplique.attributions import SparseHSIC

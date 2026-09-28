@@ -26,31 +26,16 @@ SparseHSIC(model, batch_size=32, operator=None, nb_samples=1024, seed=0)
 explainer.explain_interactions(inputs, targets=None, *, pairs=None, pair_batch_size=256)
 ```
 
-{{xplique.attributions.ConceptInteractionResult}}
+The returned `ConceptInteractionResult` objects are described in the
+[shared concept-channel contract](../api_attributions.md#shared-concept-channel-contract).
 
 ## Parameters in-depth
 
-#### `model`
-
-A model consuming masked coefficients directly, or a decoder followed by a downstream model.
-Inputs must already be encoded: re-encoding a perturbed input would define a different
-intervention. SparseHSIC masks complete channels against a global all-zero channel baseline.
-
-#### `batch_size`
-
-A positive integer limiting the number of masked versions evaluated together, defaulting to
-`32`. Inputs are explained one at a time. Batching changes only how the model and operator are
-called; it does not change the sampled masks or estimator. The masks, scalar outputs, and output
-Gram matrix for one input are still retained. With `None`, all perturbations for one input are
-evaluated in one call and model evaluation is not memory-bounded.
-
-#### `operator`
-
-The standard Xplique operator, defaulting to classification when `None`. A custom operator has
-signature `operator(model, inputs, targets)` and must return one finite scalar per perturbation,
-with shape `(B,)` or `(B, 1)` for a perturbation batch of size `B`. The target belonging to the
-input being explained is repeated and remains fixed across all perturbations; it must not be
-reselected from each perturbed prediction.
+The `model`, `batch_size`, `operator`, and `seed` parameters, accepted inputs, exact active
+support, input-shaped outputs, and the `explain_interactions()` arguments and result format
+follow the [shared concept-channel contract](../api_attributions.md#shared-concept-channel-contract).
+SparseHSIC masks complete channels against a global all-zero channel baseline; the masks,
+scalar outputs, and output Gram matrix for one input are retained regardless of `batch_size`.
 
 #### `nb_samples`
 
@@ -64,55 +49,6 @@ complements, force balanced columns, or resample degenerate columns. Consequentl
 channel can happen to be always retained or always removed in a finite design; its centered mask
 is then constant and its estimate is zero. An input with no active channels returns an all-zero
 explanation without evaluating the model or operator.
-
-#### `seed`
-
-A signed 64-bit integer seed, defaulting to `0`. Stateless random generation folds the original
-input index into the seed. Sampling is independent of TensorFlow's global random state and of
-perturbation `batch_size`, but reproducibility depends on input order and grouping into explanation
-calls. Skipping an empty-support input does not renumber later inputs. Exact random values are only
-guaranteed in a matching software and hardware environment; matching explanations also require
-deterministic, batch-independent model and operator inference.
-
-## Inputs and outputs
-
-Call `explainer.explain(coefficients, targets)` or `explainer(coefficients, targets)` in eager
-mode. Symbolic execution and wrapping the explainer in `tf.function` are not supported. Dense
-NumPy arrays and TensorFlow tensors are sanitized to `float32`; paired `tf.data.Dataset` inputs are
-materialized eagerly. Coefficients must be finite after sanitization, have rank at least two, and
-have a nonempty final concept axis. Typical channel-last shapes are `(N, K)`, `(N, T, K)`, and
-`(N, H, W, K)`.
-
-For each sanitized input $U$, the exact active support is
-
-$$
-A(U) = \{k : \text{at least one entry of } U[\ldots,k] \ne 0\}.
-$$
-
-Support is determined **after float32 sanitization**, without a tolerance, threshold, or top-k
-selection. Each binary mask value is broadcast over every position of its active channel. The
-perturbation is therefore global channel retention or removal against zero, not spatial masking;
-inactive channels remain exactly zero.
-
-The result is a dense `float32` TensorFlow tensor with exactly the sanitized input shape. One score
-per active channel is broadcast over all its positions, including positions where that channel's
-coefficient is zero. Inactive channels have exactly zero attribution. The output contains global
-channel dependence scores, not a spatial localization map. Average over position axes, rather
-than summing, to recover an `(N, K)` matrix.
-
-`explain_interactions()` returns a list of `ConceptInteractionResult` objects, one per input;
-an empty batch returns `[]`. Each result has an ambient Python integer `n_concepts`, ascending
-`active_ids` of shape `(d,)` (`int64`), singleton `main_effects` of shape `(d,)` (`float32`),
-ambient `pair_indices` of shape `(P, 2)` (`int64`), and aligned `interaction_scores` of shape
-`(P,)` (`float32`). No result field has spatial axes. Main effects match `explain()` when both
-methods use the same deterministic mask design; separate method calls perform separate inference.
-
-By default `pairs=None` evaluates every distinct active pair with `i < j`, in lexicographic
-order. Pass an integer array/tensor of shape `(P, 2)` to request ambient pairs in a specific row
-order, including an empty integer array of shape `(0, 2)` for no pairs. Indices must satisfy
-`0 <= i < j < n_concepts`; duplicates, booleans, floats, and reversed pairs are rejected. A
-requested pair containing an inactive channel has an **exact zero** score; an unrequested pair is
-**absent**, not zero. The method requires fixed targets except when given a paired dataset.
 
 ## Kernels and bandwidth
 
@@ -182,8 +118,8 @@ this implementation's existing singleton scores; the paper uses $(n-1)^{-2}$. Al
 scores use `float64` algebra and return `float32`, with negative roundoff clamped to zero.
 Constant output scores produce exact zero singleton and pair effects.
 
-`pair_batch_size` must be a positive integer and limits the pair-feature chunk size independently
-of the model inference `batch_size`. For $d$ active concepts, $P$ selected active pairs, and
+`pair_batch_size` limits the pair-feature chunk size independently of the model inference
+`batch_size`. For $d$ active concepts, $P$ selected active pairs, and
 chunk size $B$, computation takes $n$ masked evaluations, $O(n^2d+n^2P)$ kernel arithmetic,
 and $O(n^2+nd+nB)$ working memory, plus $O(P)$ indexed result storage. All-pairs output and
 runtime remain quadratic in $d$; chunking only limits intermediate pair memory.

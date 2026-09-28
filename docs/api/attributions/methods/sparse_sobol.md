@@ -30,26 +30,11 @@ SparseSobol(
 
 ## Parameters in-depth
 
-#### `model`
-
-A model consuming masked coefficients directly, or a decoder followed by a downstream model.
-Inputs must already be encoded; do not re-encode a masked input because that changes the
-intervention. Masking always uses a global channel-wise zero baseline.
-
-#### `batch_size`
-
-A positive integer limiting the number of perturbed versions sent to the model together,
-defaulting to `32`. It batches model evaluations only: inputs are explained one at a time and the
-complete mask design and scalar outputs are retained. With `None`, the full design for one input
-is evaluated in one call and is not memory-bounded. Changing this value does not change the design.
-
-#### `operator`
-
-The standard Xplique operator, defaulting to classification when `None`. A custom operator has
-signature `operator(model, inputs, targets)` and must return one finite scalar per perturbation,
-with shape `(B,)` or `(B, 1)` for a perturbation batch of size `B`. The target of the input being
-explained is repeated and remains fixed across all perturbations; it is not selected again from
-each perturbed prediction.
+The `model`, `batch_size`, `operator`, and `seed` parameters, accepted inputs, exact active
+support, and input-shaped outputs follow the
+[shared concept-channel contract](../api_attributions.md#shared-concept-channel-contract).
+SparseSobol folds the input seed once more to draw independent $A$ and $B$ matrices. Each
+active channel's single total-order index is broadcast over all its positions.
 
 #### `nb_design`
 
@@ -75,43 +60,6 @@ The intervention distribution, either `"uniform"` (the default) or `"bernoulli"`
 These are different sensitivity games, not interchangeable sampling optimizations. Uniform masks
 measure sensitivity to graded attenuation; Bernoulli masks measure sensitivity to binary retention
 against the zero baseline.
-
-#### `seed`
-
-A signed 64-bit integer seed, defaulting to `0`. SparseSobol uses stateless random generation for
-independent, identically distributed $A$ and $B$ matrices and folds the original input index into
-the seed. Sampling is independent of TensorFlow's global random state and of perturbation
-`batch_size`, but reproducibility depends on input order and grouping into explanation calls.
-Skipping an empty-support input does not renumber later inputs. Exact random values are only
-guaranteed within a matching software and hardware environment; the seed is not a promise of
-bitwise portability across TensorFlow versions, devices, or platforms. Matching explanations also
-requires deterministic, batch-independent model and operator inference.
-
-## Inputs and outputs
-
-Call `explainer.explain(coefficients, targets)` or `explainer(coefficients, targets)` in eager
-mode. Symbolic execution and wrapping the explainer in `tf.function` are not supported. Dense
-NumPy arrays and TensorFlow tensors are sanitized to `float32`; paired `tf.data.Dataset` inputs are
-materialized eagerly. Coefficients must be finite after sanitization, have rank at least two, and
-have a nonempty final concept axis. Typical channel-last shapes are `(N, K)`, `(N, T, K)`, and
-`(N, H, W, K)`.
-
-For each sanitized input $U$, SparseSobol uses the exact active support
-
-$$
-A(U) = \{k : \text{at least one entry of } U[\ldots,k] \ne 0\}.
-$$
-
-Support is determined **after float32 sanitization**, without a tolerance, threshold, or top-k
-selection. Every mask value is broadcast over all positions of its active channel. Thus the
-perturbation is coefficient attenuation or removal relative to the all-zero channel baseline,
-not spatial masking. Inactive channels remain exactly zero.
-
-The result is a dense `float32` TensorFlow tensor with exactly the sanitized input shape. Each
-active channel's single total-order index is broadcast over all its positions, including positions
-where that channel's coefficient is zero; inactive channels have exactly zero attribution. The
-output therefore contains global channel sensitivities, **not a spatial localization map**. Average
-over position axes, rather than summing, to recover an `(N, K)` matrix.
 
 ## Replicated design
 

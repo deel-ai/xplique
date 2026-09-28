@@ -17,41 +17,12 @@ KernelBanzhaf(model, batch_size=32, operator=None, nb_samples=1024, seed=0)
 
 ## Shared contract
 
-The [Banzhaf parameter documentation](banzhaf.md#parameters-in-depth) and
-[input/output contract](banzhaf.md#inputs-and-outputs) apply unchanged:
-
-- `model` consumes masked coefficients directly, optionally decoding them before prediction.
-  Do not re-encode perturbations.
-- Execution is eager, not symbolic or inside `tf.function`. Dense NumPy arrays and TensorFlow
-  tensors are sanitized to `float32`, must remain finite, have rank at least two, and have a
-  nonempty final concept axis. Sparse and ragged tensors are unsupported.
-- For each input, a channel is active if any coefficient is exactly nonzero **after float32
-  sanitization**. There is no threshold or top-k screening; signed coefficients are allowed.
-  Each active channel is retained or zeroed jointly across all positions, using a zero baseline.
-- `operator=None` uses the standard fixed-target classification operator. A custom
-  `operator(model, inputs, targets)` must return finite scalar scores of shape `(B,)` or `(B, 1)`.
-  The input's target is repeated across perturbations, never reselected from perturbed predictions.
-- `nb_samples` is a positive even per-input mask budget, default `1024`. For `d` active channels,
-  enumerate all `2**d` masks if they fit in the budget. Otherwise sample `nb_samples // 2`
-  independent Bernoulli(0.5) masks and append their complements. The budget counts masks, not
-  pairs. Exact masks follow increasing binary integers, with the lowest active channel as the
-  least significant bit.
-- `batch_size=32` limits perturbations evaluated together; inputs are explained one at a time.
-  `None` evaluates an input's entire design in one call and is not memory-bounded. Empty support
-  returns zeros without any model or operator calls, including no zero-input evaluation.
-- `seed=0` is a signed 64-bit integer folded with the input index for stateless sampling.
-  Reproducibility depends on input order and grouping into explanation calls. Exact enumeration
-  is seed-independent. Changing perturbation batch size preserves the design; matching effects
-  also requires deterministic, batch-independent model and operator inference.
-- The result is a dense `float32` TensorFlow tensor with the sanitized input shape, such as
-  `(N, K)`, `(N, T, K)`, or `(N, H, W, K)`. Inactive channels have zero effect. Each active
-  channel's effect is broadcast over all positions, even positions with zero coefficients.
-  These are global channel effects, **not spatial maps**: average position axes, rather than
-  summing, to recover `(N, K)` effects.
-- Call `explainer.explain(coefficients, targets)` or `explainer(coefficients, targets)`.
-  A paired `tf.data.Dataset` is passed as `explainer.explain(dataset, None)` and materialized
-  eagerly, not streamed. For a channel-last PyTorch decoder, use `TorchWrapper` with
-  `is_channel_first=False`, `requires_grad=False`, and the model in evaluation mode.
+The [shared concept-channel contract](../api_attributions.md#shared-concept-channel-contract)
+applies unchanged, as do the Banzhaf [`nb_samples` design](banzhaf.md#nb_samples): for `d`
+active channels, all `2**d` masks are enumerated if they fit in the positive even budget;
+otherwise `nb_samples // 2` independent Bernoulli(0.5) masks are sampled and their complements
+appended. Exact masks follow increasing binary integers, with the lowest active channel as the
+least significant bit, and exact enumeration is seed-independent.
 
 ## Estimator
 
