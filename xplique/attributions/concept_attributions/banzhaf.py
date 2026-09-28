@@ -119,6 +119,11 @@ class Banzhaf(_ConceptChannelExplainer):
             single_input, single_target, input_index, active_ids, local_pairs, pair_batch_size
         )
 
+    def _prepare_interactions(self, masks, outputs, evaluate):
+        """Share the evaluated design between singleton and pair estimates."""
+        del evaluate
+        return self._estimate(masks, outputs), (masks, outputs)
+
     def _estimate_pair_chunk(self, state, local_pairs: tf.Tensor) -> tf.Tensor:
         """Compute signed mixed effects using the current coalition evaluations."""
         masks, outputs = state

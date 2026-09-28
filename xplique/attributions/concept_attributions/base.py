@@ -1,5 +1,6 @@
 """Shared eager execution for whole-concept-channel interventions."""
 
+import functools
 from numbers import Integral
 
 import numpy as np
@@ -37,8 +38,9 @@ class _ConceptChannelExplainer(BlackBoxExplainer):
 
     Subclasses define the mask design (_sample_masks) and the singleton estimator
     (_estimate). Setting _supports_interactions and implementing
-    _estimate_pair_chunk (optionally _prepare_interactions and _main_effects)
-    enables explain_interactions from the same per-input mask design.
+    _prepare_interactions and _estimate_pair_chunk enables explain_interactions
+    from the same per-input mask design. _check_interactions may reject a support
+    size for every input before any inference.
     """
 
     _supports_interactions = False
@@ -87,12 +89,13 @@ class _ConceptChannelExplainer(BlackBoxExplainer):
 
         explanations = []
         for input_index, single_input in enumerate(inputs):
-            active_ids, masks, outputs = self._evaluate_input(
-                single_input, targets[input_index : input_index + 1], input_index
-            )
-            if masks is None:
+            active_ids = self._active_channel_ids(single_input)
+            if not int(tf.size(active_ids)):
                 explanations.append(tf.zeros_like(single_input))
                 continue
+            masks, outputs = self._evaluate_design(
+                single_input, targets[input_index : input_index + 1], input_index, active_ids
+            )
             effects = self._estimate(masks, outputs)
             ambient = tf.scatter_nd(active_ids[:, None], effects, [single_input.shape[-1]])
             explanations.append(tf.broadcast_to(ambient, tf.shape(single_input)))
@@ -134,7 +137,9 @@ class _ConceptChannelExplainer(BlackBoxExplainer):
         NotImplementedError
             If the explainer does not support interactions.
         ValueError
-            If the sanitized inputs, targets, pairs or pair batch size are invalid.
+            If the sanitized inputs, targets, pairs or pair batch size are invalid,
+            or if a support size cannot identify requested pairs. Support-size
+            checks cover every input before any inference.
         """
         if not self._supports_interactions:
             raise NotImplementedError(
@@ -148,22 +153,36 @@ class _ConceptChannelExplainer(BlackBoxExplainer):
         n_concepts = int(inputs.shape[-1])
         requested_pairs = _validate_pairs(pairs, n_concepts)
 
-        results = []
-        for input_index, single_input in enumerate(inputs):
+        # Resolve every input's support and pairs first, so budget failures precede inference.
+        plans = []
+        for single_input in inputs:
             active_ids = self._active_channel_ids(single_input)
             ambient_pairs, local_pairs, valid_rows = _resolve_pairs(
                 active_ids.numpy(), requested_pairs, n_concepts
             )
+            if len(valid_rows):
+                self._check_interactions(int(tf.size(active_ids)))
+            plans.append((active_ids, ambient_pairs, local_pairs[valid_rows], valid_rows))
+
+        results = []
+        for input_index, (active_ids, ambient_pairs, valid_pairs, valid_rows) in enumerate(plans):
+            single_input = inputs[input_index]
+            single_target = targets[input_index : input_index + 1]
             pair_scores = np.zeros(len(ambient_pairs), np.float32)
             if not int(tf.size(active_ids)):
                 main_effects = tf.zeros([0], tf.float32)
+            elif not len(valid_rows):
+                masks, outputs = self._evaluate_design(
+                    single_input, single_target, input_index, active_ids
+                )
+                main_effects = self._estimate(masks, outputs)
             else:
                 main_effects, valid_scores = self._explain_interactions_input(
                     single_input,
-                    targets[input_index : input_index + 1],
+                    single_target,
                     input_index,
                     active_ids,
-                    tf.convert_to_tensor(local_pairs[valid_rows], tf.int64),
+                    tf.convert_to_tensor(valid_pairs, tf.int64),
                     pair_batch_size,
                 )
                 pair_scores[valid_rows] = valid_scores.numpy()
@@ -187,18 +206,21 @@ class _ConceptChannelExplainer(BlackBoxExplainer):
         local_pairs: tf.Tensor,
         pair_batch_size: int,
     ) -> Tuple[tf.Tensor, tf.Tensor]:
-        """Estimate scores for one input; subclasses may extend the inference design."""
-        masks = self._sample_masks(int(tf.size(active_ids)), input_index)
-        outputs = self._evaluate_masks(single_input, single_target, active_ids, masks)
-        state = self._prepare_interactions(masks, outputs)
-        main_effects = self._main_effects(state)
-        chunks = []
-        for start in range(0, int(tf.shape(local_pairs)[0]), pair_batch_size):
-            chunks.append(
-                self._estimate_pair_chunk(state, local_pairs[start : start + pair_batch_size])
-            )
-        scores = tf.concat(chunks, axis=0) if chunks else tf.zeros([0], tf.float32)
-        return main_effects, scores
+        """Estimate singleton and nonempty local pair scores for one active input."""
+        masks, outputs = self._evaluate_design(single_input, single_target, input_index, active_ids)
+        evaluate = functools.partial(self._evaluate_masks, single_input, single_target, active_ids)
+        main_effects, state = self._prepare_interactions(masks, outputs, evaluate)
+        return main_effects, self._estimate_pairs(state, local_pairs, pair_batch_size)
+
+    def _estimate_pairs(
+        self, state: Any, local_pairs: tf.Tensor, pair_batch_size: int
+    ) -> tf.Tensor:
+        """Concatenate _estimate_pair_chunk over at most pair_batch_size pairs at a time."""
+        chunks = [
+            self._estimate_pair_chunk(state, local_pairs[start : start + pair_batch_size])
+            for start in range(0, int(tf.shape(local_pairs)[0]), pair_batch_size)
+        ]
+        return tf.concat(chunks, axis=0) if chunks else tf.zeros([0], tf.float32)
 
     @staticmethod
     def _validate_inputs_targets(inputs: tf.Tensor, targets: tf.Tensor) -> None:
@@ -222,17 +244,17 @@ class _ConceptChannelExplainer(BlackBoxExplainer):
             tf.constant([self.seed, 0], dtype=tf.int64), tf.cast(input_index, tf.int64)
         )
 
-    def _evaluate_input(
-        self, single_input: tf.Tensor, single_target: tf.Tensor, input_index: int
-    ) -> Tuple[tf.Tensor, Optional[tf.Tensor], Optional[tf.Tensor]]:
-        """Sample and evaluate one input's design; masks and outputs are None without support."""
-        active_ids = self._active_channel_ids(single_input)
-        nb_active = int(tf.size(active_ids))
-        if nb_active == 0:
-            return active_ids, None, None
-        masks = self._sample_masks(nb_active, input_index)
+    def _evaluate_design(
+        self,
+        single_input: tf.Tensor,
+        single_target: tf.Tensor,
+        input_index: int,
+        active_ids: tf.Tensor,
+    ) -> Tuple[tf.Tensor, tf.Tensor]:
+        """Sample and evaluate one input's design over its nonempty active support."""
+        masks = self._sample_masks(int(tf.size(active_ids)), input_index)
         outputs = self._evaluate_masks(single_input, single_target, active_ids, masks)
-        return active_ids, masks, outputs
+        return masks, outputs
 
     def _evaluate_masks(
         self,
@@ -277,13 +299,17 @@ class _ConceptChannelExplainer(BlackBoxExplainer):
     def _estimate(self, masks: tf.Tensor, outputs: tf.Tensor) -> tf.Tensor:
         raise NotImplementedError
 
-    def _prepare_interactions(self, masks: tf.Tensor, outputs: tf.Tensor) -> Any:
-        """Build per-input state shared by the main effects and every pair chunk."""
-        return masks, outputs
+    def _check_interactions(self, nb_active: int) -> None:
+        """Reject a support size that cannot identify requested pairs, before inference."""
 
-    def _main_effects(self, state: Any) -> tf.Tensor:
-        """Singleton scores aligned with the active channels, shape (d,), float32."""
-        return self._estimate(*state)
+    def _prepare_interactions(
+        self, masks: tf.Tensor, outputs: tf.Tensor, evaluate: Callable[[tf.Tensor], tf.Tensor]
+    ) -> Tuple[tf.Tensor, Any]:
+        """Return singleton scores (d,) float32 and per-input state shared by pair chunks.
+
+        evaluate maps additional (B, d) masks to float64 scores for this input only.
+        """
+        raise NotImplementedError
 
     def _estimate_pair_chunk(self, state: Any, local_pairs: tf.Tensor) -> tf.Tensor:
         """Pair scores for local active-channel pairs (B, 2), shape (B,), float32."""

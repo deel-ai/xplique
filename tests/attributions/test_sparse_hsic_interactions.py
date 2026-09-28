@@ -76,7 +76,7 @@ def test_pair_matches_centered_gram_and_joint_minus_singletons_on_unbalanced_des
     masks = np.array([[0, 0, 1], [0, 1, 1], [1, 0, 1], [1, 1, 0], [1, 1, 1]])
     outputs = np.array([0.0, 1.0, 1.0, 3.0, 5.0])
     explainer = SparseHSIC(_sum, operator=_operator, nb_samples=len(masks))
-    state = explainer._prepare_interactions(masks, tf.constant(outputs))
+    _, state = explainer._prepare_interactions(masks, tf.constant(outputs), None)
     signed = tf.cast(2 * masks - 1, tf.float64)
     pairs = tf.constant([[0, 1], [1, 2], [0, 2], [1, 0]], tf.int64)
     actual = explainer._estimate_pair_chunk(state, pairs)
@@ -123,7 +123,7 @@ def test_extreme_output_bandwidth_remains_finite_for_pairs():
     masks = tf.constant([[0, 0], [0, 1], [1, 0], [1, 1]], tf.float32)
     outputs = tf.constant([-1e308, -1e308, 1e308, 1e308], tf.float64)
     explainer = SparseHSIC(_sum, operator=_operator, nb_samples=4)
-    state = explainer._prepare_interactions(masks, outputs)
+    _, state = explainer._prepare_interactions(masks, outputs, None)
     scores = explainer._estimate_pair_chunk(state, tf.constant([[0, 1]]))
     assert np.isfinite(scores.numpy()).all()
 

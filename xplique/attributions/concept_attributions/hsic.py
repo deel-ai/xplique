@@ -98,8 +98,7 @@ class SparseHSIC(_ConceptChannelExplainer):
         return _bernoulli([self.nb_samples, nb_active], self._input_seed(input_index))
 
     def _estimate(self, masks: tf.Tensor, outputs: tf.Tensor) -> tf.Tensor:
-        """Retain the original singleton estimator for input-shaped explanations."""
-        return self._main_effects(self._prepare_interactions(masks, outputs))
+        return self._singletons(tf.cast(masks, tf.float64), self._output_gram(outputs))
 
     @staticmethod
     def _output_gram(outputs: tf.Tensor) -> Optional[tf.Tensor]:
@@ -127,19 +126,22 @@ class SparseHSIC(_ConceptChannelExplainer):
         scores = scale * tf.reduce_sum(centered * projected, axis=0) / normalizer
         return tf.cast(tf.maximum(scores, 0.0), tf.float32)
 
-    def _prepare_interactions(
-        self, masks: tf.Tensor, outputs: tf.Tensor
-    ) -> Tuple[tf.Tensor, Optional[tf.Tensor]]:
-        """Share float64 masks and one output Gram (None if constant) per input."""
-        return tf.cast(masks, tf.float64), self._output_gram(outputs)
-
-    def _main_effects(self, state: Tuple[tf.Tensor, Optional[tf.Tensor]]) -> tf.Tensor:
-        """Compute equality-kernel singleton HSIC from the shared output Gram."""
-        masks, output_gram = state
+    @classmethod
+    def _singletons(cls, masks: tf.Tensor, output_gram: Optional[tf.Tensor]) -> tf.Tensor:
+        """Compute equality-kernel singleton HSIC for float64 masks and a shared output Gram."""
         if output_gram is None:
             return tf.zeros([tf.shape(masks)[1]], tf.float32)
         # The centered equality kernel of a binary column z is 2 * Hz (Hz).T.
-        return self._centered_hsic(masks, output_gram, 2.0)
+        return cls._centered_hsic(masks, output_gram, 2.0)
+
+    def _prepare_interactions(
+        self, masks: tf.Tensor, outputs: tf.Tensor, evaluate: Callable
+    ) -> Tuple[tf.Tensor, Tuple[tf.Tensor, Optional[tf.Tensor]]]:
+        """Share float64 masks and one output Gram (None if constant) per input."""
+        del evaluate  # Pairs reuse the singleton design.
+        masks = tf.cast(masks, tf.float64)
+        output_gram = self._output_gram(outputs)
+        return self._singletons(masks, output_gram), (masks, output_gram)
 
     def _estimate_pair_chunk(
         self, state: Tuple[tf.Tensor, Optional[tf.Tensor]], local_pairs: tf.Tensor
