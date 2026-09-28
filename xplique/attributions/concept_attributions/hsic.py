@@ -65,12 +65,11 @@ class SparseHSIC(_ConceptChannelExplainer):
     method preserves the existing n**2 convention. With the paper's joint kernel
     (1 + k0_i)(1 + k0_j), the joint HSIC of a pair equals the sum of both
     singleton scores and the pair score, so all three are on a common scale.
-    Finite IID masks induce
-    sampling noise. XOR can have zero singletons and a positive pair, while
-    higher-order dependence is not exhausted by pairs. With an RBF output
-    kernel, even additive scalar scores need not have zero pair components.
-    Pair scores are unsigned dependence components, not signed synergy or
-    second-order Sobol indices.
+    Finite IID masks induce sampling noise. XOR can have zero singletons and a
+    positive pair, while higher-order dependence is not exhausted by pairs. With
+    an RBF output kernel, even additive scalar scores need not have zero pair
+    components. Pair scores are unsigned dependence components, not signed
+    synergy or second-order Sobol indices.
 
     References
     ----------
