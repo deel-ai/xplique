@@ -1,11 +1,27 @@
 """Total-order Sobol sensitivity for exact active concept channels."""
 
+from typing import NamedTuple
+
 import tensorflow as tf
 
 from ...types import Callable, OperatorSignature, Optional, Tuple, Union
 from ..global_sensitivity_analysis.replicated_designs import ReplicatedSampler
-from ..global_sensitivity_analysis.sobol_estimators import JansenEstimator
+from ..global_sensitivity_analysis.sobol_estimators import EPS, JansenEstimator
 from .base import _check_integer, _ConceptChannelExplainer
+
+
+class _SobolPairState(NamedTuple):
+    """Per-input replicated-design terms shared by every pair chunk."""
+
+    sampling_a: tf.Tensor  # (n, d) base design A
+    sampling_b: tf.Tensor  # (n, d) base design B
+    scores_a: tf.Tensor  # (n,) float64
+    scores_b: tf.Tensor  # (n,) float64
+    scores_c: tf.Tensor  # (d, n) float64 singleton hybrids C_i
+    centered_b: tf.Tensor  # (n,) float64
+    first_order: tf.Tensor  # (d,) Cov(f(B), f(C_i))
+    variance: tf.Tensor  # floored sample variance of f(A)
+    evaluate: Callable  # additional (B, d) masks -> float64 scores for this input
 
 
 class SparseSobol(_ConceptChannelExplainer):
@@ -103,68 +119,63 @@ class SparseSobol(_ConceptChannelExplainer):
     def _estimate(self, masks: tf.Tensor, outputs: tf.Tensor) -> tf.Tensor:
         return self.estimator(masks, outputs, self.nb_design)
 
-    def _explain_interactions_input(  # pylint: disable=too-many-arguments,too-many-locals
-        self,
-        single_input: tf.Tensor,
-        single_target: tf.Tensor,
-        input_index: int,
-        active_ids: tf.Tensor,
-        local_pairs: tf.Tensor,
-        pair_batch_size: int,
-    ) -> Tuple[tf.Tensor, tf.Tensor]:
-        """Evaluate requested pair hybrids after the unchanged singleton design."""
-        nb_active = int(tf.size(active_ids))
-        masks = self._sample_masks(nb_active, input_index)
-        outputs = self._evaluate_masks(single_input, single_target, active_ids, masks)
-        main_effects = self._estimate(masks, outputs)
-        if not int(tf.shape(local_pairs)[0]):
-            return main_effects, tf.zeros([0], tf.float32)
-
+    def _prepare_interactions(
+        self, masks: tf.Tensor, outputs: tf.Tensor, evaluate: Callable
+    ) -> Tuple[tf.Tensor, _SobolPairState]:
+        """Split the replicated design and precompute pair-independent float64 terms."""
         n = self.nb_design
-        sampling_a = masks[:n]
-        sampling_b = masks[n : 2 * n]
+        nb_active = int(masks.shape[1])
         scores_a = outputs[:n]
         scores_b = outputs[n : 2 * n]
         scores_c = tf.reshape(outputs[2 * n :], [nb_active, n])
         centered_a = scores_a - tf.reduce_mean(scores_a)
         variance = tf.maximum(
-            tf.reduce_sum(tf.square(centered_a)) / (n - 1), tf.constant(1e-12, tf.float64)
+            tf.reduce_sum(tf.square(centered_a)) / (n - 1), tf.constant(EPS, tf.float64)
         )
         centered_b = scores_b - tf.reduce_mean(scores_b)
+        # Unnormalized closed first-order covariances Cov(f(B), f(C_i)).
         first_order = tf.reduce_sum(
             (scores_c - tf.reduce_mean(scores_c, axis=1, keepdims=True)) * centered_b[None],
             axis=1,
         ) / (n - 1)
+        state = _SobolPairState(
+            masks[:n],
+            masks[n : 2 * n],
+            scores_a,
+            scores_b,
+            scores_c,
+            centered_b,
+            first_order,
+            variance,
+            evaluate,
+        )
+        return self._estimate(masks, outputs), state
 
-        chunks = []
-        for start in range(0, int(tf.shape(local_pairs)[0]), pair_batch_size):
-            chunk = local_pairs[start : start + pair_batch_size]
-            count = int(tf.shape(chunk)[0])
-            if nb_active == 2:
-                pair_outputs = tf.broadcast_to(scores_b[None], [count, n])
-            else:
-                selected = tf.reduce_sum(tf.one_hot(chunk, nb_active, dtype=tf.float32), axis=1)
-                hybrids = sampling_a[None] + selected[:, None, :] * (sampling_b - sampling_a)[None]
-                pair_outputs = self._evaluate_masks(
-                    single_input,
-                    single_target,
-                    active_ids,
-                    tf.reshape(hybrids, [count * n, nb_active]),
-                )
-                pair_outputs = tf.reshape(pair_outputs, [count, n])
+    def _estimate_pair_chunk(self, state: _SobolPairState, local_pairs: tf.Tensor) -> tf.Tensor:
+        """Evaluate one block of pair hybrids C_ij and normalize pure or total pair variances."""
+        n = self.nb_design
+        count = int(tf.shape(local_pairs)[0])
+        nb_active = int(state.sampling_a.shape[1])
+        if nb_active == 2:
+            # Replacing both columns of A by those of B yields B itself.
+            pair_outputs = tf.broadcast_to(state.scores_b[None], [count, n])
+        else:
+            selected = tf.reduce_sum(tf.one_hot(local_pairs, nb_active), axis=1) > 0
+            hybrids = tf.where(selected[:, None, :], state.sampling_b[None], state.sampling_a[None])
+            pair_outputs = state.evaluate(tf.reshape(hybrids, [count * n, nb_active]))
+            pair_outputs = tf.reshape(pair_outputs, [count, n])
 
-            if self.interaction_kind == "pure":
-                closed = tf.reduce_sum(
-                    (pair_outputs - tf.reduce_mean(pair_outputs, axis=1, keepdims=True))
-                    * centered_b[None],
-                    axis=1,
-                ) / (n - 1)
-                pair_variance = closed - tf.gather(first_order, chunk[:, 0])
-                pair_variance -= tf.gather(first_order, chunk[:, 1])
-            else:
-                mixed = scores_a[None] - tf.gather(scores_c, chunk[:, 0])
-                mixed -= tf.gather(scores_c, chunk[:, 1])
-                mixed += pair_outputs
-                pair_variance = tf.reduce_mean(tf.square(mixed), axis=1) / 4.0
-            chunks.append(tf.cast(pair_variance / variance, tf.float32))
-        return main_effects, tf.concat(chunks, axis=0)
+        if self.interaction_kind == "pure":
+            closed = tf.reduce_sum(
+                (pair_outputs - tf.reduce_mean(pair_outputs, axis=1, keepdims=True))
+                * state.centered_b[None],
+                axis=1,
+            ) / (n - 1)
+            pair_variance = closed - tf.gather(state.first_order, local_pairs[:, 0])
+            pair_variance -= tf.gather(state.first_order, local_pairs[:, 1])
+        else:
+            mixed = state.scores_a[None] - tf.gather(state.scores_c, local_pairs[:, 0])
+            mixed -= tf.gather(state.scores_c, local_pairs[:, 1])
+            mixed += pair_outputs
+            pair_variance = tf.reduce_mean(tf.square(mixed), axis=1) / 4.0
+        return tf.cast(pair_variance / state.variance, tf.float32)
