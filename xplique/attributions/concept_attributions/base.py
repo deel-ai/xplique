@@ -150,25 +150,23 @@ class _ConceptChannelExplainer(BlackBoxExplainer):
 
         results = []
         for input_index, single_input in enumerate(inputs):
-            # Reuse one mask design and one per-input state for all scores.
-            active_ids, masks, outputs = self._evaluate_input(
-                single_input, targets[input_index : input_index + 1], input_index
-            )
+            active_ids = self._active_channel_ids(single_input)
             ambient_pairs, local_pairs, valid_rows = _resolve_pairs(
                 active_ids.numpy(), requested_pairs, n_concepts
             )
             pair_scores = np.zeros(len(ambient_pairs), np.float32)
-            if masks is None:
+            if not int(tf.size(active_ids)):
                 main_effects = tf.zeros([0], tf.float32)
             else:
-                state = self._prepare_interactions(masks, outputs)
-                main_effects = self._main_effects(state)
-                # Score active pairs in bounded feature chunks; inactive rows stay zero.
-                for start in range(0, len(valid_rows), pair_batch_size):
-                    rows = valid_rows[start : start + pair_batch_size]
-                    pair_scores[rows] = self._estimate_pair_chunk(
-                        state, tf.convert_to_tensor(local_pairs[rows])
-                    ).numpy()
+                main_effects, valid_scores = self._explain_interactions_input(
+                    single_input,
+                    targets[input_index : input_index + 1],
+                    input_index,
+                    active_ids,
+                    tf.convert_to_tensor(local_pairs[valid_rows], tf.int64),
+                    pair_batch_size,
+                )
+                pair_scores[valid_rows] = valid_scores.numpy()
             results.append(
                 ConceptInteractionResult(
                     n_concepts,
@@ -179,6 +177,28 @@ class _ConceptChannelExplainer(BlackBoxExplainer):
                 )
             )
         return results
+
+    def _explain_interactions_input(  # pylint: disable=too-many-arguments
+        self,
+        single_input: tf.Tensor,
+        single_target: tf.Tensor,
+        input_index: int,
+        active_ids: tf.Tensor,
+        local_pairs: tf.Tensor,
+        pair_batch_size: int,
+    ) -> Tuple[tf.Tensor, tf.Tensor]:
+        """Estimate scores for one input; subclasses may extend the inference design."""
+        masks = self._sample_masks(int(tf.size(active_ids)), input_index)
+        outputs = self._evaluate_masks(single_input, single_target, active_ids, masks)
+        state = self._prepare_interactions(masks, outputs)
+        main_effects = self._main_effects(state)
+        chunks = []
+        for start in range(0, int(tf.shape(local_pairs)[0]), pair_batch_size):
+            chunks.append(
+                self._estimate_pair_chunk(state, local_pairs[start : start + pair_batch_size])
+            )
+        scores = tf.concat(chunks, axis=0) if chunks else tf.zeros([0], tf.float32)
+        return main_effects, scores
 
     @staticmethod
     def _validate_inputs_targets(inputs: tf.Tensor, targets: tf.Tensor) -> None:
