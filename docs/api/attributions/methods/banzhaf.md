@@ -73,6 +73,29 @@ Exact masks follow increasing binary integers, with the lowest active channel as
 significant bit. A zero effect can indicate a null concept or cancellation: balanced XOR and
 parity games can have zero marginal effects despite depending on each channel.
 
+## Pairwise interactions
+
+`explain_interactions(inputs, targets, pairs=None, pair_batch_size=256)` also reports the
+**signed** Banzhaf interaction of each requested active pair, in score units:
+
+$$
+I^B_{ij}=\mathbb E_{M_{-ij}}[v(1,1,M_{-ij})-v(1,0,M_{-ij})
+-v(0,1,M_{-ij})+v(0,0,M_{-ij})].
+$$
+
+For signs $s_i=2M_i-1$, this equals $4\mathbb E[v(M)s_is_j]$. Exact enumeration
+computes this contrast exactly; sampled mode uses four times the unbiased sample
+covariance of $s_is_j$ with the **complement-averaged** scores. Each mask/complement
+pair is one independent group, so at least four sampled evaluations are needed for
+requested active pairs. Constant offsets cancel; a negative score represents a
+negative mixed effect (a two-bit 0/1 XOR has interaction $-2$).
+
+The same model evaluations yield singleton and pair scores. Pair computations cost
+`O(nb_samples * requested_active_pairs)` in sampled mode; `pair_batch_size` bounds
+temporary pair features. Exact zero for an inactive requested pair does not imply
+anything about an unrequested pair. Higher-order effects can cancel in the pair
+average (three-bit parity has zero pair scores).
+
 ## Comparison with KernelBanzhaf
 
 [KernelBanzhaf](kernel_banzhaf.md) inherits the same signature, defaults, and input/output,

@@ -79,6 +79,30 @@ A larger sampled budget can help but does not guarantee rank. Exact enumeration 
 full rank for nonempty support, but requires `2**d` evaluations. To avoid sampled rank failures
 when feasible, choose a positive even budget at least `2**d` for every input's active support.
 
+## Pairwise interactions
+
+`explain_interactions()` estimates the same signed mixed differences as
+[Banzhaf](banzhaf.md#pairwise-interactions) using a quadratic regression. With
+$x_i=M_i-1/2$, fit centered scores against **every** active pair column $x_ix_j$;
+the pair coefficient $\gamma_{ij}$ estimates $I^B_{ij}$ directly. The singleton
+coefficients continue to use the existing linear fit. Odd singleton columns are
+orthogonal to even pair columns under exact and antithetic designs, so the reported
+singletons match `explain()`.
+
+Exact enumeration agrees with direct Banzhaf for arbitrary games. In sampled mode,
+complement-averaged responses and one row per independent mask/complement group form
+the pair design. If there are $P=d(d-1)/2$ active pairs, its centered rank cannot
+reach $P$ unless `nb_samples / 2 >= P + 1`. This is necessary, not sufficient:
+the actual quadratic SVD rank is checked **before inference** and deficient designs
+raise `ValueError` without resampling or regularization.
+
+The full active pair basis is fitted even when `pairs=` selects only some results.
+Thus selecting pairs does not change their coefficients or relax the rank bound;
+`pair_batch_size` affects only coefficient gathering, **not** the global SVD memory.
+This quadratic regression is a method extension; the cited Kernel Banzhaf work
+concerns the linear singleton estimator. For larger supports, direct Banzhaf pairs
+have a lower estimation cost and do not require full rank.
+
 ## Example
 
 This coefficient-consuming model has two signed linear effects. A budget of four guarantees
