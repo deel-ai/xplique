@@ -1,12 +1,10 @@
 """Signed Banzhaf effects for exact active concept channels."""
 
-from numbers import Integral
-
 import numpy as np
 import tensorflow as tf
 
 from ...types import Callable, OperatorSignature, Optional, Union
-from .base import _ConceptChannelExplainer
+from .base import _bernoulli, _check_integer, _ConceptChannelExplainer
 
 
 class Banzhaf(_ConceptChannelExplainer):
@@ -64,15 +62,11 @@ class Banzhaf(_ConceptChannelExplainer):
         nb_samples: int = 1024,
         seed: int = 0,
     ):
-        if (
-            isinstance(nb_samples, (bool, np.bool_))
-            or not isinstance(nb_samples, Integral)
-            or nb_samples <= 0
-            or nb_samples % 2
-        ):
-            raise ValueError("nb_samples must be a positive even integer.")
+        nb_samples = _check_integer(
+            nb_samples, "nb_samples must be a positive even integer.", 1, even=True
+        )
         super().__init__(model, batch_size, operator, seed)
-        self.nb_samples = int(nb_samples)
+        self.nb_samples = nb_samples
 
     def _sample_masks(self, nb_active: int, input_index: int) -> tf.Tensor:
         # Compare bit lengths first to avoid constructing 2**d for large supports.
@@ -83,13 +77,7 @@ class Banzhaf(_ConceptChannelExplainer):
                 tf.bitwise.bitwise_and(tf.bitwise.right_shift(rows, bits), 1), tf.float32
             )
 
-        seed = tf.random.experimental.stateless_fold_in(
-            tf.constant([self.seed, 0], dtype=tf.int64), tf.cast(input_index, tf.int64)
-        )
-        half = tf.cast(
-            tf.random.stateless_uniform([self.nb_samples // 2, nb_active], seed=seed) < 0.5,
-            tf.float32,
-        )
+        half = _bernoulli([self.nb_samples // 2, nb_active], self._input_seed(input_index))
         return tf.concat([half, 1.0 - half], axis=0)
 
     def _estimate(self, masks: tf.Tensor, outputs: tf.Tensor) -> tf.Tensor:

@@ -1,10 +1,13 @@
-"""Contracts for unregularized, support-restricted Kernel Banzhaf regression."""
+"""Contracts for unregularized, support-restricted Kernel Banzhaf regression.
+
+Shared execution contracts are in test_concept_channel_common.py.
+"""
 
 import numpy as np
 import pytest
 import tensorflow as tf
 
-from xplique.attributions import Banzhaf, KernelBanzhaf, concept_attributions
+from xplique.attributions import Banzhaf, KernelBanzhaf
 
 
 def _sum(inputs):
@@ -16,15 +19,10 @@ def _operator(model, inputs, targets):
     return model(inputs)
 
 
-def test_exports_and_defaults():
-    """Public exports share the subclass and its inherited constructor."""
-    assert KernelBanzhaf is concept_attributions.KernelBanzhaf
+def test_inherited_constructor():
+    """KernelBanzhaf shares the Banzhaf constructor and designs."""
     assert issubclass(KernelBanzhaf, Banzhaf)
     assert KernelBanzhaf.__init__ is Banzhaf.__init__
-    explainer = KernelBanzhaf(_sum, operator=_operator)
-    assert explainer.batch_size == 32
-    assert explainer.nb_samples == 1024
-    assert explainer.seed == 0
 
 
 @pytest.mark.parametrize("interaction", [0.0, 3.0, -4.0])
@@ -180,108 +178,6 @@ def test_float64_scores_preserve_small_effects_with_large_offset(nb_active, budg
     expected[0, :2] = [1.0, -4.0]
     assert result.dtype == tf.float32
     np.testing.assert_allclose(result, expected, atol=1e-6)
-
-
-@pytest.mark.parametrize("shape", [(2, 4), (2, 3, 4), (2, 2, 3, 4), (2, 2, 2, 3, 4)])
-def test_support_broadcast_and_inactive_zeros(shape):
-    """Whole-channel effects broadcast over positions; inactive channels stay zero."""
-    inputs = np.zeros(shape, np.float32)
-    inputs[0, ..., 0] = 2
-    inputs[0, ..., 2] = -3
-    inputs[1, ..., 1] = 4
-    if len(shape) > 2:
-        inputs[0, 0, ..., 0] = -2
-        inputs[1, 0, ..., 1] = 0
-    calls = []
-
-    def operator(model, perturbed, targets):
-        for row, target in zip(perturbed.numpy(), targets.numpy()):
-            original = inputs[int(target[0])]
-            for channel in range(shape[-1]):
-                assert np.array_equal(row[..., channel], original[..., channel]) or np.all(
-                    row[..., channel] == 0
-                )
-        calls.append(len(perturbed))
-        return model(perturbed)
-
-    result = KernelBanzhaf(_sum, operator=operator, nb_samples=4)(inputs, [[0.0], [1.0]])
-    effects = inputs.sum(axis=tuple(range(1, len(shape) - 1)), keepdims=True)
-    np.testing.assert_allclose(result, np.broadcast_to(effects, shape), atol=1e-6)
-    active = np.any(inputs != 0, axis=tuple(range(1, len(shape) - 1)), keepdims=True)
-    np.testing.assert_array_equal(result.numpy()[~np.broadcast_to(active, shape)], 0)
-    assert sum(calls) == 6
-
-
-@pytest.mark.parametrize("shape", [(0, 3), (0, 2, 3), (2, 3), (2, 2, 3)])
-def test_empty_support_skips_sampling_and_inference(monkeypatch, shape):
-    """Empty inputs bypass both rank validation and model evaluation."""
-
-    def forbidden(model, inputs, targets):
-        pytest.fail("Empty support must not sample masks or invoke inference")
-
-    monkeypatch.setattr(KernelBanzhaf, "_sample_masks", forbidden)
-    result = KernelBanzhaf(forbidden, operator=forbidden, nb_samples=2)(
-        np.zeros(shape), np.ones((shape[0], 1))
-    )
-    assert result.dtype == tf.float32
-    np.testing.assert_array_equal(result, np.zeros(shape))
-
-
-@pytest.mark.parametrize("kind", ["numpy", "tensor", "dataset", "batched_dataset"])
-def test_input_containers(kind):
-    """Inherited sanitization supports arrays, tensors, and paired datasets."""
-    inputs = np.array([[1, -2, 0], [0, 3, 4]], np.float32)
-    targets = np.ones((2, 1), np.float32)
-    source = inputs
-    if kind == "tensor":
-        source, targets = tf.constant(inputs), tf.constant(targets)
-    elif "dataset" in kind:
-        source = tf.data.Dataset.from_tensor_slices((inputs, targets))
-        if kind == "batched_dataset":
-            source = source.batch(1)
-        targets = None
-    result = KernelBanzhaf(_sum, operator=_operator, nb_samples=4).explain(source, targets)
-    np.testing.assert_allclose(result, inputs, atol=1e-6)
-
-
-@pytest.mark.parametrize("kind", ["keras", "numpy"])
-def test_default_operator(kind):
-    """Default target selection works with Keras and NumPy inference."""
-    weights = np.array([[2, -1], [-3, 4]], np.float32)
-    if kind == "keras":
-        model_inputs = tf.keras.Input(shape=(2,))
-        outputs = tf.keras.layers.Dense(
-            2, use_bias=False, kernel_initializer=tf.keras.initializers.Constant(weights)
-        )(model_inputs)
-        model = tf.keras.Model(model_inputs, outputs)
-    else:
-
-        def model(inputs):
-            assert isinstance(inputs, np.ndarray)
-            return inputs @ weights
-
-    inputs = np.array([[1, 2], [-2, 3]], np.float32)
-    result = KernelBanzhaf(model, nb_samples=4)(inputs, np.eye(2, dtype=np.float32))
-    np.testing.assert_allclose(result, inputs * weights.T, atol=1e-6)
-
-
-def test_inference_only_torch_wrapper():
-    """Optional Torch integration needs neither gradients nor channel transposition."""
-    torch = pytest.importorskip("torch")
-    from xplique.wrappers import TorchWrapper
-
-    model = torch.nn.Linear(3, 1, bias=False)
-    with torch.no_grad():
-        model.weight.copy_(torch.tensor([[2.0, -3.0, 4.0]]))
-    model.eval()
-    eager = tf.config.functions_run_eagerly()
-    try:
-        wrapper = TorchWrapper(model, "cpu", is_channel_first=False, requires_grad=False)
-        inputs = np.array([[1, 2, 0], [-2, 0, 3]], np.float32)
-        result = KernelBanzhaf(wrapper, nb_samples=4)(inputs, np.ones((2, 1)))
-        np.testing.assert_allclose(result, inputs * [2, -3, 4], atol=1e-6)
-    finally:
-        tf.config.run_functions_eagerly(eager)
 
 
 def test_exact_arbitrary_game():
