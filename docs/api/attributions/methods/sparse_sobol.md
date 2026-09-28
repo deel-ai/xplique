@@ -23,6 +23,7 @@ SparseSobol(
     nb_design=32,
     mask_distribution="uniform",
     seed=0,
+    interaction_kind="pure",
 )
 ```
 
@@ -96,6 +97,49 @@ The squared differences make the result unsigned. Constant scores produce exact 
 There is no clipping to $[0,1]$: a finite Monte Carlo estimate may exceed `1`. The `1e-12`
 variance floor protects constant and near-constant reference outputs and is part of the
 estimator's numerical convention.
+
+## Pairwise interactions
+
+`explain_interactions()` preserves the Jansen **total-order** singleton scores in
+`main_effects`. `interaction_scores` measures a different quantity, chosen by
+`interaction_kind="pure"` (default) or `"total"`. The option is specified in the
+constructor and does not affect `explain()`.
+
+For a requested active pair $(i,j)$, add a block $C_{ij}$ formed by replacing
+columns $i,j$ of $A$ with those of $B$. With $n=\texttt{nb_design}$, the pure
+second-order estimate is
+
+$$
+\widehat S_{ij}=\frac{\widehat{\operatorname{Cov}}(f(B),f(C_{ij}))
+-\widehat{\operatorname{Cov}}(f(B),f(C_i))
+-\widehat{\operatorname{Cov}}(f(B),f(C_j))}
+{\max(s_A^2,10^{-12})}.
+$$
+
+Covariances and the sample variance $s_A^2$ here use `float64` and denominator
+$n-1$. The ordinary singleton Jansen estimator retains its own `float32`
+convention. Pure pair scores isolate the pair's ANOVA variance component; Monte
+Carlo estimates can be negative or exceed one and are not clipped. Do **not**
+subtract the reported singleton total-order indices to calculate a pure pair.
+
+For `interaction_kind="total"`, report all ANOVA variance components containing
+both channels, including higher-order interactions:
+
+$$
+\widehat T_{ij}=\frac{\frac1n\sum_r[f(A_r)-f(C_{i,r})-f(C_{j,r})
++f(C_{ij,r})]^2}{4\max(s_A^2,10^{-12})}.
+$$
+
+Total-pair estimates are nonnegative but can exceed one at finite sample size.
+For binary three-channel parity, each pure pair is zero but each total pair is
+positive. Both kinds support continuous uniform and binary Bernoulli masks, which
+define different intervention games. A binary AND of two channels has population
+$S_{12}=T_{12}=1/3$; continuous uniform multiplication has $1/7$.
+
+The additional inference budget is $n$ evaluations per requested **active** pair;
+for exactly two active channels, $C_{ij}=B$ and no extra inference is necessary.
+`pair_batch_size` bounds the number of hybrid blocks assembled at once, while
+`batch_size` bounds each model call. The base design and its outputs remain in memory.
 
 ## SparseSobol versus SobolAttributionMethod
 
