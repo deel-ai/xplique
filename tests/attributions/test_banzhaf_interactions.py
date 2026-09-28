@@ -81,3 +81,26 @@ def test_small_sampled_budget_rejected_only_for_valid_pairs():
     )
     result = allowed.explain_interactions(np.ones((1, 3)), [[1.0]], pairs=np.empty((0, 2), int))
     assert result[0].interaction_scores.shape == (0,)
+
+
+def test_budget_rejected_before_any_input_is_evaluated():
+    def forbidden(model, inputs, targets):
+        pytest.fail("Every input's pair budget must be checked before inference")
+
+    explainer = Banzhaf(forbidden, operator=forbidden, nb_samples=2)
+    with pytest.raises(ValueError, match="nb_samples >= 4"):
+        explainer.explain_interactions([[1.0, 0.0, 0.0], [1.0, 1.0, 1.0]], [[1.0], [1.0]])
+
+
+def test_sampled_pairs_converge_to_exact_interactions():
+    def model(values):
+        return 5 * values[:, 0] * values[:, 1] - 3 * values[:, 2] * values[:, 3]
+
+    result = Banzhaf(
+        model, operator=_operator, nb_samples=16384, batch_size=None, seed=5
+    ).explain_interactions(np.ones((1, 16), np.float32), [[1.0]])[0]
+    expected = np.zeros(len(result.pair_indices))
+    pairs = [tuple(pair) for pair in result.pair_indices.numpy()]
+    expected[pairs.index((0, 1))] = 5
+    expected[pairs.index((2, 3))] = -3
+    np.testing.assert_allclose(result.interaction_scores, expected, atol=0.5)

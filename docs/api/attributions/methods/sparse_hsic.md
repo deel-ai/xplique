@@ -118,6 +118,10 @@ $$
 \widehat I_{ij}=\frac{q_{ij}^{\mathsf T}Lq_{ij}}{4n^2}.
 $$
 
+With the joint kernel above, the pair's joint HSIC equals
+$\widehat{\operatorname{HSIC}}_i+\widehat{\operatorname{HSIC}}_j+\widehat I_{ij}$ exactly, so
+singleton and pair scores share one additive scale.
+
 The sign products are centered *after* multiplication; multiplying empirically centered
 singleton columns is incorrect for an unbalanced finite design. Both singleton and pairwise
 effects use one uncentered output RBF Gram $L$ per input. The normalization $n^{-2}$ matches

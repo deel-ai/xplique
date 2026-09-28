@@ -62,7 +62,10 @@ class SparseHSIC(_ConceptChannelExplainer):
     and q_ij = H(s_i * s_j). The interaction component is
     q_ij.T @ L @ q_ij / (4*n**2), using the same uncentered output RBF Gram L
     as the singleton effects. The paper uses (n-1)**2 normalization; this
-    method preserves the existing n**2 convention. Finite IID masks induce
+    method preserves the existing n**2 convention. With the paper's joint kernel
+    (1 + k0_i)(1 + k0_j), the joint HSIC of a pair equals the sum of both
+    singleton scores and the pair score, so all three are on a common scale.
+    Finite IID masks induce
     sampling noise. XOR can have zero singletons and a positive pair, while
     higher-order dependence is not exhausted by pairs. With an RBF output
     kernel, even additive scalar scores need not have zero pair components.

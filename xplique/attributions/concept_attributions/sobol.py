@@ -51,8 +51,9 @@ class SparseSobol(_ConceptChannelExplainer):
         Signed 64-bit stateless seed, folded with the input index and A/B stream.
     interaction_kind
         ``"pure"`` (default) reports isolated second-order variance indices from
-        explain_interactions; ``"total"`` reports all variance components containing
-        both channels. This does not affect explain() or its total-order singletons.
+        explain_interactions; ``"total"`` reports the superset importance, i.e. all
+        variance components containing both channels. This does not affect
+        explain() or its total-order singletons.
 
     Notes
     -----
@@ -75,6 +76,10 @@ class SparseSobol(_ConceptChannelExplainer):
     with Sobol-based Sensitivity Analysis", https://arxiv.org/abs/2111.04138.
     Fel et al. (2023), "CRAFT: Concept Recursive Activation FacTorization for
     Explainability", https://arxiv.org/abs/2211.10154.
+    Saltelli (2002), "Making Best Use of Model Evaluations to Compute Sensitivity
+    Indices", https://doi.org/10.1016/S0010-4655(02)00280-1.
+    Liu and Owen (2006), "Estimating Mean Dimensionality of Analysis of Variance
+    Decompositions", https://doi.org/10.1198/016214505000001410.
     """
 
     _supports_interactions = True

@@ -219,7 +219,10 @@ KernelBanzhaf must still fit the complete active pair design even if only a few
 pairs are requested; its SVD is not bounded by `pair_batch_size`. SparseSobol
 `main_effects` remains **total-order** while its pair scores have the selected
 pure or total-pair interpretation. Unrequested active pairs are absent from the
-result, although they participate in the KernelBanzhaf regression.
+result, although they participate in the KernelBanzhaf regression. Budget checks that
+depend only on the number of active channels (Banzhaf and KernelBanzhaf sampled modes)
+cover every input before any inference; KernelBanzhaf checks each sampled design's
+realized rank before that input's inference.
 
 ### Gradient-based approaches ###
 

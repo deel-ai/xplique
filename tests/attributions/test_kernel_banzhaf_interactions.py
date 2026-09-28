@@ -120,3 +120,32 @@ def test_realized_pair_rank_checked_before_inference(monkeypatch):
     explainer = KernelBanzhaf(forbidden, operator=forbidden, nb_samples=14)
     with pytest.raises(ValueError, match="quadratic pair design has rank"):
         explainer.explain_interactions(np.ones((1, 4)), [[1.0]])
+
+
+def test_pair_budget_rejected_before_any_input_is_evaluated():
+    def forbidden(model, inputs, targets):
+        pytest.fail("Every input's pair budget must be checked before inference")
+
+    explainer = KernelBanzhaf(forbidden, operator=forbidden, nb_samples=6)
+    with pytest.raises(ValueError, match="Quadratic pair design"):
+        explainer.explain_interactions([[1.0, 1.0, 0.0], [1.0, 1.0, 1.0]], [[1.0], [1.0]])
+
+
+def test_sampled_quadratic_game_recovered_exactly():
+    """Complement averaging cancels linear terms, so pair coefficients are exact."""
+    nb_active = 14
+    rng = np.random.default_rng(0)
+    linear = rng.normal(size=nb_active)
+    quadratic = np.triu(rng.normal(size=(nb_active, nb_active)), k=1)
+
+    def model(values):
+        values = tf.cast(values, tf.float64)
+        pairwise = tf.reduce_sum(tf.linalg.matmul(values, quadratic) * values, axis=1)
+        return tf.linalg.matvec(values, linear) + pairwise
+
+    result = KernelBanzhaf(model, operator=_operator, nb_samples=512).explain_interactions(
+        np.ones((1, nb_active), np.float32), [[1.0]]
+    )[0]
+    np.testing.assert_allclose(
+        result.interaction_scores, quadratic[np.triu_indices(nb_active, 1)], atol=1e-6
+    )

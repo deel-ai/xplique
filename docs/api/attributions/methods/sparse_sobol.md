@@ -120,10 +120,12 @@ Covariances and the sample variance $s_A^2$ here use `float64` and denominator
 $n-1$. The ordinary singleton Jansen estimator retains its own `float32`
 convention. Pure pair scores isolate the pair's ANOVA variance component; Monte
 Carlo estimates can be negative or exceed one and are not clipped. Do **not**
-subtract the reported singleton total-order indices to calculate a pure pair.
+subtract the reported singleton total-order indices to calculate a pure pair. This
+closed-index construction follows [Saltelli (2002)](#references).
 
 For `interaction_kind="total"`, report all ANOVA variance components containing
-both channels, including higher-order interactions:
+both channels, including higher-order interactions. This is the normalized
+*superset importance* of [Liu and Owen (2006)](#references):
 
 $$
 \widehat T_{ij}=\frac{\frac1n\sum_r[f(A_r)-f(C_{i,r})-f(C_{j,r})
@@ -195,3 +197,9 @@ indices = explainer(coefficients, targets)  # shape (1, 3); indices[0, 2] is exa
   *NeurIPS*.
 - Fel, T., Picard, A., Bethune, L., et al. (2023). [CRAFT: Concept Recursive Activation
   FacTorization for Explainability](https://arxiv.org/abs/2211.10154). *CVPR*.
+- Saltelli, A. (2002). [Making Best Use of Model Evaluations to Compute Sensitivity
+  Indices](https://doi.org/10.1016/S0010-4655(02)00280-1). *Computer Physics
+  Communications*, 145(2), 280–297.
+- Liu, R., and Owen, A. B. (2006). [Estimating Mean Dimensionality of Analysis of Variance
+  Decompositions](https://doi.org/10.1198/016214505000001410). *Journal of the American
+  Statistical Association*, 101(474), 712–721.

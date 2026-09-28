@@ -71,6 +71,9 @@ class Banzhaf(_ConceptChannelExplainer):
     Staudacher and Pollmann (2023), "Assessing Antithetic Sampling for
     Approximating Shapley, Banzhaf, and Owen Values",
     https://doi.org/10.3390/appliedmath3040049.
+    Grabisch and Roubens (1999), "An Axiomatic Approach to the Concept of
+    Interaction Among Players in Cooperative Games",
+    https://doi.org/10.1007/s001820050125.
     """
 
     _supports_interactions = True

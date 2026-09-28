@@ -92,9 +92,10 @@ singletons match `explain()`.
 Exact enumeration agrees with direct Banzhaf for arbitrary games. In sampled mode,
 complement-averaged responses and one row per independent mask/complement group form
 the pair design. If there are $P=d(d-1)/2$ active pairs, its centered rank cannot
-reach $P$ unless `nb_samples / 2 >= P + 1`. This is necessary, not sufficient:
-the actual quadratic SVD rank is checked **before inference** and deficient designs
-raise `ValueError` without resampling or regularization.
+reach $P$ unless `nb_samples / 2 >= P + 1`. This bound is checked for **every** input
+before any inference. It is necessary, not sufficient: the actual quadratic SVD rank of
+each input's sampled design is checked **before that input's inference**, and deficient
+designs raise `ValueError` without resampling or regularization.
 
 The full active pair basis is fitted even when `pairs=` selects only some results.
 Thus selecting pairs does not change their coefficients or relax the rank bound;
