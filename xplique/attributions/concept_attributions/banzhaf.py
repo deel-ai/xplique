@@ -7,6 +7,19 @@ from ...types import Callable, OperatorSignature, Optional, Tuple, Union
 from .base import _bernoulli, _check_integer, _ConceptChannelExplainer
 
 
+def _numerical_rank(singular_values: tf.Tensor, shape: tf.TensorShape) -> int:
+    """Count singular values above eps(float64) * max(shape) * largest singular value."""
+    tolerance = np.finfo(np.float64).eps * max(shape) * singular_values[0]
+    return int(tf.reduce_sum(tf.cast(singular_values > tolerance, tf.int32)))
+
+
+def _svd_solve(factors: Tuple[tf.Tensor, tf.Tensor, tf.Tensor], scores: tf.Tensor) -> tf.Tensor:
+    """Least-squares coefficients V diag(1/s) U.T y of a full-rank factored design."""
+    singular_values, left, right = factors
+    projected = tf.linalg.matvec(left, scores, transpose_a=True)
+    return tf.linalg.matvec(right, projected / singular_values)
+
+
 class Banzhaf(_ConceptChannelExplainer):
     """Estimate signed conditional-mean effects under uniform binary coalitions.
 
@@ -41,7 +54,8 @@ class Banzhaf(_ConceptChannelExplainer):
     explain_interactions reports signed Banzhaf mixed differences for each active
     pair. Enumeration gives exact uniform-coalition averages. In sampled mode,
     an unbiased covariance estimator treats each mask and its complement as one
-    independent group; at least two groups are required for requested pairs.
+    independent group; at least two groups are required for requested pairs, which
+    is checked for every input before any inference.
 
     Execution is eager. Inputs are sanitized to float32 before exact support
     detection. Returned effects have the input shape and are broadcast across
@@ -75,9 +89,12 @@ class Banzhaf(_ConceptChannelExplainer):
         super().__init__(model, batch_size, operator, seed)
         self.nb_samples = nb_samples
 
+    def _is_enumerated(self, nb_active: int) -> bool:
+        """Whether all 2**d coalitions fit the budget, without constructing 2**d."""
+        return nb_active < self.nb_samples.bit_length()
+
     def _sample_masks(self, nb_active: int, input_index: int) -> tf.Tensor:
-        # Compare bit lengths first to avoid constructing 2**d for large supports.
-        if nb_active < self.nb_samples.bit_length():
+        if self._is_enumerated(nb_active):
             rows = tf.range(2**nb_active, dtype=tf.int64)[:, None]
             bits = tf.range(nb_active, dtype=tf.int64)[None, :]
             return tf.cast(
@@ -98,51 +115,42 @@ class Banzhaf(_ConceptChannelExplainer):
         effects -= removed / tf.reduce_sum(1.0 - masks, axis=0)
         return tf.cast(effects, tf.float32)
 
-    def _explain_interactions_input(  # pylint: disable=too-many-arguments
-        self,
-        single_input: tf.Tensor,
-        single_target: tf.Tensor,
-        input_index: int,
-        active_ids: tf.Tensor,
-        local_pairs: tf.Tensor,
-        pair_batch_size: int,
-    ) -> Tuple[tf.Tensor, tf.Tensor]:
-        """Reject sampled pair estimates with fewer than two independent groups."""
-        nb_active = int(tf.size(active_ids))
-        if (
-            int(tf.shape(local_pairs)[0])
-            and nb_active >= self.nb_samples.bit_length()
-            and self.nb_samples < 4
-        ):
+    def _check_interactions(self, nb_active: int) -> None:
+        """Sampled pair covariances need at least two independent mask/complement groups."""
+        if not self._is_enumerated(nb_active) and self.nb_samples < 4:
             raise ValueError("Sampled Banzhaf interactions require nb_samples >= 4.")
-        return super()._explain_interactions_input(
-            single_input, single_target, input_index, active_ids, local_pairs, pair_batch_size
-        )
 
-    def _prepare_interactions(self, masks, outputs, evaluate):
-        """Share the evaluated design between singleton and pair estimates."""
-        del evaluate
-        return self._estimate(masks, outputs), (masks, outputs)
-
-    def _estimate_pair_chunk(self, state, local_pairs: tf.Tensor) -> tf.Tensor:
-        """Compute signed mixed effects using the current coalition evaluations."""
-        masks, outputs = state
+    def _prepare_interactions(
+        self, masks: tf.Tensor, outputs: tf.Tensor, evaluate: Callable
+    ) -> Tuple[tf.Tensor, Tuple[tf.Tensor, tf.Tensor]]:
+        """Reduce every pair estimate to sign products weighted by centered scores."""
+        del evaluate  # Pairs reuse the singleton design.
         signs = 2.0 * tf.cast(masks, tf.float64) - 1.0
-        pair_signs = tf.gather(signs, local_pairs[:, 0], axis=1) * tf.gather(
-            signs, local_pairs[:, 1], axis=1
-        )
+        # Center before grouping: summing raw scores with a large offset loses precision.
         scores = tf.cast(outputs, tf.float64)
         scores -= tf.reduce_mean(scores)
-        if int(tf.shape(masks)[1]) < self.nb_samples.bit_length():
-            effects = 4.0 * tf.reduce_mean(scores[:, None] * pair_signs, axis=0)
+        if self._is_enumerated(int(masks.shape[1])):
+            # Exact coalition average 4 * mean((v - mean(v)) * s_i * s_j).
+            weights = 4.0 * scores / float(masks.shape[0])
         else:
+            # A mask and its complement share s_i * s_j: each pair is one independent
+            # group. Recentering removes rounding residue; centered group scores
+            # suffice for the unbiased covariance with the uncentered sign products.
             half = self.nb_samples // 2
             group_scores = (scores[:half] + scores[half:]) / 2.0
-            group_scores -= tf.reduce_mean(group_scores)
-            features = pair_signs[:half]
-            features -= tf.reduce_mean(features, axis=0, keepdims=True)
-            effects = 4.0 * tf.reduce_sum(group_scores[:, None] * features, axis=0) / (half - 1)
-        return tf.cast(effects, tf.float32)
+            weights = 4.0 * (group_scores - tf.reduce_mean(group_scores)) / (half - 1)
+            signs = signs[:half]
+        return self._estimate(masks, outputs), (signs, weights)
+
+    def _estimate_pair_chunk(
+        self, state: Tuple[tf.Tensor, tf.Tensor], local_pairs: tf.Tensor
+    ) -> tf.Tensor:
+        """Contract each pair's sign product with the shared score weights."""
+        signs, weights = state
+        products = tf.gather(signs, local_pairs[:, 0], axis=1) * tf.gather(
+            signs, local_pairs[:, 1], axis=1
+        )
+        return tf.cast(tf.linalg.matvec(products, weights, transpose_a=True), tf.float32)
 
 
 class KernelBanzhaf(Banzhaf):
@@ -172,8 +180,10 @@ class KernelBanzhaf(Banzhaf):
     Raises
     ------
     ValueError
-        If the centered design is rank deficient. Checks precede inference for
-        each input; previous inputs in the same call may already have been evaluated.
+        If the centered design is rank deficient. Realized rank is checked before
+        each input's inference; previous inputs in the same call may already have
+        been evaluated. explain_interactions checks the pair budget for every input
+        before any inference.
 
     Notes
     -----
@@ -194,8 +204,7 @@ class KernelBanzhaf(Banzhaf):
     """
 
     def _sample_masks(self, nb_active: int, input_index: int) -> tf.Tensor:
-        sampled = nb_active >= self.nb_samples.bit_length()
-        if sampled and nb_active > self.nb_samples // 2:
+        if not self._is_enumerated(nb_active) and nb_active > self.nb_samples // 2:
             raise ValueError(
                 f"Active dimension {nb_active} exceeds the antithetic rank bound "
                 f"{self.nb_samples // 2} for nb_samples={self.nb_samples}. "
@@ -203,9 +212,7 @@ class KernelBanzhaf(Banzhaf):
             )
         masks = super()._sample_masks(nb_active, input_index)
         centered = tf.cast(masks, tf.float64) - 0.5
-        singular_values = tf.linalg.svd(centered, compute_uv=False)
-        tolerance = np.finfo(np.float64).eps * max(centered.shape) * singular_values[0]
-        rank = int(tf.reduce_sum(tf.cast(singular_values > tolerance, tf.int32)))
+        rank = _numerical_rank(tf.linalg.svd(centered, compute_uv=False), centered.shape)
         if rank < nb_active:
             raise ValueError(
                 f"Centered mask design has rank {rank}, below active dimension {nb_active}, "
@@ -219,12 +226,43 @@ class KernelBanzhaf(Banzhaf):
         scores = tf.cast(outputs, tf.float64)
         scores -= tf.reduce_mean(scores)
         # Recompute locally rather than caching per-input factors on the explainer.
-        singular_values, left, right = tf.linalg.svd(centered, full_matrices=False)
-        projected = tf.linalg.matvec(left, scores, transpose_a=True)
-        effects = tf.linalg.matvec(right, projected / singular_values)
-        return tf.cast(effects, tf.float32)
+        factors = tf.linalg.svd(centered, full_matrices=False)
+        return tf.cast(_svd_solve(factors, scores), tf.float32)
 
-    def _explain_interactions_input(  # pylint: disable=too-many-arguments,too-many-locals
+    def _check_interactions(self, nb_active: int) -> None:
+        """Sampled quadratic regression needs more independent groups than active pairs.
+
+        This bound subsumes the parent's two-group requirement whenever a pair exists.
+        """
+        pair_count = nb_active * (nb_active - 1) // 2
+        if not self._is_enumerated(nb_active) and self.nb_samples // 2 <= pair_count:
+            raise ValueError(
+                f"Quadratic pair design needs more than {pair_count} independent groups "
+                f"for {nb_active} active channels; nb_samples={self.nb_samples} "
+                "is insufficient. Increase nb_samples."
+            )
+
+    def _pair_design_factors(self, masks: tf.Tensor) -> Tuple[tf.Tensor, tf.Tensor, tf.Tensor]:
+        """Factor the centered quadratic design of every active pair, requiring full rank."""
+        nb_active = int(masks.shape[1])
+        left_ids, right_ids = np.triu_indices(nb_active, 1)
+        centered = tf.cast(masks, tf.float64) - 0.5
+        if not self._is_enumerated(nb_active):
+            # A mask and its complement share every pair product: keep one row per group.
+            centered = centered[: self.nb_samples // 2]
+        features = tf.gather(centered, left_ids, axis=1) * tf.gather(centered, right_ids, axis=1)
+        features -= tf.reduce_mean(features, axis=0, keepdims=True)
+        factors = tf.linalg.svd(features, full_matrices=False)
+        rank = _numerical_rank(factors[0], features.shape)
+        if rank < len(left_ids):
+            raise ValueError(
+                f"Centered quadratic pair design has rank {rank}, below {len(left_ids)} "
+                f"pairs for {nb_active} active channels with nb_samples={self.nb_samples}. "
+                "Increase nb_samples; exhaustive enumeration guarantees full rank."
+            )
+        return factors
+
+    def _explain_interactions_input(  # pylint: disable=too-many-arguments
         self,
         single_input: tf.Tensor,
         single_target: tf.Tensor,
@@ -233,54 +271,28 @@ class KernelBanzhaf(Banzhaf):
         local_pairs: tf.Tensor,
         pair_batch_size: int,
     ) -> Tuple[tf.Tensor, tf.Tensor]:
-        """Fit all centered pair features, then report only requested coefficients."""
+        """Fit all centered pair features, checking the realized rank before inference."""
         nb_active = int(tf.size(active_ids))
-        pair_count = nb_active * (nb_active - 1) // 2
-        sampled = nb_active >= self.nb_samples.bit_length()
-        if int(tf.shape(local_pairs)[0]) and sampled and self.nb_samples // 2 <= pair_count:
-            raise ValueError(
-                f"Quadratic pair design needs more than {pair_count} independent groups "
-                f"for {nb_active} active channels; nb_samples={self.nb_samples} "
-                "is insufficient. Increase nb_samples."
-            )
-
         masks = self._sample_masks(nb_active, input_index)
-        if not int(tf.shape(local_pairs)[0]):
-            outputs = self._evaluate_masks(single_input, single_target, active_ids, masks)
-            return self._estimate(masks, outputs), tf.zeros([0], tf.float32)
-
-        all_pairs = np.stack(np.triu_indices(nb_active, 1), axis=1)
-        centered = tf.cast(masks, tf.float64) - 0.5
-        if sampled:
-            centered = centered[: self.nb_samples // 2]
-        features = tf.gather(centered, all_pairs[:, 0], axis=1) * tf.gather(
-            centered, all_pairs[:, 1], axis=1
-        )
-        features -= tf.reduce_mean(features, axis=0, keepdims=True)
-        singular_values, left, right = tf.linalg.svd(features, full_matrices=False)
-        tolerance = np.finfo(np.float64).eps * max(features.shape) * singular_values[0]
-        rank = int(tf.reduce_sum(tf.cast(singular_values > tolerance, tf.int32)))
-        if rank < pair_count:
-            raise ValueError(
-                f"Centered quadratic pair design has rank {rank}, below {pair_count} "
-                f"pairs for {nb_active} active channels with nb_samples={self.nb_samples}. "
-                "Increase nb_samples; exhaustive enumeration guarantees full rank."
-            )
-
+        factors = self._pair_design_factors(masks)
         outputs = self._evaluate_masks(single_input, single_target, active_ids, masks)
-        main_effects = self._estimate(masks, outputs)
         scores = tf.cast(outputs, tf.float64)
-        if sampled:
+        # Center before grouping to avoid cancellation, then remove rounding residue.
+        scores -= tf.reduce_mean(scores)
+        if not self._is_enumerated(nb_active):
             half = self.nb_samples // 2
             scores = (scores[:half] + scores[half:]) / 2.0
-        scores -= tf.reduce_mean(scores)
-        projected = tf.linalg.matvec(left, scores, transpose_a=True)
-        coefficients = tf.cast(tf.linalg.matvec(right, projected / singular_values), tf.float32)
+        coefficients = _svd_solve(factors, scores - tf.reduce_mean(scores))
+        state = (tf.cast(coefficients, tf.float32), nb_active)
+        return self._estimate(masks, outputs), self._estimate_pairs(
+            state, local_pairs, pair_batch_size
+        )
 
-        chunks = []
-        for start in range(0, int(tf.shape(local_pairs)[0]), pair_batch_size):
-            chunk = local_pairs[start : start + pair_batch_size]
-            left_ids, right_ids = chunk[:, 0], chunk[:, 1]
-            offsets = left_ids * (2 * nb_active - left_ids - 1) // 2 + right_ids - left_ids - 1
-            chunks.append(tf.gather(coefficients, offsets))
-        return main_effects, tf.concat(chunks, axis=0)
+    def _estimate_pair_chunk(
+        self, state: Tuple[tf.Tensor, int], local_pairs: tf.Tensor
+    ) -> tf.Tensor:
+        """Gather fitted coefficients at the row-major upper-triangular pair offsets."""
+        coefficients, nb_active = state
+        left_ids, right_ids = local_pairs[:, 0], local_pairs[:, 1]
+        offsets = left_ids * (2 * nb_active - left_ids - 1) // 2 + right_ids - left_ids - 1
+        return tf.gather(coefficients, offsets)
