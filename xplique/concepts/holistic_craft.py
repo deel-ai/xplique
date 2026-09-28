@@ -4,7 +4,7 @@ Framework-agnostic CRAFT implementation for holistic model explanations.
 
 import warnings
 from abc import ABC, abstractmethod
-from typing import Any, Callable, List, Optional, Tuple, Union
+from typing import Any, Callable, Iterator, List, Optional, Tuple, Union
 
 import cv2
 import numpy as np
@@ -234,6 +234,17 @@ class _ConceptLocalizer:
         """Return float32 activation scores with shape ``(batch_size, n_concepts)``."""
         native_inputs = self.parent_craft._prepare_localizer_inputs(inputs)
         return tf.convert_to_tensor(self._compute_scores(native_inputs), dtype=tf.float32)
+
+
+def _check_partial_explainer(partial_explainer) -> None:
+    """Raise a TypeError unless partial_explainer is a PartialExplainer."""
+    if not isinstance(partial_explainer, PartialExplainer):
+        raise TypeError(
+            f"partial_explainer must be a PartialExplainer instance,"
+            f" got {type(partial_explainer).__name__}.\n"
+            f"Wrap your explainer class using PartialExplainer, e.g., "
+            f"PartialExplainer(GradientInput, operator=my_operator)"
+        )
 
 
 class HolisticCraft(ABC):
@@ -697,33 +708,16 @@ class HolisticCraft(ABC):
         TypeError
             If partial_explainer is not a PartialExplainer instance
         """
-        if not isinstance(partial_explainer, PartialExplainer):
-            raise TypeError(
-                f"partial_explainer must be a PartialExplainer instance,"
-                f" got {type(partial_explainer).__name__}.\n"
-                f"Wrap your explainer class using PartialExplainer, e.g., "
-                f"PartialExplainer(GradientInput, operator=my_operator)"
-            )
+        _check_partial_explainer(partial_explainer)
 
         explanation_list = []
 
         # Targets and decoder metadata are prepared per image. Each explainer can
         # still batch coefficient perturbations using the configured batch size.
         with self.latent_extractor.temporary_force_batch_size(1):
-            # Encode images to get latent data and concept coefficients
-            # The list is composed of 1 EncodedData per image because
-            # object detection models can return various number of
-            # detection boxes per image
-            encoded_data_list = self.encode(images)
-            if not encoded_data_list:
-                raise ValueError("No latent data extracted from inputs.")
-
-            total_images = len(encoded_data_list)
-            for i, enc in enumerate(encoded_data_list):
-                if verbose:
-                    print(f"\rProcessing image {i + 1}/{total_images}...", end="", flush=True)
-                # Pass 1 (no gradients): plain forward pass to build attribution targets.
-                targets = self._concept_attribution_target(enc, class_id, confidence)
+            for i, enc, targets, explainer_instance in self._iter_concept_explainers(
+                images, partial_explainer, class_id, confidence, verbose
+            ):
                 expected_explanation_shape = tuple(enc.coeffs_u.shape)
                 if targets is None:  # No detection
                     explanation = np.zeros(expected_explanation_shape)
@@ -733,11 +727,6 @@ class HolisticCraft(ABC):
                             f"of shape {explanation.shape}"
                         )
                 else:
-                    decoder = self.make_concept_decoder(enc.latent_data)
-                    explainer_instance = partial_explainer(
-                        model=decoder, batch_size=self.batch_size
-                    )
-
                     # Pass 2 (differentiable): explainer calls ConceptDecoder internally to compute
                     # gradients. Explain the importance of each concept w.r.t the targets.
                     explanation = explainer_instance.explain(enc.coeffs_u, targets)
@@ -749,10 +738,43 @@ class HolisticCraft(ABC):
                             f"and concept decoder are correctly implemented."
                         )
                 explanation_list.append(explanation)
-            if verbose:
-                # Print newline after all images are processed
-                print()
         return np.concatenate(explanation_list, axis=0)
+
+    def _iter_concept_explainers(
+        self,
+        images: np.ndarray,
+        partial_explainer: PartialExplainer,
+        class_id: Optional[int],
+        confidence: Optional[float],
+        verbose: bool,
+    ) -> Iterator[Tuple[int, EncodedData, Optional[np.ndarray], Any]]:
+        """Yield (index, encoded data, fixed targets, explainer) for each image.
+
+        Iterate within ``temporary_force_batch_size(1)``. Targets and explainer are
+        None for an image without a selected target; no decoder is built for it.
+        """
+        # Encode images to get latent data and concept coefficients
+        # The list is composed of 1 EncodedData per image because
+        # object detection models can return various number of
+        # detection boxes per image
+        encoded_data_list = self.encode(images)
+        if not encoded_data_list:
+            raise ValueError("No latent data extracted from inputs.")
+
+        total_images = len(encoded_data_list)
+        for i, enc in enumerate(encoded_data_list):
+            if verbose:
+                print(f"\rProcessing image {i + 1}/{total_images}...", end="", flush=True)
+            # Pass 1 (no gradients): plain forward pass to build attribution targets.
+            targets = self._concept_attribution_target(enc, class_id, confidence)
+            if targets is None:
+                yield i, enc, None, None
+                continue
+            decoder = self.make_concept_decoder(enc.latent_data)
+            yield i, enc, targets, partial_explainer(model=decoder, batch_size=self.batch_size)
+        if verbose:
+            # Print newline after all images are processed
+            print()
 
     def _concept_attribution_target(
         self, enc: EncodedData, class_id: Optional[int], confidence: Optional[float]
@@ -812,36 +834,22 @@ class HolisticCraft(ABC):
         ValueError
             If encoding produces no latent data or interaction arguments are invalid.
         """
-        if not isinstance(partial_explainer, PartialExplainer):
-            raise TypeError("partial_explainer must be a PartialExplainer instance.")
-        if not callable(getattr(partial_explainer.explainer_class, "explain_interactions", None)):
+        _check_partial_explainer(partial_explainer)
+        if not getattr(partial_explainer.explainer_class, "_supports_interactions", False):
             raise TypeError("partial_explainer must support explain_interactions().")
 
         results = []
         with self.latent_extractor.temporary_force_batch_size(1):
-            encoded_data_list = self.encode(images)
-            if not encoded_data_list:
-                raise ValueError("No latent data extracted from inputs.")
-
-            for index, enc in enumerate(encoded_data_list):
-                if verbose:
-                    print(
-                        f"\rProcessing image {index + 1}/{len(encoded_data_list)}...",
-                        end="",
-                        flush=True,
-                    )
-                targets = self._concept_attribution_target(enc, class_id, confidence)
+            for _, enc, targets, explainer in self._iter_concept_explainers(
+                images, partial_explainer, class_id, confidence, verbose
+            ):
                 if targets is None:
                     results.append(None)
                     continue
-                decoder = self.make_concept_decoder(enc.latent_data)
-                explainer = partial_explainer(model=decoder, batch_size=self.batch_size)
                 result = explainer.explain_interactions(
                     enc.coeffs_u, targets, pairs=pairs, pair_batch_size=pair_batch_size
                 )
                 results.append(result[0])
-            if verbose:
-                print()
         return results
 
     @abstractmethod

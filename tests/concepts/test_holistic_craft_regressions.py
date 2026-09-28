@@ -94,6 +94,8 @@ class _BadShapeExplainer(_Explainer):
 
 
 class _InteractionExplainer(_Explainer):
+    _supports_interactions = True
+
     def explain_interactions(self, coeffs_u, targets, *, pairs=None, pair_batch_size=256):
         return [(coeffs_u.shape, targets, pairs, pair_batch_size)]
 
