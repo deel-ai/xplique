@@ -6,6 +6,7 @@ nav:
   - Attributions methods:
       - API Description: api/attributions/api_attributions.md
       - Methods: 
+        - Banzhaf: api/attributions/methods/banzhaf.md
         - DeconvNet: api/attributions/methods/deconvnet.md
         - FEM: api/attributions/methods/fem.md
         - ForGRad: api/attributions/methods/forgrad.md
@@ -15,6 +16,7 @@ nav:
         - Guided Backprop: api/attributions/methods/guided_backpropagation.md
         - Hsic Attribution Method: api/attributions/methods/hsic.md
         - Integrated Gradient: api/attributions/methods/integrated_gradients.md
+        - KernelBanzhaf: api/attributions/methods/kernel_banzhaf.md
         - KernelSHAP: api/attributions/methods/kernel_shap.md
         - Lime: api/attributions/methods/lime.md
         - Occlusion sensitivity: api/attributions/methods/occlusion.md
@@ -22,6 +24,8 @@ nav:
         - Saliency: api/attributions/methods/saliency.md
         - SmoothGrad: api/attributions/methods/smoothgrad.md
         - Sobol Attribution Method: api/attributions/methods/sobol.md
+        - SparseHSIC: api/attributions/methods/sparse_hsic.md
+        - SparseSobol: api/attributions/methods/sparse_sobol.md
         - SquareGrad: api/attributions/methods/square_grad.md
         - VarGrad: api/attributions/methods/vargrad.md
       - Metrics:
