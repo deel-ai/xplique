@@ -115,14 +115,17 @@ fixed scalar score. It uses exactly `nb_samples` IID Bernoulli masks per nonempt
 enumeration, antithetic pairing, balancing, or resampling. Unlike SparseSobol, it is not a
 total-order measure; unlike Banzhaf, it has no effect sign. Marginal dependence can vanish for XOR
 or parity interactions even when the score jointly depends on every channel.
-It is distinct from the spatial, image-oriented
+`SparseHSIC.explain_interactions()` also reports indexed, unsigned pairwise HSIC decomposition
+components from the same sampled evaluations as its singleton scores. An XOR pair can be detected
+even when both singleton scores vanish. It is distinct from the spatial, image-oriented
 [HsicAttributionMethod](methods/hsic.md).
 
 The ordinary `explain()` output has the input shape, but broadcasts one global effect per channel:
 it is not a spatial map. Average over position axes, rather than summing, to recover concept
-effects.
+effects. The separate interaction method returns one indexed result per input without spatial axes.
 The contract below is shared by all four methods; the method pages document their designs and
-estimators.
+estimators. Holistic CRAFT can consume indexed interactions separately from coefficient-shaped
+explanations.
 
 #### Shared concept-channel contract
 
@@ -185,6 +188,41 @@ positions whose coefficient is zero; inactive channels have exactly zero attribu
 **input-shaped global channel scores, not spatial localization maps**. To obtain `(N, K)` scores,
 average over the position axes or select one representative position. Do not sum: this would
 multiply each score by the number of positions. For `(N, K)` inputs, no reduction is needed.
+
+**Interactions.** `explainer.explain_interactions(inputs, targets=None, *, pairs=None,
+pair_batch_size=256)` is available for all four methods. Banzhaf reports signed
+mixed differences; KernelBanzhaf estimates those differences by full-rank quadratic
+regression; SparseSobol reports pure or total-pair variance sensitivities; and
+SparseHSIC reports unsigned output-kernel dependence components. Banzhaf and
+SparseHSIC reuse their existing evaluated masks. KernelBanzhaf reuses the masks
+but requires a full active-pair regression; SparseSobol evaluates additional pair
+hybrids when necessary. These scores have different units and need not agree.
+
+{{xplique.attributions.ConceptInteractionResult}}
+
+It returns a list of `ConceptInteractionResult` objects, one per input; an empty batch returns
+`[]`. Each result has an ambient Python integer `n_concepts`, ascending `active_ids` of shape
+`(d,)` (`int64`), singleton `main_effects` of shape `(d,)` (`float32`), ambient `pair_indices` of
+shape `(P, 2)` (`int64`), and aligned `interaction_scores` of shape `(P,)` (`float32`). No result
+field has spatial axes. Main effects match `explain()` when both methods use the same
+deterministic mask design; separate method calls perform separate inference.
+
+By default `pairs=None` evaluates every distinct active pair with `i < j`, in lexicographic
+order. Pass an integer array/tensor of shape `(P, 2)` to request ambient pairs in a specific row
+order, including an empty integer array of shape `(0, 2)` for no pairs. Indices must satisfy
+`0 <= i < j < n_concepts`; duplicates, booleans, floats, and reversed pairs are rejected. A
+requested pair containing an inactive channel has an **exact zero** score; an unrequested pair is
+**absent**, not zero. The method requires fixed targets except when given a paired dataset.
+`pair_batch_size` must be a positive integer and controls pair-feature chunks or
+Sobol pair-hybrid blocks independently of the model inference `batch_size`.
+KernelBanzhaf must still fit the complete active pair design even if only a few
+pairs are requested; its SVD is not bounded by `pair_batch_size`. SparseSobol
+`main_effects` remains **total-order** while its pair scores have the selected
+pure or total-pair interpretation. Unrequested active pairs are absent from the
+result, although they participate in the KernelBanzhaf regression. Budget checks that
+depend only on the number of active channels (Banzhaf and KernelBanzhaf sampled modes)
+cover every input before any inference; KernelBanzhaf checks each sampled design's
+realized rank before that input's inference.
 
 ### Gradient-based approaches ###
 

@@ -1,8 +1,17 @@
 # SparseHSIC
 
+For signed pairwise mixed effects, see [Banzhaf](banzhaf.md#pairwise-interactions)
+or [KernelBanzhaf](kernel_banzhaf.md#pairwise-interactions). For pure or
+total-pair score-variance sensitivities, see
+[SparseSobol](sparse_sobol.md#pairwise-interactions). HSIC pairs measure
+output-kernel dependence instead; even additive scalar scores need not have
+zero pair components under its RBF output kernel.
+
 SparseHSIC measures the marginal statistical dependence between each active concept channel's
 binary retention mask and a fixed scalar model score. It operates on already-encoded,
 channel-last coefficients and assigns one unsigned dependence score to each whole channel.
+Its separate `explain_interactions()` method computes singleton and pairwise dependence from a
+shared mask design and the same masked model evaluations.
 
 The scores are marginal HSIC estimates. They are not signed effects and are not total-order
 sensitivity indices: a large score indicates dependence, but does not say whether retaining the
@@ -20,10 +29,17 @@ SparseHSIC(model, batch_size=32, operator=None, nb_samples=1024, seed=0)
 
 {{xplique.attributions.SparseHSIC}}
 
+```python
+explainer.explain_interactions(inputs, targets=None, *, pairs=None, pair_batch_size=256)
+```
+
+The returned `ConceptInteractionResult` objects are described in the
+[shared concept-channel contract](../api_attributions.md#shared-concept-channel-contract).
+
 ## Parameters in-depth
 
 The `model`, `batch_size`, `operator`, and `seed` parameters, accepted inputs, exact active
-support, and input-shaped outputs
+support, input-shaped outputs, and the `explain_interactions()` arguments and result format
 follow the [shared concept-channel contract](../api_attributions.md#shared-concept-channel-contract).
 SparseHSIC masks complete channels against a global all-zero channel baseline; the masks,
 scalar outputs, and output Gram matrix for one input are retained regardless of `batch_size`.
@@ -90,6 +106,35 @@ The IID active-channel masks, binary equality kernel, median-positive-distance b
 and memory-reduced computation specify this implementation; citing HSIC or image-oriented
 HSIC attribution does not imply that their sampling and bandwidth choices are the same.
 
+## Pairwise decomposition
+
+The centered binary kernel of [Novello, Fel, and Vigouroux (2022)](#references) is
+$k_0(a,b)=\mathbf{1}[a=b]-1/2$. The paper's joint kernel for channels $i,j$ is
+$(1+k_{0,i})(1+k_{0,j})$. Subtracting the singleton components leaves
+$K^{\mathrm{int}}_{ij}=K_{0,i}\odot K_{0,j}$, **not** a signed synergy score. With
+$s_i=2M_i-1$, $w_{ij}=s_i\odot s_j$, and $q_{ij}=Hw_{ij}$, the efficient estimate is
+
+$$
+\widehat I_{ij}=\frac{q_{ij}^{\mathsf T}Lq_{ij}}{4n^2}.
+$$
+
+With the joint kernel above, the pair's joint HSIC equals
+$\widehat{\operatorname{HSIC}}_i+\widehat{\operatorname{HSIC}}_j+\widehat I_{ij}$ exactly, so
+singleton and pair scores share one additive scale.
+
+The sign products are centered *after* multiplication; multiplying empirically centered
+singleton columns is incorrect for an unbalanced finite design. Both singleton and pairwise
+effects use one uncentered output RBF Gram $L$ per input. The normalization $n^{-2}$ matches
+this implementation's existing singleton scores; the paper uses $(n-1)^{-2}$. All pair
+scores use `float64` algebra and return `float32`, with negative roundoff clamped to zero.
+Constant output scores produce exact zero singleton and pair effects.
+
+`pair_batch_size` limits the pair-feature chunk size independently of the model inference
+`batch_size`. For $d$ active concepts, $P$ selected active pairs, and
+chunk size $B$, computation takes $n$ masked evaluations, $O(n^2d+n^2P)$ kernel arithmetic,
+and $O(n^2+nd+nB)$ working memory, plus $O(P)$ indexed result storage. All-pairs output and
+runtime remain quadratic in $d$; chunking only limits intermediate pair memory.
+
 ## Interpretation and related methods
 
 SparseHSIC is a marginal dependence measure. In a balanced XOR or parity game, any one mask bit
@@ -97,6 +142,13 @@ can be independent of the output even though the output depends jointly on every
 population marginal HSIC is then zero; a finite IID sample can still report nonzero Monte Carlo
 noise. SparseHSIC should therefore not be interpreted as a signed contribution or as a measure
 that necessarily captures every interaction.
+
+Pairwise dependence can reveal XOR even when its singleton scores vanish, but three-way parity
+can have zero singleton **and** pair components. IID finite designs introduce estimation noise
+for components that vanish in the population. Do not screen pairs solely by singleton score:
+this would discard XOR-like cases. Since the output RBF kernel measures dependence in feature
+space, an additive scalar model need not have zero pair components. Pair effects are not signed
+synergy, second-order Sobol indices, or game-theoretic interaction values.
 
 [HsicAttributionMethod](hsic.md) is image-oriented: it perturbs spatial patches and returns a
 spatial attribution map. SparseHSIC instead perturbs the exact active channels of already-encoded
@@ -128,6 +180,26 @@ targets = tf.ones((1, 1), dtype=tf.float32)
 explainer = SparseHSIC(model, operator=fixed_score, nb_samples=256, seed=7)
 scores = explainer(coefficients, targets)  # shape (1, 3); scores[0, 2] is exactly zero
 ```
+
+For XOR, use a fixed scalar score and inspect the indexed pair result:
+
+```python
+import tensorflow as tf
+from xplique.attributions import SparseHSIC
+
+def xor_score(model, masked, targets):
+    del model, targets
+    bits = tf.cast(masked > 0, tf.int32)
+    return tf.cast(tf.math.floormod(bits[:, 0] + bits[:, 1], 2), tf.float32)
+
+explainer = SparseHSIC(lambda inputs: inputs, operator=xor_score, nb_samples=1024, seed=7)
+interaction = explainer.explain_interactions([[1.0, 1.0, 0.0]], [[1.0]])[0]
+pair = interaction.pair_indices[tf.argmax(interaction.interaction_scores)].numpy()
+assert list(pair) == [0, 1]
+```
+
+The third, inactive channel is excluded. In a finite IID run, the singleton effects can be
+small rather than identically zero.
 
 ## References
 

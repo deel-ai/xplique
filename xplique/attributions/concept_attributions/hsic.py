@@ -1,8 +1,8 @@
-"""Marginal HSIC dependence for exact active concept channels."""
+"""Singleton and pairwise HSIC dependence for exact active concept channels."""
 
 import tensorflow as tf
 
-from ...types import Callable, OperatorSignature, Optional, Union
+from ...types import Callable, OperatorSignature, Optional, Tuple, Union
 from .base import _bernoulli, _check_integer, _ConceptChannelExplainer
 
 
@@ -28,7 +28,7 @@ def _median_positive_pairwise_distance(outputs: tf.Tensor) -> tf.Tensor:
 
 
 class SparseHSIC(_ConceptChannelExplainer):
-    """Estimate marginal dependence on exact active binary concept channels.
+    """Estimate singleton and pairwise dependence on active binary concept channels.
 
     Each IID mask retains or removes one whole channel across all positions. The
     estimator uses a binary equality input kernel and a scalar-output RBF kernel.
@@ -58,6 +58,19 @@ class SparseHSIC(_ConceptChannelExplainer):
     results to float32. Its algebra requires O(nb_samples**2 + nb_samples*d)
     memory rather than constructing a (d, nb_samples, nb_samples) tensor.
 
+    explain_interactions reuses the same masks and output Gram. Let s = 2M - 1
+    and q_ij = H(s_i * s_j). The interaction component is
+    q_ij.T @ L @ q_ij / (4*n**2), using the same uncentered output RBF Gram L
+    as the singleton effects. The paper uses (n-1)**2 normalization; this
+    method preserves the existing n**2 convention. With the paper's joint kernel
+    (1 + k0_i)(1 + k0_j), the joint HSIC of a pair equals the sum of both
+    singleton scores and the pair score, so all three are on a common scale.
+    Finite IID masks induce sampling noise. XOR can have zero singletons and a
+    positive pair, while higher-order dependence is not exhausted by pairs. With
+    an RBF output kernel, even additive scalar scores need not have zero pair
+    components. Pair scores are unsigned dependence components, not signed
+    synergy or second-order Sobol indices.
+
     References
     ----------
     Gretton et al. (2005), "Measuring Statistical Dependence with Hilbert-Schmidt
@@ -66,6 +79,8 @@ class SparseHSIC(_ConceptChannelExplainer):
     Black-box Explanations Using Dependence Measure",
     https://arxiv.org/abs/2206.06219.
     """
+
+    _supports_interactions = True
 
     def __init__(
         self,
@@ -120,3 +135,24 @@ class SparseHSIC(_ConceptChannelExplainer):
             return tf.zeros([tf.shape(masks)[1]], tf.float32)
         # The centered equality kernel of a binary column z is 2 * Hz (Hz).T.
         return cls._centered_hsic(masks, output_gram, 2.0)
+
+    def _prepare_interactions(
+        self, masks: tf.Tensor, outputs: tf.Tensor, evaluate: Callable
+    ) -> Tuple[tf.Tensor, Tuple[tf.Tensor, Optional[tf.Tensor]]]:
+        """Share float64 masks and one output Gram (None if constant) per input."""
+        del evaluate  # Pairs reuse the singleton design.
+        masks = tf.cast(masks, tf.float64)
+        output_gram = self._output_gram(outputs)
+        return self._singletons(masks, output_gram), (masks, output_gram)
+
+    def _estimate_pair_chunk(
+        self, state: Tuple[tf.Tensor, Optional[tf.Tensor]], local_pairs: tf.Tensor
+    ) -> tf.Tensor:
+        """Estimate at most one chunk of pairs using (n, B) centered sign products."""
+        masks, output_gram = state
+        if output_gram is None:
+            return tf.zeros([tf.shape(local_pairs)[0]], tf.float32)
+        left = 2.0 * tf.gather(masks, local_pairs[:, 0], axis=1) - 1.0
+        right = 2.0 * tf.gather(masks, local_pairs[:, 1], axis=1) - 1.0
+        # Center the sign products after multiplication, not the individual signs.
+        return self._centered_hsic(left * right, output_gram, 0.25)

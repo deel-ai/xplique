@@ -3,6 +3,7 @@
 Method-specific estimators and designs are tested in each method's own file.
 """
 
+from dataclasses import FrozenInstanceError
 from typing import Callable, NamedTuple
 
 import numpy as np
@@ -12,6 +13,7 @@ import tensorflow as tf
 from xplique import attributions
 from xplique.attributions import (
     Banzhaf,
+    ConceptInteractionResult,
     KernelBanzhaf,
     SparseHSIC,
     SparseSobol,
@@ -78,10 +80,16 @@ METHODS = [
         id="SparseHSIC",
     ),
 ]
+INTERACTION_METHODS = METHODS
 
 
 @pytest.fixture(params=METHODS)
 def method(request):
+    return request.param
+
+
+@pytest.fixture(params=INTERACTION_METHODS)
+def interaction_method(request):
     return request.param
 
 
@@ -366,3 +374,206 @@ def test_inference_only_torch_wrapper(method):
         np.testing.assert_allclose(result, expected, rtol=0, atol=1e-5)
     finally:
         tf.config.run_functions_eagerly(eager)
+
+
+# Interactions -------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("pairs", [None, [[0, 1]], "invalid"])
+def test_unsupported_interactions_fail_before_validation_or_inference(pairs):
+    """Methods without a pair estimator reject interactions before any other work."""
+    explainer = _ConceptChannelExplainer(_sum, operator=_forbidden)
+    assert not explainer._supports_interactions
+    with pytest.raises(NotImplementedError, match="explain_interactions"):
+        explainer.explain_interactions([[1.0, 2.0]], [[1.0]], pairs=pairs, pair_batch_size=0)
+
+
+def test_result_exports_dtypes_frozen_fields_and_singleton_compatibility(interaction_method):
+    """Main effects equal explain() for the same deterministic design."""
+    assert interaction_method.cls._supports_interactions
+    assert ConceptInteractionResult is concept_attributions.ConceptInteractionResult
+    assert "ConceptInteractionResult" in attributions.__all__
+    explainer = _make(interaction_method, seed=11)
+    inputs = np.array([[2.0, 0.0, 3.0, 4.0]], np.float32)
+    result = explainer.explain_interactions(inputs, [[1.0]])[0]
+    np.testing.assert_array_equal(result.active_ids, [0, 2, 3])
+    np.testing.assert_array_equal(result.pair_indices, [[0, 2], [0, 3], [2, 3]])
+    np.testing.assert_array_equal(
+        result.main_effects, explainer.explain(inputs, [[1.0]]).numpy()[0, [0, 2, 3]]
+    )
+    assert result.n_concepts == 4
+    assert result.active_ids.dtype == result.pair_indices.dtype == tf.int64
+    assert result.main_effects.dtype == result.interaction_scores.dtype == tf.float32
+    with pytest.raises(FrozenInstanceError):
+        result.n_concepts = 7
+
+
+@pytest.mark.parametrize(
+    "pairs",
+    [
+        [],
+        [[0, 1, 2]],
+        [[0, 0]],
+        [[1, 0]],
+        [[0, 3]],
+        [[-1, 1]],
+        [[0, 1], [0, 1]],
+        [[False, True]],
+        [[0.0, 1.0]],
+        np.array([[0, 1]], dtype=np.uint64) * np.uint64(2**63),
+    ],
+)
+def test_bad_pairs_fail_before_any_inference_even_on_empty_batch(interaction_method, pairs):
+    explainer = _make(interaction_method, operator=_forbidden)
+    with pytest.raises(ValueError):
+        explainer.explain_interactions(np.zeros((0, 3)), np.zeros((0, 1)), pairs=pairs)
+
+
+@pytest.mark.parametrize("value", [0, -1, 1.5, True, np.bool_(False), None])
+def test_invalid_pair_batch_size(interaction_method, value):
+    with pytest.raises(ValueError):
+        _make(interaction_method).explain_interactions(
+            np.zeros((0, 2)), np.zeros((0, 1)), pair_batch_size=value
+        )
+
+
+def test_empty_inputs_support_and_explicit_empty_pairs(interaction_method):
+    explainer = _make(interaction_method, operator=_forbidden)
+    assert explainer.explain_interactions(np.zeros((0, 3)), np.zeros((0, 1))) == []
+    requested = np.array([[0, 2], [0, 1]], np.int64)
+    result = explainer.explain_interactions(np.zeros((1, 3)), [[1.0]], pairs=requested)[0]
+    assert result.active_ids.shape == result.main_effects.shape == (0,)
+    np.testing.assert_array_equal(result.pair_indices, requested)
+    np.testing.assert_array_equal(result.interaction_scores, [0.0, 0.0])
+    result = explainer.explain_interactions(np.zeros((1, 3)), [[1.0]])[0]
+    assert result.pair_indices.shape == (0, 2)
+    assert result.interaction_scores.shape == (0,)
+
+
+@pytest.mark.parametrize("shape", [(1, 3), (1, 2, 3), (1, 2, 2, 3)])
+def test_spatial_shapes_inactive_pairs_and_explicit_row_order(interaction_method, shape):
+    inputs = np.ones(shape, np.float32)
+    inputs[..., 1] = 0
+    requested = tf.constant([[1, 2], [0, 2], [0, 1]], tf.int32)
+    result = _make(interaction_method).explain_interactions(
+        inputs, [[1.0]], pairs=requested, pair_batch_size=1
+    )[0]
+    np.testing.assert_array_equal(result.active_ids, [0, 2])
+    np.testing.assert_array_equal(result.pair_indices, requested)
+    assert result.main_effects.shape == (2,)
+    assert result.interaction_scores.shape == (3,)
+    np.testing.assert_array_equal(result.interaction_scores.numpy()[[0, 2]], [0.0, 0.0])
+
+
+def test_one_channel_and_empty_explicit_pairs_still_evaluate_singletons(interaction_method):
+    calls = []
+
+    def operator(model, inputs, targets):
+        calls.append(len(inputs))
+        return model(inputs)
+
+    explainer = _make(interaction_method, operator=operator, batch_size=None)
+    result = explainer.explain_interactions([[0.0, 2.0]], [[1.0]])[0]
+    assert result.main_effects.shape == (1,)
+    assert result.pair_indices.shape == (0, 2)
+    result = explainer.explain_interactions(
+        [[1.0, 2.0]], [[1.0]], pairs=np.empty((0, 2), np.int64)
+    )[0]
+    assert result.main_effects.shape == (2,)
+    assert result.interaction_scores.shape == (0,)
+    assert calls == [interaction_method.evaluations(1), interaction_method.evaluations(2)]
+
+
+def test_support_is_determined_after_float32_sanitization(interaction_method):
+    result = _make(interaction_method).explain_interactions(
+        np.array([[1.0, 1e-50, 2.0]], np.float64), [[1.0]]
+    )[0]
+    np.testing.assert_array_equal(result.active_ids, [0, 2])
+    np.testing.assert_array_equal(result.pair_indices, [[0, 2]])
+
+
+@pytest.mark.parametrize("output", ["wide", "nan"])
+def test_interactions_preserve_operator_score_validation(interaction_method, output):
+    def invalid(model, inputs, targets):
+        del model, targets
+        if output == "wide":
+            return tf.ones((len(inputs), 2))
+        return tf.fill([len(inputs)], np.nan)
+
+    with pytest.raises(ValueError, match="operator must return"):
+        _make(interaction_method, operator=invalid).explain_interactions([[1.0, 2.0]], [[1.0]])
+
+
+def test_torch_wrapper_interactions_require_no_gradients(interaction_method):
+    torch = pytest.importorskip("torch")
+    from xplique.wrappers import TorchWrapper
+
+    model = torch.nn.Linear(2, 1, bias=False)
+    model.eval()
+    eager = tf.config.functions_run_eagerly()
+    try:
+        wrapper = TorchWrapper(model, "cpu", is_channel_first=False, requires_grad=False)
+        result = interaction_method.cls(wrapper, **interaction_method.kwargs).explain_interactions(
+            [[1.0, 2.0]], [[1.0]]
+        )[0]
+        assert result.pair_indices.shape == (1, 2)
+        assert np.isfinite(result.interaction_scores.numpy()).all()
+    finally:
+        tf.config.run_functions_eagerly(eager)
+
+
+@pytest.mark.parametrize("interaction_method", [METHODS[0], METHODS[3]])
+def test_chunk_bounds_and_inference_budget_independent_of_pair_count(
+    interaction_method, monkeypatch
+):
+    calls = []
+    chunks = []
+    original = interaction_method.cls._estimate_pair_chunk
+
+    def recording(self, state, local_pairs):
+        chunks.append(len(local_pairs))
+        return original(self, state, local_pairs)
+
+    monkeypatch.setattr(interaction_method.cls, "_estimate_pair_chunk", recording)
+
+    def operator(model, inputs, targets):
+        calls.append(len(inputs))
+        return model(inputs)
+
+    inputs = np.ones((1, 6), np.float32)
+    for batch_size in (2, None):
+        explainer = _make(interaction_method, operator=operator, batch_size=batch_size, seed=3)
+        automatic = explainer.explain_interactions(inputs, [[1.0]], pair_batch_size=4)[0]
+        assert chunks == [4, 4, 4, 3]
+        assert sum(calls) == interaction_method.evaluations(6)
+        assert max(calls) <= (batch_size or interaction_method.evaluations(6))
+        chunks.clear()
+        calls.clear()
+        requested = explainer.explain_interactions(
+            inputs, [[1.0]], pairs=automatic.pair_indices, pair_batch_size=1
+        )[0]
+        np.testing.assert_array_equal(requested.interaction_scores, automatic.interaction_scores)
+        assert max(chunks) == 1
+        assert sum(calls) == interaction_method.evaluations(6)
+        chunks.clear()
+        calls.clear()
+
+
+def test_dataset_and_split_call_seed_semantics(interaction_method):
+    """Designs follow the input index within one call, as for explain()."""
+    inputs = np.array([[1.0, 2.0, 3.0], [1.0, 2.0, 3.0]], np.float32)
+    targets = np.ones((2, 1), np.float32)
+    explainer = _make(interaction_method, seed=17)
+    dataset = tf.data.Dataset.from_tensor_slices((inputs, targets)).batch(1)
+    grouped = explainer.explain_interactions(dataset)
+    direct = explainer.explain_interactions(inputs, targets)
+    for left, right in zip(grouped, direct):
+        np.testing.assert_array_equal(left.main_effects, right.main_effects)
+        np.testing.assert_array_equal(left.interaction_scores, right.interaction_scores)
+    split = explainer.explain_interactions(inputs[1:], targets[1:])[0]
+    np.testing.assert_array_equal(split.main_effects, grouped[0].main_effects)
+    if interaction_method.cls in (Banzhaf, KernelBanzhaf):
+        # Three active channels fit in the exhaustive design, independent of seed.
+        np.testing.assert_array_equal(grouped[1].main_effects, split.main_effects)
+    else:
+        assert not np.array_equal(grouped[1].main_effects, split.main_effects)
