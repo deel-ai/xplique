@@ -16,27 +16,11 @@ Banzhaf(model, batch_size=32, operator=None, nb_samples=1024, seed=0)
 
 ## Parameters in-depth
 
-#### `model`
-
-A model consuming masked coefficients directly, or a decoder followed by a downstream model.
-For a dictionary matrix `D`, a decoder can reconstruct features as `coefficients @ D` before
-prediction. Do not re-encode masked coefficients: doing so changes the intervention. Concept
-extraction, dictionary fitting, and CRAFT integration are outside this method's scope.
-
-#### `batch_size`
-
-A positive integer limiting the number of perturbations evaluated together, defaulting to `32`.
-Inputs are explained one at a time. With `None`, the whole mask design for one input is evaluated
-in a single call; this is not memory-bounded. An input with empty active support returns zeros
-without any model or operator calls.
-
-#### `operator`
-
-The standard Xplique operator, defaulting to classification when `None`. A custom operator has
-signature `operator(model, inputs, targets)` and must return one finite scalar per perturbation,
-with shape `(B,)` or `(B, 1)` for a perturbation batch of size `B`. Vector-valued scores and
-non-finite scores are invalid. Targets are fixed for each explained input and repeated across
-its perturbations; do not select a new target from each perturbed prediction.
+The `model`, `batch_size`, `operator`, and `seed` parameters, accepted inputs, exact active
+support, and input-shaped outputs follow the
+[shared concept-channel contract](../api_attributions.md#shared-concept-channel-contract).
+Banzhaf masks are binary: each active channel is retained or zeroed jointly across all its
+positions. Signed effects are returned unchanged, without clipping or absolute values.
 
 #### `nb_samples`
 
@@ -47,49 +31,6 @@ independent masks with independent Bernoulli(0.5) entries and append their compl
 antithetic design uses exactly `nb_samples` masks and balances each channel's on/off counts.
 The budget counts evaluated masks, not complementary pairs. Exact enumeration does not depend
 on the seed.
-
-#### `seed`
-
-The random seed, defaulting to `0`, is folded with the input index using stateless sampling.
-Reproducibility therefore depends on input order and grouping into explanation calls: splitting
-or reordering inputs can change their sampled designs. For a fixed seed, order, grouping, and
-configuration, changing perturbation `batch_size` does not change the design. Matching effects
-also requires a deterministic, batch-independent model and operator; stochastic inference or
-predictions depending on other batch members do not satisfy this prerequisite.
-
-## Inputs and outputs
-
-Call `explainer.explain(coefficients, targets)` or `explainer(coefficients, targets)` in eager
-mode. Symbolic execution and wrapping the explainer in `tf.function` are not supported by this
-contract. Dense NumPy arrays and TensorFlow tensors are sanitized to `float32`. Coefficients
-must be finite after sanitization, have rank at least two, and have a nonempty final concept axis.
-Typical shapes are `(N, K)`, `(N, T, K)`, and `(N, H, W, K)`; arbitrary intervening position
-dimensions are allowed. Sparse and ragged tensors are not supported.
-
-For each sanitized input `U`, the exact active support is
-
-$$
-A(U) = \{k : \text{at least one entry of } U[\ldots,k] \ne 0\}.
-$$
-
-Support is determined **after float32 sanitization**, with no tolerance, threshold, or top-k
-screening. Signed coefficients are allowed. Every active channel receives one binary mask value
-broadcast across all its positions, so the intervention is `U * mask` with a zero baseline.
-Inactive channels remain zero. A value that underflows to zero during conversion is therefore
-inactive; a value that overflows to infinity is invalid, even if it was finite before conversion.
-
-The result is a dense `float32` TensorFlow tensor with exactly the sanitized input shape. Each
-channel's scalar effect is broadcast across all positions, including positions whose coefficient
-is zero; inactive channels have exactly zero effect. These are **input-shaped global channel
-effects, not spatial localization maps**. To obtain `(N, K)` effects, average over the position
-axes or select one representative position. Do not sum: this would multiply each effect by the
-number of positions. For `(N, K)` inputs, no reduction is needed.
-
-A paired `tf.data.Dataset` must contain `(coefficients, targets)` and be passed as
-`explainer.explain(dataset, None)`, with no separate targets.
-Dataset sanitization materializes the inputs and targets eagerly; it is not streaming ingestion.
-For a channel-last PyTorch concept decoder, use `TorchWrapper` with
-`is_channel_first=False` and `requires_grad=False`, and put the PyTorch model in evaluation mode.
 
 ## Estimator
 

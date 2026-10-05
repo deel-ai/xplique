@@ -1,14 +1,11 @@
 """Total-order Sobol sensitivity for exact active concept channels."""
 
-from numbers import Integral
-
-import numpy as np
 import tensorflow as tf
 
 from ...types import Callable, OperatorSignature, Optional, Union
 from ..global_sensitivity_analysis.replicated_designs import ReplicatedSampler
 from ..global_sensitivity_analysis.sobol_estimators import JansenEstimator
-from .base import _ConceptChannelExplainer
+from .base import _check_integer, _ConceptChannelExplainer
 
 
 class SparseSobol(_ConceptChannelExplainer):
@@ -65,23 +62,18 @@ class SparseSobol(_ConceptChannelExplainer):
         mask_distribution: str = "uniform",
         seed: int = 0,
     ):
-        if (
-            isinstance(nb_design, (bool, np.bool_))
-            or not isinstance(nb_design, Integral)
-            or nb_design < 2
-        ):
-            raise ValueError("nb_design must be an integer greater than or equal to two.")
+        nb_design = _check_integer(
+            nb_design, "nb_design must be an integer greater than or equal to two.", 2
+        )
         if mask_distribution not in ("uniform", "bernoulli"):
             raise ValueError("mask_distribution must be either 'uniform' or 'bernoulli'.")
         super().__init__(model, batch_size, operator, seed)
-        self.nb_design = int(nb_design)
+        self.nb_design = nb_design
         self.mask_distribution = mask_distribution
         self.estimator = JansenEstimator()
 
     def _sample_masks(self, nb_active: int, input_index: int) -> tf.Tensor:
-        input_seed = tf.random.experimental.stateless_fold_in(
-            tf.constant([self.seed, 0], dtype=tf.int64), tf.cast(input_index, tf.int64)
-        )
+        input_seed = self._input_seed(input_index)
         seed_a = tf.random.experimental.stateless_fold_in(input_seed, tf.constant(0, tf.int64))
         seed_b = tf.random.experimental.stateless_fold_in(input_seed, tf.constant(1, tf.int64))
         shape = [self.nb_design, nb_active]

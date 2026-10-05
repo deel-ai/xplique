@@ -1,12 +1,23 @@
 """Signed Banzhaf effects for exact active concept channels."""
 
-from numbers import Integral
-
 import numpy as np
 import tensorflow as tf
 
-from ...types import Callable, OperatorSignature, Optional, Union
-from .base import _ConceptChannelExplainer
+from ...types import Callable, OperatorSignature, Optional, Tuple, Union
+from .base import _bernoulli, _check_integer, _ConceptChannelExplainer
+
+
+def _numerical_rank(singular_values: tf.Tensor, shape: tf.TensorShape) -> int:
+    """Count singular values above eps(float64) * max(shape) * largest singular value."""
+    tolerance = np.finfo(np.float64).eps * max(shape) * singular_values[0]
+    return int(tf.reduce_sum(tf.cast(singular_values > tolerance, tf.int32)))
+
+
+def _svd_solve(factors: Tuple[tf.Tensor, tf.Tensor, tf.Tensor], scores: tf.Tensor) -> tf.Tensor:
+    """Least-squares coefficients V diag(1/s) U.T y of a full-rank factored design."""
+    singular_values, left, right = factors
+    projected = tf.linalg.matvec(left, scores, transpose_a=True)
+    return tf.linalg.matvec(right, projected / singular_values)
 
 
 class Banzhaf(_ConceptChannelExplainer):
@@ -64,32 +75,25 @@ class Banzhaf(_ConceptChannelExplainer):
         nb_samples: int = 1024,
         seed: int = 0,
     ):
-        if (
-            isinstance(nb_samples, (bool, np.bool_))
-            or not isinstance(nb_samples, Integral)
-            or nb_samples <= 0
-            or nb_samples % 2
-        ):
-            raise ValueError("nb_samples must be a positive even integer.")
+        nb_samples = _check_integer(
+            nb_samples, "nb_samples must be a positive even integer.", 1, even=True
+        )
         super().__init__(model, batch_size, operator, seed)
-        self.nb_samples = int(nb_samples)
+        self.nb_samples = nb_samples
+
+    def _is_enumerated(self, nb_active: int) -> bool:
+        """Whether all 2**d coalitions fit the budget, without constructing 2**d."""
+        return nb_active < self.nb_samples.bit_length()
 
     def _sample_masks(self, nb_active: int, input_index: int) -> tf.Tensor:
-        # Compare bit lengths first to avoid constructing 2**d for large supports.
-        if nb_active < self.nb_samples.bit_length():
+        if self._is_enumerated(nb_active):
             rows = tf.range(2**nb_active, dtype=tf.int64)[:, None]
             bits = tf.range(nb_active, dtype=tf.int64)[None, :]
             return tf.cast(
                 tf.bitwise.bitwise_and(tf.bitwise.right_shift(rows, bits), 1), tf.float32
             )
 
-        seed = tf.random.experimental.stateless_fold_in(
-            tf.constant([self.seed, 0], dtype=tf.int64), tf.cast(input_index, tf.int64)
-        )
-        half = tf.cast(
-            tf.random.stateless_uniform([self.nb_samples // 2, nb_active], seed=seed) < 0.5,
-            tf.float32,
-        )
+        half = _bernoulli([self.nb_samples // 2, nb_active], self._input_seed(input_index))
         return tf.concat([half, 1.0 - half], axis=0)
 
     def _estimate(self, masks: tf.Tensor, outputs: tf.Tensor) -> tf.Tensor:
@@ -149,8 +153,7 @@ class KernelBanzhaf(Banzhaf):
     """
 
     def _sample_masks(self, nb_active: int, input_index: int) -> tf.Tensor:
-        sampled = nb_active >= self.nb_samples.bit_length()
-        if sampled and nb_active > self.nb_samples // 2:
+        if not self._is_enumerated(nb_active) and nb_active > self.nb_samples // 2:
             raise ValueError(
                 f"Active dimension {nb_active} exceeds the antithetic rank bound "
                 f"{self.nb_samples // 2} for nb_samples={self.nb_samples}. "
@@ -158,9 +161,7 @@ class KernelBanzhaf(Banzhaf):
             )
         masks = super()._sample_masks(nb_active, input_index)
         centered = tf.cast(masks, tf.float64) - 0.5
-        singular_values = tf.linalg.svd(centered, compute_uv=False)
-        tolerance = np.finfo(np.float64).eps * max(centered.shape) * singular_values[0]
-        rank = int(tf.reduce_sum(tf.cast(singular_values > tolerance, tf.int32)))
+        rank = _numerical_rank(tf.linalg.svd(centered, compute_uv=False), centered.shape)
         if rank < nb_active:
             raise ValueError(
                 f"Centered mask design has rank {rank}, below active dimension {nb_active}, "
@@ -174,7 +175,5 @@ class KernelBanzhaf(Banzhaf):
         scores = tf.cast(outputs, tf.float64)
         scores -= tf.reduce_mean(scores)
         # Recompute locally rather than caching per-input factors on the explainer.
-        singular_values, left, right = tf.linalg.svd(centered, full_matrices=False)
-        projected = tf.linalg.matvec(left, scores, transpose_a=True)
-        effects = tf.linalg.matvec(right, projected / singular_values)
-        return tf.cast(effects, tf.float32)
+        factors = tf.linalg.svd(centered, full_matrices=False)
+        return tf.cast(_svd_solve(factors, scores), tf.float32)

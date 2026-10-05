@@ -114,13 +114,77 @@ SparseHSIC reports unsigned marginal dependence between each binary channel-rete
 fixed scalar score. It uses exactly `nb_samples` IID Bernoulli masks per nonempty input, with no
 enumeration, antithetic pairing, balancing, or resampling. Unlike SparseSobol, it is not a
 total-order measure; unlike Banzhaf, it has no effect sign. Marginal dependence can vanish for XOR
-or parity interactions even when the score jointly depends on every channel. It is distinct from
-the spatial, image-oriented [HsicAttributionMethod](methods/hsic.md).
+or parity interactions even when the score jointly depends on every channel.
+It is distinct from the spatial, image-oriented
+[HsicAttributionMethod](methods/hsic.md).
 
-The output has the input shape, but broadcasts one global effect per channel: it is not a
-spatial map. Average over position axes, rather than summing, to recover concept effects.
-See the method pages for support validation, designs and estimators, eager execution, and
-batching/reproducibility requirements. This API does not change CRAFT or concept extraction.
+The ordinary `explain()` output has the input shape, but broadcasts one global effect per channel:
+it is not a spatial map. Average over position axes, rather than summing, to recover concept
+effects.
+The contract below is shared by all four methods; the method pages document their designs and
+estimators.
+
+#### Shared concept-channel contract
+
+**`model`.** A model consuming masked coefficients directly, or a decoder followed by a
+downstream model. For a dictionary matrix `D`, a decoder can reconstruct features as
+`coefficients @ D` before prediction. Inputs must already be encoded: re-encoding a perturbed
+input would define a different intervention. Masking always uses a global channel-wise zero
+baseline. Concept extraction and dictionary fitting are outside the scope of these explainers.
+
+**`batch_size`.** A positive integer limiting the number of perturbations evaluated together,
+defaulting to `32`. Inputs are explained one at a time. Batching changes only how the model and
+operator are called; it does not change the mask design or estimator. The masks and scalar
+outputs for one input are still retained. With `None`, the whole design for one input is
+evaluated in one call and model evaluation is not memory-bounded.
+
+**`operator`.** The standard Xplique operator, defaulting to classification when `None`. A custom
+operator has signature `operator(model, inputs, targets)` and must return one finite scalar per
+perturbation, with shape `(B,)` or `(B, 1)` for a perturbation batch of size `B`. Vector-valued
+and non-finite scores are invalid. The target belonging to the input being explained is repeated
+and remains fixed across all its perturbations; it must not be reselected from each perturbed
+prediction.
+
+**`seed`.** A signed 64-bit integer seed, defaulting to `0`. Stateless random generation folds the
+original input index into the seed. Sampling is independent of TensorFlow's global random state
+and of perturbation `batch_size`, but reproducibility depends on input order and grouping into
+explanation calls: splitting or reordering inputs can change their sampled designs. Skipping an
+empty-support input does not renumber later inputs. Exact random values are only guaranteed
+within a matching software and hardware environment; the seed is not a promise of bitwise
+portability across TensorFlow versions, devices, or platforms. Matching explanations also
+require deterministic, batch-independent model and operator inference; stochastic inference or
+predictions depending on other batch members do not satisfy this prerequisite.
+
+**Inputs.** Call `explainer.explain(coefficients, targets)` or `explainer(coefficients, targets)`
+in eager mode. Symbolic execution and wrapping the explainer in `tf.function` are not supported.
+Dense NumPy arrays and TensorFlow tensors are sanitized to `float32`. Coefficients must be finite
+after sanitization, have rank at least two, and have a nonempty final concept axis. Typical shapes
+are `(N, K)`, `(N, T, K)`, and `(N, H, W, K)`; arbitrary intervening position dimensions are
+allowed. Sparse and ragged tensors are not supported. A paired `tf.data.Dataset` must contain
+`(coefficients, targets)` and be passed as `explainer.explain(dataset, None)`; it is materialized
+eagerly, not streamed. For a channel-last PyTorch concept decoder, use `TorchWrapper` with
+`is_channel_first=False` and `requires_grad=False`, and put the PyTorch model in evaluation mode.
+
+**Active support.** For each sanitized input $U$, the exact active support is
+
+$$
+A(U) = \{k : \text{at least one entry of } U[\ldots,k] \ne 0\}.
+$$
+
+Support is determined **after float32 sanitization**, with no tolerance, threshold, or top-k
+screening. Signed coefficients are allowed. A value that underflows to zero during conversion is
+therefore inactive; a value that overflows to infinity is invalid, even if it was finite before
+conversion. Every active channel receives one mask value broadcast across all its positions, so
+the intervention is `U * mask` against a zero baseline, not spatial masking. Inactive channels
+remain zero. An input with empty support returns zeros without any model or operator calls,
+including no zero-input evaluation.
+
+**Outputs.** The result is a dense `float32` TensorFlow tensor with exactly the sanitized input
+shape. Each active channel's scalar score is broadcast across all its positions, including
+positions whose coefficient is zero; inactive channels have exactly zero attribution. These are
+**input-shaped global channel scores, not spatial localization maps**. To obtain `(N, K)` scores,
+average over the position axes or select one representative position. Do not sum: this would
+multiply each score by the number of positions. For `(N, K)` inputs, no reduction is needed.
 
 ### Gradient-based approaches ###
 

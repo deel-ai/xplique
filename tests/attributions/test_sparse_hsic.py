@@ -1,15 +1,15 @@
-"""Focused contracts for support-restricted sparse HSIC attribution."""
+"""Design and estimator contracts for support-restricted sparse HSIC attribution.
 
-import inspect
+Shared execution contracts are in test_concept_channel_common.py.
+"""
+
 from numbers import Integral
 
 import numpy as np
 import pytest
 import tensorflow as tf
 
-from xplique import attributions
-from xplique.attributions import SparseHSIC, concept_attributions
-from xplique.attributions.concept_attributions.base import _ConceptChannelExplainer
+from xplique.attributions import SparseHSIC
 from xplique.attributions.concept_attributions.hsic import (
     _median_positive_pairwise_distance,
 )
@@ -53,25 +53,6 @@ def _reference_hsic(masks, outputs):
     return np.maximum(scores, 0).astype(np.float32)
 
 
-def test_exports_inheritance_signature_and_defaults():
-    """Both public namespaces expose the direct concept-channel explainer."""
-    assert SparseHSIC is concept_attributions.SparseHSIC
-    assert issubclass(SparseHSIC, _ConceptChannelExplainer)
-    assert "SparseHSIC" in attributions.__all__
-    assert "SparseHSIC" in concept_attributions.__all__
-
-    parameters = inspect.signature(SparseHSIC).parameters
-    assert parameters["batch_size"].default == 32
-    assert parameters["operator"].default is None
-    assert parameters["nb_samples"].default == 1024
-    assert parameters["seed"].default == 0
-
-    explainer = SparseHSIC(_sum, operator=_operator)
-    assert explainer.batch_size == 32
-    assert explainer.nb_samples == 1024
-    assert explainer.seed == 0
-
-
 @pytest.mark.parametrize("nb_samples", [2, 3, 5, np.int64(9)])
 def test_valid_sample_counts_include_odd_integrals(nb_samples):
     explainer = SparseHSIC(_sum, operator=_operator, nb_samples=nb_samples)
@@ -97,18 +78,6 @@ def test_masks_match_exact_iid_stateless_reference_without_pairing_or_enumeratio
     assert not np.array_equal(actual[:4], 1 - actual[4:8])
     enumeration = (np.arange(8)[:, None] >> np.arange(3)) & 1
     assert not np.array_equal(explainer._sample_masks(3, 4)[:8], enumeration)
-
-
-def test_sampling_uses_seed_high_bits_input_index_and_not_global_rng():
-    explainer = SparseHSIC(_sum, operator=_operator, nb_samples=17, seed=23)
-    masks = explainer._sample_masks(8, 0)
-    tf.random.uniform((100,))
-
-    np.testing.assert_array_equal(masks, explainer._sample_masks(8, 0))
-    np.testing.assert_array_equal(masks, _reference_masks(23, 0, 17, 8))
-    assert not np.array_equal(masks, explainer._sample_masks(8, 1))
-    high_bits = SparseHSIC(_sum, operator=_operator, nb_samples=17, seed=23 + 2**32)
-    assert not np.array_equal(masks, high_bits._sample_masks(8, 0))
 
 
 @pytest.mark.parametrize(
@@ -223,115 +192,3 @@ def test_model_score_translation_invariance():
         lambda values: shifted(values, 2**40), operator=_operator, nb_samples=31, seed=7
     )(inputs, targets)
     np.testing.assert_array_equal(translated, plain)
-
-
-def test_support_is_broadcast_and_inactive_channels_are_zero():
-    inputs = np.array([[[2.0, 1.0, 0.0], [-2.0, 3.0, 0.0]]], np.float32)
-    result = SparseHSIC(_sum, operator=_operator, nb_samples=9, seed=5)(inputs, [[1.0]])
-
-    assert result.shape == inputs.shape
-    np.testing.assert_array_equal(result.numpy()[..., 2], 0)
-    np.testing.assert_array_equal(result.numpy()[:, 0, :2], result.numpy()[:, 1, :2])
-
-
-@pytest.mark.parametrize("batch_size", [1, 4, None])
-def test_exact_sample_budget_batch_remainder_and_invariance(batch_size):
-    """Every active input evaluates exactly n masks, independently of support size."""
-    inputs = np.array([[1.0, 2.0, 3.0], [0.0, 0.0, 0.0], [4.0, 0.0, -2.0]], np.float32)
-    targets = np.arange(3, dtype=np.float32)[:, None]
-    calls = []
-
-    def operator(model, perturbed, repeated_targets):
-        index = int(repeated_targets[0, 0])
-        assert np.all(repeated_targets.numpy() == index)
-        calls.append((index, len(perturbed)))
-        return model(perturbed)
-
-    explainer = SparseHSIC(_sum, operator=operator, nb_samples=9, batch_size=batch_size, seed=41)
-    actual = explainer(inputs, targets)
-    expected = SparseHSIC(_sum, operator=_operator, nb_samples=9, batch_size=None, seed=41)(
-        inputs, targets
-    )
-
-    np.testing.assert_allclose(actual, expected, rtol=0, atol=1e-7)
-    assert [sum(size for index, size in calls if index == row) for row in range(3)] == [9, 0, 9]
-    if batch_size is None:
-        assert calls == [(0, 9), (2, 9)]
-    else:
-        assert max(size for _, size in calls) <= batch_size
-        if batch_size == 4:
-            assert [size for _, size in calls] == [4, 4, 1, 4, 4, 1]
-
-
-@pytest.mark.parametrize("shape", [(0, 3), (2, 3), (2, 2, 3)])
-def test_empty_support_skips_inference(shape):
-    def forbidden(model, inputs, targets):
-        pytest.fail("Empty support must not invoke the operator")
-
-    result = SparseHSIC(_sum, operator=forbidden)(np.zeros(shape), np.ones((shape[0], 1)))
-    assert result.dtype == tf.float32
-    np.testing.assert_array_equal(result, np.zeros(shape, np.float32))
-
-
-def test_paired_dataset_input():
-    inputs = np.array([[1.0, -2.0, 0.0], [0.0, 3.0, 4.0]], np.float32)
-    targets = np.ones((2, 1), np.float32)
-    dataset = tf.data.Dataset.from_tensor_slices((inputs, targets)).batch(1)
-    result = SparseHSIC(_sum, operator=_operator, nb_samples=7).explain(dataset, None)
-
-    assert result.shape == inputs.shape
-    assert result.dtype == tf.float32
-    assert bool(tf.reduce_all(tf.math.is_finite(result)))
-    np.testing.assert_array_equal(result.numpy()[inputs == 0], 0)
-
-
-def test_default_keras_operator_smoke():
-    model_inputs = tf.keras.Input(shape=(2,))
-    outputs = tf.keras.layers.Dense(
-        2,
-        use_bias=False,
-        kernel_initializer=tf.keras.initializers.Constant([[2.0, -1.0], [-3.0, 4.0]]),
-    )(model_inputs)
-    model = tf.keras.Model(model_inputs, outputs)
-    result = SparseHSIC(model, nb_samples=7, seed=3)(
-        np.array([[1.0, 2.0], [-2.0, 3.0]], np.float32), np.eye(2, dtype=np.float32)
-    )
-
-    assert result.shape == (2, 2)
-    assert result.dtype == tf.float32
-    assert bool(tf.reduce_all(tf.math.is_finite(result)))
-
-
-@pytest.mark.parametrize("output", ["scalar", "wide", "short", "nan"])
-def test_inherited_malformed_operator_scores(output):
-    def malformed(model, inputs, targets):
-        del model, targets
-        size = tf.shape(inputs)[0]
-        if output == "scalar":
-            return tf.constant(1.0)
-        if output == "wide":
-            return tf.ones((size, 2))
-        if output == "short":
-            return tf.ones((size - 1,))
-        return tf.fill((size,), np.nan)
-
-    with pytest.raises(ValueError):
-        SparseHSIC(_sum, operator=malformed, nb_samples=3)([[1.0, 2.0]], [[1.0]])
-
-
-def test_inference_only_torch_wrapper():
-    torch = pytest.importorskip("torch")
-    from xplique.wrappers import TorchWrapper
-
-    model = torch.nn.Linear(2, 1, bias=False)
-    with torch.no_grad():
-        model.weight.copy_(torch.tensor([[2.0, -3.0]]))
-    model.eval()
-    eager = tf.config.functions_run_eagerly()
-    try:
-        wrapper = TorchWrapper(model, "cpu", is_channel_first=False, requires_grad=False)
-        result = SparseHSIC(wrapper, nb_samples=7)([[1.0, 2.0]], [[1.0]])
-        assert result.shape == (1, 2)
-        assert bool(tf.reduce_all(tf.math.is_finite(result)))
-    finally:
-        tf.config.run_functions_eagerly(eager)

@@ -1,12 +1,9 @@
 """Marginal HSIC dependence for exact active concept channels."""
 
-from numbers import Integral
-
-import numpy as np
 import tensorflow as tf
 
 from ...types import Callable, OperatorSignature, Optional, Union
-from .base import _ConceptChannelExplainer
+from .base import _bernoulli, _check_integer, _ConceptChannelExplainer
 
 
 def _median_or_one(values: tf.Tensor) -> tf.Tensor:
@@ -78,28 +75,24 @@ class SparseHSIC(_ConceptChannelExplainer):
         nb_samples: int = 1024,
         seed: int = 0,
     ):
-        if (
-            isinstance(nb_samples, (bool, np.bool_))
-            or not isinstance(nb_samples, Integral)
-            or nb_samples < 2
-        ):
-            raise ValueError("nb_samples must be an integer greater than or equal to two.")
+        nb_samples = _check_integer(
+            nb_samples, "nb_samples must be an integer greater than or equal to two.", 2
+        )
         super().__init__(model, batch_size, operator, seed)
-        self.nb_samples = int(nb_samples)
+        self.nb_samples = nb_samples
 
     def _sample_masks(self, nb_active: int, input_index: int) -> tf.Tensor:
-        seed = tf.random.experimental.stateless_fold_in(
-            tf.constant([self.seed, 0], dtype=tf.int64), tf.cast(input_index, tf.int64)
-        )
-        uniform = tf.random.stateless_uniform(
-            [self.nb_samples, nb_active], seed=seed, dtype=tf.float32
-        )
-        return tf.cast(uniform < 0.5, tf.float32)
+        return _bernoulli([self.nb_samples, nb_active], self._input_seed(input_index))
 
     def _estimate(self, masks: tf.Tensor, outputs: tf.Tensor) -> tf.Tensor:
+        return self._singletons(tf.cast(masks, tf.float64), self._output_gram(outputs))
+
+    @staticmethod
+    def _output_gram(outputs: tf.Tensor) -> Optional[tf.Tensor]:
+        """Build the uncentered float64 output RBF Gram, or None for constant scores."""
         outputs = tf.cast(tf.reshape(outputs, [-1]), tf.float64)
         if bool(tf.reduce_all(outputs == outputs[0])):
-            return tf.zeros([tf.shape(masks)[1]], tf.float32)
+            return None
 
         distances = tf.abs(outputs[:, None] - outputs[None, :])
         bandwidth = _median_positive_pairwise_distance(outputs)
@@ -109,10 +102,21 @@ class SparseHSIC(_ConceptChannelExplainer):
             bandwidth = _median_or_one(tf.boolean_mask(scaled_distances, distances > 0))
             distances = scaled_distances
         output_gram = tf.exp(-tf.square(distances / bandwidth) / 2.0)
+        return output_gram
 
-        masks = tf.cast(masks, tf.float64)
-        centered_masks = masks - tf.reduce_mean(masks, axis=0, keepdims=True)
-        projected = tf.matmul(output_gram, centered_masks)
-        normalizer = tf.square(tf.cast(self.nb_samples, tf.float64))
-        scores = 2.0 * tf.reduce_sum(centered_masks * projected, axis=0) / normalizer
+    @staticmethod
+    def _centered_hsic(features: tf.Tensor, output_gram: tf.Tensor, scale: float) -> tf.Tensor:
+        """Compute scale * diag(Z.T @ L @ Z) / n**2 for column-centered features Z."""
+        centered = features - tf.reduce_mean(features, axis=0, keepdims=True)
+        projected = tf.matmul(output_gram, centered)
+        normalizer = tf.square(tf.cast(tf.shape(features)[0], tf.float64))
+        scores = scale * tf.reduce_sum(centered * projected, axis=0) / normalizer
         return tf.cast(tf.maximum(scores, 0.0), tf.float32)
+
+    @classmethod
+    def _singletons(cls, masks: tf.Tensor, output_gram: Optional[tf.Tensor]) -> tf.Tensor:
+        """Compute equality-kernel singleton HSIC for float64 masks and a shared output Gram."""
+        if output_gram is None:
+            return tf.zeros([tf.shape(masks)[1]], tf.float32)
+        # The centered equality kernel of a binary column z is 2 * Hz (Hz).T.
+        return cls._centered_hsic(masks, output_gram, 2.0)
