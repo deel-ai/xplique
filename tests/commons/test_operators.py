@@ -19,7 +19,7 @@ from xplique.attributions import (
     SquareGrad,
     VarGrad,
 )
-from xplique.commons.operators import regression_operator
+from xplique.commons.operators import predictions_operator, regression_operator
 
 from ..utils import generate_data, generate_model, generate_regression_model
 
@@ -52,7 +52,7 @@ def test_predictions_operator():
     x, y = generate_data(input_shape, nb_labels, samples)
     classification_model = generate_model(input_shape, nb_labels)
 
-    methods = default_methods(classification_model, regression_operator)
+    methods = default_methods(classification_model, predictions_operator)
     for method in methods:
         assert hasattr(method, "inference_function")
         assert hasattr(method, "batch_inference_function")
