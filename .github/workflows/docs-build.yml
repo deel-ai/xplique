@@ -1,0 +1,39 @@
+name: docs build
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docs-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      CUDA_VISIBLE_DEVICES: -1
+    steps:
+      - name: "Checkout"
+        uses: actions/checkout@v6
+
+      - name: "Set up Python"
+        uses: actions/setup-python@v6
+        with:
+          python-version-file: pyproject.toml
+
+      - name: "Set up uv"
+        uses: astral-sh/setup-uv@v6
+
+      - name: "Install Documentation Dependencies"
+        run: |
+          uv pip install --system --group docs
+          uv pip install --system --no-deps .
+
+      - name: "Build Docs"
+        run: mkdocs build
