@@ -7,6 +7,12 @@ mainly because you will be able to play the notebooks with a GPU which should gr
 
 Here is the lists of the availables tutorial for now:
 
+## Object detection with adapters
+
+The [adapter integration guide](api/attributions/object_detection_adapters.md)
+covers installation, supported models, output formats, and attribution examples for
+the published `xplique-adapters` package.
+
 ## Getting Started
 
 | **Tutorial Name**               | Notebook                                                                                                                                                           |

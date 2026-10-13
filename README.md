@@ -33,7 +33,7 @@
 
   <br>
   <a href="https://deel-ai.github.io/xplique/">📘 <strong>Explore Xplique docs</strong></a>
-    |  
+    |
   <a href="https://deel-ai.github.io/xplique/latest/tutorials/"><strong>Explore Xplique tutorials</strong> 🔥</a>
   <br>
   <br>
@@ -49,7 +49,7 @@
 </p>
 
 > [!NOTE]
-> **What's new in v2.0.0:** Holistic CRAFT can extract and attribute concepts from classification and object detection models through `HolisticCraftTf` and `HolisticCraftTorch`. The release also introduces framework-specific latent extractors, `LayeredModelExtractorBuilder`, `PartialExplainer`, and `EncodedData`. Xplique 2.0.0 supports Python 3.10-3.13, TensorFlow 2.18-2.20, and optional PyTorch 2.5-2.10. Detector-specific adapters are under construction in the DEEL AI organization and will be pip-installable soon.
+> **What's new in v2.0.0:** Holistic CRAFT can extract and attribute concepts from classification and object detection models through `HolisticCraftTf` and `HolisticCraftTorch`. The release also introduces framework-specific latent extractors, `LayeredModelExtractorBuilder`, `PartialExplainer`, and `EncodedData`. Xplique 2.0.0 supports Python 3.10-3.13, TensorFlow 2.18-2.20, and optional PyTorch 2.5-2.10. The optional [`xplique-adapters`](https://github.com/deel-ai/xplique-adapters) companion package is now available on PyPI for detector-specific pixel attribution and concept explanations.
 
 The library is composed of several modules, the _Attributions Methods_ module implements various methods (e.g Saliency, Grad-CAM, FEM, Integrated-Gradients...), with explanations, examples and links to official papers.
 The _Feature Visualization_ module allows to see how neural networks build their understanding of images by finding inputs that maximize neurons, channels, layers or compositions of these elements.
@@ -86,13 +86,13 @@ Finally, the _Metrics_ module covers the current metrics used in explainability.
 - [**Attribution Methods**: Average Drop/Increase/Gain Fidelity Metrics](https://colab.research.google.com/drive/1nGP13qiQrsJMBx8TXgA69D-5ALoP3l9p) <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1nGP13qiQrsJMBx8TXgA69D-5ALoP3l9p) </sub>
 
 <p align="center" width="100%">
-    <a href="https://colab.research.google.com/drive/1WEpVpFSq-oL1Ejugr8Ojb3tcbqXIOPBg"> 
+    <a href="https://colab.research.google.com/drive/1WEpVpFSq-oL1Ejugr8Ojb3tcbqXIOPBg">
         <img width="95%" src="./docs/assets/metrics.jpeg">
     </a>
 </p>
 
 - [**PyTorch models**: Getting started](https://colab.research.google.com/drive/1bMlO29_0K3YnTQBbbyKQyRfo8YjvDbhe)<sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1bMlO29_0K3YnTQBbbyKQyRfo8YjvDbhe) </sub>
- 
+
 - [**Concepts Methods**: Testing with Concept Activation Vectors](https://colab.research.google.com/drive/1iuEz46ZjgG97vTBH8p-vod3y14UETvVE) <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1iuEz46ZjgG97vTBH8p-vod3y14UETvVE) </sub>
 
 <p align="center" width="100%">
@@ -119,7 +119,7 @@ Finally, the _Metrics_ module covers the current metrics used in explainability.
 - [**Modern Feature Visualization with MaCo**: Getting started](https://colab.research.google.com/drive/1l0kag1o-qMY4NCbWuAwnuzkzd9sf92ic) <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1l0kag1o-qMY4NCbWuAwnuzkzd9sf92ic) </sub>
 
 <p align="center" width="100%">
-    <a href="https://colab.research.google.com/drive/1st43K9AH-UL4eZM1S4QdyrOi7Epa5K8v"> 
+    <a href="https://colab.research.google.com/drive/1st43K9AH-UL4eZM1S4QdyrOi7Epa5K8v">
         <img width="95%" src="./docs/assets/feature_viz.jpeg">
     </a>
 </p>
@@ -135,7 +135,7 @@ included. We will try to cover all the possible usage of the library, feel free 
 
 Xplique supports Python 3.10 through 3.13 and several libraries including TensorFlow and NumPy. Installation can be done using PyPI:
 
-```python
+```bash
 pip install xplique
 ```
 
@@ -144,6 +144,21 @@ For PyTorch models and concept methods, install the optional dependencies:
 ```bash
 pip install "xplique[torch]"
 ```
+
+For object detection, install the optional [companion adapters](https://github.com/deel-ai/xplique-adapters)
+with the extra for your model ecosystem:
+
+```bash
+pip install "xplique-adapters[torchvision]"  # RetinaNet, FCOS, Faster R-CNN, SSD
+pip install "xplique-adapters[yolo]"        # Ultralytics YOLO 11 / YOLO 26
+pip install "xplique-adapters[detr]"        # HuggingFace DETR
+pip install "xplique-adapters[retinanet]"   # TensorFlow / KerasCV RetinaNet
+```
+
+Adapters 0.1.0 require Xplique >=2.0.0 and Python 3.10-3.13. Their PyTorch extra
+requires PyTorch >=2.6; HuggingFace DETR requires >=2.7 and Transformers 5.x.
+See the [adapter integration guide](https://deel-ai.github.io/xplique/latest/api/attributions/object_detection_adapters/)
+for output formats, model selection, and attribution examples.
 
 Now that Xplique is installed, here are basic examples of what you can do with the available modules.
 
@@ -237,7 +252,7 @@ More information in the [CRAFT documentation](https://deel-ai.github.io/xplique/
 
 ### Holistic CRAFT
 
-Holistic CRAFT works directly with full activation maps and can be used with classification models through the built-in layered extractor. Object-detection-specific extractor adapters are under construction and will be pip-installable soon.
+Holistic CRAFT works directly with full activation maps and can be used with classification models through the built-in layered extractor. Detector-specific extractors are provided by the optional [`xplique-adapters`](https://github.com/deel-ai/xplique-adapters) package.
 
 ```python
 from xplique.concepts import HolisticCraftTf
@@ -252,22 +267,26 @@ craft = HolisticCraftTf(latent_extractor, number_of_concepts=10)
 craft.fit(images)
 ```
 
-For object detection, use the architecture-specific extractor builders from the companion `xplique-adapters` package when it becomes available:
+For object detection, install `xplique-adapters[torchvision]` and use an architecture-specific extractor:
 
 ```python
-# xplique-adapters is under construction and will be pip-installable soon.
+import torch
+from torchvision.models.detection import retinanet_resnet50_fpn
 from xplique.concepts import HolisticCraftTorch
-from xplique_adapters.concepts.torch.latent_data_retinanet import RetinanetExtractorBuilder
+from xplique_adapters.concepts.torch.latent_data_retinanet import RetinaNetExtractorBuilder
 
-latent_extractor = RetinanetExtractorBuilder.build(
+device = "cuda" if torch.cuda.is_available() else "cpu"
+model = retinanet_resnet50_fpn(weights="DEFAULT").eval()
+latent_extractor = RetinaNetExtractorBuilder.build(
     model,
-    device="cuda",
+    device=device,
     nb_classes=91,
     extraction_location="resnet",
     extraction_layer=-1,
 )
-craft = HolisticCraftTorch(latent_extractor, number_of_concepts=10, device="cuda")
-craft.fit(images, class_id=class_id)
+craft = HolisticCraftTorch(latent_extractor, number_of_concepts=10, device=device)
+# images: model-ready float32 tensors shaped (N, C, H, W), in [0, 1].
+craft.fit(images, class_id=1)  # COCO person; fitting stores this as metadata.
 ```
 
 </details>
@@ -522,7 +541,7 @@ If you use Xplique as part of your workflow in a scientific publication, please 
 ```
 @article{fel2022xplique,
   title={Xplique: A Deep Learning Explainability Toolbox},
-  author={Fel, Thomas and Hervier, Lucas and Vigouroux, David and Poche, Antonin and Plakoo, Justin and Cadene, Remi and Chalvidal, Mathieu and Colin, Julien and Boissin, Thibaut and Bethune, Louis and Picard, Agustin and Nicodeme, Claire 
+  author={Fel, Thomas and Hervier, Lucas and Vigouroux, David and Poche, Antonin and Plakoo, Justin and Cadene, Remi and Chalvidal, Mathieu and Colin, Julien and Boissin, Thibaut and Bethune, Louis and Picard, Agustin and Nicodeme, Claire
           and Gardes, Laurent and Flandin, Gregory and Serre, Thomas},
   journal={Workshop on Explainable Artificial Intelligence for Computer Vision (CVPR)},
   year={2022}
