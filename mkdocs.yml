@@ -5,7 +5,7 @@ nav:
   - Home: index.md
   - Attributions methods:
       - API Description: api/attributions/api_attributions.md
-      - Methods: 
+      - Methods:
         - DeconvNet: api/attributions/methods/deconvnet.md
         - FEM: api/attributions/methods/fem.md
         - ForGRad: api/attributions/methods/forgrad.md
@@ -41,6 +41,7 @@ nav:
       - Callable: api/attributions/callable.md
       - Classification: api/attributions/classification.md
       - Object Detection: api/attributions/object_detection.md
+      - Object Detection Adapters: api/attributions/object_detection_adapters.md
       - Regression: api/attributions/regression.md
       - Semantic Segmentation: api/attributions/semantic_segmentation.md
   - Concept based:
@@ -58,9 +59,9 @@ nav:
         - NaiveCounterFactuals: api/example_based/counterfactuals/naive_counter_factuals.md
       - Semifactuals:
         - Kleor: api/example_based/semifactuals/kleor.md
-      - Prototypes: 
+      - Prototypes:
         - API Description: api/example_based/prototypes/api_prototypes.md
-        - ProtoGreedy: api/example_based/prototypes/proto_greedy.md 
+        - ProtoGreedy: api/example_based/prototypes/proto_greedy.md
         - ProtoDash: api/example_based/prototypes/proto_dash.md
         - MMDCritic: api/example_based/prototypes/mmd_critic.md
       - Projections: api/example_based/projections.md

@@ -2,6 +2,13 @@
 
 [Attributions: Object Detection tutorial](https://colab.research.google.com/drive/1X3Yq7BduMKqTA0XEheoVIpOo3IvOrzWL) <sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1X3Yq7BduMKqTA0XEheoVIpOo3IvOrzWL) </sub>
 
+!!! tip "Concept-based object detection explanations"
+    For concept-level explanations of object detection models, see [Holistic CRAFT](../concepts/holistic_craft.md). Architecture-specific extractors are available in the optional [`xplique-adapters`](https://github.com/deel-ai/xplique-adapters) companion package.
+
+!!! tip "Ready-to-use detector adapters"
+    For torchvision, Ultralytics YOLO, DETR, and KerasCV RetinaNet, start with the
+    [adapter integration guide](object_detection_adapters.md).
+
 
 
 
@@ -28,10 +35,11 @@ With the [operator's api](api_attributions.md#tasks-and-operator) you can treat 
 
 ```python
 import xplique
+import tensorflow as tf
 from xplique.attributions import Saliency
 from xplique.metrics import Deletion
 
-# load images and model
+# load images and a differentiable model returning formatted box tensors
 # ...
 
 predictions = model(images)
@@ -39,19 +47,24 @@ explainer = Saliency(model, operator=xplique.Tasks.OBJECT_DETECTION)
 
 # explain each image - bounding-box pair separately
 for all_bbx_for_one_image, image in zip(predictions, images):
+    if all_bbx_for_one_image.shape[0] == 0:
+        continue
     # an image is needed per bounding box, so we tile them
     repeated_image = tf.tile(tf.expand_dims(image, axis=0),
                              (tf.shape(all_bbx_for_one_image)[0], 1, 1, 1))
 
     explanations = explainer(repeated_image, all_bbx_for_one_image)
 
-    # either compute several score or
-    # concatenate repeated images and corresponding boxes in one tensor
+    # Compute a deletion score for the explanations of this image.
     metric_for_one_image = Deletion(model, repeated_image, all_bbx_for_one_image,
                                     operator=xplique.Tasks.OBJECT_DETECTION)
-    score_saliency = metric(explanations)
+    score_saliency = metric_for_one_image(explanations)
 ```
 
+For a detector adapter, inspect predictions in its default list mode, then set
+`output_as_tensor = True` before supplying it to the operator (through `TorchWrapper`
+for PyTorch). The [adapter integration guide](object_detection_adapters.md) shows
+this sequence with a concrete pretrained model and a black-box method.
 
 
 
@@ -120,8 +133,8 @@ $$
 
 ### The behavior
 
-- In the case of [perturbation-based methods](api_attributions.md#gradient-based-approaches), the perturbation score is the similarity metric aforementioned.
-- For [gradient-based methods](api_attributions.md#perturbation-based-approaches), the gradient of the similarity metric is given, but no matching is necessary as no perturbation is made.
+- In the case of [perturbation-based methods](api_attributions.md#perturbation-based-approaches), the perturbation score is the similarity metric aforementioned.
+- For [gradient-based methods](api_attributions.md#gradient-based-approaches), gradients are computed through the same maximum-matching score. The prediction path must retain gradients to the inputs.
 
 
 
@@ -129,20 +142,43 @@ $$
 
 ## Model's output ##
 
-We expect `model(inputs)` to yield a $(n, nb\_boxes, 4 + 1 + nb\_classes)$ tensors or array where:
+The object detection operator expects `model(inputs)` to yield a
+$(n, nb\_boxes, 4 + 1 + nb\_classes)$ tensor or array where:
 
 - $n$: the number of inputs, it should match the first dimension of `inputs`.
-- $nb\_boxes$: a fixed number of bounding boxes predicted for a given image (no NMS).
+- $nb\_boxes$: the maximum number of bounding boxes in the current batch. Adapter tensor mode uses all-zero rows to pad images with fewer detections.
 - $(4 + 1 + nb\_classes)$: the encoding of a bounding box prediction
 - $4$: the bounding box coordinates $(x_{top\_left}, y_{top\_left}, x_{bottom\_right}, y_{bottom\_right})$, with $x_{top\_left} < x_{bottom\_right}$ and $y_{top\_left} < y_{bottom\_right}$.
-- $1$: the objectness or detection probability of the bounding box,
-- $nb\_classes$: the class of the bounding box, a soft class predictions not a one-hot encoding.
+- $1$: the detection confidence of the bounding box; its meaning depends on the detector and formatter, and is not necessarily a separate objectness probability,
+- $nb\_classes$: a vector of class scores or probabilities. Adapters may use a one-hot encoding when the model exposes only discrete class labels.
 
-!!!warning
-    Object detection models provided to the explainer should not include NMS and classification should be soft classification not one-hot encoding. Furthermore, if the model does not match the expected format, a wrapper may be needed. (see [the tutorial](https://colab.research.google.com/drive/1X3Yq7BduMKqTA0XEheoVIpOo3IvOrzWL) for an example).
+The operator ignores all-zero rows in predictions and references. If either contains
+no valid boxes for an image, its score is zero. Adapter list mode instead returns one
+`MultiBoxTensor` per image, each shaped `(num_boxes, 5 + nb_classes)`; switch to tensor
+mode for the shared attribution API.
 
-!!!info
-    PyTorch models are not natively treated by Xplique, however, a simple wrapper is available in [pytorch documentation](pytorch.md).
+### Raw predictions or postprocessed detections?
+
+Black-box methods such as RISE, Occlusion, and Sobol can explain postprocessed detections,
+including outputs after thresholding and non-maximum suppression (NMS). The explanation
+then includes the effects of that selection pipeline. Pre-NMS outputs provide a larger
+pool of boxes for matching when inputs are perturbed.
+
+Gradient-based methods require a prediction path connected to the inputs. A formatter
+does not restore gradients lost by inference-only code. One-hot class labels can be used
+for class matching, but do not expose gradients of a soft class distribution. For YOLO,
+use a raw-output wrapper for gradients; the public `Results` path is intended for inference
+and black-box attribution. See the [adapter selection guide](object_detection_adapters.md).
+
+!!!info "Coordinates and preprocessing"
+    Predictions and reference boxes must use the same coordinate system and class indexing.
+    Torchvision and DETR adapters produce absolute XYXY coordinates; the TensorFlow
+    RetinaNet adapter produces normalized XYXY coordinates. Preprocess images for the
+    selected detector, and keep display images spatially aligned with those inputs.
+
+!!!info "PyTorch"
+    Use a detector adapter followed by `TorchWrapper`, as described in the
+    [PyTorch documentation](pytorch.md#object-detection-adapters).
 
 
 
@@ -158,7 +194,7 @@ The `targets` parameter specifies what is to explain in the `inputs`, it is pass
 
 ### Format
 
-The `targets` parameter in the case of semantic segmentation should have the same shape as the [model's output](#models-output) as the same computation are made. Concretely, the `targets` parameter should have a shape of $(n, 4 + 1 + nb\_classes)$ to explain a bounding box for each input (detail in [model's output description](#models-output)).
+For object detection, each target box uses the same encoding as the [model's output](#models-output). The `targets` parameter should have a shape of $(n, 4 + 1 + nb\_classes)$ to explain one bounding box for each input.
 
 Additionally, there is a possibility to explain a group of bounding boxes at the same time described in the [explaining several bounding boxes section](#explain-several-bounding-boxes-simultaneously) which requires a different shape.
 
@@ -171,7 +207,9 @@ To explain each bounding box individually, the images need to be repeated. Indee
 In the [simple example](#simple-example), there is a loop on the images - predictions pair, then images are repeated to match the number of predicted bounding boxes, and finally, the `targets` parameter takes the predicted bounding boxes.
 
 !!!tip
-    AS specified in the [model's output specification](#models-output), the NMS (Non Maximum Suppression) should not be included in the model. However, it can be used to select the bounding boxes to explain.
+    Select reference boxes once on the unperturbed input and keep them fixed while
+    attributing. NMS can help select a small set of references even when the model
+    being explained returns pre-NMS predictions.
 
 !!!warning
     Repeating images may create a tensor that exceeds memory for large images and/or when many bounding boxes are to be explained. In this case, we advise to make a loop on the images, then a loop on the boxes.
@@ -182,7 +220,10 @@ In the [simple example](#simple-example), there is a loop on the images - predic
 
 The user may not want to explain each bounding box individually but several bounding boxes at the same time (*i.e* a set of pedestrian bounding boxes on a sidewalk). In this case, the `targets` parameter shape will not be $(n, 4 + 1 + nb\_classes)$ but $(n, nb\_boxes, 4 + 1 + nb\_classes)$, with $nb\_boxes$ the number of boxes to explain simultaneously. In this case, $nb\_boxes$ bounding boxes are associated to each sample and a single attribution map is returned. However, for different images, $nb\_boxes$ may not be fix and it may not be possible to make a single tensor in this case. Thus, we recommend to treat each group of bounding boxes with a different call to the attribution method with $n=1$.
 
-To return one explanation for several bounding boxes, Xplique takes the mean of the bounding boxes individual explanations and returns it.
+For each reference box, Xplique finds the largest matching score among the current
+predictions, then averages these scores. The attribution method explains this mean
+score and returns one map per input. For nonlinear attribution methods, this need not
+equal the mean of independently computed attribution maps.
 
 For a concrete example, please refer to the [Attributions: Object detection](https://colab.research.google.com/drive/1X3Yq7BduMKqTA0XEheoVIpOo3IvOrzWL) tutorial.
 
@@ -224,7 +265,7 @@ The Xplique library allows the specification of which part of the prediction to 
 
 ## Custom intersection score
 
-The default intersection score is IOU, but it is possible to define a custom intersection score. The only constraint is that it should follow `xplique.commons.object_detection_operator._box_iou` signature for it to work.
+The default intersection score is IOU, but it is possible to define a custom intersection score. The only constraint is that it should follow the `xplique.utils_functions.object_detection.object_detection_operators._box_iou` signature for it to work.
 
 ```python
 from xplique.attributions import Saliency
@@ -233,7 +274,7 @@ from xplique.commons.operators import object_detection_operator
 custom_intersection_score = ...
 
 custom_operator = lambda model, inputs, targets: object_detection_operator(
-    model, inputs, targets, intersection_score=custom_intersection_score
+    model, inputs, targets, intersection_score_fn=custom_intersection_score
 )
 
 explainer = Saliency(model, operator=custom_operator)

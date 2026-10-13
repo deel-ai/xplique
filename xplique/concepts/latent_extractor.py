@@ -19,6 +19,10 @@ class LatentData(ABC):
     This class provides an interface for managing intermediate activations
     extracted from a model's latent space. Subclasses must implement methods
     to get and set activations in a framework-specific manner.
+
+    Detector-specific containers also retain companion features, skip connections,
+    and image metadata needed to decode modified activations. Implementations are
+    available in the optional ``xplique-adapters`` package.
     """
 
     @abstractmethod
@@ -240,6 +244,15 @@ class LatentExtractorBuilder(ABC):
     This class provides a common interface for building LatentExtractor objects
     in a framework-specific manner. Subclasses implement the build method to
     construct appropriate extractors for different model architectures.
+
+    Notes
+    -----
+    Generic layered builders are provided by Xplique. Detector-specific builders are
+    available in architecture modules of the optional ``xplique-adapters`` package,
+    for example ``xplique_adapters.concepts.torch.latent_data_retinanet``. These builders
+    preserve the context needed by the decoder; a detection wrapper alone does not
+    provide a latent split. Builder signatures and model-state changes are
+    architecture-specific; consult the selected builder's documentation.
     """
 
     @classmethod

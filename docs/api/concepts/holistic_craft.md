@@ -17,20 +17,39 @@ The crop-based approach works well for classification because images of classifi
 
 ## Supported Object Detection Models
 
-Holistic CRAFT works with various object detection architectures through specialized latent extractors provided by the `xplique-adapters` package:
+Holistic CRAFT works with various object detection architectures through specialized
+latent extractors available in the optional
+[`xplique-adapters`](https://github.com/deel-ai/xplique-adapters) companion package.
+See the [adapter integration guide](../attributions/object_detection_adapters.md) for
+installation, prediction formats, and the distinction between detection wrappers and
+latent extractors.
+
+```bash
+pip install "xplique-adapters[torchvision]"  # RetinaNet, Faster R-CNN, FCOS, SSD
+pip install "xplique-adapters[yolo]"        # Ultralytics YOLO
+pip install "xplique-adapters[detr]"        # HuggingFace DETR
+pip install "xplique-adapters[retinanet]"   # KerasCV RetinaNet
+```
 
 **PyTorch (torchvision & ultralytics):**
-- **RetinaNet** - `RetinanetExtractorBuilder`
+- **RetinaNet** - `RetinaNetExtractorBuilder`
 - **Faster R-CNN** - `FasterRcnnExtractorBuilder`
 - **FCOS** - `FcosExtractorBuilder`
 - **SSD** - `SSDExtractorBuilder`
-- **YOLO** (v11) - `YoloExtractorBuilder`
-- **DETR** - `DetrExtractorBuilder`
+- **YOLO 11 / YOLO 26** - `YoloExtractorBuilder` (explicit one-to-many / one-to-one branch selection)
+- **DETR** (Facebook reference and HuggingFace Transformers 5) - `DetrExtractorBuilder`
 
 **TensorFlow:**
 - **RetinaNet** - `RetinaNetExtractorBuilder`
 
 Each extractor handles the model-specific architecture to split it into the required g(.) and h(.) functions.
+
+Builders are imported from architecture-specific modules such as
+`xplique_adapters.concepts.torch.latent_data_retinanet`. TensorFlow and PyTorch
+RetinaNet builders have the same class name but different arguments: the TensorFlow
+builder uses `index_activations`, while the PyTorch builder uses `extraction_location`
+and `extraction_layer`. Facebook-reference DETR is supplied by the caller, typically
+through Torch Hub; the `detr` extra installs the HuggingFace dependencies.
 
 ## Supported Classification Models
 
@@ -161,16 +180,29 @@ produce different maps.
 
 ### Basic Usage with Object Detection
 
+After installing `xplique-adapters[torchvision]`, prepare `input_images` as RGB
+float32 PyTorch tensors shaped `(N, C, H, W)` in `[0, 1]`. Torchvision performs its own
+normalization. Use matching channel-first `display_images` for PyTorch CRAFT visualization. The
+following example extracts non-negative ResNet activations for the default NMF:
+
 ```python
+import torch
+from torchvision.models.detection import RetinaNet_ResNet50_FPN_Weights, retinanet_resnet50_fpn
+
 import xplique
 from xplique.concepts import HolisticCraftTorch as Craft
-from xplique_adapters.concepts.torch.latent_data_retinanet import RetinanetExtractorBuilder
+from xplique_adapters.concepts.torch.latent_data_retinanet import RetinaNetExtractorBuilder
+
+device = "cuda" if torch.cuda.is_available() else "cpu"
+weights = RetinaNet_ResNet50_FPN_Weights.DEFAULT
+class_id = weights.meta["categories"].index("person")
+model = retinanet_resnet50_fpn(weights=weights).eval().to(device)
 
 # Build a latent extractor that splits the model into g(.) and h(.)
 # This provides the input_to_latent (g) and latent_to_logit (h) functions
-latent_extractor = RetinanetExtractorBuilder.build(
+latent_extractor = RetinaNetExtractorBuilder.build(
     model,
-    device="cuda",
+    device=device,
     nb_classes=91,
     extraction_location='resnet', # Choose 'resnet' or 'fpn'
     extraction_layer=-1  # Extract from last ResNet feature layer
@@ -180,20 +212,21 @@ latent_extractor = RetinanetExtractorBuilder.build(
 craft = Craft(
     latent_extractor=latent_extractor,
     number_of_concepts=10,
-    device="cuda"
+    device=device,
 )
 
 # Fit CRAFT on input images to discover concepts
 craft.fit(input_images, class_id=class_id)
 
 # Display concept activation maps overlaid on images
-craft.display_images_per_concept(images=input_images[:5])
+coeffs_u = craft.transform(input_images)
+craft.display_images_per_concept(images=display_images[:5], coeffs_u=coeffs_u[:5])
 
 # Display top 3 images for each concept ranked by concept activation score
-craft.display_top_images_per_concept(images=input_images, topk=3)
+craft.display_top_images_per_concept(images=display_images, coeffs_u=coeffs_u, topk=3)
 
 # Estimate concept importance on the 20 first images using Gradient×Input method
-# (GradientxInput is the default method)
+# (GradientInput is the default method)
 importances_gi = craft.estimate_importance(
     images=input_images[:20],
     operator=xplique.Tasks.OBJECT_DETECTION,
@@ -215,6 +248,25 @@ importances_sobol = craft.estimate_importance(
 )
 
 ```
+
+### Class selection and retained detector context
+
+`fit(..., class_id=...)` stores class metadata; it does not filter the input dataset,
+detected boxes, or spatial activation locations. Curate fitting images yourself for
+class-focused concept discovery. During importance estimation, `class_id` and
+`confidence` filter reference detections decoded from reconstructed concept activations.
+Reconstruction may change detections relative to the original detector. Images without
+matching references receive zero explanations and contribute zero to the default mean.
+
+Multi-scale detectors retain companion features, image sizes, and other metadata.
+Importance at the selected extraction level is conditional on that retained context.
+The default reduction takes attribution magnitudes before spatial and image averaging;
+use `abs_before_reduce=False` when signed importance is intended, and
+`aggregation_reducer=None` to inspect per-image scores.
+
+Native `HolisticCraftTorch` methods receive channel-first images and manage the
+concept-decoder bridge internally. Unlike pixel attribution through `TorchWrapper`,
+you do not manually convert the high-level CRAFT input batch to channel-last.
 
 ### Using Different Attribution Methods to Compute Concept Importance
 
@@ -343,6 +395,9 @@ current renderer.
     space. For example, zero after ImageNet normalization represents the dataset mean, not a
     raw black pixel. `display_images` may instead contain human-readable RGB images, but must
     have the same order and spatial correspondence as `model_images`.
+    CRAFT display methods use framework-native image layouts: channel-last for TensorFlow,
+    channel-first for PyTorch. The standalone `plot_image_detections` utility instead
+    receives a single PIL image or channel-last NumPy image.
 
 !!!warning "Factorizer compatibility"
     Localization evaluates the fitted factorizer on unseen, perturbed activations. The
@@ -523,13 +578,40 @@ craft.display_images_per_concept(input_images[:5])
 - **h(.) function**: Maps latent activations back to final predictions
 - **LatentData**: Handles activation extraction with proper shape conversions (PyTorch uses channel-first, Xplique expects channel-last)
 - **Output formatter**: Converts model predictions to `MultiBoxTensor` format for compatibility with Xplique
+- **Companion context**: Preserve skip connections, other feature levels, and image metadata needed by the decoder. When perturbations change the batch size for one source image, repeat that image's companion context consistently.
+- **Prediction path**: Output formatting alone does not make an inference-only decoder differentiable. Use a gradient-preserving path for gradient-based concept importance.
 
 
 ## API Reference
 
-{{xplique.concepts.holistic_craft.HolisticCraft}}
+`EncodedData` is the named tuple returned by `HolisticCraft.encode()`. It contains the
+image-specific `latent_data` and its concept coefficients, `coeffs_u`. `LatentData` is
+the framework-independent interface used to read and replace intermediate activations.
 
-{{xplique.concepts.holistic_craft.PartialExplainer}}
+The public core API consists of `HolisticCraft`, `PartialExplainer`, and `EncodedData`
+from the `xplique.concepts` package. The framework-independent `LatentData`,
+`LatentExtractor`, and `LatentExtractorBuilder` classes are available from
+`xplique.concepts.latent_extractor`. `PartialExplainer` defers attribution-explainer
+construction until a model and batch size are available.
+
+### TensorFlow
+
+`HolisticCraftTf` is the TensorFlow implementation. `TfLatentExtractor` provides the
+TensorFlow latent extraction and decoding interface.
+
+For generic layered TensorFlow models, use `LayeredModelExtractorBuilder` from
+`xplique.concepts.tf.layered_model_latent_extractor`.
+
+### PyTorch
+
+`HolisticCraftTorch` is the PyTorch implementation. `TorchLatentData` stores the
+framework-specific activations, and `TorchLatentExtractor` handles PyTorch latent
+extraction and decoding.
+
+For generic layered PyTorch models, use `LayeredModelExtractorBuilder` from
+`xplique.concepts.torch.layered_model_latent_extractor`. The PyTorch-specific
+`TorchSklearnNMFFactorizer` and optional `OvercompleteFactorizer` are available from
+`xplique.concepts.torch.factorizer`.
 
 ## References
 

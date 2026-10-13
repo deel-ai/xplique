@@ -345,7 +345,9 @@ class HolisticCraft(ABC):
         inputs
             Input images to extract concepts from, as framework tensors or arrays
         class_id
-            Target class ID for object detection (used in factorization metadata)
+            Class ID stored in factorization metadata. Does not filter input images,
+            detections, or spatial activation locations during fitting. Curate the
+            fitting dataset separately for class-focused concept discovery.
 
         """
         # Pass the data through the 1st part of the model, convert each batch to
@@ -695,6 +697,17 @@ class HolisticCraft(ABC):
         ------
         TypeError
             If partial_explainer is not a PartialExplainer instance
+
+        Notes
+        -----
+        References are selected from predictions decoded using reconstructed concept
+        activations, which may differ from the original detector predictions. Images
+        without matching detections receive zero explanations. Multiple reference
+        boxes are explained through their mean best-matching score.
+
+        For multi-scale detectors, companion features and image metadata remain as
+        decoder context. Attribution intervenes on the selected latent representation.
+        Gradient-based methods require a differentiable concept-to-prediction path.
         """
         if not isinstance(partial_explainer, PartialExplainer):
             raise TypeError(
@@ -1413,6 +1426,16 @@ class HolisticCraft(ABC):
         -------
         importances
             Importance scores for each concept, shape (n_concepts,)
+
+        Notes
+        -----
+        Images without detections matching ``class_id`` and ``confidence`` contribute
+        zero to the default image-wise mean. The default reduction uses attribution
+        magnitudes, not signed support. Set ``aggregation_reducer=None`` to retain
+        per-image scores, and ``abs_before_reduce=False`` for signed reduction.
+
+        Detector importance describes interventions on the selected feature level
+        while retaining the companion context required by the latent decoder.
         """
         if method == "gradient_input":
             method_kwargs.setdefault("operator", operator)

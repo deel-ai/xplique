@@ -23,7 +23,17 @@ class TorchBoxesModelWrapper(OutputAsListMixin, torch.nn.Module, ABC):
 
     This class wraps an object detection model and applies a box formatter to its outputs.
     It can return predictions either as a list of formatted boxes (one per image) or as
-    a single stacked tensor.
+    a single padded tensor. List output is the default and supports varying detection
+    counts. Set ``output_as_tensor = True`` (equivalently, ``output_as_list = False``)
+    before passing the wrapper through ``xplique.wrappers.TorchWrapper`` for attribution.
+
+    Notes
+    -----
+    Tensor output has shape (N, max_num_boxes, 5 + nb_classes); all-zero padding is
+    ignored by the object detection operator. The optional ``xplique-adapters`` package
+    supplies model-specific subclasses, such as ``TorchvisionBoxesModelWrapper`` and
+    the raw YOLO wrappers. The formatter determines coordinates and class-score encoding;
+    a wrapper does not restore gradients lost in an inference-only prediction path.
     """
 
     def __init__(self, model: torch.nn.Module, box_formatter: TorchBaseBoxFormatter) -> None:

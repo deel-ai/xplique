@@ -111,8 +111,8 @@ def object_detection_operator(
         the model makes prediction on the perturbed image and choose the most similar predicted box.
         This similarity is computed following the DRise method.
         In the case of gradient-based methods, the gradient is computed from the same score.
-        - Several boxes are provided for one image: In this case, the attributions for each box are
-        computed and the mean is taken.
+        - Several boxes are provided for one image: The largest matching score for each
+        reference box is computed, then these scores are averaged and attributed.
 
     Therefore, to explain each box separately, the easiest way is to call the attribution method
     with a batch of the same image tiled to match the number of predicted box.
@@ -127,23 +127,29 @@ def object_detection_operator(
     model
         Model used for computing object detection prediction.
         The model should have input and output shapes of (N, H, W, C) and (N, nb_boxes, (4+1+nc)).
-        The model should not include the NMS computation,
-        it is not differentiable and drastically reduce the number of boxes for the matching.
+        Black-box methods can use postprocessed predictions, including NMS. Pre-NMS
+        outputs provide more candidates for matching. Gradient-based methods require
+        a prediction path connected to inputs; formatting does not restore lost gradients.
     inputs
         Batched input samples to be explained. Expected shape (N, H, W, C).
         More information in the documentation.
     targets
-        Specify the box are boxes to explain for each input. Preferably, after the NMS.
+        Specify the reference box or boxes to explain for each input. Select them once
+        on the unperturbed inputs, optionally after NMS, and keep them fixed.
         It should be of shape (N, (4 + 1 + nc)) or (N, nb_boxes, (4 + 1 + nc)),
         with nc the number of classes,
         N the number of samples in the batch (it should match `inputs`),
         and nb_boxes the number of boxes to explain simultaneously.
 
-        (4 + 1 + nc) means: [boxes_coordinates, proba_detection, one_hots_classifications].
+        (4 + 1 + nc) means: [XYXY_coordinates, detection_confidence, class_scores].
+        Predictions and references must share coordinate conventions and class indexing.
+        Class scores may be soft probabilities or one-hot labels; one-hot labels do not
+        expose soft class gradients. Detection confidence is adapter-dependent.
 
         In the case the nb_boxes dimension is not 1,
         several boxes will be explained at the same time.
-        To be more precise, explanations will be computed for each box and the mean is returned.
+        The operator returns the mean of the best matching scores, not independently
+        computed attribution maps.
     intersection_score_fn
         Function that computes the intersection score between two bounding boxes coordinates.
         This function is batched. The default value is `_box_iou` computing IOU scores.
@@ -158,6 +164,14 @@ def object_detection_operator(
     scores
         Object detection scores computed following DRise definition:
         intersection_score * proba_detection * classification_similarity
+        Shape (N,). An image with no valid predictions or references receives zero.
+
+    Notes
+    -----
+    All-zero rows in predictions and references are ignored as padding. Detection
+    wrappers from the optional ``xplique-adapters`` package return lists by default;
+    set ``output_as_tensor = True`` for this operator. PyTorch detectors additionally
+    use ``xplique.wrappers.TorchWrapper`` to bridge the shared attribution API.
     """
 
     def batch_loop(args):
