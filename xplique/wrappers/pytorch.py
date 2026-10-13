@@ -26,6 +26,27 @@ class TorchWrapper(tf.keras.Model):
     requires_grad
         Whether gradients are available for the wrapped model. If False, inference
         remains available but gradient-based explainers raise a RuntimeError.
+
+    Notes
+    -----
+    For object detection, first use a model-specific wrapper from the optional
+    ``xplique-adapters`` package and set its ``output_as_tensor = True``. This converts
+    varying detection counts to padded tensor output. Pass channel-last (N, H, W, C)
+    images to the shared attribution API and set ``is_channel_first=True`` for a
+    detector expecting (N, C, H, W). Native ``HolisticCraftTorch`` calls instead accept
+    channel-first images and manage the concept-decoder bridge internally.
+
+    Examples
+    --------
+    Given an evaluation-mode detector adapter and the selected device::
+
+        adapter.output_as_tensor = True
+        wrapped = TorchWrapper(
+            adapter, device=device, is_channel_first=True, requires_grad=False
+        )
+
+    This configuration supports black-box attribution. Gradient-based attribution
+    requires ``requires_grad=True`` and a prediction path connected to the inputs.
     """
 
     def __init__(
