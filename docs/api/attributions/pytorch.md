@@ -86,7 +86,19 @@ It works for all tasks covered by Xplique, see [the tasks covered and how to spe
 
 ### Concept-based explanations
 
-PyTorch classification and object detection models can be explained with `HolisticCraftTorch` through the latent extractor builders described in the [Holistic CRAFT documentation](../concepts/holistic_craft.md). Detector-specific builders are provided by the `xplique-adapters` companion package, which is under construction and will be pip-installable soon.
+PyTorch classification and object detection models can be explained with `HolisticCraftTorch` through the latent extractor builders described in the [Holistic CRAFT documentation](../concepts/holistic_craft.md). Detector-specific builders are available in the optional [`xplique-adapters`](https://github.com/deel-ai/xplique-adapters) companion package.
+
+### Object detection adapters
+
+For pixel attribution, a detector adapter converts model-specific predictions to the
+Xplique box representation; `TorchWrapper` then bridges PyTorch to the shared attribution
+API. Before creating `TorchWrapper`, set the adapter's `output_as_tensor = True` to
+return a padded tensor instead of a list. Pass channel-last `(N, H, W, C)` inputs to
+the explainer and set `is_channel_first=True` so the detector receives `(N, C, H, W)`.
+
+See the [adapter integration guide](object_detection_adapters.md).
+Native `HolisticCraftTorch` calls instead receive channel-first images and manage
+the concept-decoder bridge internally.
 
 
 
