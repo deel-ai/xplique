@@ -21,6 +21,30 @@ from xplique.attributions.global_sensitivity_analysis import (
 from ..utils import almost_equal, generate_data, generate_model
 
 
+@pytest.mark.parametrize("pooled", [False, True])
+@pytest.mark.parametrize("dtype", [tf.float32, tf.float64])
+def test_jansen_variance_and_dtype_match_numpy(pooled, dtype):
+    """Default A-only and opt-in pooled estimates follow the independent formula."""
+    a = np.array([1.0, 2.0, 4.0], dtype=dtype.as_numpy_dtype)
+    b = np.array([2.0, 6.0, 3.0], dtype=dtype.as_numpy_dtype)
+    c = np.array([[2.0, 3.0, 5.0], [3.0, 1.0, 2.0]], dtype=dtype.as_numpy_dtype)
+    outputs = tf.constant(np.r_[a, b, c.ravel()])
+    estimator = JansenEstimator(pooled_variance=pooled, compute_dtype=dtype)
+    actual = estimator(tf.ones([12, 2]), outputs, 3)
+    reference = np.r_[a, b] if pooled else a
+    expected = np.sum((a - c) ** 2, axis=1) / (6 * np.var(reference, ddof=1))
+    assert actual.dtype == dtype
+    np.testing.assert_allclose(actual, expected, rtol=1e-6)
+    if not pooled and dtype == tf.float32:
+        np.testing.assert_array_equal(JansenEstimator()(tf.ones([12, 2]), outputs, 3), actual)
+
+
+@pytest.mark.parametrize("dtype", [tf.float16, tf.int32, None])
+def test_jansen_rejects_invalid_dtype(dtype):
+    with pytest.raises(ValueError, match="compute_dtype"):
+        JansenEstimator(compute_dtype=dtype)
+
+
 def test_nb_design_positional_compatibility():
     model = generate_model((4, 4, 1), 2)
 

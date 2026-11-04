@@ -11,12 +11,12 @@ from ...types import Tuple, Union
 EPS = 1e-12
 
 
-def _sample_var_1d(x: tf.Tensor) -> tf.Tensor:
+def _sample_var_1d(x: tf.Tensor, dtype=tf.float32) -> tf.Tensor:
     """
     Unbiased sample variance for a 1D tensor (ddof=1).
-    Returns scalar (same dtype as x).
+    Returns a scalar in the requested computation dtype.
     """
-    x = tf.cast(x, dtype=tf.float32)
+    x = tf.cast(x, dtype=dtype)
     n = tf.cast(tf.size(x), x.dtype)
     mean = tf.reduce_mean(x)
     # Sum of squared deviations
@@ -165,7 +165,27 @@ class JansenEstimator(SobolEstimator):
 
     Ref. Jansen, M., Analysis of variance designs for model output (1999)
     https://www.sciencedirect.com/science/article/abs/pii/S0010465598001544
+
+    Parameters
+    ----------
+    pooled_variance
+        If True, estimate reference variance from both A and B outputs with
+        denominator 2 * nb_design - 1. Defaults to False (A outputs only).
+    compute_dtype
+        Computation and result dtype, either tf.float32 or tf.float64. The
+        default tf.float32 and A-only variance preserve the previous behavior.
+
+    Notes
+    -----
+    Indices are sum((A - C_i)**2) / (2 * nb_design * max(variance, 1e-12)).
+    Configuration is read when tracing; do not mutate it after calling the estimator.
     """
+
+    def __init__(self, pooled_variance: bool = False, compute_dtype=tf.float32):
+        if compute_dtype not in (tf.float32, tf.float64):
+            raise ValueError("compute_dtype must be tf.float32 or tf.float64.")
+        self.pooled_variance = pooled_variance
+        self.compute_dtype = compute_dtype
 
     @tf.function(jit_compile=True)
     def __call__(self, masks: tf.Tensor, outputs: tf.Tensor, nb_design: int) -> tf.Tensor:
@@ -188,20 +208,22 @@ class JansenEstimator(SobolEstimator):
           Total order Sobol' indices, one for each dimensions.
         """
         nb_dim = self.masks_dim(masks)
-        a, _, c = self.split_abc(outputs, nb_design, nb_dim)  # a:(N,), c:(D,N)
+        a, b, c = self.split_abc(outputs, nb_design, nb_dim)
 
-        a = tf.cast(a, dtype=tf.float32)
-        c = tf.cast(c, dtype=tf.float32)
+        a = tf.cast(a, dtype=self.compute_dtype)
+        b = tf.cast(b, dtype=self.compute_dtype)
+        c = tf.cast(c, dtype=self.compute_dtype)
 
-        var_a = _sample_var_1d(a)
-        var_a = tf.maximum(var_a, tf.constant(EPS, dtype=a.dtype))
+        reference = tf.concat([a, b], axis=0) if self.pooled_variance else a
+        variance = _sample_var_1d(reference, dtype=self.compute_dtype)
+        variance = tf.maximum(variance, tf.constant(EPS, dtype=a.dtype))
 
         # (D, N) broadcast: a -> (1, N)
         diff = a[None, :] - c
         numerator = tf.reduce_sum(tf.square(diff), axis=-1)  # (D,)
 
         n = tf.cast(tf.shape(a)[0], a.dtype)
-        st = numerator / (2.0 * n * var_a)  # (D,)
+        st = numerator / (2.0 * n * variance)  # (D,)
 
         return self.post_process(st, masks)
 

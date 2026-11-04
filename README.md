@@ -311,6 +311,16 @@ There are 4 modules in Xplique, [Attribution methods](https://deel-ai.github.io/
 | Hsic Attribution       | TF, PyTorch**            | [Paper](https://arxiv.org/abs/2206.06219) | C✔️ OD✔️ SS✔️ | 🔵      | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1XproaVxXjO9nrBSyyy7BuKJ1vy21iHs2) |
 | FORGrad enhancement    | TF, PyTorch**            | [Paper](https://arxiv.org/abs/2307.09591) | C✔️ OD✔️ SS✔️ | ❌      | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1ibLzn7r9QQIEmZxApObowzx8n9ukinYB) |
 
+**Concept-channel attributions** explain already-encoded concept coefficients `(N, ..., K)`
+through a decoder; see [Concept-channel approaches](https://deel-ai.github.io/xplique/latest/api/attributions/api_attributions/#concept-channel-approaches).
+
+| **Attribution Method** | Type of Model | Source | Reported quantity | Tutorial |
+| :--- | :--- | :--- | :--- | :---: |
+| Banzhaf | TF, PyTorch**, Callable* | [Paper](https://doi.org/10.1287/moor.4.2.99) | Signed effect | 🔵 |
+| KernelBanzhaf | TF, PyTorch**, Callable* | [Paper](https://arxiv.org/abs/2410.08336) | Signed effect (regression) | 🔵 |
+| SparseSobol | TF, PyTorch**, Callable* | [Paper](https://arxiv.org/abs/2111.04138) | Unsigned total-order sensitivity | 🔵 |
+| SparseHSIC | TF, PyTorch**, Callable* | [Paper](https://arxiv.org/abs/2206.06219) | Unsigned marginal dependence | 🔵 |
+
 TF : Tensorflow compatible
 
 C : [Classification](https://deel-ai.github.io/xplique/latest/api/attributions/classification/) | R : [Regression](https://deel-ai.github.io/xplique/latest/api/attributions/regression/) |
