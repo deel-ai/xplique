@@ -7,6 +7,11 @@ from ..global_sensitivity_analysis.replicated_designs import ReplicatedSampler
 from ..global_sensitivity_analysis.sobol_estimators import JansenEstimator
 from .base import _check_integer, _ConceptChannelExplainer
 
+# Share the stateless estimator to reuse its bound tf.function trace cache across
+# explainers (including per-image PartialExplainer instances). Different design
+# sizes, shapes, or dtypes can still require separate traces.
+_POOLED_JANSEN_ESTIMATOR = JansenEstimator(pooled_variance=True, compute_dtype=tf.float64)
+
 
 class SparseSobol(_ConceptChannelExplainer):
     """Estimate total-order sensitivity over exact active concept channels.
@@ -36,9 +41,10 @@ class SparseSobol(_ConceptChannelExplainer):
 
     Notes
     -----
-    The existing Xplique Jansen estimator computes in float32, floors reference
-    variance at 1e-12, and does not clip finite-sample indices to [0, 1]. Constant
-    outputs produce zero indices. Returned values are unsigned total-order
+    Jansen estimation uses the unbiased pooled A and B variance in float64 and
+    returns float32 indices. Reference variance is floored at 1e-12, and finite-sample
+    indices are not clipped to [0, 1]. Constant outputs produce zero indices.
+    Returned values are unsigned total-order
     sensitivities, not signed Banzhaf effects or spatial attribution maps.
 
     References
@@ -70,7 +76,7 @@ class SparseSobol(_ConceptChannelExplainer):
         super().__init__(model, batch_size, operator, seed)
         self.nb_design = nb_design
         self.mask_distribution = mask_distribution
-        self.estimator = JansenEstimator()
+        self.estimator = _POOLED_JANSEN_ESTIMATOR
 
     def _sample_masks(self, nb_active: int, input_index: int) -> tf.Tensor:
         input_seed = self._input_seed(input_index)
@@ -86,4 +92,4 @@ class SparseSobol(_ConceptChannelExplainer):
         return tf.concat([sampling_a, sampling_b, replicated_c], axis=0)
 
     def _estimate(self, masks: tf.Tensor, outputs: tf.Tensor) -> tf.Tensor:
-        return self.estimator(masks, outputs, self.nb_design)
+        return tf.cast(self.estimator(masks, outputs, self.nb_design), tf.float32)

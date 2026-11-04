@@ -98,13 +98,44 @@ def test_signed64_seed_endpoints(seed):
     np.testing.assert_array_equal(actual, tf.concat([sampling_a, sampling_b, expected_c], 0))
 
 
-def test_estimate_is_direct_jansen_evaluation():
-    """SparseSobol delegates its sampled outputs unchanged to Jansen total indices."""
+def test_estimate_uses_pooled_jansen_evaluation():
+    """SparseSobol uses float64 pooled Jansen and returns float32 effects."""
     explainer = SparseSobol(_sum, operator=_operator, nb_design=7, seed=31)
     masks = explainer._sample_masks(4, 2)
     outputs = tf.cast(tf.range(masks.shape[0]), tf.float64) ** 2 + 0.25
-    expected = JansenEstimator()(masks, outputs, explainer.nb_design)
+    expected = tf.cast(
+        JansenEstimator(pooled_variance=True, compute_dtype=tf.float64)(masks, outputs, 7),
+        tf.float32,
+    )
     np.testing.assert_array_equal(explainer._estimate(masks, outputs), expected)
+    scores = outputs.numpy()
+    a, b, c = scores[:7], scores[7:14], scores[14:].reshape(4, 7)
+    reference = np.sum((a - c) ** 2, axis=1) / (14 * np.var(np.r_[a, b], ddof=1))
+    np.testing.assert_allclose(expected, reference.astype(np.float32), rtol=1e-6)
+
+
+def test_pooled_variance_uses_untied_b_scores():
+    """Tied A scores no longer force the variance floor when B scores differ."""
+    masks = tf.ones([6, 1])
+    outputs = tf.constant([0.0, 0.0, 0.0, 1.0, 0.0, 1.0], tf.float64)
+    explainer = SparseSobol(_sum, operator=_operator, nb_design=2)
+    actual = explainer._estimate(masks, outputs)
+    expected = 1 / (4 * np.var([0.0, 0.0, 0.0, 1.0], ddof=1))
+    np.testing.assert_allclose(actual, [expected])
+    assert float(JansenEstimator()(masks, outputs, 2)[0]) > 1e10
+
+
+@pytest.mark.parametrize("seed", range(20))
+def test_one_channel_bernoulli_small_design_stays_bounded(seed):
+    result = SparseSobol(
+        _sum, operator=_operator, nb_design=2, mask_distribution="bernoulli", seed=seed
+    )([[1.0]], [[1.0]])
+    assert bool(tf.reduce_all(tf.math.is_finite(result)))
+    assert 0 <= float(result[0, 0]) <= 2
+
+
+def test_instances_share_jansen_estimator():
+    assert SparseSobol(_sum).estimator is SparseSobol(_sum).estimator
 
 
 def test_constant_scores_are_exactly_zero():

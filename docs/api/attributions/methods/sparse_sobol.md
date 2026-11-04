@@ -84,13 +84,16 @@ total-order estimate ([Jansen, 1999](#references))
 $$
 \widehat{S}_{T_i} =
 \frac{\sum_{j=1}^{n}\left(f(A_j)-f(C_{i,j})\right)^2}
-     {2n\,\max\left(s_A^2,10^{-12}\right)},
+     {2n\,\max\left(s_{AB}^2,10^{-12}\right)},
 $$
 
-where $s_A^2$ is the unbiased `float32` sample variance of the $A$ outputs, using denominator
-$n-1$. Calculations and returned indices use `float32`. The $B$ outputs are evaluated to preserve
-the complete replicated-design contract even though this Jansen total-order formula does not
-currently consume them.
+where $s_{AB}^2$ is the unbiased sample variance of the pooled $2n$ outputs of $A$ and $B$,
+using denominator $2n-1$. Computation uses `float64`; returned indices use `float32`.
+
+Pooling uses the already evaluated B outputs without increasing the evaluation cost and makes
+tied reference scores less likely, particularly with Bernoulli masks. For one active channel,
+$C_1=B$, so tied pooled scores also imply a zero numerator. With multiple active channels,
+interactions can still make hybrid outputs differ even when all pooled reference scores tie.
 
 The squared differences make the result unsigned. Constant scores produce exact zero indices.
 There is no clipping to $[0,1]$: a finite Monte Carlo estimate may exceed `1`. The `1e-12`
