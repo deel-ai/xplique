@@ -262,6 +262,16 @@ predictions, and fixed targets for each image. Holistic CRAFT's current decoder 
 activations by multiplying coefficients with the concept bank. For a factorizer with different
 decoding semantics, use a decoder that implements those semantics before interpreting effects.
 The explainer never re-encodes masked coefficients.
+
+Restricting the attribution game to active channels fits sparse concept codes. In
+histopathology, [Lazard et al. (2026)](https://arxiv.org/abs/2609.02985) found that, with a
+large overcomplete concept bank, sparse non-negative decomposition of embeddings recovered
+substantially more known morphology than dense similarity-based concept attribution, which was
+indistinguishable from a random-concept baseline. Their concept contributions come from
+projecting a linear classifier onto concept directions; the explainers below instead estimate
+black-box effects for the coefficients Holistic CRAFT supplies, and do not perform a sparse
+decomposition themselves.
+
 For example, after fitting a classification `craft` instance:
 
 ```python
