@@ -3,7 +3,7 @@
 import numpy as np
 import tensorflow as tf
 
-from ...types import Callable, OperatorSignature, Optional, Tuple, Union
+from ...types import Callable, List, OperatorSignature, Optional, Tuple, Union
 from .base import _bernoulli, _check_integer, _ConceptChannelExplainer
 
 
@@ -135,8 +135,8 @@ class KernelBanzhaf(Banzhaf):
     Raises
     ------
     ValueError
-        If the centered design is rank deficient. Checks precede inference for
-        each input; previous inputs in the same call may already have been evaluated.
+        If a centered design is rank deficient. All inputs' designs are checked
+        before any model or operator call in the explanation call.
 
     Notes
     -----
@@ -152,23 +152,30 @@ class KernelBanzhaf(Banzhaf):
     Banzhaf Values", https://arxiv.org/abs/2410.08336.
     """
 
-    def _sample_masks(self, nb_active: int, input_index: int) -> tf.Tensor:
+    def _validate_designs(self, nb_active_per_input: List[int]) -> None:
+        """Validate every nonempty design before any inference."""
+        # Designs are model-independent and stateless. Resample during evaluation
+        # instead of keeping per-call masks or SVD factors on the explainer.
+        for input_index, nb_active in enumerate(nb_active_per_input):
+            if nb_active:
+                self._check_design(nb_active, input_index)
+
+    def _check_design(self, nb_active: int, input_index: int) -> None:
         if not self._is_enumerated(nb_active) and nb_active > self.nb_samples // 2:
             raise ValueError(
                 f"Active dimension {nb_active} exceeds the antithetic rank bound "
-                f"{self.nb_samples // 2} for nb_samples={self.nb_samples}. "
+                f"{self.nb_samples // 2} for nb_samples={self.nb_samples} at input {input_index}. "
                 "Increase nb_samples to allow full-rank regression."
             )
-        masks = super()._sample_masks(nb_active, input_index)
+        masks = self._sample_masks(nb_active, input_index)
         centered = tf.cast(masks, tf.float64) - 0.5
         rank = _numerical_rank(tf.linalg.svd(centered, compute_uv=False), centered.shape)
         if rank < nb_active:
             raise ValueError(
                 f"Centered mask design has rank {rank}, below active dimension {nb_active}, "
-                f"with nb_samples={self.nb_samples}. Increase nb_samples; "
+                f"with nb_samples={self.nb_samples} at input {input_index}. Increase nb_samples; "
                 "exhaustive enumeration guarantees full rank."
             )
-        return masks
 
     def _estimate(self, masks: tf.Tensor, outputs: tf.Tensor) -> tf.Tensor:
         centered = tf.cast(masks, tf.float64) - 0.5

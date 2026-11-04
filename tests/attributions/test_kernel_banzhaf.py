@@ -140,6 +140,7 @@ def test_rank_check_and_full_rank_budget_boundary(monkeypatch, full_rank):
     if full_rank:
         np.testing.assert_allclose(explainer(inputs, [[1.0]]), inputs, atol=1e-6)
         assert sum(calls) == 6
+        assert sampled == [(3, 0), (3, 0)]
     else:
         with pytest.raises(ValueError) as error:
             explainer(inputs, [[1.0]])
@@ -147,7 +148,7 @@ def test_rank_check_and_full_rank_budget_boundary(monkeypatch, full_rank):
         assert "rank" in message
         assert "3" in message and "6" in message
         assert calls == []
-    assert sampled == [(3, 0)]
+        assert sampled == [(3, 0)]
 
 
 @pytest.mark.parametrize("game", ["constant", "xor"])
@@ -194,8 +195,25 @@ def test_exact_arbitrary_game():
     np.testing.assert_allclose(result, reference, atol=1e-6)
 
 
-def test_rank_failure_is_per_input():
-    """A later invalid support fails before its own inference, not earlier inputs'."""
+def test_empty_support_skips_rank_validation_and_preserves_input_index(monkeypatch):
+    """Only the nonempty row is sampled, once in preflight and once for evaluation."""
+    sampled = []
+    original = Banzhaf._sample_masks
+
+    def sample(self, nb_active, input_index):
+        sampled.append((nb_active, input_index))
+        return original(self, nb_active, input_index)
+
+    monkeypatch.setattr(Banzhaf, "_sample_masks", sample)
+    result = KernelBanzhaf(_sum, operator=_operator, nb_samples=4)(
+        [[0.0, 0.0], [2.0, 0.0]], [[1.0], [1.0]]
+    )
+    np.testing.assert_allclose(result, [[0.0, 0.0], [2.0, 0.0]], atol=1e-6)
+    assert sampled == [(1, 1), (1, 1)]
+
+
+def test_rank_failure_precedes_all_inference():
+    """A later invalid support fails before even the first input's inference."""
     calls = []
 
     def operator(model, inputs, targets):
@@ -203,7 +221,7 @@ def test_rank_failure_is_per_input():
         return model(inputs)
 
     explainer = KernelBanzhaf(_sum, operator=operator, nb_samples=4)
-    with pytest.raises(ValueError, match="rank bound"):
+    with pytest.raises(ValueError, match="rank bound.*input 1"):
         explainer([[1.0, 0.0, 0.0], [1.0, 1.0, 1.0]], [[1.0], [1.0]])
-    assert calls == [2]
+    assert calls == []
     np.testing.assert_allclose(explainer([[2.0, 0.0, 0.0]], [[1.0]]), [[2.0, 0.0, 0.0]])

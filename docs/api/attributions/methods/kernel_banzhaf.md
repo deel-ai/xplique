@@ -72,8 +72,10 @@ $$
 
 Here `eps64` is machine epsilon for `float64` and `smax` is the largest singular value of `X`.
 All `d` singular values must exceed this tolerance; otherwise a `ValueError` is raised.
-Both rank checks happen **before model or operator calls for the affected input**. Earlier
-inputs in the same explanation call may already have been evaluated. There is no resampling.
+Both rank checks happen **before any model or operator call for the whole explanation call**.
+Designs are deterministic and model-independent, so preflight avoids throwing away earlier
+inputs' inference work. Evaluation regenerates the identical designs instead of caching them;
+there are no retries with alternative designs.
 
 A larger sampled budget can help but does not guarantee rank. Exact enumeration guarantees
 full rank for nonempty support, but requires `2**d` evaluations. To avoid sampled rank failures

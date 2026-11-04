@@ -292,7 +292,10 @@ def test_batching_and_skipped_rows_change_only_call_sizes(method, batch_size, mo
     result = _make(method, operator=operator, batch_size=batch_size, seed=41)(inputs, targets)
     np.testing.assert_allclose(result, reference, rtol=0, atol=1e-5)
     # Skipping an inactive row does not renumber subsequent designs.
-    assert sampled == [(3, 0), (2, 2)]
+    expected_samples = [(3, 0), (2, 2)]
+    if method.cls is KernelBanzhaf:
+        expected_samples *= 2  # Whole-call preflight, then identical evaluation designs.
+    assert sampled == expected_samples
     totals = [sum(size for index, size in calls if index == row) for row in range(3)]
     assert totals == [method.evaluations(3), 0, method.evaluations(2)]
     if batch_size is None:

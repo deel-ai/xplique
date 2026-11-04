@@ -80,9 +80,10 @@ class _ConceptChannelExplainer(BlackBoxExplainer):
         if inputs.shape[0] == 0:
             return tf.zeros_like(inputs)
 
+        supports = [self._active_channel_ids(single_input) for single_input in inputs]
+        self._validate_designs([int(tf.size(ids)) for ids in supports])
         explanations = []
-        for input_index, single_input in enumerate(inputs):
-            active_ids = self._active_channel_ids(single_input)
+        for input_index, (single_input, active_ids) in enumerate(zip(inputs, supports)):
             if not int(tf.size(active_ids)):
                 explanations.append(tf.zeros_like(single_input))
                 continue
@@ -164,6 +165,9 @@ class _ConceptChannelExplainer(BlackBoxExplainer):
                 raise ValueError("operator must return finite scalar scores.")
             outputs.append(scores)
         return tf.concat(outputs, axis=0)
+
+    def _validate_designs(self, nb_active_per_input: List[int]) -> None:
+        """Let subclasses reject designs before any model call."""
 
     def _sample_masks(self, nb_active: int, input_index: int) -> tf.Tensor:
         raise NotImplementedError

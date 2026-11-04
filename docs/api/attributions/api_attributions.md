@@ -100,8 +100,8 @@ new concept extraction method or a shared estimator across all four APIs.
 Banzhaf and KernelBanzhaf provide signed effects under binary retention masks. Banzhaf uses
 conditional-mean contrasts; KernelBanzhaf uses centered, full-rank least squares. Exact enumeration
 agrees for arbitrary games, but sampled estimates generally differ because balanced masks need not
-have orthogonal columns. KernelBanzhaf can reject sampled designs before evaluating the affected
-input; a larger sampled budget does not guarantee rank. See its
+have orthogonal columns. KernelBanzhaf rejects rank-deficient sampled designs before any model
+evaluation; a larger sampled budget does not guarantee rank. See its
 [rank requirements](methods/kernel_banzhaf.md#rank-requirements).
 
 SparseSobol instead reports unsigned Jansen total-order sensitivity indices, including

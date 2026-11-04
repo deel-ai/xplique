@@ -80,7 +80,7 @@ masking, scalar-target, and seed contracts, but fits centered full-rank least sq
 of conditional sample means. Exact enumeration gives the same effects for arbitrary games,
 up to numerical precision. Sampled effects generally differ: complementary masks balance
 columns without guaranteeing orthogonality. KernelBanzhaf rejects rank-deficient designs
-before model or operator calls for the affected input, with no resampling or regularized
+before any model or operator call, with no sampling retries or regularized
 fallback; Banzhaf does not require full rank. See its [rank requirements](kernel_banzhaf.md#rank-requirements)
 before choosing a sampled budget.
 
