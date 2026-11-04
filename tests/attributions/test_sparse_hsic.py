@@ -86,12 +86,10 @@ def test_masks_match_exact_iid_stateless_reference_without_pairing_or_enumeratio
         ([0.0, 0.0, 2.0], 2.0),
         ([0.0, 1.0, 4.0, 10.0], 5.0),
         ([1e12, 1e12 + 1.0, 1e12 + 4.0, 1e12 + 10.0], 5.0),
-        ([7.0, 7.0, 7.0], 1.0),
-        ([7.0], 1.0),
     ],
 )
 def test_positive_pairwise_distance_median(outputs, expected):
-    """Zeros are excluded, even medians interpolate, and constants fall back to one."""
+    """For non-constant scores, zeros are excluded and even medians interpolate."""
     actual = _median_positive_pairwise_distance(tf.constant(outputs, tf.float64))
     assert actual.dtype == tf.float64
     assert float(actual) == expected
@@ -128,15 +126,28 @@ def test_two_sample_normalization_sentinel():
     np.testing.assert_allclose(actual, [expected], rtol=0, atol=1e-8)
 
 
-@pytest.mark.parametrize("magnitude", [8e307, 1e308])
-def test_extreme_finite_scores_do_not_overflow_pairwise_distances(magnitude):
+def test_extreme_finite_scores_do_not_overflow_pairwise_distances():
     """Extreme finite distances and their median remain numerically usable."""
     masks = tf.constant([[0.0], [1.0]])
-    outputs = tf.constant([-magnitude, magnitude], tf.float64)
+    outputs = tf.constant([-8e307, 8e307], tf.float64)
     actual = SparseHSIC(_sum, operator=_operator, nb_samples=2)._estimate(masks, outputs)
     expected = np.float32((1.0 - np.exp(-0.5)) / 4.0)
     np.testing.assert_allclose(actual, [expected], rtol=0, atol=1e-8)
     assert bool(tf.reduce_all(tf.math.is_finite(actual)))
+
+
+def test_overflowing_bandwidth_raises():
+    masks = tf.constant([[0.0], [1.0]])
+    outputs = tf.constant([-1e308, 1e308], tf.float64)
+    with pytest.raises(ValueError, match="finite"):
+        SparseHSIC(_sum, operator=_operator, nb_samples=2)._estimate(masks, outputs)
+
+
+def test_infinite_distances_with_finite_median_remain_valid():
+    outputs = tf.constant([-1e308, -1e308, 0.0, 0.0, 1e308, 1e308], tf.float64)
+    gram = SparseHSIC._output_gram(outputs)
+    assert bool(tf.reduce_all(tf.math.is_finite(gram)))
+    assert float(gram[0, -1]) == 0
 
 
 def test_extreme_outlier_does_not_erase_small_distances():

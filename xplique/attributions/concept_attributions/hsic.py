@@ -6,25 +6,21 @@ from ...types import Callable, OperatorSignature, Optional, Union
 from .base import _bernoulli, _check_integer, _ConceptChannelExplainer
 
 
-def _median_or_one(values: tf.Tensor) -> tf.Tensor:
-    """Return the median of values, or one when empty."""
+def _median(values: tf.Tensor) -> tf.Tensor:
+    """Return the median of a nonempty tensor."""
     values = tf.sort(values)
     count = tf.size(values)
 
-    def median():
-        lower = values[(count - 1) // 2]
-        upper = values[count // 2]
-        midpoint = lower + (upper - lower) / 2.0
-        return tf.where(tf.math.is_inf(upper), upper, midpoint)
-
-    return tf.cond(count > 0, median, lambda: tf.constant(1.0, tf.float64))
+    lower = values[(count - 1) // 2]
+    upper = values[count // 2]
+    return lower + (upper - lower) / 2.0
 
 
 def _median_positive_pairwise_distance(outputs: tf.Tensor) -> tf.Tensor:
-    """Return the median positive pairwise distance, or one when none exists."""
+    """Return the median positive pairwise distance; outputs must be non-constant."""
     outputs = tf.cast(tf.reshape(outputs, [-1]), tf.float64)
     distances = tf.abs(outputs[:, None] - outputs[None, :])
-    return _median_or_one(tf.boolean_mask(distances, distances > 0))
+    return _median(tf.boolean_mask(distances, distances > 0))
 
 
 class SparseHSIC(_ConceptChannelExplainer):
@@ -53,8 +49,9 @@ class SparseHSIC(_ConceptChannelExplainer):
     Notes
     -----
     The output RBF bandwidth is the median strictly positive pairwise score
-    distance. Constant outputs return exact zeros. The estimator uses biased
-    HSIC normalization by nb_samples squared and float64 arithmetic, then casts
+    distance. Constant outputs return exact zeros. A bandwidth that overflows
+    float64 raises ValueError; rescale operator scores in that case. The estimator
+    uses biased HSIC normalization by nb_samples squared and float64 arithmetic, then casts
     results to float32. Its algebra requires O(nb_samples**2 + nb_samples*d)
     memory rather than constructing a (d, nb_samples, nb_samples) tensor.
 
@@ -96,11 +93,11 @@ class SparseHSIC(_ConceptChannelExplainer):
 
         distances = tf.abs(outputs[:, None] - outputs[None, :])
         bandwidth = _median_positive_pairwise_distance(outputs)
-        if bool(tf.math.is_inf(bandwidth)):
-            scaled_outputs = outputs / tf.reduce_max(tf.abs(outputs))
-            scaled_distances = tf.abs(scaled_outputs[:, None] - scaled_outputs[None, :])
-            bandwidth = _median_or_one(tf.boolean_mask(scaled_distances, distances > 0))
-            distances = scaled_distances
+        if not bool(tf.math.is_finite(bandwidth)):
+            raise ValueError(
+                "SparseHSIC requires the median pairwise score distance to be finite in float64; "
+                "rescale the operator scores."
+            )
         output_gram = tf.exp(-tf.square(distances / bandwidth) / 2.0)
         return output_gram
 

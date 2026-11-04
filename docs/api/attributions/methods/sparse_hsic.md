@@ -57,8 +57,8 @@ $$
 
 The bandwidth $\sigma$ is the median of the strictly positive pairwise absolute score distances
 $|y_i-y_j|$ for $i<j$. Repeated distances retain their pair multiplicity; the median is not taken
-over a set of unique values. Zero distances are excluded. If no strictly positive distance exists,
-the bandwidth falls back to `1`. A constant output is detected explicitly and produces exact zero
+over a set of unique values. Zero distances are excluded. Non-constant outputs always have a
+strictly positive distance. A constant output is detected explicitly and produces exact zero
 scores for every channel.
 
 ## Biased HSIC estimator
@@ -82,8 +82,8 @@ $$
 This keeps memory at $O(n^2+nd)$ instead of $O(dn^2)$, while forming and applying the output Gram
 matrix remains quadratic in `nb_samples`. Kernels and estimator algebra use `float64`; the final
 input-shaped explanation is cast to `float32`. Tiny negative values caused by roundoff are clamped
-to zero. If the median distance exceeds the finite `float64` range, distances are computed after a
-common positive rescaling; this leaves the RBF distance-to-bandwidth ratios unchanged. Scores are
+to zero. If the median distance overflows `float64`, a `ValueError` is raised; rescale the operator
+scores. Isolated infinite distances remain valid when the median is finite. Scores are
 otherwise not normalized and have no upper clipping.
 
 The IID active-channel masks, binary equality kernel, median-positive-distance bandwidth,
