@@ -56,6 +56,8 @@ The _Feature Visualization_ module allows to see how neural networks build their
 The _Concepts_ module allows you to extract human concepts from a model and to test their usefulness with respect to a class.
 Finally, the _Metrics_ module covers the current metrics used in explainability. Used in conjunction with the _Attribution Methods_ module, it allows you to test the different methods or evaluate the explanations of a model.
 
+[Concept-space metrics](https://deel-ai.github.io/xplique/latest/api/concepts/metrics/api_metrics/) evaluate activation reconstructions, concept usage, bank alignment, and geometry.
+
 <p align="center" width="100%">
     <img width="95%" src="./docs/assets/modules.png">
 </p>
