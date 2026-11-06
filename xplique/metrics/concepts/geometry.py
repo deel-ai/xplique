@@ -210,6 +210,11 @@ class CoactiveSupportCoherence:
     batch_size : int or None
         Observations processed at once; does not bound O(K squared) Gram storage
         or O(N) opt-in exact quantiles. No persistent bank/state is retained.
+
+    Notes
+    -----
+    Scoring uses O(N K squared) matrix work per evaluation, in addition to
+    O(K squared F) Gram work. Temporary scoring storage is O(batch_size K).
     """
 
     def __init__(
@@ -233,10 +238,9 @@ class CoactiveSupportCoherence:
         for chunk in observation_chunks(values, self.batch_size):
             active = activity_mask(chunk, norms, self.activity_basis, self.active_threshold)
             sizes = active.sum(axis=1)
-            scores = np.zeros(len(chunk))
-            for index in np.flatnonzero(sizes > 1):
-                support = np.flatnonzero(active[index])
-                scores[index] = gram[np.ix_(support, support)].sum(axis=1).max()
+            support_sums = active.astype(np.float64) @ gram
+            scores = np.where(active, support_sums, -np.inf).max(axis=1)
+            scores[sizes < 2] = 0.0
             yield scores, sizes
 
     def evaluate(self, coefficients, concept_bank) -> float:

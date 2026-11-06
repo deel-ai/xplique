@@ -223,23 +223,6 @@ def test_one_pass_iterables_and_energy_observation_scaling():
     np.testing.assert_allclose(doubled["effective_usage"], report["effective_usage"])
 
 
-def test_hand_computable_support_distribution():
-    bank = np.array([[1.0, 0.0], [0.6, 0.8], [0.0, 1.0]])
-    coefficients = np.array([[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [1.0, 1.0, 0.0], [1.0, 1.0, 1.0]])
-    details = CoactiveSupportCoherence(batch_size=3).detailed_evaluate(coefficients, bank)
-    np.testing.assert_allclose(details["observation_scores"], [0, 0, 0.6, 1.4])
-    assert details["empty_support_count"] == 1
-    assert details["singleton_support_count"] == 1
-    assert details["multi_support_count"] == 2
-    assert details["mean_multi_support_babel"] == pytest.approx(1.0)
-    assert details["support_babel_q95"] == pytest.approx(np.quantile([0, 0, 0.6, 1.4], 0.95))
-    assert np.isnan(
-        CoactiveSupportCoherence().detailed_evaluate(np.zeros_like(coefficients), bank)[
-            "mean_multi_support_babel"
-        ]
-    )
-
-
 def test_optional_dependencies_not_required():
     """Exercise the normal package import with optional scientific backends blocked."""
     code = """

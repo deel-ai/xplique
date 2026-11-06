@@ -225,7 +225,8 @@ they are not bank-wide worst-case Babel guarantees. The support definition is ex
 the usage definition, including contribution-based scaling and strict thresholding.
 
 Costs include O(K squared F) Gram work/O(K squared) storage, thin SVD work of order
-O(K F min(K,F)), and O(sum over observations of support size squared) coactive scoring.
+O(K F min(K,F)), and O(N K squared) matrix work for coactive scoring.
+Temporary coactive scoring storage is O(chunk_size K), bounded by `batch_size` when set.
 Exact observation medians and coactive quantiles require O(N) extra storage. Scalar
 coactive evaluation keeps only running sums/counts, besides the Gram and current chunk.
 

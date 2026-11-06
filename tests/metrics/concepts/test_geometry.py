@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 
 from xplique.metrics.concepts import (
+    CoactiveSupportCoherence,
     concept_bank_babel_curve,
     concept_bank_babel_score,
     concept_bank_geometry_metrics,
@@ -125,3 +126,50 @@ def test_energy_rank_endpoints_and_tolerance(spectrum):
     default = concept_bank_geometry_metrics(bank, spectrum=spectrum)
     for key in ["stable_rank", "energy_entropy_rank"]:
         assert report[key] == default[key]
+
+
+@pytest.mark.parametrize("batch_size", [None, 1, 7, 100])
+@pytest.mark.parametrize("basis", ["contribution", "coefficient"])
+def test_coactive_scores_match_reference_loop(batch_size, basis):
+    rng = np.random.default_rng(8)
+    bank = rng.normal(size=(8, 5))
+    coefficients = rng.normal(size=(37, 8))
+    coefficients[rng.uniform(size=coefficients.shape) < 0.6] = 0
+    coefficients[0] = 0
+    coefficients[1] = 0
+    coefficients[1, 0] = 2
+    norms = np.linalg.norm(bank, axis=1)
+    unit = bank / norms[:, None]
+    gram = np.abs(np.clip(unit @ unit.T, -1, 1))
+    np.fill_diagonal(gram, 0)
+    magnitude = np.abs(coefficients) * (norms if basis == "contribution" else 1)
+    active = magnitude > 0.5
+    expected = np.zeros(len(coefficients))
+    for index, mask in enumerate(active):
+        support = np.flatnonzero(mask)
+        if len(support) >= 2:
+            expected[index] = gram[np.ix_(support, support)].sum(axis=1).max()
+    metric = CoactiveSupportCoherence(
+        batch_size=batch_size, activity_basis=basis, active_threshold=0.5
+    )
+    report = metric.detailed_evaluate(coefficients, bank)
+    np.testing.assert_allclose(report["observation_scores"], expected, rtol=1e-14, atol=1e-14)
+    np.testing.assert_array_equal(report["observation_support_sizes"], active.sum(axis=1))
+    assert metric(coefficients, bank) == pytest.approx(expected.mean())
+
+
+def test_hand_computable_support_distribution():
+    bank = np.array([[1.0, 0.0], [0.6, 0.8], [0.0, 1.0]])
+    coefficients = np.array([[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [1.0, 1.0, 0.0], [1.0, 1.0, 1.0]])
+    details = CoactiveSupportCoherence(batch_size=3).detailed_evaluate(coefficients, bank)
+    np.testing.assert_allclose(details["observation_scores"], [0, 0, 0.6, 1.4])
+    assert details["empty_support_count"] == 1
+    assert details["singleton_support_count"] == 1
+    assert details["multi_support_count"] == 2
+    assert details["mean_multi_support_babel"] == pytest.approx(1.0)
+    assert details["support_babel_q95"] == pytest.approx(np.quantile([0, 0, 0.6, 1.4], 0.95))
+    assert np.isnan(
+        CoactiveSupportCoherence().detailed_evaluate(np.zeros_like(coefficients), bank)[
+            "mean_multi_support_babel"
+        ]
+    )
