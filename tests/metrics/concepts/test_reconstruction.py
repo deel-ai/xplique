@@ -97,3 +97,14 @@ def test_reconstruction_validation_and_recovery(factory):
         metric.evaluate_batches([(x, x), (np.ones((2, 2)), np.ones((2, 2)))])
     assert metric(x, x) == (1 if factory is ReconstructionR2 else 0)
     assert metric(np.eye(2), np.eye(2)) == (1 if factory is ReconstructionR2 else 0)
+
+
+@pytest.mark.parametrize("factory", [ReconstructionR2, ReconstructionError])
+def test_reconstruction_batch_pair_format(factory):
+    metric = factory()
+    x = np.arange(30.0).reshape(2, 5, 3)
+    y = x + 1
+    for batches in [(x, y), [x], [(x,)], [(x, y, x)], [None], ["xy"], [iter((x, y))]]:
+        with pytest.raises(ValueError, match="iterable of pairs"):
+            metric.evaluate_batches(batches)
+    assert metric.evaluate_batches([[x, y]]) == metric(x, y)

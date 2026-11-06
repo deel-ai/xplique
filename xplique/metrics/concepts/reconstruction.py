@@ -22,7 +22,13 @@ def _reduce(batches, batch_size, centering=None, details=False):
     vectors = {key: [] for key in ("mse", "rmse", "mae", "relative_l2_error")}
     n_observations = 0
     n_features = None
-    for activations, reconstructed in batches:
+    for pair in batches:
+        if not isinstance(pair, (tuple, list)) or len(pair) != 2:
+            raise ValueError(
+                "Expected an iterable of pairs: [(activations, reconstructed), ...], "
+                "not a single (activations, reconstructed) pair."
+            )
+        activations, reconstructed = pair
         x = array_input(activations, "activations")
         y = array_input(reconstructed, "reconstructed")
         if x.shape != y.shape:

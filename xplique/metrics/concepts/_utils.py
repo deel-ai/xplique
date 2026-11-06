@@ -3,6 +3,13 @@
 import numpy as np
 
 
+def _is_real_scalar(value):
+    """Accept integer/floating scalars, but not boolean settings."""
+    return not isinstance(value, (bool, np.bool_)) and isinstance(
+        value, (int, float, np.integer, np.floating)
+    )
+
+
 def validate_batch_size(batch_size):
     """Validate an optional observation chunk size."""
     if batch_size is not None and (
@@ -66,7 +73,7 @@ def activity_config(activity_basis, active_threshold):
     """Validate the common strict activity definition."""
     if activity_basis not in ("contribution", "coefficient"):
         raise ValueError("activity_basis must be 'contribution' or 'coefficient'.")
-    if not isinstance(active_threshold, (int, float, np.integer, np.floating)):
+    if not _is_real_scalar(active_threshold):
         raise ValueError("active_threshold must be finite and nonnegative.")
     if not np.isfinite(active_threshold) or active_threshold < 0:
         raise ValueError("active_threshold must be finite and nonnegative.")

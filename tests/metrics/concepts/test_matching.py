@@ -41,3 +41,23 @@ def test_alignment_ties_rescaling_and_invalid_inputs():
         compare_concept_banks({"a": bank})
     with pytest.raises(ValueError):
         compare_concept_banks({"a": bank, "b": bank}, reference_key="missing")
+
+
+@pytest.mark.parametrize("mode", ["cosine", "absolute_cosine", "dot"])
+def test_random_alignment_exact_scalar_recovery(mode):
+    rng = np.random.default_rng(42)
+    metric = ConceptAlignment(similarity=mode)
+    for n_reference, n_compared in [(7, 3), (3, 7), (4, 4)]:
+        for _ in range(20):
+            reference = rng.normal(size=(n_reference, 9))
+            compared = rng.normal(size=(n_compared, 9))
+            details = metric.detailed_evaluate(reference, compared)
+            assert metric(reference, compared) == details.coverage_weighted_similarity
+
+
+def test_matching_result_identity_equality():
+    metric = ConceptAlignment()
+    first = metric.detailed_evaluate(np.eye(2), np.eye(2))
+    second = metric.detailed_evaluate(np.eye(2), np.eye(2))
+    assert first == first
+    assert first != second

@@ -11,6 +11,7 @@ import numpy as np
 
 from ...types import Optional
 from ._utils import (
+    _is_real_scalar,
     activity_config,
     activity_mask,
     array_input,
@@ -37,7 +38,7 @@ def _order(order, n_concepts):
 
 
 def _finite_scalar(value):
-    return isinstance(value, (int, float, np.integer, np.floating)) and np.isfinite(value)
+    return _is_real_scalar(value) and np.isfinite(value)
 
 
 def concept_bank_babel_score(concept_bank, *, order: int) -> float:
@@ -164,8 +165,8 @@ def concept_bank_geometry_metrics(
         "n_concepts": k,
         "n_features": f,
         "spectrum": spectrum,
-        "energy_fraction": energy_fraction,
-        "duplicate_threshold": duplicate_threshold,
+        "energy_fraction": float(energy_fraction),
+        "duplicate_threshold": float(duplicate_threshold),
         "rank_rtol": float(tolerance),
         "mutual_coherence": float(np.abs(cosine).max()) if cosine.size else 0.0,
         "mean_abs_cosine": float(np.abs(cosine).mean()) if cosine.size else 0.0,

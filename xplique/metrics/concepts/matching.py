@@ -9,9 +9,12 @@ from scipy.optimize import linear_sum_assignment
 from ._utils import concept_bank_input
 
 
-@dataclass
+@dataclass(eq=False)
 class HungarianMatchingResult:
     """Bank-level assignment and matched-pair scientific quantities.
+
+    Results compare by identity. Compare array fields individually with NumPy
+    testing functions when checking scientific equivalence.
 
     Attributes
     ----------
@@ -44,6 +47,13 @@ class HungarianMatchingResult:
     mean_similarity: float
     coverage: float
     coverage_weighted_similarity: float
+
+
+def _matched_summary(similarity, rows, columns):
+    """Share matched values and the exact coverage-weighted calculation."""
+    matched = similarity[rows, columns]
+    coverage = len(rows) / max(similarity.shape)
+    return matched, float(coverage), float(matched.mean() * coverage)
 
 
 class ConceptAlignment:
@@ -84,7 +94,7 @@ class ConceptAlignment:
         similarity, _, rows, columns = self._assignment(
             reference_concept_bank, compared_concept_bank
         )
-        return float(similarity[rows, columns].mean() * len(rows) / max(similarity.shape))
+        return _matched_summary(similarity, rows, columns)[2]
 
     def __call__(self, reference_concept_bank, compared_concept_bank) -> float:
         """Delegate to evaluate."""
@@ -106,9 +116,8 @@ class ConceptAlignment:
         similarity, cosine, rows, columns = self._assignment(
             reference_concept_bank, compared_concept_bank
         )
-        matched = similarity[rows, columns]
+        matched, coverage, coverage_weighted = _matched_summary(similarity, rows, columns)
         matched_cosine = cosine[rows, columns]
-        coverage = len(rows) / max(similarity.shape)
         return HungarianMatchingResult(
             self.similarity,
             similarity.shape[0],
@@ -121,7 +130,7 @@ class ConceptAlignment:
             np.where(matched_cosine < 0, -1, 1),
             float(matched.mean()),
             float(coverage),
-            float(matched.mean() * coverage),
+            coverage_weighted,
         )
 
 

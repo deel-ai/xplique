@@ -255,6 +255,32 @@ def test_invalid_activity_configuration(factory, settings):
         factory(**settings)
 
 
+@pytest.mark.parametrize("factory", [ConceptUsage, ConceptSparsity, CoactiveSupportCoherence])
+@pytest.mark.parametrize("threshold", [True, np.bool_(False)])
+def test_boolean_activity_threshold_rejected(factory, threshold):
+    with pytest.raises(ValueError):
+        factory(active_threshold=threshold)
+
+
+@pytest.mark.parametrize("setting", ["energy_fraction", "duplicate_threshold", "rank_rtol"])
+@pytest.mark.parametrize("value", [True, np.bool_(False)])
+def test_boolean_geometry_settings_rejected(setting, value):
+    with pytest.raises(ValueError):
+        concept_bank_geometry_metrics(np.eye(2), **{setting: value})
+
+
+@pytest.mark.parametrize("value", [np.float32(0.5), np.float64(0.5), np.int64(0)])
+def test_numpy_numeric_settings_accepted(value):
+    for factory in [ConceptUsage, ConceptSparsity, CoactiveSupportCoherence]:
+        assert factory(active_threshold=value).active_threshold == float(value)
+    fraction = value if value > 0 else np.int64(1)
+    report = concept_bank_geometry_metrics(
+        np.eye(2), energy_fraction=fraction, duplicate_threshold=value, rank_rtol=value
+    )
+    for setting in ["energy_fraction", "duplicate_threshold", "rank_rtol"]:
+        assert type(report[setting]) is float
+
+
 def test_one_pass_iterables_and_energy_observation_scaling():
     class Once:
         def __init__(self, values):
