@@ -30,7 +30,8 @@ Detailed array evaluations are opt-in and may store O(N) observation vectors. Sc
 and streamed evaluations do not collect these vectors. `ConceptUsage` already returns
 all its meaningful intermediates, so it has no `detailed_evaluate`.
 
-Configuration arguments are keyword-only. Scalar outputs are Python floats; vector
+Configuration arguments are keyword-only, except required Babel `order`, which can
+be positional or keyword. Scalar outputs are Python floats; vector
 outputs are NumPy arrays, not serialized lists. NaN and infinity are intentional
 scientific results in documented degenerate cases; serialization is the caller's concern.
 
@@ -155,6 +156,7 @@ alignment = ConceptAlignment(similarity='absolute_cosine')
 details = alignment.detailed_evaluate(reference, compared)
 assert alignment(reference, compared) == details.coverage_weighted_similarity
 assert np.isclose(details.mean_similarity, 1.)
+assert details.n_reference_concepts == details.n_compared_concepts == details.n_matched_pairs == 3
 pairs = compare_concept_banks({'run_a': reference, 'run_b': compared},
                              similarity='absolute_cosine')
 ```
@@ -186,7 +188,7 @@ from xplique.metrics.concepts import (
 bank = np.array([[1., 0.], [0., 1.], [1., 1.]])
 geometry = concept_bank_geometry_metrics(bank)
 curve = concept_bank_babel_curve(bank, max_order=2)
-assert concept_bank_babel_score(bank, order=2) == curve['babel_score']
+assert concept_bank_babel_score(bank, 2) == curve['babel_score']
 u = np.array([[1., 0., 1.], [0., 0., 0.], [0., 1., 0.]])
 coactive = CoactiveSupportCoherence(batch_size=2)
 details = coactive.detailed_evaluate(u, bank)
@@ -258,6 +260,7 @@ image-level grouping.
 | avg_activation / std_activation | mean_coefficient / std_coefficient |
 | energy / energy_share | component_energy / component_energy_share |
 | normalized_score | coverage_weighted_similarity |
+| reference_concepts / compared_concepts / matched_pairs | n_reference_concepts / n_compared_concepts / n_matched_pairs |
 | effective_rank / entropy_rank | energy_rank / energy_entropy_rank |
 | max_abs_cosine | mutual_coherence (no redundant alias) |
 | n_channels / n_atoms | n_features / n_concepts |

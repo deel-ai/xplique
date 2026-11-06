@@ -12,7 +12,9 @@ def test_alignment_modes_coverage_and_helper(mode):
     compared = bank[[2, 0]] * np.array([[2.0], [-3.0]])
     metric = ConceptAlignment(similarity=mode)
     details = metric.detailed_evaluate(bank, compared)
-    assert details.matched_pairs == 2
+    assert details.n_reference_concepts == 3
+    assert details.n_compared_concepts == 2
+    assert details.n_matched_pairs == 2
     assert details.coverage == pytest.approx(2 / 3)
     assert metric(bank, compared) == details.coverage_weighted_similarity
     assert details.coverage_weighted_similarity == pytest.approx(

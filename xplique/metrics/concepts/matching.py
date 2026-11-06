@@ -20,7 +20,7 @@ class HungarianMatchingResult:
     ----------
     similarity : str
         cosine, absolute_cosine, or dot objective.
-    reference_concepts, compared_concepts, matched_pairs : int
+    n_reference_concepts, n_compared_concepts, n_matched_pairs : int
         Bank sizes and min(bank sizes) pair count.
     assignment_reference_indices, assignment_compared_indices : np.ndarray
         Integer arrays of shape (M,) indexing matched rows.
@@ -36,9 +36,9 @@ class HungarianMatchingResult:
     """
 
     similarity: str
-    reference_concepts: int
-    compared_concepts: int
-    matched_pairs: int
+    n_reference_concepts: int
+    n_compared_concepts: int
+    n_matched_pairs: int
     assignment_reference_indices: np.ndarray
     assignment_compared_indices: np.ndarray
     matched_similarities: np.ndarray

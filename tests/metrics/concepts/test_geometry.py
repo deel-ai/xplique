@@ -49,6 +49,12 @@ def test_geometry_and_babel_analytical(monkeypatch):
     concept_bank_babel_curve(bank)
 
 
+def test_babel_order_positional_or_keyword():
+    bank = np.array([[1.0, 0.0], [0.6, 0.8], [0.0, 1.0]])
+    for order in range(len(bank)):
+        assert concept_bank_babel_score(bank, order) == concept_bank_babel_score(bank, order=order)
+
+
 def test_geometry_boundaries_and_extreme_scaling():
     for scale in [1e-250, 1.0, 1e250]:
         report = concept_bank_geometry_metrics(np.eye(3) * scale, energy_fraction=1.0)

@@ -129,7 +129,7 @@ def test_factorizer_integration():
     assert ConceptAlignment()(bank, bank) == pytest.approx(1)
     second = TfSklearnNMFFactorizer(n_components=3, max_iter=30, random_state=4, init="random")
     other, _ = second.fit(x)
-    assert ConceptAlignment().detailed_evaluate(bank, other).matched_pairs == 3
+    assert ConceptAlignment().detailed_evaluate(bank, other).n_matched_pairs == 3
     assert concept_bank_geometry_metrics(bank)["n_features"] == 6
     assert concept_bank_babel_curve(bank)["n_concepts"] == 3
     assert np.isfinite(concept_bank_babel_score(bank, order=2))

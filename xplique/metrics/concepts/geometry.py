@@ -41,7 +41,7 @@ def _finite_scalar(value):
     return _is_real_scalar(value) and np.isfinite(value)
 
 
-def concept_bank_babel_score(concept_bank, *, order: int) -> float:
+def concept_bank_babel_score(concept_bank, order: int) -> float:
     """Return maximum row sum of the order largest off-diagonal absolute cosines.
 
     Parameters
@@ -49,7 +49,8 @@ def concept_bank_babel_score(concept_bank, *, order: int) -> float:
     concept_bank : np.ndarray
         Nonempty (K,F) real bank with finite, nonzero concept vectors.
     order : int
-        Integer in [0,K-1]; booleans and fractional values are rejected.
+        Required integer in [0,K-1], positional or keyword. Booleans and fractional
+        values are rejected.
 
     Returns
     -------
