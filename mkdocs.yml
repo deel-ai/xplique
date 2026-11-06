@@ -44,6 +44,7 @@ nav:
       - Regression: api/attributions/regression.md
       - Semantic Segmentation: api/attributions/semantic_segmentation.md
   - Concept based:
+      - Metrics: api/concepts/metrics/api_metrics.md
       - Cav: api/concepts/cav.md
       - Tcav: api/concepts/tcav.md
       - Craft: api/concepts/craft.md
