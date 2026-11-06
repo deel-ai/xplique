@@ -125,6 +125,8 @@ def concept_bank_geometry_metrics(
         Strict signed pair-count threshold in [0,1], default 0.8.
     rank_rtol : float or None
         Relative singular-value tolerance in [0,1), default max(K,F)*float64 eps.
+        Singular values at or below this relative tolerance are excluded from
+        energy_rank; energy_fraction=1 returns this numerical rank exactly.
 
     Returns
     -------
@@ -138,6 +140,13 @@ def concept_bank_geometry_metrics(
         spectrum probabilities). condition_number uses the thin spectrum and is
         infinity at relative rank deficiency. welch_bound is the ambient-dimensional
         theoretical reference, zero if K<=F. No universal quality direction applies.
+
+    Notes
+    -----
+    Only energy_rank thresholds and renormalizes the energy spectrum by rank_rtol.
+    Fractions exactly on an interior cumulative boundary remain subject to float64
+    roundoff. Stable and entropy ranks use the full spectrum; the condition number
+    retains its existing rank_rtol cutoff.
     """
     if spectrum not in ("unit", "raw"):
         raise ValueError("spectrum must be 'unit' or 'raw'.")
@@ -158,8 +167,14 @@ def concept_bank_geometry_metrics(
     relative = singular / singular[0]
     energy = relative**2
     probabilities = energy / energy.sum()
-    cumulative = np.cumsum(probabilities)
+    retained_energy = energy[relative > tolerance]
+    cumulative = np.cumsum(retained_energy / retained_energy.sum())
     cumulative[-1] = 1.0
+    energy_rank = (
+        len(retained_energy)
+        if energy_fraction == 1.0
+        else int(np.searchsorted(cumulative, energy_fraction) + 1)
+    )
     positive = probabilities[probabilities > 0]
     return {
         "n_concepts": k,
@@ -175,7 +190,7 @@ def concept_bank_geometry_metrics(
         "norm_min": float(norms.min()),
         "norm_mean": float(norms.mean()),
         "norm_max": float(norms.max()),
-        "energy_rank": int(np.searchsorted(cumulative, energy_fraction) + 1),
+        "energy_rank": energy_rank,
         "stable_rank": float(energy.sum()),
         "energy_entropy_rank": float(np.exp(-np.sum(positive * np.log(positive)))),
         "condition_number": float(1 / relative[-1]) if relative[-1] > tolerance else np.inf,

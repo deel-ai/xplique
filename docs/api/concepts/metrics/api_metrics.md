@@ -201,7 +201,10 @@ threshold comparisons: these are heuristic near-pair counts, not semantic equiva
 
 Spectral geometry uses unit rows by default; `spectrum='raw'` preserves relative atom
 scales. Original norms are always reported. For squared-singular-value probabilities p,
-energy rank is the smallest cumulative rank reaching `energy_fraction`, stable rank is
+energy rank is the smallest cumulative rank reaching `energy_fraction` after excluding
+relative singular values at or below `rank_rtol` and renormalizing retained energy.
+At `energy_fraction=1.0` it returns the numerical rank exactly; fractions exactly on an
+interior cumulative boundary remain subject to float64 roundoff. Stable rank is
 sum(sigma squared)/sigma_max squared, and energy entropy rank is exp(-sum(p log p)).
 Zero entropy terms contribute zero. Condition number uses the thin SVD, not the K-by-K
 Gram matrix: it can be finite for an overcomplete bank. It is infinity when
