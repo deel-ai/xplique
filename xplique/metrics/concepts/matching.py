@@ -90,6 +90,27 @@ class ConceptAlignment:
         """Return bank-level matched mean times coverage, not an observation average.
 
         See detailed_evaluate for the assignment and coverage components.
+
+        Parameters
+        ----------
+        reference_concept_bank, compared_concept_bank : np.ndarray
+            Finite, nonempty real integer/floating banks (K_reference, F) and
+            (K_compared, F), with nonzero rows in shared feature coordinates.
+            Rows are concepts, not observations; no axes are flattened.
+
+        Returns
+        -------
+        float
+            Mean matched similarity times coverage, a bank-level score, not an
+            observation average. Cosine scores are dimensionless, dot scores
+            have product-of-bank units. Signed scores can be negative, dot scores
+            are unbounded; zero matched similarities give zero.
+
+        Raises
+        ------
+        ValueError
+            If banks are not 2-D real integer/floating arrays, are empty/nonfinite,
+            contain zero concept vectors, or have different feature counts.
         """
         similarity, _, rows, columns = self._assignment(
             reference_concept_bank, compared_concept_bank
@@ -97,13 +118,20 @@ class ConceptAlignment:
         return _matched_summary(similarity, rows, columns)[2]
 
     def __call__(self, reference_concept_bank, compared_concept_bank) -> float:
-        """Delegate to evaluate."""
+        """Delegate to evaluate; see its Parameters, Returns and Raises sections."""
         return self.evaluate(reference_concept_bank, compared_concept_bank)
 
     def detailed_evaluate(
         self, reference_concept_bank, compared_concept_bank
     ) -> HungarianMatchingResult:
         """Inspect matched-pair and bank-level quantities.
+
+        Parameters
+        ----------
+        reference_concept_bank, compared_concept_bank : np.ndarray
+            Finite, nonempty real integer/floating banks (K_reference, F) and
+            (K_compared, F), with nonzero rows in shared feature coordinates.
+            Rows are concepts, not observations; no axes are flattened.
 
         Returns
         -------
@@ -112,6 +140,12 @@ class ConceptAlignment:
             shapes and units are listed on HungarianMatchingResult. Nonempty
             nonzero banks always give M pairs; ties need not have unique indices.
             Zero cosine has polarity +1 by convention, not positive association.
+
+        Raises
+        ------
+        ValueError
+            If banks have invalid dtypes/dimensions, are empty/nonfinite, contain
+            zero vectors, or have different feature counts.
         """
         similarity, cosine, rows, columns = self._assignment(
             reference_concept_bank, compared_concept_bank
@@ -140,7 +174,9 @@ def compare_concept_banks(banks, *, similarity="cosine", reference_key=None) -> 
     Parameters
     ----------
     banks : dict
-        At least two run-key to concept-bank entries in comparable coordinates.
+        At least two run-key to finite, nonempty real integer/floating (K, F)
+        banks in comparable coordinates. K may vary; F must agree for each pair.
+        Rows must be nonzero; no axes are flattened into observations.
     similarity : str
         ConceptAlignment objective.
     reference_key : optional
@@ -151,6 +187,14 @@ def compare_concept_banks(banks, *, similarity="cosine", reference_key=None) -> 
     dict
         (reference run, compared run) keys to HungarianMatchingResult values.
         These are not independent replicates or a statistical stability estimator.
+        Fields have the shapes, units and zero-similarity conventions documented
+        on HungarianMatchingResult; each result is a bank-level comparison.
+
+    Raises
+    ------
+    ValueError
+        If fewer than two banks are supplied, reference_key is missing, or a
+        compared pair violates ConceptAlignment's bank input rules.
     """
     if len(banks) < 2:
         raise ValueError("At least two concept banks are required.")

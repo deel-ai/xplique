@@ -47,7 +47,8 @@ def concept_bank_babel_score(concept_bank, order: int) -> float:
     Parameters
     ----------
     concept_bank : np.ndarray
-        Nonempty (K,F) real bank with finite, nonzero concept vectors.
+        Nonempty (K,F) real integer/floating bank with finite, nonzero concept
+        vectors. Rows are concepts; no axes are flattened into observations.
     order : int
         Required integer in [0,K-1], positional or keyword. Booleans and fractional
         values are rejected.
@@ -57,6 +58,12 @@ def concept_bank_babel_score(concept_bank, order: int) -> float:
     float
         Dimensionless cumulative coherence in [0,order], zero at order zero.
         Sign/scale invariant; order one is mutual coherence. No SVD is performed.
+
+    Raises
+    ------
+    ValueError
+        If the bank is empty, nonfinite, not 2-D real integer/floating, has zero
+        rows, or order is not a non-boolean integer in [0,K-1].
     """
     _, _, unit = concept_bank_input(concept_bank, True)
     order = _order(order, len(unit))
@@ -73,7 +80,8 @@ def concept_bank_babel_curve(concept_bank, *, max_order=None) -> dict:
     Parameters
     ----------
     concept_bank : np.ndarray
-        Nonempty (K,F) finite bank, with nonzero rows.
+        Nonempty (K,F) finite real integer/floating bank, with nonzero rows.
+        Rows are concepts; no axes are flattened into observations.
     max_order : int or None
         Last order in [0,K-1], default K-1.
 
@@ -85,6 +93,12 @@ def concept_bank_babel_curve(concept_bank, *, max_order=None) -> dict:
         endpoint babel_score and actual mutual_coherence. Scores are dimensionless,
         zero at order zero; mutual coherence is zero only for a one-row/orthogonal
         bank, even if the requested curve ends at zero. Curves are not in [0,1].
+
+    Raises
+    ------
+    ValueError
+        If the bank is empty, nonfinite, not 2-D real integer/floating, has zero
+        rows, or max_order is neither None nor a non-boolean integer in [0,K-1].
     """
     _, _, unit = concept_bank_input(concept_bank, True)
     resolved = len(unit) - 1 if max_order is None else _order(max_order, len(unit))
@@ -117,7 +131,8 @@ def concept_bank_geometry_metrics(
     Parameters
     ----------
     concept_bank : np.ndarray
-        Nonempty finite (K,F) bank with nonzero rows.
+        Nonempty finite real integer/floating (K,F) bank with nonzero rows.
+        Rows are concepts; no axes are flattened into observations.
     spectrum : {'unit', 'raw'}
         SVD of unit rows (scale invariant) or original bank (scale sensitive).
     energy_fraction : float
@@ -141,6 +156,13 @@ def concept_bank_geometry_metrics(
         spectrum probabilities). condition_number uses the thin spectrum and is
         infinity at relative rank deficiency. welch_bound is the ambient-dimensional
         theoretical reference, zero if K<=F. No universal quality direction applies.
+
+    Raises
+    ------
+    ValueError
+        If the bank is empty, nonfinite, not 2-D real integer/floating, has zero
+        rows, spectrum is unknown, or a numeric setting is boolean, nonfinite,
+        not a real scalar, or outside its documented range.
 
     Notes
     -----
@@ -215,7 +237,8 @@ class CoactiveSupportCoherence:
     Notes
     -----
     Scoring uses O(N K squared) matrix work per evaluation, in addition to
-    O(K squared F) Gram work. Temporary scoring storage is O(batch_size K).
+    O(K squared F) Gram work. Temporary scoring storage is O(chunk_size K),
+    bounded by batch_size when set.
     """
 
     def __init__(
@@ -248,6 +271,28 @@ class CoactiveSupportCoherence:
         """Return unconditional mean observation coherence; see detailed_evaluate.
 
         Empty and singleton supports contribute zero, not missing observations.
+
+        Parameters
+        ----------
+        coefficients : np.ndarray
+            Finite, nonempty real integer/floating array (..., K), at least two
+            axes. Leading axes flatten into equally weighted observations.
+        concept_bank : np.ndarray
+            Finite, nonempty real integer/floating bank (K, F), matching K and
+            containing no zero concept vectors.
+
+        Returns
+        -------
+        float
+            Dimensionless unconditional mean of observation support coherence,
+            not a bank-wide maximum. Empty/singleton supports score zero.
+            See detailed_evaluate for observation scores and support counts.
+
+        Raises
+        ------
+        ValueError
+            If arrays have invalid dtypes/dimensions, are empty/nonfinite, have
+            mismatched concept counts, or the bank contains zero concept vectors.
         """
         total, count = 0.0, 0
         for scores, _ in self._scores(coefficients, concept_bank):
@@ -256,11 +301,20 @@ class CoactiveSupportCoherence:
         return float(total / count)
 
     def __call__(self, coefficients, concept_bank) -> float:
-        """Delegate to evaluate."""
+        """Delegate to evaluate; see its Parameters, Returns and Raises sections."""
         return self.evaluate(coefficients, concept_bank)
 
     def detailed_evaluate(self, coefficients, concept_bank) -> dict:
         """Inspect exact observation distribution and support counts.
+
+        Parameters
+        ----------
+        coefficients : np.ndarray
+            Finite, nonempty real integer/floating array (..., K), at least two
+            axes. Leading axes flatten into equally weighted observations.
+        concept_bank : np.ndarray
+            Finite, nonempty real integer/floating bank (K, F), matching K and
+            containing no zero concept vectors.
 
         Returns
         -------
@@ -274,6 +328,12 @@ class CoactiveSupportCoherence:
             NumPy linear quantiles. mean_multi_support_babel conditions on size>=2,
             NaN if absent. Empty/singleton scores are zero. Activity configuration
             is included. Exact details require O(N) additional storage.
+
+        Raises
+        ------
+        ValueError
+            If arrays have invalid dtypes/dimensions, are empty/nonfinite, have
+            mismatched concept counts, or the bank contains zero concept vectors.
         """
         chunks = list(self._scores(coefficients, concept_bank))
         scores = np.concatenate([chunk[0] for chunk in chunks])

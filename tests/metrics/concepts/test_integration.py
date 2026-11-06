@@ -127,6 +127,9 @@ def test_factorizer_integration():
     assert ConceptSparsity().detailed_evaluate(u, bank)["n_concepts"] == 3
     assert CoactiveSupportCoherence().detailed_evaluate(u, bank)["n_concepts"] == 3
     assert ConceptAlignment()(bank, bank) == pytest.approx(1)
+    alignment = ConceptAlignment().detailed_evaluate(bank, bank)
+    assert alignment.coverage == 1
+    assert alignment.mean_similarity == pytest.approx(1, abs=1e-14)
     second = TfSklearnNMFFactorizer(n_components=3, max_iter=30, random_state=4, init="random")
     other, _ = second.fit(x)
     assert ConceptAlignment().detailed_evaluate(bank, other).n_matched_pairs == 3

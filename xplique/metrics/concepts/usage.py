@@ -94,6 +94,15 @@ class ConceptUsage:
     def evaluate(self, coefficients, concept_bank) -> dict:
         """Return pooled usage statistics, not an average of batch reports.
 
+        Parameters
+        ----------
+        coefficients : np.ndarray
+            Finite, nonempty real integer/floating array (..., K), at least two
+            axes. Leading axes flatten into equally weighted observations.
+        concept_bank : np.ndarray
+            Finite, nonempty real integer/floating bank (K, F). Zero rows are
+            allowed; K must match the coefficient count.
+
         Returns
         -------
         dict
@@ -107,15 +116,44 @@ class ConceptUsage:
             firing at least once. sparsity is the global inactive fraction in [0,1].
             Zero contributions give zero effective usage/energy; no detailed API
             is provided because this report already contains the intermediates.
+
+        Raises
+        ------
+        ValueError
+            If arrays have invalid dtypes/dimensions, are empty/nonfinite, or
+            coefficient and bank concept counts differ.
         """
         return self.evaluate_batches((coefficients,), concept_bank=concept_bank)
 
     def __call__(self, coefficients, concept_bank) -> dict:
-        """Delegate to evaluate."""
+        """Delegate to evaluate; see its Parameters, Returns and Raises sections."""
         return self.evaluate(coefficients, concept_bank)
 
     def evaluate_batches(self, batches, *, concept_bank) -> dict:
-        """Consume coefficient batches once with a fixed bank and O(K) local state."""
+        """Consume coefficient batches once with a fixed bank and O(K) local state.
+
+        Parameters
+        ----------
+        batches : iterable of np.ndarray
+            Finite, nonempty real integer/floating coefficient arrays (..., K),
+            with at least two axes and fixed K. All leading axes flatten into
+            equally weighted observations across batches.
+        concept_bank : np.ndarray
+            Finite, nonempty real integer/floating bank (K, F), fixed for this
+            evaluation. Zero rows are allowed.
+
+        Returns
+        -------
+        dict
+            Pooled concept/global usage report with the fields, units, shapes and
+            zero-energy conventions of evaluate, not an average of batch reports.
+
+        Raises
+        ------
+        ValueError
+            If the stream is empty, arrays have invalid dtypes/dimensions, are
+            empty/nonfinite, or any batch's concept count differs from the bank.
+        """
         return _coefficient_statistics(
             batches,
             concept_bank,
@@ -161,19 +199,72 @@ class ConceptSparsity:
         )
 
     def evaluate(self, coefficients, concept_bank) -> float:
-        """Return pooled inactive fraction; see detailed_evaluate for firing/supports."""
+        """Return pooled inactive fraction; see detailed_evaluate for firing/supports.
+
+        Parameters
+        ----------
+        coefficients : np.ndarray
+            Finite, nonempty real integer/floating array (..., K), at least two
+            axes. Leading axes flatten into equally weighted observations.
+        concept_bank : np.ndarray
+            Finite, nonempty real integer/floating bank (K, F), matching K.
+            Zero concept vectors are allowed.
+
+        Returns
+        -------
+        float
+            Dimensionless pooled inactive fraction in [0,1], not an unweighted
+            mean of batch fractions. Zero coefficients give 1.
+
+        Raises
+        ------
+        ValueError
+            If arrays have invalid dtypes/dimensions, are empty/nonfinite, or
+            coefficient and bank concept counts differ.
+        """
         return self.evaluate_batches((coefficients,), concept_bank=concept_bank)
 
     def __call__(self, coefficients, concept_bank) -> float:
-        """Delegate to evaluate."""
+        """Delegate to evaluate; see its Parameters, Returns and Raises sections."""
         return self.evaluate(coefficients, concept_bank)
 
     def evaluate_batches(self, batches, *, concept_bank) -> float:
-        """Return pooled sparsity from one-pass coefficient batches."""
+        """Return pooled sparsity from one-pass coefficient batches.
+
+        Parameters
+        ----------
+        batches : iterable of np.ndarray
+            Finite, nonempty real integer/floating coefficient arrays (..., K),
+            at least two axes and fixed K. Leading axes flatten into equally
+            weighted observations across batches.
+        concept_bank : np.ndarray
+            Finite, nonempty real integer/floating bank (K, F). Zero rows allowed.
+
+        Returns
+        -------
+        float
+            Dimensionless pooled inactive fraction in [0,1], with the activity
+            definition of evaluate. All-zero coefficients give 1.
+
+        Raises
+        ------
+        ValueError
+            If the stream is empty, arrays have invalid dtypes/dimensions, are
+            empty/nonfinite, or any batch's concept count differs from the bank.
+        """
         return self._statistics(batches, concept_bank)["sparsity"]
 
     def detailed_evaluate(self, coefficients, concept_bank) -> dict:
         """Inspect activity at concept and observation granularity.
+
+        Parameters
+        ----------
+        coefficients : np.ndarray
+            Finite, nonempty real integer/floating array (..., K), at least two
+            axes. Leading axes flatten into equally weighted observations.
+        concept_bank : np.ndarray
+            Finite, nonempty real integer/floating bank (K, F), matching K.
+            Zero concept vectors are allowed.
 
         Returns
         -------
@@ -184,6 +275,12 @@ class ConceptSparsity:
             Zero coefficients give sparsity 1 and zero firing/supports. Integer
             n_observations/n_concepts/n_elements and activity configuration are
             included. No undefined quantities arise for valid nonempty inputs.
+
+        Raises
+        ------
+        ValueError
+            If arrays have invalid dtypes/dimensions, are empty/nonfinite, or
+            coefficient and bank concept counts differ.
         """
         report = self._statistics((coefficients,), concept_bank, True)
         keys = (

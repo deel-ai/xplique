@@ -45,6 +45,11 @@ All leading axes flatten into equally weighted observations. A spatial token and
 image vector therefore have different meanings; no image grouping or sample weighting
 is inferred. To evaluate images as observations, reshape each image into one feature vector.
 
+Reconstruction squared sums use float64 without rescaling. Extremely large finite
+values (beyond about `1e150` in magnitude, depending on element count) can overflow
+and produce `inf`/`NaN`. This is not expected for realistic activations; rescale
+inputs first if needed.
+
 Set `batch_size` for large activation sets. The default `None` processes each supplied
 array at once. Chunk size changes temporary memory, not the mathematical reduction
 (up to float64 roundoff). Contiguous arrays use views; strided arrays gather only the
@@ -52,6 +57,10 @@ current observation chunk, without a full flattened copy. Float64 conversion and
 finiteness checks happen per chunk. Exact detailed medians/quantiles still require O(N).
 
 Reconstruction and usage/sparsity additionally offer one-pass `evaluate_batches`:
+
+For reconstruction, supply an iterable whose items are tuple/list pairs, such as
+`[(activations, reconstructed), ...]`, not a single `(activations, reconstructed)`
+pair. Usage/sparsity instead consume an iterable of coefficient arrays with a fixed bank.
 
 ```python
 import numpy as np
@@ -82,6 +91,7 @@ import path still requires TensorFlow; this feature does not make Xplique Tensor
 ## Reconstruction and usage example
 
 ```python
+import numpy as np
 from xplique.metrics.concepts import (
     ReconstructionR2, ReconstructionError, ConceptUsage, ConceptSparsity,
 )
@@ -148,6 +158,7 @@ Coefficient activity is not. Usage allows zero concept vectors; angular diagnost
 ## Matching signed concept banks
 
 ```python
+import numpy as np
 from xplique.metrics.concepts import ConceptAlignment, compare_concept_banks
 
 reference = np.eye(3)
@@ -169,6 +180,9 @@ similarity and always returns min(bank sizes) pairs, without establishing signif
 Coverage is matched pairs divided by max(bank sizes); the headline is mean matched
 similarity times coverage. It may be negative, and dot scores are unbounded. Zero cosine
 has polarity +1 by arbitrary convention. Tied optimal assignments may vary by SciPy version.
+Result counts are `n_reference_concepts`, `n_compared_concepts`, and `n_matched_pairs`.
+Results compare by identity, not array contents; compare array fields individually
+with NumPy testing functions when checking scientific equivalence.
 
 The helper returns all pairs or a reference star. Call these stability measurements only
 under a defined repeated-fit protocol; pair comparisons are not independent replicates.
@@ -180,6 +194,7 @@ under a defined repeated-fit protocol; pair comparisons are not independent repl
 ## Geometry, Babel and observed supports
 
 ```python
+import numpy as np
 from xplique.metrics.concepts import (
     concept_bank_geometry_metrics, concept_bank_babel_score,
     concept_bank_babel_curve, CoactiveSupportCoherence,

@@ -179,3 +179,35 @@ def test_hand_computable_support_distribution():
             "mean_multi_support_babel"
         ]
     )
+
+
+def test_raw_spectrum_scale_sensitivity():
+    bank = np.eye(3)
+    rescaled = bank * np.array([[3.0], [1.0], [1.0]])
+    raw = concept_bank_geometry_metrics(bank, spectrum="raw")
+    raw_rescaled = concept_bank_geometry_metrics(rescaled, spectrum="raw")
+    assert raw_rescaled["stable_rank"] == pytest.approx(11 / 9)
+    assert raw["stable_rank"] != pytest.approx(raw_rescaled["stable_rank"])
+    assert concept_bank_geometry_metrics(bank)["stable_rank"] == pytest.approx(
+        concept_bank_geometry_metrics(rescaled)["stable_rank"]
+    )
+
+
+@pytest.mark.parametrize("spectrum", ["unit", "raw"])
+def test_explicit_rank_tolerance_controls_condition_number(spectrum):
+    bank = np.array([[1.0, 0.0], [1.0, 1e-10]])
+    default = concept_bank_geometry_metrics(bank, spectrum=spectrum)
+    assert np.isfinite(default["condition_number"])
+    assert default["rank_rtol"] == 2 * np.finfo(np.float64).eps
+    explicit = concept_bank_geometry_metrics(bank, spectrum=spectrum, rank_rtol=1e-8)
+    assert explicit["condition_number"] == np.inf
+    assert explicit["rank_rtol"] == 1e-8
+
+
+def test_random_babel_monotonicity_and_order_bound():
+    rng = np.random.default_rng(71)
+    for k, f in [(1, 3), (7, 5), (32, 9)]:
+        for _ in range(20):
+            curve = concept_bank_babel_curve(rng.normal(size=(k, f)))
+            assert np.all(np.diff(curve["babel_curve"]) >= 0)
+            assert np.all(curve["babel_curve"] <= curve["orders"])

@@ -108,3 +108,14 @@ def test_reconstruction_batch_pair_format(factory):
         with pytest.raises(ValueError, match="iterable of pairs"):
             metric.evaluate_batches(batches)
     assert metric.evaluate_batches([[x, y]]) == metric(x, y)
+
+
+@pytest.mark.parametrize("batch_size", [None, 1, 3])
+def test_r2_large_offset_matches_offset_removed_oracle(batch_size):
+    # Quarter/half increments and these batch means are exactly representable at 1e10.
+    x = np.arange(24.0).reshape(12, 2) * 0.25
+    y = x + 0.5
+    expected = 1 - np.square(x - y).sum() / np.square(x - x.mean(axis=0)).sum()
+    metric = ReconstructionR2(batch_size=batch_size)
+    assert metric(x, y) == pytest.approx(expected, abs=1e-12)
+    assert metric(x + 1e10, y + 1e10) == pytest.approx(expected, abs=1e-12)
