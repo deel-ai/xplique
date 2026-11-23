@@ -1,38 +1,57 @@
 """One-shot matching of complete concept banks in shared feature coordinates."""
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 from itertools import combinations
 
 import numpy as np
 from scipy.optimize import linear_sum_assignment
 
+from ...types import Any, Dict, Optional, Tuple
 from ._utils import concept_bank_input
 
 
 @dataclass(eq=False)
 class HungarianMatchingResult:
-    """Bank-level assignment and matched-pair scientific quantities.
+    """Structured result of optimal one-to-one Hungarian matching between two concept
+    banks, containing matched indices, per-pair similarities, polarities, and
+    bank-level summary scores.
 
-    Results compare by identity. Compare array fields individually with NumPy
-    testing functions when checking scientific equivalence.
-
-    Attributes
+    Parameters
     ----------
     similarity : str
-        cosine, absolute_cosine, or dot objective.
-    n_reference_concepts, n_compared_concepts, n_matched_pairs : int
-        Bank sizes and min(bank sizes) pair count.
-    assignment_reference_indices, assignment_compared_indices : np.ndarray
-        Integer arrays of shape (M,) indexing matched rows.
+        Matching objective used: ``'cosine'``, ``'absolute_cosine'``, or ``'dot'``.
+    n_reference_concepts : int
+        Number of concepts ``K_reference`` in the reference bank.
+    n_compared_concepts : int
+        Number of concepts ``K_compared`` in the compared bank.
+    n_matched_pairs : int
+        Number of matched concept pairs ``M = min(K_reference, K_compared)``.
+    assignment_reference_indices : np.ndarray
+        Integer row indices into the reference bank, shape ``(M,)``.
+    assignment_compared_indices : np.ndarray
+        Integer row indices into the compared bank, shape ``(M,)``.
     matched_similarities : np.ndarray
-        Shape (M,), dimensionless cosines or scale-sensitive dot products.
+        Objective value for each matched pair, shape ``(M,)`` (dimensionless cosines
+        or scale-sensitive dot products).
     matched_absolute_cosines : np.ndarray
-        Shape (M,), absolute directional agreements in [0,1].
+        Absolute cosine similarity in ``[0, 1]`` for each matched pair, shape ``(M,)``.
     matched_polarities : np.ndarray
-        Shape (M,), signs -1/+1; zero cosine arbitrarily uses +1.
-    mean_similarity, coverage, coverage_weighted_similarity : float
-        Mean objective, M/max(bank sizes), and their product. Signed scores may
-        be negative; dot scores are unbounded. No significance test is implied.
+        Sign (``+1`` or ``-1``) of each matched pair's cosine similarity, shape
+        ``(M,)`` (zero cosine uses ``+1`` by convention).
+    mean_similarity : float
+        Mean of ``matched_similarities`` over the ``M`` matched pairs.
+    coverage : float
+        Fraction of concepts covered, ``M / max(K_reference, K_compared)`` in
+        ``(0, 1]``.
+    coverage_weighted_similarity : float
+        Headline alignment score ``mean_similarity * coverage``.
+
+    Notes
+    -----
+    Instances compare by identity (``eq=False``) to avoid ambiguous array truth values.
+    Compare array fields individually with NumPy testing utilities when checking
+    scientific equivalence.
     """
 
     similarity: str
@@ -57,17 +76,33 @@ def _matched_summary(similarity, rows, columns):
 
 
 class ConceptAlignment:
-    """Maximum-sum Hungarian matching, with no stored bank or assignment.
+    """Measure alignment between two concept banks via maximum-sum Hungarian matching.
+    Returns ``mean_similarity * coverage``, penalizing unequal bank sizes without
+    storing banks or assignments between calls.
 
     Parameters
     ----------
     similarity : {'cosine', 'absolute_cosine', 'dot'}
-        Signed directional agreement, agreement modulo valid sign symmetry, or
-        scale-sensitive dot product. Equal feature counts alone do not establish
-        comparable coordinate systems. Zero concept vectors are rejected.
+        Pairwise similarity objective. ``'cosine'`` (default) measures signed
+        directional agreement; ``'absolute_cosine'`` ignores concept sign flips (use
+        only when simultaneous atom/coefficient negation is a valid symmetry);
+        ``'dot'`` is scale-sensitive. Zero concept vectors are rejected.
+
+    Notes
+    -----
+    Both banks must live in the same feature coordinate system; matching feature
+    dimensions alone do not make two banks comparable across models or preprocessing.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> from xplique.metrics.concepts import ConceptAlignment
+    >>> bank = np.eye(3)
+    >>> ConceptAlignment()(bank, bank[[2, 0, 1]])
+    1.0
     """
 
-    def __init__(self, *, similarity="cosine"):
+    def __init__(self, *, similarity: str = "cosine"):
         if similarity not in ("cosine", "absolute_cosine", "dot"):
             raise ValueError("Unknown similarity mode.")
         self.similarity = similarity
@@ -86,25 +121,28 @@ class ConceptAlignment:
         rows, columns = linear_sum_assignment(similarity, maximize=True)
         return similarity, cosine, rows, columns
 
-    def evaluate(self, reference_concept_bank, compared_concept_bank) -> float:
-        """Return bank-level matched mean times coverage, not an observation average.
-
-        See detailed_evaluate for the assignment and coverage components.
+    def evaluate(
+        self, reference_concept_bank: np.ndarray, compared_concept_bank: np.ndarray
+    ) -> float:
+        """Compute the coverage-weighted Hungarian alignment score between two banks.
+        Higher values indicate closer alignment; see ``detailed_evaluate`` for the
+        matched indices, per-pair similarities, and coverage breakdown.
 
         Parameters
         ----------
-        reference_concept_bank, compared_concept_bank : np.ndarray
-            Finite, nonempty real integer/floating banks (K_reference, F) and
-            (K_compared, F), with nonzero rows in shared feature coordinates.
-            Rows are concepts, not observations; no axes are flattened.
+        reference_concept_bank : np.ndarray
+            Finite, nonempty 2-D real integer/floating bank of shape
+            ``(K_reference, F)`` with nonzero rows in shared feature coordinates.
+        compared_concept_bank : np.ndarray
+            Finite, nonempty 2-D real integer/floating bank of shape
+            ``(K_compared, F)`` with nonzero rows and the same feature count ``F``.
 
         Returns
         -------
-        float
-            Mean matched similarity times coverage, a bank-level score, not an
-            observation average. Cosine scores are dimensionless, dot scores
-            have product-of-bank units. Signed scores can be negative, dot scores
-            are unbounded; zero matched similarities give zero.
+        score : float
+            Coverage-weighted mean matched similarity (``mean_similarity * coverage``).
+            Cosine scores lie in ``[-1, 1]`` (or ``[0, 1]`` for ``'absolute_cosine'``);
+            dot scores are unbounded and carry product-of-bank units.
 
         Raises
         ------
@@ -117,29 +155,33 @@ class ConceptAlignment:
         )
         return _matched_summary(similarity, rows, columns)[2]
 
-    def __call__(self, reference_concept_bank, compared_concept_bank) -> float:
-        """Delegate to evaluate; see its Parameters, Returns and Raises sections."""
+    def __call__(
+        self, reference_concept_bank: np.ndarray, compared_concept_bank: np.ndarray
+    ) -> float:
+        """Alias for ``evaluate``."""
         return self.evaluate(reference_concept_bank, compared_concept_bank)
 
     def detailed_evaluate(
-        self, reference_concept_bank, compared_concept_bank
+        self, reference_concept_bank: np.ndarray, compared_concept_bank: np.ndarray
     ) -> HungarianMatchingResult:
-        """Inspect matched-pair and bank-level quantities.
+        """Compute the full Hungarian assignment, per-pair similarities, polarities,
+        and bank-level alignment summary.
 
         Parameters
         ----------
-        reference_concept_bank, compared_concept_bank : np.ndarray
-            Finite, nonempty real integer/floating banks (K_reference, F) and
-            (K_compared, F), with nonzero rows in shared feature coordinates.
-            Rows are concepts, not observations; no axes are flattened.
+        reference_concept_bank : np.ndarray
+            Finite, nonempty 2-D real integer/floating bank of shape
+            ``(K_reference, F)`` with nonzero rows in shared feature coordinates.
+        compared_concept_bank : np.ndarray
+            Finite, nonempty 2-D real integer/floating bank of shape
+            ``(K_compared, F)`` with nonzero rows and the same feature count ``F``.
 
         Returns
         -------
-        HungarianMatchingResult
-            coverage_weighted_similarity reproduces evaluate. All attributes,
-            shapes and units are listed on HungarianMatchingResult. Nonempty
-            nonzero banks always give M pairs; ties need not have unique indices.
-            Zero cosine has polarity +1 by convention, not positive association.
+        result : HungarianMatchingResult
+            Full matching result whose ``coverage_weighted_similarity`` equals
+            ``evaluate``. Tied optimal assignments may vary across SciPy versions;
+            zero cosine receives polarity ``+1`` by convention.
 
         Raises
         ------
@@ -168,33 +210,40 @@ class ConceptAlignment:
         )
 
 
-def compare_concept_banks(banks, *, similarity="cosine", reference_key=None) -> dict:
-    """Compare all bank pairs, or a reference star, using ConceptAlignment.
+def compare_concept_banks(
+    banks: Mapping[Any, np.ndarray],
+    *,
+    similarity: str = "cosine",
+    reference_key: Optional[Any] = None,
+) -> Dict[Tuple[Any, Any], HungarianMatchingResult]:
+    """Compare multiple concept banks pairwise (or against one reference bank) using
+    ``ConceptAlignment.detailed_evaluate``. Useful for inspecting agreement across
+    random seeds, hyperparameters, or concept-extraction runs.
 
     Parameters
     ----------
     banks : dict
-        At least two run-key to finite, nonempty real integer/floating (K, F)
-        banks in comparable coordinates. K may vary; F must agree for each pair.
-        Rows must be nonzero; no axes are flattened into observations.
-    similarity : str
-        ConceptAlignment objective.
+        Mapping of at least two run keys to finite, nonempty 2-D real concept banks
+        ``(K, F)`` with nonzero rows in shared feature coordinates. ``K`` may vary
+        across entries; ``F`` must match for every compared pair.
+    similarity : {'cosine', 'absolute_cosine', 'dot'}
+        Pairwise similarity objective passed to ``ConceptAlignment``.
     reference_key : optional
-        Existing key for reference-star comparisons; None selects all pairs.
+        Key in ``banks`` to compare all other banks against (star topology). When
+        ``None`` (default), evaluates every unordered pair.
 
     Returns
     -------
-    dict
-        (reference run, compared run) keys to HungarianMatchingResult values.
-        These are not independent replicates or a statistical stability estimator.
-        Fields have the shapes, units and zero-similarity conventions documented
-        on HungarianMatchingResult; each result is a bank-level comparison.
+    comparisons : dict
+        Mapping from ``(reference_run, compared_run)`` key pairs to
+        ``HungarianMatchingResult`` objects. Pairwise comparisons across repeated runs
+        are not statistically independent replicates.
 
     Raises
     ------
     ValueError
-        If fewer than two banks are supplied, reference_key is missing, or a
-        compared pair violates ConceptAlignment's bank input rules.
+        If fewer than two banks are supplied, ``reference_key`` is not in ``banks``,
+        or any compared pair violates ``ConceptAlignment`` input rules.
     """
     if len(banks) < 2:
         raise ValueError("At least two concept banks are required.")

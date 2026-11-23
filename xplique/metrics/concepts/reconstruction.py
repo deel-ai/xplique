@@ -1,8 +1,10 @@
 """Pooled reconstruction metrics with evaluation-local NumPy reductions."""
 
+from collections.abc import Iterable
+
 import numpy as np
 
-from ...types import Optional
+from ...types import Any, Dict, Optional, Tuple
 from ._utils import _Moments, array_input, observation_chunks, validate_batch_size
 
 
@@ -96,31 +98,52 @@ def _reduce(batches, batch_size, centering=None, details=False):
 
 
 class ReconstructionR2:
-    """Feature-centered pooled reconstruction R2 (not a mean of feature scores).
+    """Pooled reconstruction $R^2$ measuring how much activation variance a concept
+    representation preserves. Higher values (closer to ``1.0``) indicate better
+    reconstruction; ``0.0`` matches predicting the mean activation and negative values
+    indicate worse-than-mean reconstruction.
 
     Parameters
     ----------
     r2_centering : {'feature', 'global'}
-        Center each feature across observations, or all scalar elements together.
+        Centering strategy for total sum of squares (SST). ``'feature'`` (default)
+        centers each feature across observations; ``'global'`` centers all scalar
+        elements around a single grand mean.
     force_finite : bool
-        At exactly zero SST, return 1 for exact reconstruction and 0 otherwise.
-        Without this setting, return NaN in both cases. Negative R2 is permitted.
+        Behavior when SST is exactly zero (constant activations or a single
+        observation with feature centering). When ``False`` (default), returns
+        ``NaN``; when ``True``, returns ``1.0`` for exact reconstruction and ``0.0``
+        otherwise.
     batch_size : int or None
-        Observations processed at once; None processes each supplied array at once.
+        Number of flattened observations processed per chunk. ``None`` (default)
+        processes each supplied array at once.
 
     Notes
     -----
-    With nonconstant features this equals sklearn's variance-weighted r2_score.
-    Unlike sklearn it includes constant-feature residuals in pooled SSE. Global
-    centering equals r2_score on flattened arrays when SST is positive.
-    Squared sums use float64 without rescaling. Extremely large finite inputs
-    (beyond about 1e150 in magnitude, depending on element count) can overflow
-    and produce inf/NaN. This is not expected for realistic activations; rescale
-    inputs first if needed.
+    With nonconstant features, ``r2_centering='feature'`` matches scikit-learn's
+    ``r2_score(..., multioutput='variance_weighted')`` while still retaining residuals
+    from constant features in the pooled SSE. Global centering matches ``r2_score`` on
+    flattened arrays whenever SST is positive.
+
+    Squared sums are accumulated in float64 without rescaling. Extremely large finite
+    inputs (beyond roughly ``1e150`` in magnitude) can overflow to ``inf``/``NaN``;
+    rescale inputs first if needed.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> from xplique.metrics.concepts import ReconstructionR2
+    >>> x = np.array([[1.0, 0.0], [0.0, 2.0], [1.0, 1.0]])
+    >>> ReconstructionR2()(x, x + 0.1)  # doctest: +ELLIPSIS
+    0.97...
     """
 
     def __init__(
-        self, *, r2_centering="feature", force_finite=False, batch_size: Optional[int] = None
+        self,
+        *,
+        r2_centering: str = "feature",
+        force_finite: bool = False,
+        batch_size: Optional[int] = None,
     ):
         if r2_centering not in ("feature", "global"):
             raise ValueError("r2_centering must be 'feature' or 'global'.")
@@ -139,85 +162,96 @@ class ReconstructionR2:
         )
         return result
 
-    def evaluate(self, activations, reconstructed) -> float:
-        """Return pooled R2; see detailed_evaluate for its sufficient statistics.
+    def evaluate(self, activations: np.ndarray, reconstructed: np.ndarray) -> float:
+        """Compute pooled $R^2$ across all observations (not an average of per-feature
+        or per-observation scores). See ``detailed_evaluate`` for the underlying sums
+        and counts.
 
         Parameters
         ----------
-        activations, reconstructed : np.ndarray
-            Real integer/floating arrays with identical original shape (..., F),
-            at least two axes, finite values and no empty axes. Leading axes are
+        activations : np.ndarray
+            Reference activations with real integer/floating dtype, finite values,
+            and shape ``(..., F)`` (at least 2 axes, non-empty). Leading axes are
             flattened into equally weighted observations.
+        reconstructed : np.ndarray
+            Reconstructed activations with the exact same shape as ``activations``.
 
         Returns
         -------
-        float
-            Dimensionless pooled R2, not a mean of feature/observation R2 values.
-            Negative values are allowed. At zero SST, NaN unless force_finite,
-            which returns 1 for exact reconstruction and 0 otherwise.
+        r2 : float
+            Dimensionless pooled $R^2$ score (at most ``1.0``; negative values are
+            permitted). Returns ``NaN`` at zero SST unless ``force_finite=True``.
 
         Raises
         ------
         ValueError
-            If input shapes differ, have fewer than two axes, are empty, contain
+            If shapes differ, arrays have fewer than two axes, are empty, contain
             nonfinite values, or do not have real integer/floating dtypes.
         """
         return self.evaluate_batches(((activations, reconstructed),))
 
-    def __call__(self, activations, reconstructed) -> float:
-        """Delegate to evaluate; see its Parameters, Returns and Raises sections."""
+    def __call__(self, activations: np.ndarray, reconstructed: np.ndarray) -> float:
+        """Alias for ``evaluate``."""
         return self.evaluate(activations, reconstructed)
 
-    def evaluate_batches(self, batches) -> float:
-        """Consume pairs once, returning pooled R2 with O(F) local state.
+    def evaluate_batches(self, batches: Iterable[Tuple[np.ndarray, np.ndarray]]) -> float:
+        """Compute exact pooled $R^2$ in a single pass over streamed pairs using O(F)
+        local memory, without averaging individual batch scores.
 
         Parameters
         ----------
-        batches : iterable of tuple or list pairs
-            Each item is (activations, reconstructed): real integer/floating,
-            finite, nonempty arrays of identical shape (..., F), with at least
-            two axes. F must stay fixed. Leading axes flatten into equally
-            weighted observations across all batches. Pass [(x, y)], not (x, y).
+        batches : iterable of (np.ndarray, np.ndarray)
+            One-pass iterable yielding ``(activations, reconstructed)`` tuple or list
+            pairs, each with matching shape ``(..., F)`` and constant feature count
+            ``F`` across batches. Pass ``[(x, y)]``, not ``(x, y)``.
 
         Returns
         -------
-        float
-            Dimensionless R2 pooled across all observations, never an average of
-            batch scores. Zero-SST behavior is the same as evaluate.
+        r2 : float
+            Dimensionless $R^2$ pooled across all observations in the stream, matching
+            ``evaluate`` on the concatenated arrays up to float64 roundoff.
 
         Raises
         ------
         ValueError
-            If an item is not a tuple/list of length two, the stream is empty,
-            feature counts change, or arrays violate evaluate's input rules.
+            If any item is not a length-2 tuple/list, the stream is empty, feature
+            counts change between batches, or an array violates ``evaluate`` rules.
         """
         return self._finish(_reduce(batches, self.batch_size, self.r2_centering))["r2"]
 
-    def detailed_evaluate(self, activations, reconstructed) -> dict:
-        """Inspect the global and feature-level reduction, without observation R2.
+    def detailed_evaluate(
+        self, activations: np.ndarray, reconstructed: np.ndarray
+    ) -> Dict[str, Any]:
+        """Return pooled $R^2$ together with global and per-feature residual and
+        centered variance sums.
 
         Parameters
         ----------
-        activations, reconstructed : np.ndarray
-            Finite, nonempty real integer/floating arrays of identical shape
-            (..., F), with at least two axes. Leading axes flatten into equally
-            weighted observations, as in evaluate.
+        activations : np.ndarray
+            Reference activations with finite real integer/floating values and shape
+            ``(..., F)`` (at least 2 axes).
+        reconstructed : np.ndarray
+            Reconstructed activations with the exact same shape as ``activations``.
 
         Returns
         -------
-        dict
-            ``r2`` reproduces evaluate (dimensionless, NaN at zero SST unless
-            force_finite). ``sse`` and ``sst`` are global squared-activation sums.
-            ``feature_residual_sums`` has shape (F,), in squared activation units;
-            ``feature_centered_sums`` has shape (F,) and is present only for feature
-            centering. All sums are zero for exact/constant inputs respectively.
-            ``n_observations``, ``n_features``, ``n_elements`` are integer counts.
+        details : dict
+            Dictionary containing global and per-feature sufficient statistics:
+            ``r2`` (float): Pooled $R^2$, matching ``evaluate``.
+            ``sse`` (float): Total sum of squared residuals in squared activation units.
+            ``sst`` (float): Total centered sum of squares in squared activation units.
+            ``feature_residual_sums`` (np.ndarray): Per-feature SSE of shape ``(F,)``.
+            ``feature_centered_sums`` (np.ndarray): Per-feature SST of shape ``(F,)``
+            (present only when ``r2_centering='feature'``).
+            ``n_observations`` (int): Number of flattened observations.
+            ``n_features`` (int): Feature count ``F``.
+            ``n_elements`` (int): Total scalar elements ``n_observations * n_features``.
 
         Raises
         ------
         ValueError
-            If arrays have invalid dtypes/dimensions, differ in original shape,
-            are empty, or contain nonfinite values.
+            If arrays have invalid dtypes/dimensions, differ in shape, are empty, or
+            contain nonfinite values.
         """
         return self._finish(
             _reduce(((activations, reconstructed),), self.batch_size, self.r2_centering)
@@ -225,25 +259,37 @@ class ReconstructionR2:
 
 
 class ReconstructionError:
-    """Pooled MSE, RMSE, MAE, or relative Frobenius reconstruction error.
+    """Pooled MSE, RMSE, MAE, or relative L2 (Frobenius) reconstruction error. Lower
+    values indicate closer activation reconstruction, with ``0.0`` corresponding to
+    exact reconstruction.
 
     Parameters
     ----------
     error : {'mse', 'rmse', 'mae', 'relative_l2'}
-        Global reduction to return. Relative error is 0 for two zero arrays,
-        infinity for a zero target and nonzero reconstruction.
+        Error reduction returned by ``evaluate`` (default ``'mse'``). Relative L2 is
+        ``0.0`` for two zero arrays and ``inf`` for a zero target with a nonzero
+        reconstruction.
     batch_size : int or None
-        Observations processed at once; set for large activation sets.
+        Number of flattened observations processed per chunk. Set this for large
+        activation sets to bound temporary memory.
 
     Notes
     -----
-    Squared sums use float64 without rescaling. Extremely large finite inputs
-    (beyond about 1e150 in magnitude, depending on element count) can overflow
-    and produce inf/NaN. This is not expected for realistic activations; rescale
-    inputs first if needed.
+    Pooled RMSE and relative L2 are computed from global squared sums, not by
+    averaging observation-level RMSE or relative errors. Squared sums use float64
+    without rescaling; extremely large finite inputs (beyond roughly ``1e150``) can
+    overflow to ``inf``/``NaN``.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> from xplique.metrics.concepts import ReconstructionError
+    >>> x = np.array([[1.0, 2.0], [3.0, 4.0]])
+    >>> ReconstructionError(error="rmse")(x, x + 0.5)
+    0.5
     """
 
-    def __init__(self, *, error="mse", batch_size: Optional[int] = None):
+    def __init__(self, *, error: str = "mse", batch_size: Optional[int] = None):
         if error not in ("mse", "rmse", "mae", "relative_l2"):
             raise ValueError("Unknown reconstruction error.")
         self.error = error
@@ -253,91 +299,99 @@ class ReconstructionError:
     def _key(self):
         return "relative_l2_error" if self.error == "relative_l2" else self.error
 
-    def evaluate(self, activations, reconstructed) -> float:
-        """Return the pooled error, not mean observation RMSE/relative error.
-
-        See detailed_evaluate for observation vectors and pooled quantities.
+    def evaluate(self, activations: np.ndarray, reconstructed: np.ndarray) -> float:
+        """Compute the selected pooled reconstruction error across all observations.
+        See ``detailed_evaluate`` for all error types and per-observation distributions.
 
         Parameters
         ----------
-        activations, reconstructed : np.ndarray
-            Finite, nonempty real integer/floating arrays of identical original
-            shape (..., F), with at least two axes. Leading axes flatten into
-            equally weighted observations.
+        activations : np.ndarray
+            Reference activations with finite real integer/floating values and shape
+            ``(..., F)`` (at least 2 axes). Leading axes flatten into equally weighted
+            observations.
+        reconstructed : np.ndarray
+            Reconstructed activations with the exact same shape as ``activations``.
 
         Returns
         -------
-        float
-            Pooled MSE (squared activation units), RMSE/MAE (activation units),
-            or relative L2 error (dimensionless). Exact reconstruction gives 0.
-            Relative error is 0 for two zero arrays and inf for a zero target
-            with nonzero reconstruction; other valid errors are nonnegative.
+        error : float
+            Nonnegative pooled error: MSE (squared activation units), RMSE or MAE
+            (activation units), or relative L2 error (dimensionless; ``0.0`` for two
+            zero arrays and ``inf`` for a zero target with nonzero reconstruction).
 
         Raises
         ------
         ValueError
-            If arrays differ in shape, have invalid dtypes/dimensions, are empty,
-            or contain nonfinite values.
+            If arrays differ in shape, have invalid dtypes/dimensions, are empty, or
+            contain nonfinite values.
         """
         return self.evaluate_batches(((activations, reconstructed),))
 
-    def __call__(self, activations, reconstructed) -> float:
-        """Delegate to evaluate; see its Parameters, Returns and Raises sections."""
+    def __call__(self, activations: np.ndarray, reconstructed: np.ndarray) -> float:
+        """Alias for ``evaluate``."""
         return self.evaluate(activations, reconstructed)
 
-    def evaluate_batches(self, batches) -> float:
-        """Consume pairs once; never average individual batch errors.
+    def evaluate_batches(self, batches: Iterable[Tuple[np.ndarray, np.ndarray]]) -> float:
+        """Compute the selected pooled error in one pass over streamed pairs, without
+        averaging batch-level errors.
 
         Parameters
         ----------
-        batches : iterable of tuple or list pairs
-            Each item is (activations, reconstructed): finite, nonempty real
-            integer/floating arrays of identical shape (..., F), at least two
-            axes and fixed F. Leading axes flatten into equally weighted
-            observations across batches. Pass [(x, y)], not (x, y).
+        batches : iterable of (np.ndarray, np.ndarray)
+            One-pass iterable of ``(activations, reconstructed)`` tuple/list pairs
+            with matching shape ``(..., F)`` and fixed ``F``. Pass ``[(x, y)]``, not
+            ``(x, y)``.
 
         Returns
         -------
-        float
-            Selected pooled error, with the units and zero-target behavior of
-            evaluate. Batch sizes do not weight individual batch scores.
+        error : float
+            Selected pooled error across all streamed observations, matching
+            ``evaluate`` on the concatenated arrays up to float64 roundoff.
 
         Raises
         ------
         ValueError
-            If an item is not a tuple/list of length two, the stream is empty,
-            feature counts change, or arrays violate evaluate's input rules.
+            If an item is not a length-2 tuple/list, the stream is empty, feature
+            counts change, or arrays violate ``evaluate`` input rules.
         """
         return _reduce(batches, self.batch_size)[self._key]
 
-    def detailed_evaluate(self, activations, reconstructed) -> dict:
-        """Return opt-in observation errors and global reductions.
+    def detailed_evaluate(
+        self, activations: np.ndarray, reconstructed: np.ndarray
+    ) -> Dict[str, Any]:
+        """Return all pooled reconstruction errors together with opt-in O(N)
+        per-observation error vectors and MSE summary statistics.
 
         Parameters
         ----------
-        activations, reconstructed : np.ndarray
-            Finite, nonempty real integer/floating arrays of identical shape
-            (..., F), with at least two axes. Leading axes flatten into equally
-            weighted observations, as in evaluate.
+        activations : np.ndarray
+            Reference activations with finite real integer/floating values and shape
+            ``(..., F)`` (at least 2 axes).
+        reconstructed : np.ndarray
+            Reconstructed activations with the exact same shape as ``activations``.
 
         Returns
         -------
-        dict
-            Global ``mse`` (squared units), ``rmse``/``mae`` (activation units),
-            ``relative_l2_error`` (dimensionless) reproduce evaluate according to
-            error, mapping relative_l2 to relative_l2_error. ``sse`` is a squared
-            sum; n_observations/n_features/n_elements are integer counts.
-            ``observation_mse``, ``observation_rmse``, ``observation_mae``, and
-            ``observation_relative_l2_error`` have shape (N,), the same units and
-            zero-target conventions as their global counterparts. Observation-MSE
-            summaries ``observation_mse_mean/std/min/max/median`` are floats in
-            squared units (population std, NumPy median). Exact errors are zero;
-            relative errors may be infinity. Storage is O(N), not O(N F).
+        details : dict
+            Dictionary containing pooled scalars, observation vectors, and summaries:
+            ``mse`` (float): Pooled mean squared error (squared activation units).
+            ``rmse`` (float): Pooled root mean squared error (activation units).
+            ``mae`` (float): Pooled mean absolute error (activation units).
+            ``relative_l2_error`` (float): Pooled Frobenius norm ratio (dimensionless);
+            matches ``evaluate`` when ``error='relative_l2'``.
+            ``sse`` (float): Global sum of squared residuals.
+            ``n_observations``, ``n_features``, ``n_elements`` (int): Element counts.
+            ``observation_mse``, ``observation_rmse``, ``observation_mae``,
+            ``observation_relative_l2_error`` (np.ndarray): Per-observation arrays of
+            shape ``(N,)`` following the same units and zero-target rules.
+            ``observation_mse_mean``, ``observation_mse_std``, ``observation_mse_min``,
+            ``observation_mse_max``, ``observation_mse_median`` (float): Summary
+            statistics of ``observation_mse`` (population std, exact NumPy median).
 
         Raises
         ------
         ValueError
-            If arrays have invalid dtypes/dimensions, differ in original shape,
-            are empty, or contain nonfinite values.
+            If arrays have invalid dtypes/dimensions, differ in shape, are empty, or
+            contain nonfinite values.
         """
         return _reduce(((activations, reconstructed),), self.batch_size, details=True)

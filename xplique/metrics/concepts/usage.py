@@ -1,8 +1,10 @@
 """Concept coefficient usage and strict-support sparsity."""
 
+from collections.abc import Iterable
+
 import numpy as np
 
-from ...types import Optional
+from ...types import Any, Dict, Optional
 from ._utils import (
     _Moments,
     activity_config,
@@ -60,30 +62,47 @@ def _coefficient_statistics(batches, concept_bank, basis, threshold, batch_size,
 
 
 class ConceptUsage:
-    """Multivariate signed coefficient and linear-component usage report.
+    """Multivariate report quantifying how often and how strongly each concept is used.
+    Combines signed coefficient moments, norm-weighted linear component magnitudes and
+    energies, per-concept firing rates, dead-concept counts, and overall sparsity.
 
     Parameters
     ----------
     activity_basis : {'contribution', 'coefficient'}
-        Strict activity uses abs(U) times concept norms, or abs(U) alone.
+        Quantity compared strictly against ``active_threshold``. ``'contribution'``
+        (default) uses ``abs(U) * norm(D)``, which is invariant to reciprocal
+        rescaling of coefficients and concept vectors; ``'coefficient'`` uses
+        ``abs(U)`` directly.
     active_threshold : float
-        Finite nonnegative threshold, default zero. Contribution activity,
-        effective usage, and component energy are invariant to reciprocal
-        concept/coefficient rescaling. Affine decoder offsets are excluded.
+        Finite nonnegative threshold (default ``0.0``) applied with strict inequality
+        (``>``) in the units of ``activity_basis``.
     batch_size : int or None
-        Observations processed at once; None processes each array at once.
+        Number of flattened observations processed per chunk. ``None`` (default)
+        processes each supplied array at once.
 
     Notes
     -----
-    Component energies are not explained-variance shares: nonorthogonal linear
-    components have cross-terms. Zero concept vectors are allowed.
+    Norm-weighted quantities describe linear decoder components ``u_k * d_k`` and
+    exclude affine decoder offsets. Because concept vectors are generally
+    non-orthogonal, ``component_energy_share`` is not additive explained variance.
+    Zero concept vectors are permitted.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> from xplique.metrics.concepts import ConceptUsage
+    >>> u = np.array([[1.0, 0.0], [0.0, 2.0]])
+    >>> bank = np.eye(2)
+    >>> report = ConceptUsage()(u, bank)
+    >>> report["n_active_concepts"], report["sparsity"]
+    (2, 0.5)
     """
 
     def __init__(
         self,
         *,
-        activity_basis="contribution",
-        active_threshold=0.0,
+        activity_basis: str = "contribution",
+        active_threshold: float = 0.0,
         batch_size: Optional[int] = None,
     ):
         activity_config(activity_basis, active_threshold)
@@ -91,31 +110,37 @@ class ConceptUsage:
         self.active_threshold = float(active_threshold)
         self.batch_size = validate_batch_size(batch_size)
 
-    def evaluate(self, coefficients, concept_bank) -> dict:
-        """Return pooled usage statistics, not an average of batch reports.
+    def evaluate(self, coefficients: np.ndarray, concept_bank: np.ndarray) -> Dict[str, Any]:
+        """Compute pooled per-concept and global usage statistics (no separate
+        ``detailed_evaluate`` method is needed because all intermediates are returned).
 
         Parameters
         ----------
         coefficients : np.ndarray
-            Finite, nonempty real integer/floating array (..., K), at least two
-            axes. Leading axes flatten into equally weighted observations.
+            Finite, nonempty real integer/floating array of shape ``(..., K)`` with at
+            least two axes. Leading axes flatten into equally weighted observations.
         concept_bank : np.ndarray
-            Finite, nonempty real integer/floating bank (K, F). Zero rows are
-            allowed; K must match the coefficient count.
+            Finite, nonempty real integer/floating bank of shape ``(K, F)``. Zero
+            concept rows are allowed; ``K`` must match ``coefficients.shape[-1]``.
 
         Returns
         -------
-        dict
-            Integer n_observations/n_concepts/n_elements counts and activity_basis/
-            active_threshold configuration. Concept-level arrays of shape (K,):
-            mean_coefficient and std_coefficient (signed mean and population std,
-            coefficient units), effective_usage (mean component norm, activation
-            units), component_energy (total squared component norm),
-            component_energy_share (dimensionless, all NaN at zero total energy),
-            active_fraction (firing probability). n_active_concepts counts concepts
-            firing at least once. sparsity is the global inactive fraction in [0,1].
-            Zero contributions give zero effective usage/energy; no detailed API
-            is provided because this report already contains the intermediates.
+        report : dict
+            Dictionary of concept-level and global usage diagnostics:
+            ``n_observations``, ``n_concepts``, ``n_elements`` (int): Flattened counts.
+            ``activity_basis`` (str), ``active_threshold`` (float): Resolved settings.
+            ``mean_coefficient`` (np.ndarray): Signed mean per concept, shape ``(K,)``.
+            ``std_coefficient`` (np.ndarray): Population std per concept, shape ``(K,)``.
+            ``effective_usage`` (np.ndarray): Mean ``abs(U) * norm(D)`` per concept in
+            activation units, shape ``(K,)``.
+            ``component_energy`` (np.ndarray): Sum of ``(U * norm(D)) ** 2`` per
+            concept, shape ``(K,)``.
+            ``component_energy_share`` (np.ndarray): Normalized ``component_energy``
+            of shape ``(K,)`` (all ``NaN`` when total energy is zero).
+            ``active_fraction`` (np.ndarray): Firing probability per concept in
+            ``[0, 1]``, shape ``(K,)``.
+            ``n_active_concepts`` (int): Number of concepts firing at least once.
+            ``sparsity`` (float): Global inactive fraction in ``[0, 1]``.
 
         Raises
         ------
@@ -125,28 +150,30 @@ class ConceptUsage:
         """
         return self.evaluate_batches((coefficients,), concept_bank=concept_bank)
 
-    def __call__(self, coefficients, concept_bank) -> dict:
-        """Delegate to evaluate; see its Parameters, Returns and Raises sections."""
+    def __call__(self, coefficients: np.ndarray, concept_bank: np.ndarray) -> Dict[str, Any]:
+        """Alias for ``evaluate``."""
         return self.evaluate(coefficients, concept_bank)
 
-    def evaluate_batches(self, batches, *, concept_bank) -> dict:
-        """Consume coefficient batches once with a fixed bank and O(K) local state.
+    def evaluate_batches(
+        self, batches: Iterable[np.ndarray], *, concept_bank: np.ndarray
+    ) -> Dict[str, Any]:
+        """Compute the pooled usage report in a single pass over streamed coefficient
+        batches with a fixed concept bank and O(K) local state.
 
         Parameters
         ----------
         batches : iterable of np.ndarray
-            Finite, nonempty real integer/floating coefficient arrays (..., K),
-            with at least two axes and fixed K. All leading axes flatten into
-            equally weighted observations across batches.
+            One-pass iterable of finite, nonempty real integer/floating coefficient
+            arrays of shape ``(..., K)`` with fixed ``K``.
         concept_bank : np.ndarray
-            Finite, nonempty real integer/floating bank (K, F), fixed for this
-            evaluation. Zero rows are allowed.
+            Finite, nonempty real integer/floating bank of shape ``(K, F)``, fixed
+            for this evaluation. Zero rows are allowed.
 
         Returns
         -------
-        dict
-            Pooled concept/global usage report with the fields, units, shapes and
-            zero-energy conventions of evaluate, not an average of batch reports.
+        report : dict
+            Pooled concept and global usage report with the exact keys, shapes, and
+            zero-energy semantics of ``evaluate``.
 
         Raises
         ------
@@ -164,23 +191,26 @@ class ConceptUsage:
 
 
 class ConceptSparsity:
-    """Global inactive fraction using ConceptUsage's activity configuration.
+    """Global inactive fraction of concept activations in ``[0, 1]``, using the same
+    strict activity rule as ``ConceptUsage``. Higher values indicate sparser concept
+    representations (fewer concepts firing per observation).
 
     Parameters
     ----------
     activity_basis : {'contribution', 'coefficient'}
-        Magnitude used for strict thresholding; contribution is rescaling-invariant.
+        Magnitude compared against ``active_threshold``. ``'contribution'`` (default)
+        is invariant to reciprocal concept/coefficient rescaling.
     active_threshold : float
-        Finite nonnegative activity threshold, default zero.
+        Finite nonnegative strict activity threshold (default ``0.0``).
     batch_size : int or None
-        Observations processed at once, default all observations.
+        Number of flattened observations processed per chunk (default ``None``).
     """
 
     def __init__(
         self,
         *,
-        activity_basis="contribution",
-        active_threshold=0.0,
+        activity_basis: str = "contribution",
+        active_threshold: float = 0.0,
         batch_size: Optional[int] = None,
     ):
         activity_config(activity_basis, active_threshold)
@@ -198,23 +228,25 @@ class ConceptSparsity:
             details,
         )
 
-    def evaluate(self, coefficients, concept_bank) -> float:
-        """Return pooled inactive fraction; see detailed_evaluate for firing/supports.
+    def evaluate(self, coefficients: np.ndarray, concept_bank: np.ndarray) -> float:
+        """Return the pooled inactive fraction across all observations and concepts.
+        See ``detailed_evaluate`` for per-concept firing rates and observation support
+        sizes.
 
         Parameters
         ----------
         coefficients : np.ndarray
-            Finite, nonempty real integer/floating array (..., K), at least two
-            axes. Leading axes flatten into equally weighted observations.
+            Finite, nonempty real integer/floating array of shape ``(..., K)`` with at
+            least two axes. Leading axes flatten into equally weighted observations.
         concept_bank : np.ndarray
-            Finite, nonempty real integer/floating bank (K, F), matching K.
-            Zero concept vectors are allowed.
+            Finite, nonempty real integer/floating bank of shape ``(K, F)`` matching
+            ``K``. Zero concept rows are allowed.
 
         Returns
         -------
-        float
-            Dimensionless pooled inactive fraction in [0,1], not an unweighted
-            mean of batch fractions. Zero coefficients give 1.
+        sparsity : float
+            Dimensionless pooled inactive fraction in ``[0, 1]`` (``1.0`` when no
+            concept ever fires).
 
         Raises
         ------
@@ -224,27 +256,27 @@ class ConceptSparsity:
         """
         return self.evaluate_batches((coefficients,), concept_bank=concept_bank)
 
-    def __call__(self, coefficients, concept_bank) -> float:
-        """Delegate to evaluate; see its Parameters, Returns and Raises sections."""
+    def __call__(self, coefficients: np.ndarray, concept_bank: np.ndarray) -> float:
+        """Alias for ``evaluate``."""
         return self.evaluate(coefficients, concept_bank)
 
-    def evaluate_batches(self, batches, *, concept_bank) -> float:
-        """Return pooled sparsity from one-pass coefficient batches.
+    def evaluate_batches(self, batches: Iterable[np.ndarray], *, concept_bank: np.ndarray) -> float:
+        """Return pooled sparsity in a single pass over streamed coefficient batches.
 
         Parameters
         ----------
         batches : iterable of np.ndarray
-            Finite, nonempty real integer/floating coefficient arrays (..., K),
-            at least two axes and fixed K. Leading axes flatten into equally
-            weighted observations across batches.
+            One-pass iterable of finite, nonempty real integer/floating coefficient
+            arrays of shape ``(..., K)`` with fixed ``K``.
         concept_bank : np.ndarray
-            Finite, nonempty real integer/floating bank (K, F). Zero rows allowed.
+            Finite, nonempty real integer/floating bank of shape ``(K, F)``. Zero
+            rows are allowed.
 
         Returns
         -------
-        float
-            Dimensionless pooled inactive fraction in [0,1], with the activity
-            definition of evaluate. All-zero coefficients give 1.
+        sparsity : float
+            Dimensionless pooled inactive fraction in ``[0, 1]``, matching
+            ``evaluate`` on concatenated batches.
 
         Raises
         ------
@@ -254,27 +286,33 @@ class ConceptSparsity:
         """
         return self._statistics(batches, concept_bank)["sparsity"]
 
-    def detailed_evaluate(self, coefficients, concept_bank) -> dict:
-        """Inspect activity at concept and observation granularity.
+    def detailed_evaluate(
+        self, coefficients: np.ndarray, concept_bank: np.ndarray
+    ) -> Dict[str, Any]:
+        """Inspect global sparsity alongside per-concept firing rates and
+        per-observation active support sizes.
 
         Parameters
         ----------
         coefficients : np.ndarray
-            Finite, nonempty real integer/floating array (..., K), at least two
-            axes. Leading axes flatten into equally weighted observations.
+            Finite, nonempty real integer/floating array of shape ``(..., K)`` with at
+            least two axes.
         concept_bank : np.ndarray
-            Finite, nonempty real integer/floating bank (K, F), matching K.
-            Zero concept vectors are allowed.
+            Finite, nonempty real integer/floating bank of shape ``(K, F)`` matching
+            ``K``. Zero rows are allowed.
 
         Returns
         -------
-        dict
-            ``sparsity`` reproduces evaluate, a dimensionless inactive fraction.
-            ``active_fraction`` is a (K,) firing-probability array;
-            ``observation_support_sizes`` is an integer (N,) array of active counts.
-            Zero coefficients give sparsity 1 and zero firing/supports. Integer
-            n_observations/n_concepts/n_elements and activity configuration are
-            included. No undefined quantities arise for valid nonempty inputs.
+        details : dict
+            Dictionary of global, concept-level, and observation-level sparsity fields:
+            ``sparsity`` (float): Global inactive fraction in ``[0, 1]``, matching
+            ``evaluate``.
+            ``active_fraction`` (np.ndarray): Per-concept firing rate in ``[0, 1]``,
+            shape ``(K,)``.
+            ``observation_support_sizes`` (np.ndarray): Active concept count per
+            observation, integer array of shape ``(N,)``.
+            ``n_observations``, ``n_concepts``, ``n_elements`` (int): Flattened counts.
+            ``activity_basis`` (str), ``active_threshold`` (float): Resolved settings.
 
         Raises
         ------

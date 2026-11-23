@@ -9,7 +9,7 @@ IEEE Information Theory 20(3):397–399.
 
 import numpy as np
 
-from ...types import Optional
+from ...types import Any, Dict, Optional
 from ._utils import (
     _is_real_scalar,
     activity_config,
@@ -41,29 +41,36 @@ def _finite_scalar(value):
     return _is_real_scalar(value) and np.isfinite(value)
 
 
-def concept_bank_babel_score(concept_bank, order: int) -> float:
-    """Return maximum row sum of the order largest off-diagonal absolute cosines.
+def concept_bank_babel_score(concept_bank: np.ndarray, order: int) -> float:
+    """Compute the Babel cumulative coherence $\\mu_1(p)$ of a concept bank at order
+    ``p``. Lower values indicate less angular overlap among groups of concepts;
+    order ``1`` equals mutual coherence and order ``0`` is always ``0.0``.
 
     Parameters
     ----------
     concept_bank : np.ndarray
-        Nonempty (K,F) real integer/floating bank with finite, nonzero concept
-        vectors. Rows are concepts; no axes are flattened into observations.
+        Nonempty 2-D finite real integer/floating bank of shape ``(K, F)`` with
+        nonzero rows. Rows are concepts; no axes are flattened.
     order : int
-        Required integer in [0,K-1], positional or keyword. Booleans and fractional
-        values are rejected.
+        Required integer order ``p`` in ``[0, K - 1]`` (positional or keyword).
+        Booleans and fractional values are rejected.
 
     Returns
     -------
-    float
-        Dimensionless cumulative coherence in [0,order], zero at order zero.
-        Sign/scale invariant; order one is mutual coherence. No SVD is performed.
+    babel_score : float
+        Dimensionless cumulative coherence in ``[0, order]``, invariant to concept
+        row scaling and sign flips. No SVD is performed.
 
     Raises
     ------
     ValueError
         If the bank is empty, nonfinite, not 2-D real integer/floating, has zero
-        rows, or order is not a non-boolean integer in [0,K-1].
+        rows, or ``order`` is not a non-boolean integer in ``[0, K - 1]``.
+
+    References
+    ----------
+    Tropp (2004), *Greed is good: algorithmic results for sparse approximation*,
+    IEEE Trans. Information Theory 50(10):2231-2242.
     """
     _, _, unit = concept_bank_input(concept_bank, True)
     order = _order(order, len(unit))
@@ -74,31 +81,47 @@ def concept_bank_babel_score(concept_bank, order: int) -> float:
     return float(largest.sum(axis=1).max())
 
 
-def concept_bank_babel_curve(concept_bank, *, max_order=None) -> dict:
-    """Return the nondecreasing cumulative coherence curve without an SVD.
+def concept_bank_babel_curve(
+    concept_bank: np.ndarray, *, max_order: Optional[int] = None
+) -> Dict[str, Any]:
+    """Compute the nondecreasing Babel cumulative coherence curve $\\mu_1(p)$ for
+    orders ``0 .. max_order`` without performing an SVD. Useful for seeing how
+    quickly worst-case angular overlap grows with support size.
 
     Parameters
     ----------
     concept_bank : np.ndarray
-        Nonempty (K,F) finite real integer/floating bank, with nonzero rows.
-        Rows are concepts; no axes are flattened into observations.
+        Nonempty 2-D finite real integer/floating bank of shape ``(K, F)`` with
+        nonzero rows.
     max_order : int or None
-        Last order in [0,K-1], default K-1.
+        Maximum order in ``[0, K - 1]`` (default ``K - 1``).
 
     Returns
     -------
-    dict
-        n_concepts/n_features counts, requested_max_order (possibly None), resolved
-        max_order, integer orders and float64 babel_curve arrays of shape (p+1,),
-        endpoint babel_score and actual mutual_coherence. Scores are dimensionless,
-        zero at order zero; mutual coherence is zero only for a one-row/orthogonal
-        bank, even if the requested curve ends at zero. Curves are not in [0,1].
+    report : dict
+        Dictionary containing the Babel curve and summary endpoints:
+        ``n_concepts`` (int): Number of concepts ``K``.
+        ``n_features`` (int): Feature dimension ``F``.
+        ``requested_max_order`` (int or None): Caller-supplied ``max_order``.
+        ``max_order`` (int): Resolved endpoint order ``p``.
+        ``orders`` (np.ndarray): Integer array ``[0, ..., p]`` of shape ``(p + 1,)``.
+        ``babel_curve`` (np.ndarray): Float64 cumulative coherence values of shape
+        ``(p + 1,)`` (bounded by ``orders``, not by ``1``).
+        ``babel_score`` (float): Endpoint score ``babel_curve[-1]``.
+        ``mutual_coherence`` (float): Actual bank mutual coherence (``0.0`` only for
+        a single-row or orthogonal bank, even when ``max_order=0``).
 
     Raises
     ------
     ValueError
         If the bank is empty, nonfinite, not 2-D real integer/floating, has zero
-        rows, or max_order is neither None nor a non-boolean integer in [0,K-1].
+        rows, or ``max_order`` is neither ``None`` nor a non-boolean integer in
+        ``[0, K - 1]``.
+
+    References
+    ----------
+    Tropp (2004), *Greed is good: algorithmic results for sparse approximation*,
+    IEEE Trans. Information Theory 50(10):2231-2242.
     """
     _, _, unit = concept_bank_input(concept_bank, True)
     resolved = len(unit) - 1 if max_order is None else _order(max_order, len(unit))
@@ -119,57 +142,83 @@ def concept_bank_babel_curve(concept_bank, *, max_order=None) -> dict:
 
 
 def concept_bank_geometry_metrics(
-    concept_bank,
+    concept_bank: np.ndarray,
     *,
-    spectrum="unit",
-    energy_fraction=0.9,
-    duplicate_threshold=0.8,
-    rank_rtol=None,
-) -> dict:
-    """Describe angular redundancy, original norms, and thin-SVD geometry.
+    spectrum: str = "unit",
+    energy_fraction: float = 0.9,
+    duplicate_threshold: float = 0.8,
+    rank_rtol: Optional[float] = None,
+) -> Dict[str, Any]:
+    """Summarize angular redundancy, concept norms, effective spectral ranks,
+    conditioning, and the Welch bound of a concept bank. Helps diagnose duplicate
+    concepts, rank collapse, or poorly conditioned dictionaries.
 
     Parameters
     ----------
     concept_bank : np.ndarray
-        Nonempty finite real integer/floating (K,F) bank with nonzero rows.
-        Rows are concepts; no axes are flattened into observations.
+        Nonempty 2-D finite real integer/floating bank of shape ``(K, F)`` with
+        nonzero rows.
     spectrum : {'unit', 'raw'}
-        SVD of unit rows (scale invariant) or original bank (scale sensitive).
+        Matrix used for thin SVD: ``'unit'`` (default) normalizes rows to unit length
+        for scale-invariant spectral geometry; ``'raw'`` preserves relative atom
+        scales. Original norms are always reported.
     energy_fraction : float
-        Cumulative squared-singular-value energy target in (0,1], default 0.9.
+        Target cumulative squared-singular-value energy in ``(0, 1]`` for
+        ``energy_rank`` (default ``0.9``).
     duplicate_threshold : float
-        Strict signed pair-count threshold in [0,1], default 0.8.
+        Strict signed cosine threshold in ``[0, 1]`` (default ``0.8``) used to count
+        positive near-duplicate and antipodal concept pairs.
     rank_rtol : float or None
-        Relative singular-value tolerance in [0,1), default max(K,F)*float64 eps.
-        Singular values at or below this relative tolerance are excluded from
-        energy_rank; energy_fraction=1 returns this numerical rank exactly.
+        Relative singular-value tolerance in ``[0, 1)`` (default
+        ``max(K, F) * eps(float64)``). Singular values at or below ``rank_rtol`` are
+        excluded from ``energy_rank`` and yield infinite ``condition_number``.
 
     Returns
     -------
-    dict
-        n_concepts/n_features counts and resolved configuration. Dimensionless
-        mutual_coherence/mean_abs_cosine exclude diagonal, zero for K=1.
-        positive_duplicate_count/antipodal_count count unordered signed pairs.
-        norm_min/mean/max describe original rows in activation units.
-        energy_rank is the smallest energy-target rank; stable_rank is squared
-        Frobenius/spectral norm; energy_entropy_rank is exp(entropy of squared
-        spectrum probabilities). condition_number uses the thin spectrum and is
-        infinity at relative rank deficiency. welch_bound is the ambient-dimensional
-        theoretical reference, zero if K<=F. No universal quality direction applies.
+    report : dict
+        Dictionary of angular, norm, and spectral geometry diagnostics:
+        ``n_concepts``, ``n_features`` (int): Bank dimensions ``K`` and ``F``.
+        ``spectrum`` (str), ``energy_fraction``, ``duplicate_threshold``,
+        ``rank_rtol`` (float): Resolved settings.
+        ``mutual_coherence`` (float): Maximum off-diagonal absolute cosine (``0.0``
+        for ``K = 1``).
+        ``mean_abs_cosine`` (float): Mean off-diagonal absolute cosine across
+        unordered pairs (``0.0`` for ``K = 1``).
+        ``positive_duplicate_count`` (int): Unordered pairs with cosine strictly
+        above ``duplicate_threshold``.
+        ``antipodal_count`` (int): Unordered pairs with cosine strictly below
+        ``-duplicate_threshold``.
+        ``norm_min``, ``norm_mean``, ``norm_max`` (float): Original concept-vector L2
+        norms in activation units.
+        ``energy_rank`` (int): Smallest rank reaching ``energy_fraction`` of retained
+        spectral energy (equals numerical rank when ``energy_fraction=1.0``).
+        ``stable_rank`` (float): Squared Frobenius-to-spectral norm ratio
+        ``sum(sigma ** 2) / sigma_max ** 2``.
+        ``energy_entropy_rank`` (float): Exponential Shannon entropy of squared
+        singular-value energy shares.
+        ``condition_number`` (float): Thin-SVD ratio ``sigma_max / sigma_min``
+        (``inf`` when ``sigma_min <= rank_rtol * sigma_max``).
+        ``welch_bound`` (float): Ambient-dimensional lower bound on mutual coherence
+        for overcomplete banks (``0.0`` when ``K <= F``).
 
     Raises
     ------
     ValueError
         If the bank is empty, nonfinite, not 2-D real integer/floating, has zero
-        rows, spectrum is unknown, or a numeric setting is boolean, nonfinite,
+        rows, ``spectrum`` is unknown, or a numeric setting is boolean, nonfinite,
         not a real scalar, or outside its documented range.
 
     Notes
     -----
-    Only energy_rank thresholds and renormalizes the energy spectrum by rank_rtol.
-    Fractions exactly on an interior cumulative boundary remain subject to float64
-    roundoff. Stable and entropy ranks use the full spectrum; the condition number
-    retains its existing rank_rtol cutoff.
+    Only ``energy_rank`` thresholds and renormalizes the energy spectrum by
+    ``rank_rtol``; fractions exactly on an interior cumulative boundary remain
+    subject to float64 roundoff. ``stable_rank`` and ``energy_entropy_rank`` use the
+    full spectrum.
+
+    References
+    ----------
+    Welch (1974), *Lower bounds on the maximum cross correlation of signals*,
+    IEEE Trans. Information Theory 20(3):397-399.
     """
     if spectrum not in ("unit", "raw"):
         raise ValueError("spectrum must be 'unit' or 'raw'.")
@@ -222,30 +271,43 @@ def concept_bank_geometry_metrics(
 
 
 class CoactiveSupportCoherence:
-    """Babel-style absolute coherence restricted to observed active supports.
+    """Measure Babel-style angular coherence restricted to the concepts that actually
+    fire together on each observation. Complements bank-wide Babel curves by testing
+    whether correlated concepts co-activate in practice; lower scores indicate less
+    overlap among co-active concepts.
 
     Parameters
     ----------
     activity_basis : {'contribution', 'coefficient'}
-        Shared ConceptUsage support rule, default contribution.
+        Support definition shared with ``ConceptUsage`` (default ``'contribution'``).
     active_threshold : float
-        Finite nonnegative strict activity threshold, default zero.
+        Finite nonnegative strict activity threshold (default ``0.0``).
     batch_size : int or None
-        Observations processed at once; does not bound O(K squared) Gram storage
-        or O(N) opt-in exact quantiles. No persistent bank/state is retained.
+        Number of flattened observations processed per chunk. Bounds temporary
+        ``O(chunk_size * K)`` scoring memory; does not bound ``O(K ** 2)`` Gram
+        storage or ``O(N)`` opt-in exact quantiles in ``detailed_evaluate``.
 
     Notes
     -----
-    Scoring uses O(N K squared) matrix work per evaluation, in addition to
-    O(K squared F) Gram work. Temporary scoring storage is O(chunk_size K),
-    bounded by batch_size when set.
+    Evaluation uses ``O(K ** 2 * F)`` work to form the absolute Gram matrix and
+    ``O(N * K ** 2)`` matrix work to score all observations. No persistent bank or
+    state is retained between calls.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> from xplique.metrics.concepts import CoactiveSupportCoherence
+    >>> bank = np.array([[1.0, 0.0], [0.0, 1.0], [1.0, 1.0]])
+    >>> u = np.array([[1.0, 0.0, 1.0], [0.0, 1.0, 0.0]])
+    >>> CoactiveSupportCoherence()(u, bank)  # doctest: +ELLIPSIS
+    0.3535...
     """
 
     def __init__(
         self,
         *,
-        activity_basis="contribution",
-        active_threshold=0.0,
+        activity_basis: str = "contribution",
+        active_threshold: float = 0.0,
         batch_size: Optional[int] = None,
     ):
         activity_config(activity_basis, active_threshold)
@@ -267,26 +329,26 @@ class CoactiveSupportCoherence:
             scores[sizes < 2] = 0.0
             yield scores, sizes
 
-    def evaluate(self, coefficients, concept_bank) -> float:
-        """Return unconditional mean observation coherence; see detailed_evaluate.
-
-        Empty and singleton supports contribute zero, not missing observations.
+    def evaluate(self, coefficients: np.ndarray, concept_bank: np.ndarray) -> float:
+        """Return the unconditional mean coactive support coherence across all
+        observations (empty and singleton supports contribute ``0.0``). See
+        ``detailed_evaluate`` for observation scores, quantiles, and multi-support
+        summaries.
 
         Parameters
         ----------
         coefficients : np.ndarray
-            Finite, nonempty real integer/floating array (..., K), at least two
-            axes. Leading axes flatten into equally weighted observations.
+            Finite, nonempty real integer/floating array of shape ``(..., K)`` with at
+            least two axes. Leading axes flatten into equally weighted observations.
         concept_bank : np.ndarray
-            Finite, nonempty real integer/floating bank (K, F), matching K and
-            containing no zero concept vectors.
+            Finite, nonempty 2-D real integer/floating bank of shape ``(K, F)``
+            matching ``K`` and containing no zero rows.
 
         Returns
         -------
-        float
-            Dimensionless unconditional mean of observation support coherence,
-            not a bank-wide maximum. Empty/singleton supports score zero.
-            See detailed_evaluate for observation scores and support counts.
+        mean_support_babel : float
+            Dimensionless unconditional mean of per-observation support coherence
+            (nonnegative; ``0.0`` when every support has size at most ``1``).
 
         Raises
         ------
@@ -300,34 +362,45 @@ class CoactiveSupportCoherence:
             count += len(scores)
         return float(total / count)
 
-    def __call__(self, coefficients, concept_bank) -> float:
-        """Delegate to evaluate; see its Parameters, Returns and Raises sections."""
+    def __call__(self, coefficients: np.ndarray, concept_bank: np.ndarray) -> float:
+        """Alias for ``evaluate``."""
         return self.evaluate(coefficients, concept_bank)
 
-    def detailed_evaluate(self, coefficients, concept_bank) -> dict:
-        """Inspect exact observation distribution and support counts.
+    def detailed_evaluate(
+        self, coefficients: np.ndarray, concept_bank: np.ndarray
+    ) -> Dict[str, Any]:
+        """Return the full distribution of per-observation coactive support coherence
+        scores, linear quantiles, and support-size breakdowns.
 
         Parameters
         ----------
         coefficients : np.ndarray
-            Finite, nonempty real integer/floating array (..., K), at least two
-            axes. Leading axes flatten into equally weighted observations.
+            Finite, nonempty real integer/floating array of shape ``(..., K)`` with at
+            least two axes.
         concept_bank : np.ndarray
-            Finite, nonempty real integer/floating bank (K, F), matching K and
-            containing no zero concept vectors.
+            Finite, nonempty 2-D real integer/floating bank of shape ``(K, F)``
+            matching ``K`` and containing no zero rows.
 
         Returns
         -------
-        dict
-            mean_support_babel reproduces evaluate, the mean of dimensionless
-            observation_scores (N,). observation_support_sizes is an integer (N,)
-            array. n_observations/n_concepts and empty_support_count/
-            singleton_support_count/multi_support_count are integers. Mean/max
-            support size measure active concepts. max_support_babel and
-            support_babel_q25/median/q75/q95 summarize dimensionless scores using
-            NumPy linear quantiles. mean_multi_support_babel conditions on size>=2,
-            NaN if absent. Empty/singleton scores are zero. Activity configuration
-            is included. Exact details require O(N) additional storage.
+        details : dict
+            Dictionary of observation-level coherence scores and summaries:
+            ``mean_support_babel`` (float): Unconditional mean matching ``evaluate``.
+            ``mean_multi_support_babel`` (float): Mean conditioned on supports of size
+            at least ``2`` (``NaN`` if no observation has 2+ active concepts).
+            ``max_support_babel`` (float): Maximum observed support coherence.
+            ``support_babel_q25``, ``support_babel_median``, ``support_babel_q75``,
+            ``support_babel_q95`` (float): Exact NumPy linear quantiles of scores.
+            ``n_observations``, ``n_concepts`` (int): Observation and concept counts.
+            ``empty_support_count``, ``singleton_support_count``,
+            ``multi_support_count`` (int): Counts of supports of size 0, 1, and >= 2.
+            ``mean_support_size`` (float), ``max_support_size`` (int): Active concept
+            count summaries.
+            ``activity_basis`` (str), ``active_threshold`` (float): Resolved settings.
+            ``observation_scores`` (np.ndarray): Per-observation coherence scores of
+            shape ``(N,)`` (``0.0`` for empty/singleton supports).
+            ``observation_support_sizes`` (np.ndarray): Per-observation active concept
+            counts of shape ``(N,)``.
 
         Raises
         ------
