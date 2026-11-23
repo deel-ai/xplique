@@ -70,3 +70,10 @@ def test_usage_stable_moments_and_exact_threshold_boundary():
         ConceptUsage(batch_size=1)(offset, np.eye(2))["std_coefficient"], coefficients.std(axis=0)
     )
     assert ConceptUsage(batch_size=1)(offset.reshape(1, 2, 2), np.eye(2))["n_observations"] == 2
+
+    high_offset = float(2**53) + np.array([[0.0], [2.0], [4.0], [6.0]])
+    np.testing.assert_allclose(
+        ConceptUsage(batch_size=1)(high_offset, np.eye(1))["std_coefficient"],
+        [np.sqrt(5.0)],
+        rtol=1e-12,
+    )

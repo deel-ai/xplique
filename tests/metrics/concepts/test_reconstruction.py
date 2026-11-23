@@ -119,3 +119,18 @@ def test_r2_large_offset_matches_offset_removed_oracle(batch_size):
     metric = ReconstructionR2(batch_size=batch_size)
     assert metric(x, y) == pytest.approx(expected, abs=1e-12)
     assert metric(x + 1e10, y + 1e10) == pytest.approx(expected, abs=1e-12)
+
+
+@pytest.mark.parametrize("batch_size", [None, 1, 2])
+def test_r2_shared_origin_preserves_precision_at_2_53(batch_size):
+    x = float(2**53) + np.array([[0.0], [2.0], [4.0], [6.0]])
+    y = x + 2.0
+    assert ReconstructionR2(batch_size=batch_size)(x, y) == pytest.approx(0.2, abs=1e-12)
+
+
+def test_r2_single_observation_global():
+    x = np.array([[1.0, 3.0]])
+    y = np.array([[1.0, 2.0]])
+    details = ReconstructionR2(r2_centering="global").detailed_evaluate(x, y)
+    assert details["r2"] == pytest.approx(0.5)
+    assert "feature_centered_sums" not in details

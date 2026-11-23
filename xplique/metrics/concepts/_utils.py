@@ -91,25 +91,37 @@ def activity_mask(coefficients, norms, basis, threshold):
 
 
 class _Moments:
-    """Evaluation-local, mergeable central moments with shifted batch means."""
+    """Evaluation-local, mergeable central moments with a shared shifted origin."""
 
     def __init__(self):
         self.count = 0
-        self.mean = None
+        self._origin = None
+        self._shifted_mean = None
         self.centered = None
+
+    @property
+    def mean(self):
+        """Absolute mean reconstructed from the shifted origin."""
+        if self._origin is None or self._shifted_mean is None:
+            return None
+        return self._origin + self._shifted_mean
 
     def merge(self, values):
         """Merge observations without subtracting large raw squared moments."""
         count = len(values)
-        shifted = values - values[0]
+        # Retain one evaluation-local origin across chunks rather than adding each
+        # chunk's origin back before merging; otherwise large constant offsets
+        # (e.g. ~2**53) round away between-chunk precision before variance updates.
+        if self._origin is None:
+            self._origin = values[0].copy()
+        shifted = values - self._origin
         shift_mean = shifted.mean(axis=0)
-        mean = values[0] + shift_mean
         centered = np.sum((shifted - shift_mean) ** 2, axis=0)
         if self.count == 0:
-            self.mean, self.centered = mean, centered
+            self._shifted_mean, self.centered = shift_mean, centered
         else:
-            delta = mean - self.mean
+            delta = shift_mean - self._shifted_mean
             total = self.count + count
             self.centered += centered + delta**2 * (self.count * count / total)
-            self.mean += delta * (count / total)
+            self._shifted_mean += delta * (count / total)
         self.count += count
