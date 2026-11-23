@@ -21,82 +21,110 @@ def _relative(residual_squared, target_squared):
     return result
 
 
-def _reduce(batches, batch_size, centering=None, details=False):
-    """Share array/streamed residual work; collect observation vectors only on request."""
+def _validate_pair(pair, n_features):
+    """Validate one (activations, reconstructed) batch pair."""
+    if not isinstance(pair, (tuple, list)) or len(pair) != 2:
+        raise ValueError(
+            "Expected an iterable of pairs: [(activations, reconstructed), ...], "
+            "not a single (activations, reconstructed) pair."
+        )
+    activations, reconstructed = pair
+    x = array_input(activations, "activations")
+    y = array_input(reconstructed, "reconstructed")
+    if x.shape != y.shape:
+        raise ValueError("Original reconstruction input shapes must match.")
+    if n_features is not None and x.shape[-1] != n_features:
+        raise ValueError("Feature counts must agree within an evaluation.")
+    return x, y
+
+
+def _reduce(batches, batch_size, centering=None, error=None, details=False):
+    """Share array/streamed residual work; compute only requested reductions."""
+    need_sse = details or centering is not None or error in (None, "mse", "rmse", "relative_l2")
+    need_sae = details or (centering is None and error in (None, "mae"))
+    need_target = details or (centering is None and error in (None, "relative_l2"))
     moments = _Moments()
-    sse = sae = target_squared = None
-    vectors = {key: [] for key in ("mse", "rmse", "mae", "relative_l2_error")}
+    sse: Optional[np.ndarray] = None
+    sae: Optional[np.ndarray] = None
+    target_squared: Optional[np.ndarray] = None
+    vectors: Dict[str, list] = {key: [] for key in ("mse", "rmse", "mae", "relative_l2_error")}
     n_observations = 0
-    n_features = None
+    n_features: Optional[int] = None
     for pair in batches:
-        if not isinstance(pair, (tuple, list)) or len(pair) != 2:
-            raise ValueError(
-                "Expected an iterable of pairs: [(activations, reconstructed), ...], "
-                "not a single (activations, reconstructed) pair."
-            )
-        activations, reconstructed = pair
-        x = array_input(activations, "activations")
-        y = array_input(reconstructed, "reconstructed")
-        if x.shape != y.shape:
-            raise ValueError("Original reconstruction input shapes must match.")
-        if n_features is not None and x.shape[-1] != n_features:
-            raise ValueError("Feature counts must agree within an evaluation.")
+        x, y = _validate_pair(pair, n_features)
         n_features = x.shape[-1]
         for xb, yb in zip(observation_chunks(x, batch_size), observation_chunks(y, batch_size)):
             residual = xb - yb
-            squared = residual**2
-            absolute = np.abs(residual)
-            bsse = squared.sum(axis=0)
-            bsae = absolute.sum(axis=0)
-            btarget = (xb**2).sum(axis=0)
-            if sse is None:
-                sse, sae, target_squared = bsse, bsae, btarget
-            else:
-                sse += bsse
-                sae += bsae
-                target_squared += btarget
+            squared = residual**2 if need_sse else None
+            absolute = np.abs(residual) if need_sae else None
+            x_squared = xb**2 if need_target else None
+            if squared is not None:
+                bsse = squared.sum(axis=0)
+                if sse is None:
+                    sse = bsse
+                else:
+                    sse += bsse
+            if absolute is not None:
+                bsae = absolute.sum(axis=0)
+                if sae is None:
+                    sae = bsae
+                else:
+                    sae += bsae
+            if x_squared is not None:
+                btarget = x_squared.sum(axis=0)
+                if target_squared is None:
+                    target_squared = btarget
+                else:
+                    target_squared += btarget
             n_observations += len(xb)
             if centering == "feature":
                 moments.merge(xb)
             elif centering == "global":
                 moments.merge(xb.reshape(-1, 1))
             if details:
+                assert squared is not None and absolute is not None and x_squared is not None
                 mse = squared.mean(axis=1)
                 vectors["mse"].append(mse)
                 vectors["rmse"].append(np.sqrt(mse))
                 vectors["mae"].append(absolute.mean(axis=1))
                 vectors["relative_l2_error"].append(
-                    _relative(squared.sum(axis=1), (xb**2).sum(axis=1))
+                    _relative(squared.sum(axis=1), x_squared.sum(axis=1))
                 )
     if n_observations == 0:
         raise ValueError("An evaluation must contain observations.")
-    result = {
+    assert n_features is not None
+    n_elements = n_observations * n_features
+    result: Dict[str, Any] = {
         "n_observations": n_observations,
         "n_features": n_features,
-        "n_elements": n_observations * n_features,
-        "sse": float(sse.sum()),
+        "n_elements": n_elements,
     }
+    if sse is not None:
+        result["sse"] = float(sse.sum())
     if centering is not None:
+        assert sse is not None and moments.centered is not None
         result["sst"] = float(moments.centered.sum())
         result["feature_residual_sums"] = sse
         if centering == "feature":
             result["feature_centered_sums"] = moments.centered
     else:
-        result.update(
-            mse=float(sse.sum() / result["n_elements"]),
-            mae=float(sae.sum() / result["n_elements"]),
-            relative_l2_error=float(_relative(sse.sum(), target_squared.sum())),
-        )
-        result["rmse"] = float(np.sqrt(result["mse"]))
+        if sse is not None:
+            mse_scalar = float(sse.sum() / n_elements)
+            result["mse"] = mse_scalar
+            result["rmse"] = float(np.sqrt(mse_scalar))
+        if sae is not None:
+            result["mae"] = float(sae.sum() / n_elements)
+        if sse is not None and target_squared is not None:
+            result["relative_l2_error"] = float(_relative(sse.sum(), target_squared.sum()))
     if details:
         result.update({f"observation_{key}": np.concatenate(v) for key, v in vectors.items()})
-        mse = result["observation_mse"]
+        obs_mse = result["observation_mse"]
         result.update(
-            observation_mse_mean=float(mse.mean()),
-            observation_mse_std=float(mse.std()),
-            observation_mse_min=float(mse.min()),
-            observation_mse_max=float(mse.max()),
-            observation_mse_median=float(np.median(mse)),
+            observation_mse_mean=float(obs_mse.mean()),
+            observation_mse_std=float(obs_mse.std()),
+            observation_mse_min=float(obs_mse.min()),
+            observation_mse_max=float(obs_mse.max()),
+            observation_mse_median=float(np.median(obs_mse)),
         )
     return result
 
@@ -358,7 +386,7 @@ class ReconstructionError:
             If an item is not a length-2 tuple/list, the stream is empty, feature
             counts change, or arrays violate ``evaluate`` input rules.
         """
-        return _reduce(batches, self.batch_size)[self._key]
+        return _reduce(batches, self.batch_size, error=self.error)[self._key]
 
     def detailed_evaluate(
         self, activations: np.ndarray, reconstructed: np.ndarray

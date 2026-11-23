@@ -8,7 +8,6 @@ from ...types import Any, Dict, Optional
 from ._utils import (
     _Moments,
     activity_config,
-    activity_mask,
     array_input,
     concept_bank_input,
     observation_chunks,
@@ -16,7 +15,9 @@ from ._utils import (
 )
 
 
-def _coefficient_statistics(batches, concept_bank, basis, threshold, batch_size, details=False):
+def _coefficient_statistics(
+    batches, concept_bank, basis, threshold, batch_size, *, usage_stats=True, details=False
+):
     _, norms, _ = concept_bank_input(concept_bank)
     n_concepts = len(norms)
     moments = _Moments()
@@ -24,44 +25,56 @@ def _coefficient_statistics(batches, concept_bank, basis, threshold, batch_size,
     energy = np.zeros(n_concepts)
     active_counts = np.zeros(n_concepts, dtype=np.int64)
     supports = []
+    n_observations = 0
     for coefficients in batches:
         values = array_input(coefficients, "coefficients")
         if values.shape[-1] != n_concepts:
             raise ValueError("Coefficient and concept-bank concept counts must agree.")
         for chunk in observation_chunks(values, batch_size):
-            moments.merge(chunk)
-            contribution = np.abs(chunk) * norms
-            absolute_sum += contribution.sum(axis=0)
-            energy += (contribution**2).sum(axis=0)
-            active = activity_mask(chunk, norms, basis, threshold)
+            n_observations += len(chunk)
+            # Reuse |chunk| / contribution across usage accumulators and the
+            # support mask rather than calling activity_mask redundantly, and
+            # skip moment/energy reductions in sparsity-only mode.
+            abs_chunk = np.abs(chunk)
+            contribution = abs_chunk * norms if (usage_stats or basis == "contribution") else None
+            if usage_stats:
+                assert contribution is not None
+                moments.merge(chunk)
+                absolute_sum += contribution.sum(axis=0)
+                energy += (contribution**2).sum(axis=0)
+            active = (contribution if basis == "contribution" else abs_chunk) > threshold
             active_counts += active.sum(axis=0)
             if details:
                 supports.append(active.sum(axis=1))
-    if moments.count == 0:
+    if n_observations == 0:
         raise ValueError("An evaluation must contain observations.")
-    max_energy = float(energy.max())
-    if max_energy > 0 and np.isfinite(max_energy):
-        # Rescale by max_energy before summing so finite nonzero component
-        # energies cannot overflow energy.sum() to inf and yield zero shares.
-        scaled_energy = energy / max_energy
-        energy_share = scaled_energy / scaled_energy.sum()
-    else:
-        energy_share = np.full(n_concepts, np.nan)
-    result = {
-        "n_observations": moments.count,
+    result: Dict[str, Any] = {
+        "n_observations": n_observations,
         "n_concepts": n_concepts,
-        "n_elements": moments.count * n_concepts,
+        "n_elements": n_observations * n_concepts,
         "activity_basis": basis,
         "active_threshold": threshold,
-        "mean_coefficient": moments.mean,
-        "std_coefficient": np.sqrt(moments.centered / moments.count),
-        "effective_usage": absolute_sum / moments.count,
-        "component_energy": energy,
-        "component_energy_share": energy_share,
-        "active_fraction": active_counts / moments.count,
-        "n_active_concepts": int(np.count_nonzero(active_counts)),
-        "sparsity": float(1 - active_counts.sum() / (moments.count * n_concepts)),
+        "active_fraction": active_counts / n_observations,
+        "sparsity": float(1 - active_counts.sum() / (n_observations * n_concepts)),
     }
+    if usage_stats:
+        assert moments.mean is not None and moments.centered is not None
+        max_energy = float(energy.max())
+        if max_energy > 0 and np.isfinite(max_energy):
+            # Rescale by max_energy before summing so finite nonzero component
+            # energies cannot overflow energy.sum() to inf and yield zero shares.
+            scaled_energy = energy / max_energy
+            energy_share = scaled_energy / scaled_energy.sum()
+        else:
+            energy_share = np.full(n_concepts, np.nan)
+        result.update(
+            mean_coefficient=moments.mean,
+            std_coefficient=np.sqrt(moments.centered / n_observations),
+            effective_usage=absolute_sum / n_observations,
+            component_energy=energy,
+            component_energy_share=energy_share,
+            n_active_concepts=int(np.count_nonzero(active_counts)),
+        )
     if details:
         result["observation_support_sizes"] = np.concatenate(supports)
     return result
@@ -235,7 +248,8 @@ class ConceptSparsity:
             self.activity_basis,
             self.active_threshold,
             self.batch_size,
-            details,
+            usage_stats=False,
+            details=details,
         )
 
     def evaluate(self, coefficients: np.ndarray, concept_bank: np.ndarray) -> float:
