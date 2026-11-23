@@ -129,5 +129,6 @@ warn_unused_configs = true
 
 [[tool.mypy.overrides]]
 module = ["numpy.*",
+          "scipy.*",
           "sklearn.*"]
 ignore_missing_imports = true

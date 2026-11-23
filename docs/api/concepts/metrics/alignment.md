@@ -39,9 +39,12 @@ Three pairwise similarity modes are supported:
 - **Higher is better:** For cosine modes, `1.0` indicates identical banks up to concept
   permutation (and sign flips for `"absolute_cosine"`). Signed cosine scores may be
   negative; dot scores are unbounded.
-- **Unequal bank sizes:** `coverage` penalizes unmatched concepts when $K_1 \neq K_2$.
+- **Unequal bank sizes:** `mean_similarity * coverage` is algebraically
+  $\frac{1}{\max(K_1, K_2)} \sum_{m=1}^{M} S_{i_m, j_m}$, treating unmatched concepts as
+  contributing `0.0`. This pulls both positive and negative scores toward `0.0` (so
+  unequal sizes act as a downward penalty whenever matched similarities are nonnegative).
   Inspect `mean_similarity` and `coverage` separately in `detailed_evaluate` to tell
-  whether a lower score comes from poor directional match or mismatched bank sizes.
+  whether a score reflects directional match or mismatched bank sizes.
 - **Per-concept inspection:** Use `assignment_reference_indices`,
   `assignment_compared_indices`, `matched_similarities`, and `matched_polarities` on
   `HungarianMatchingResult` to identify which specific concepts are consistently

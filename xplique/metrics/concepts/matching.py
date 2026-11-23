@@ -45,7 +45,8 @@ class HungarianMatchingResult:
         Fraction of concepts covered, ``M / max(K_reference, K_compared)`` in
         ``(0, 1]``.
     coverage_weighted_similarity : float
-        Headline alignment score ``mean_similarity * coverage``.
+        Headline alignment score ``mean_similarity * coverage`` (equivalently
+        padding unmatched concepts with ``0.0``).
 
     Notes
     -----
@@ -77,8 +78,10 @@ def _matched_summary(similarity, rows, columns):
 
 class ConceptAlignment:
     """Measure alignment between two concept banks via maximum-sum Hungarian matching.
-    Returns ``mean_similarity * coverage``, penalizing unequal bank sizes without
-    storing banks or assignments between calls.
+    Returns ``mean_similarity * coverage`` (equivalently padding unmatched concepts
+    with ``0.0``), which pulls both positive and negative scores toward ``0.0`` and
+    penalizes unequal bank sizes whenever matched similarities are nonnegative. No
+    banks or assignments are stored between calls.
 
     Parameters
     ----------
@@ -92,6 +95,10 @@ class ConceptAlignment:
     -----
     Both banks must live in the same feature coordinate system; matching feature
     dimensions alone do not make two banks comparable across models or preprocessing.
+
+    In ``'dot'`` mode, inner products are computed in float64 without rescaling;
+    extremely large finite banks (beyond roughly ``1e150`` in magnitude) can overflow
+    and raise ``ValueError``.
 
     Examples
     --------
@@ -118,6 +125,10 @@ class ConceptAlignment:
             similarity = np.abs(cosine)
         elif self.similarity == "dot":
             similarity = reference @ compared.T
+            if not np.isfinite(similarity).all():
+                raise ValueError(
+                    "Dot-product similarity matrix overflowed float64; rescale concept banks first."
+                )
         rows, columns = linear_sum_assignment(similarity, maximize=True)
         return similarity, cosine, rows, columns
 
@@ -148,7 +159,8 @@ class ConceptAlignment:
         ------
         ValueError
             If banks are not 2-D real integer/floating arrays, are empty/nonfinite,
-            contain zero concept vectors, or have different feature counts.
+            contain zero concept vectors, have different feature counts, or overflow
+            float64 dot products.
         """
         similarity, _, rows, columns = self._assignment(
             reference_concept_bank, compared_concept_bank
@@ -187,7 +199,8 @@ class ConceptAlignment:
         ------
         ValueError
             If banks have invalid dtypes/dimensions, are empty/nonfinite, contain
-            zero vectors, or have different feature counts.
+            zero vectors, have different feature counts, or overflow float64 dot
+            products.
         """
         similarity, cosine, rows, columns = self._assignment(
             reference_concept_bank, compared_concept_bank
@@ -242,9 +255,14 @@ def compare_concept_banks(
     Raises
     ------
     ValueError
-        If fewer than two banks are supplied, ``reference_key`` is not in ``banks``,
-        or any compared pair violates ``ConceptAlignment`` input rules.
+        If ``banks`` is not a mapping, fewer than two banks are supplied,
+        ``reference_key`` is not in ``banks``, or any compared pair violates
+        ``ConceptAlignment`` input rules.
     """
+    # Reject sequences explicitly: lists like [bank_a, bank_b] satisfy len >= 2
+    # and combinations() but would otherwise fail later with a confusing indexing error.
+    if not isinstance(banks, Mapping):
+        raise ValueError("banks must be a mapping from run keys to concept banks.")
     if len(banks) < 2:
         raise ValueError("At least two concept banks are required.")
     if reference_key is not None and reference_key not in banks:

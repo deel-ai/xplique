@@ -43,6 +43,45 @@ def test_alignment_ties_rescaling_and_invalid_inputs():
         compare_concept_banks({"a": bank})
     with pytest.raises(ValueError):
         compare_concept_banks({"a": bank, "b": bank}, reference_key="missing")
+    with pytest.raises(ValueError, match="mapping"):
+        compare_concept_banks([bank, bank])
+    with pytest.raises(ValueError, match="overflowed"):
+        ConceptAlignment(similarity="dot")(np.eye(2) * 1e200, np.eye(2) * 1e200)
+
+
+def test_alignment_rectangular_oracle_symmetry_and_polarities():
+    from itertools import permutations
+
+    reference = np.array([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [1.0, 1.0, 0.0]])
+    compared = np.array([[-1.0, 0.0, 0.0], [0.0, 0.0, 1.0]])
+    ref_u = reference / np.linalg.norm(reference, axis=1, keepdims=True)
+    cmp_u = compared / np.linalg.norm(compared, axis=1, keepdims=True)
+    cos = ref_u @ cmp_u.T
+
+    for mode, matrix in [
+        ("cosine", cos),
+        ("absolute_cosine", np.abs(cos)),
+        ("dot", reference @ compared.T),
+    ]:
+        best = max(
+            sum(matrix[r, c] for r, c in zip(rows, range(len(compared))))
+            for rows in permutations(range(len(reference)), len(compared))
+        )
+        expected = best / max(len(reference), len(compared))
+        metric = ConceptAlignment(similarity=mode)
+        assert metric(reference, compared) == pytest.approx(expected)
+        assert metric(compared, reference) == pytest.approx(expected)
+
+    # Zero cosine (including -0.0) maps to polarity +1 by convention.
+    orthogonal = ConceptAlignment(similarity="cosine").detailed_evaluate(
+        np.array([[1.0, 0.0]]), np.array([[0.0, -1.0]])
+    )
+    assert orthogonal.matched_polarities.tolist() == [1]
+
+    # Negative similarities with unequal bank sizes pad unmatched concepts with 0.0.
+    assert ConceptAlignment(similarity="cosine")(
+        np.array([[1.0, 0.0]]), np.array([[-1.0, 0.0], [-1.0, 0.0]])
+    ) == pytest.approx(-0.5)
 
 
 @pytest.mark.parametrize("mode", ["cosine", "absolute_cosine", "dot"])
