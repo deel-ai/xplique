@@ -72,8 +72,65 @@ class HungarianMatchingResult:
 def _matched_summary(similarity, rows, columns):
     """Share matched values and the exact coverage-weighted calculation."""
     matched = similarity[rows, columns]
-    coverage = len(rows) / max(similarity.shape)
-    return matched, float(coverage), float(matched.mean() * coverage)
+    mean_similarity = float(matched.mean())
+    coverage = float(len(rows) / max(similarity.shape))
+    return matched, mean_similarity, coverage, float(mean_similarity * coverage)
+
+
+def _assign_prepared(
+    prepared_reference, prepared_compared, similarity_mode, *, need_matched_cosine
+):
+    """Run Hungarian matching on pre-validated/normalized banks."""
+    reference, _, reference_unit = prepared_reference
+    compared, _, compared_unit = prepared_compared
+    if reference.shape[1] != compared.shape[1]:
+        raise ValueError("Concept banks must share feature dimensions.")
+    if similarity_mode == "dot":
+        # In dot mode, raw inner products determine the assignment directly,
+        # so skip the full K1 x K2 cosine matrix and compute cosines only
+        # for the M matched pairs when detailed_evaluate requests them.
+        similarity = reference @ compared.T
+        if not np.isfinite(similarity).all():
+            raise ValueError(
+                "Dot-product similarity matrix overflowed float64; rescale concept banks first."
+            )
+        rows, columns = linear_sum_assignment(similarity, maximize=True)
+        matched_cosine = (
+            np.clip(np.sum(reference_unit[rows] * compared_unit[columns], axis=1), -1, 1)
+            if need_matched_cosine
+            else None
+        )
+        return similarity, matched_cosine, rows, columns
+    cosine = np.clip(reference_unit @ compared_unit.T, -1, 1)
+    similarity = np.abs(cosine) if similarity_mode == "absolute_cosine" else cosine
+    rows, columns = linear_sum_assignment(similarity, maximize=True)
+    matched_cosine = cosine[rows, columns] if need_matched_cosine else None
+    return similarity, matched_cosine, rows, columns
+
+
+def _detailed_from_prepared(prepared_reference, prepared_compared, similarity_mode):
+    """Build a HungarianMatchingResult from pre-validated/normalized banks."""
+    similarity, matched_cosine, rows, columns = _assign_prepared(
+        prepared_reference, prepared_compared, similarity_mode, need_matched_cosine=True
+    )
+    assert matched_cosine is not None
+    matched, mean_similarity, coverage, coverage_weighted = _matched_summary(
+        similarity, rows, columns
+    )
+    return HungarianMatchingResult(
+        similarity_mode,
+        similarity.shape[0],
+        similarity.shape[1],
+        len(rows),
+        rows,
+        columns,
+        matched,
+        np.abs(matched_cosine),
+        np.where(matched_cosine < 0, -1, 1),
+        mean_similarity,
+        coverage,
+        coverage_weighted,
+    )
 
 
 class ConceptAlignment:
@@ -114,24 +171,6 @@ class ConceptAlignment:
             raise ValueError("Unknown similarity mode.")
         self.similarity = similarity
 
-    def _assignment(self, reference_concept_bank, compared_concept_bank):
-        reference, _, reference_unit = concept_bank_input(reference_concept_bank, True)
-        compared, _, compared_unit = concept_bank_input(compared_concept_bank, True)
-        if reference.shape[1] != compared.shape[1]:
-            raise ValueError("Concept banks must share feature dimensions.")
-        cosine = np.clip(reference_unit @ compared_unit.T, -1, 1)
-        similarity = cosine
-        if self.similarity == "absolute_cosine":
-            similarity = np.abs(cosine)
-        elif self.similarity == "dot":
-            similarity = reference @ compared.T
-            if not np.isfinite(similarity).all():
-                raise ValueError(
-                    "Dot-product similarity matrix overflowed float64; rescale concept banks first."
-                )
-        rows, columns = linear_sum_assignment(similarity, maximize=True)
-        return similarity, cosine, rows, columns
-
     def evaluate(
         self, reference_concept_bank: np.ndarray, compared_concept_bank: np.ndarray
     ) -> float:
@@ -162,10 +201,13 @@ class ConceptAlignment:
             contain zero concept vectors, have different feature counts, or overflow
             float64 dot products.
         """
-        similarity, _, rows, columns = self._assignment(
-            reference_concept_bank, compared_concept_bank
+        similarity, _, rows, columns = _assign_prepared(
+            concept_bank_input(reference_concept_bank, True),
+            concept_bank_input(compared_concept_bank, True),
+            self.similarity,
+            need_matched_cosine=False,
         )
-        return _matched_summary(similarity, rows, columns)[2]
+        return _matched_summary(similarity, rows, columns)[3]
 
     def __call__(
         self, reference_concept_bank: np.ndarray, compared_concept_bank: np.ndarray
@@ -202,24 +244,10 @@ class ConceptAlignment:
             zero vectors, have different feature counts, or overflow float64 dot
             products.
         """
-        similarity, cosine, rows, columns = self._assignment(
-            reference_concept_bank, compared_concept_bank
-        )
-        matched, coverage, coverage_weighted = _matched_summary(similarity, rows, columns)
-        matched_cosine = cosine[rows, columns]
-        return HungarianMatchingResult(
+        return _detailed_from_prepared(
+            concept_bank_input(reference_concept_bank, True),
+            concept_bank_input(compared_concept_bank, True),
             self.similarity,
-            similarity.shape[0],
-            similarity.shape[1],
-            len(rows),
-            rows,
-            columns,
-            matched,
-            np.abs(matched_cosine),
-            np.where(matched_cosine < 0, -1, 1),
-            float(matched.mean()),
-            float(coverage),
-            coverage_weighted,
         )
 
 
@@ -273,4 +301,11 @@ def compare_concept_banks(
         if reference_key is not None
         else combinations(banks, 2)
     )
-    return {pair: metric.detailed_evaluate(banks[pair[0]], banks[pair[1]]) for pair in pairs}
+    # Validate and normalize each bank once into an evaluation-local dict rather
+    # than repeating float64 conversion and row normalization M - 1 times across
+    # pairs, while keeping ConceptAlignment stateless across calls.
+    prepared = {key: concept_bank_input(bank, True) for key, bank in banks.items()}
+    return {
+        pair: _detailed_from_prepared(prepared[pair[0]], prepared[pair[1]], metric.similarity)
+        for pair in pairs
+    }
