@@ -180,9 +180,8 @@ def test_coefficient_validation_and_independent_evaluations(factory):
         assert_report_equal(again, result)
     else:
         assert again == result
-    if factory is not CoactiveSupportCoherence:
-        with pytest.raises(ValueError):
-            metric.evaluate_batches(iter([]), concept_bank=bank)
+    with pytest.raises(ValueError):
+        metric.evaluate_batches(iter([]), concept_bank=bank)
 
 
 @pytest.mark.parametrize("factory", [ConceptUsage, ConceptSparsity, CoactiveSupportCoherence])
@@ -235,6 +234,10 @@ def test_one_pass_iterables_and_energy_observation_scaling():
     doubled = usage(np.concatenate([values, values]), np.eye(4))
     np.testing.assert_allclose(doubled["component_energy"], report["component_energy"] * 2)
     np.testing.assert_allclose(doubled["effective_usage"], report["effective_usage"])
+    coherence = CoactiveSupportCoherence(batch_size=2)
+    assert coherence.evaluate_batches(
+        Once([values[:2], values[2:]]), concept_bank=np.eye(4)
+    ) == pytest.approx(coherence(values, np.eye(4)))
 
 
 def test_optional_dependencies_not_required():

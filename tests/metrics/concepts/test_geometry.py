@@ -162,6 +162,23 @@ def test_coactive_scores_match_reference_loop(batch_size, basis):
     np.testing.assert_allclose(report["observation_scores"], expected, rtol=1e-14, atol=1e-14)
     np.testing.assert_array_equal(report["observation_support_sizes"], active.sum(axis=1))
     assert metric(coefficients, bank) == pytest.approx(expected.mean())
+    assert metric.evaluate_batches(
+        iter([coefficients[:10], coefficients[10:]]), concept_bank=bank
+    ) == pytest.approx(expected.mean())
+
+
+def test_geometry_and_coactive_reject_zero_concept_rows():
+    zero_bank = np.array([[1.0, 0.0], [0.0, 0.0]])
+    with pytest.raises(ValueError, match="zero concept vectors"):
+        concept_bank_geometry_metrics(zero_bank)
+    with pytest.raises(ValueError, match="zero concept vectors"):
+        concept_bank_babel_score(zero_bank, 1)
+    with pytest.raises(ValueError, match="zero concept vectors"):
+        concept_bank_babel_curve(zero_bank)
+    with pytest.raises(ValueError, match="zero concept vectors"):
+        CoactiveSupportCoherence()(np.ones((2, 2)), zero_bank)
+    with pytest.raises(ValueError, match="zero concept vectors"):
+        CoactiveSupportCoherence().evaluate_batches([np.ones((2, 2))], concept_bank=zero_bank)
 
 
 def test_hand_computable_support_distribution():

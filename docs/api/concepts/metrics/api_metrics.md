@@ -92,8 +92,8 @@ data on each call:
 - `metric.detailed_evaluate(...)` — returns structured scientific intermediates from which
   the headline scalar can be recovered. `ConceptUsage` already returns its complete
   multivariate report in `evaluate(...)`, so it has no separate `detailed_evaluate`.
-- `metric.evaluate_batches(...)` — available on reconstruction and usage/sparsity metrics
-  for exact single-pass streaming over large datasets.
+- `metric.evaluate_batches(...)` — available on reconstruction, usage/sparsity, and
+  coactive coherence metrics for exact single-pass streaming over large datasets.
 
 Each call is completely independent (including after an exception): inputs are never
 mutated, no global random state is touched, and no data is cached between calls.
@@ -125,9 +125,9 @@ For large activation sets, set `batch_size` to chunk observations without changi
 mathematical result (up to `float64` roundoff). Contiguous arrays are sliced as views;
 strided arrays gather only the current chunk rather than copying the full array.
 
-`ReconstructionR2`, `ReconstructionError`, `ConceptUsage`, and `ConceptSparsity` also
-provide single-pass `evaluate_batches(...)` using $O(F)$ or $O(K)$ local sufficient
-statistics:
+`ReconstructionR2`, `ReconstructionError`, `ConceptUsage`, `ConceptSparsity`, and
+`CoactiveSupportCoherence` also provide single-pass `evaluate_batches(...)` using
+evaluation-local running statistics:
 
 ```python
 import numpy as np

@@ -7,6 +7,8 @@ Welch (1974), Lower bounds on the maximum cross correlation of signals,
 IEEE Information Theory 20(3):397–399.
 """
 
+from collections.abc import Iterable
+
 import numpy as np
 
 from ...types import Any, Dict, Optional
@@ -315,19 +317,30 @@ class CoactiveSupportCoherence:
         self.active_threshold = float(active_threshold)
         self.batch_size = validate_batch_size(batch_size)
 
-    def _scores(self, coefficients, concept_bank):
+    def _batch_scores(self, batches, concept_bank):
         _, norms, unit = concept_bank_input(concept_bank, True)
-        values = array_input(coefficients, "coefficients")
-        if values.shape[-1] != len(unit):
-            raise ValueError("Coefficient and bank concept counts must agree.")
         gram = _gram(unit)
-        for chunk in observation_chunks(values, self.batch_size):
-            active = activity_mask(chunk, norms, self.activity_basis, self.active_threshold)
-            sizes = active.sum(axis=1)
-            support_sums = active.astype(np.float64) @ gram
-            scores = np.where(active, support_sums, -np.inf).max(axis=1)
-            scores[sizes < 2] = 0.0
-            yield scores, sizes
+        n_observations = 0
+        for coefficients in batches:
+            values = array_input(coefficients, "coefficients")
+            if values.shape[-1] != len(unit):
+                raise ValueError("Coefficient and bank concept counts must agree.")
+            for chunk in observation_chunks(values, self.batch_size):
+                active = activity_mask(chunk, norms, self.activity_basis, self.active_threshold)
+                sizes = active.sum(axis=1)
+                scores = np.zeros(len(sizes), dtype=np.float64)
+                multi = sizes >= 2
+                # Empty and singleton supports have score 0.0 by definition; slicing
+                # active[multi] before multiplying by gram skips wasted O(K^2) work
+                # on sparse codes without changing the scores.
+                if np.any(multi):
+                    active_multi = active[multi]
+                    support_sums = active_multi.astype(np.float64) @ gram
+                    scores[multi] = np.where(active_multi, support_sums, -np.inf).max(axis=1)
+                n_observations += len(scores)
+                yield scores, sizes
+        if n_observations == 0:
+            raise ValueError("An evaluation must contain observations.")
 
     def evaluate(self, coefficients: np.ndarray, concept_bank: np.ndarray) -> float:
         """Return the unconditional mean coactive support coherence across all
@@ -356,15 +369,47 @@ class CoactiveSupportCoherence:
             If arrays have invalid dtypes/dimensions, are empty/nonfinite, have
             mismatched concept counts, or the bank contains zero concept vectors.
         """
-        total, count = 0.0, 0
-        for scores, _ in self._scores(coefficients, concept_bank):
-            total += scores.sum()
-            count += len(scores)
-        return float(total / count)
+        return self.evaluate_batches((coefficients,), concept_bank=concept_bank)
 
     def __call__(self, coefficients: np.ndarray, concept_bank: np.ndarray) -> float:
         """Alias for ``evaluate``."""
         return self.evaluate(coefficients, concept_bank)
+
+    def evaluate_batches(self, batches: Iterable[np.ndarray], *, concept_bank: np.ndarray) -> float:
+        """Return the unconditional mean coactive support coherence in a single pass
+        over streamed coefficient batches with a fixed concept bank.
+
+        Parameters
+        ----------
+        batches : iterable of np.ndarray
+            One-pass iterable of finite, nonempty real integer/floating coefficient
+            arrays of shape ``(..., K)`` with fixed ``K``.
+        concept_bank : np.ndarray
+            Finite, nonempty 2-D real integer/floating bank of shape ``(K, F)``
+            matching ``K`` and containing no zero rows.
+
+        Returns
+        -------
+        mean_support_babel : float
+            Dimensionless unconditional mean of per-observation support coherence
+            across all streamed observations, matching ``evaluate`` on concatenated
+            batches.
+
+        Raises
+        ------
+        ValueError
+            If the stream is empty, arrays have invalid dtypes/dimensions, are
+            empty/nonfinite, have mismatched concept counts, or the bank contains
+            zero concept vectors.
+        """
+        # Stream scalar mean with O(1) running (total, count) state for API
+        # symmetry with other observation-level metrics; detailed_evaluate stays
+        # single-array because exact quantiles require O(N) observation scores.
+        total, count = 0.0, 0
+        for scores, _ in self._batch_scores(batches, concept_bank):
+            total += float(scores.sum())
+            count += len(scores)
+        return float(total / count)
 
     def detailed_evaluate(
         self, coefficients: np.ndarray, concept_bank: np.ndarray
@@ -408,7 +453,7 @@ class CoactiveSupportCoherence:
             If arrays have invalid dtypes/dimensions, are empty/nonfinite, have
             mismatched concept counts, or the bank contains zero concept vectors.
         """
-        chunks = list(self._scores(coefficients, concept_bank))
+        chunks = list(self._batch_scores((coefficients,), concept_bank))
         scores = np.concatenate([chunk[0] for chunk in chunks])
         sizes = np.concatenate([chunk[1] for chunk in chunks])
         multi = sizes >= 2
