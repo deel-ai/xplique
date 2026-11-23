@@ -128,9 +128,13 @@ def test_r2_shared_origin_preserves_precision_at_2_53(batch_size):
     assert ReconstructionR2(batch_size=batch_size)(x, y) == pytest.approx(0.2, abs=1e-12)
 
 
-def test_r2_single_observation_global():
+def test_r2_single_observation_global_and_relative_l2_extreme_ratio():
     x = np.array([[1.0, 3.0]])
     y = np.array([[1.0, 2.0]])
     details = ReconstructionR2(r2_centering="global").detailed_evaluate(x, y)
     assert details["r2"] == pytest.approx(0.5)
     assert "feature_centered_sums" not in details
+
+    ratio = ReconstructionError(error="relative_l2")(np.array([[1e-100]]), np.array([[1e100]]))
+    assert np.isfinite(ratio)
+    assert ratio == pytest.approx(1e200)

@@ -39,6 +39,14 @@ def _coefficient_statistics(batches, concept_bank, basis, threshold, batch_size,
                 supports.append(active.sum(axis=1))
     if moments.count == 0:
         raise ValueError("An evaluation must contain observations.")
+    max_energy = float(energy.max())
+    if max_energy > 0 and np.isfinite(max_energy):
+        # Rescale by max_energy before summing so finite nonzero component
+        # energies cannot overflow energy.sum() to inf and yield zero shares.
+        scaled_energy = energy / max_energy
+        energy_share = scaled_energy / scaled_energy.sum()
+    else:
+        energy_share = np.full(n_concepts, np.nan)
     result = {
         "n_observations": moments.count,
         "n_concepts": n_concepts,
@@ -49,9 +57,7 @@ def _coefficient_statistics(batches, concept_bank, basis, threshold, batch_size,
         "std_coefficient": np.sqrt(moments.centered / moments.count),
         "effective_usage": absolute_sum / moments.count,
         "component_energy": energy,
-        "component_energy_share": (
-            energy / energy.sum() if energy.sum() != 0 else np.full(n_concepts, np.nan)
-        ),
+        "component_energy_share": energy_share,
         "active_fraction": active_counts / moments.count,
         "n_active_concepts": int(np.count_nonzero(active_counts)),
         "sparsity": float(1 - active_counts.sum() / (moments.count * n_concepts)),
@@ -86,6 +92,10 @@ class ConceptUsage:
     exclude affine decoder offsets. Because concept vectors are generally
     non-orthogonal, ``component_energy_share`` is not additive explained variance.
     Zero concept vectors are permitted.
+
+    Squared component energies are accumulated in float64 without rescaling.
+    Extremely large finite contributions (beyond roughly ``1e150`` in magnitude)
+    can overflow to ``inf``/``NaN``; rescale inputs first if needed.
 
     Examples
     --------

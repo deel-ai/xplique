@@ -77,3 +77,5 @@ def test_usage_stable_moments_and_exact_threshold_boundary():
         [np.sqrt(5.0)],
         rtol=1e-12,
     )
+    large_energy = ConceptUsage()(np.array([[1e154, 1e154]]), np.eye(2))
+    np.testing.assert_allclose(large_energy["component_energy_share"], [0.5, 0.5])

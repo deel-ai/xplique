@@ -11,10 +11,14 @@ from ._utils import _Moments, array_input, observation_chunks, validate_batch_si
 def _relative(residual_squared, target_squared):
     """Ratio of norms with explicit zero-target semantics."""
     residual_squared, target_squared = np.broadcast_arrays(residual_squared, target_squared)
-    result = np.full(residual_squared.shape, np.inf)
-    np.divide(residual_squared, target_squared, out=result, where=target_squared != 0)
-    result[(target_squared == 0) & (residual_squared == 0)] = 0
-    return np.sqrt(result)
+    # Take square roots before dividing so representable norm ratios do not
+    # overflow when squared sums span more than float64 max (~1e308).
+    residual_norm = np.sqrt(residual_squared)
+    target_norm = np.sqrt(target_squared)
+    result = np.full(residual_norm.shape, np.inf)
+    np.divide(residual_norm, target_norm, out=result, where=target_norm != 0)
+    result[(target_norm == 0) & (residual_norm == 0)] = 0.0
+    return result
 
 
 def _reduce(batches, batch_size, centering=None, details=False):
