@@ -18,7 +18,10 @@ def validate_batch_size(batch_size):
         or batch_size <= 0
     ):
         raise ValueError("batch_size must be a positive integer or None.")
-    return batch_size
+    # Convert narrow NumPy integers (e.g. np.int8) to Python int so
+    # `start + step` in observation_chunks cannot overflow under NumPy 2
+    # scalar promotion and silently drop trailing observations.
+    return None if batch_size is None else int(batch_size)
 
 
 def array_input(values, name, bank=False):

@@ -38,6 +38,17 @@ def test_invalid_batch_sizes(factory, bad):
         factory(batch_size=bad)
 
 
+def test_narrow_numpy_int_batch_size_does_not_overflow():
+    x = np.zeros((150, 1))
+    y = np.zeros((150, 1))
+    y[100:] = 1.0
+    metric = ReconstructionError(error="mse", batch_size=np.int8(100))
+    assert type(metric.batch_size) is int
+    assert metric(x, y) == pytest.approx(50 / 150)
+    chunks = list(observation_chunks(y, metric.batch_size))
+    assert [len(chunk) for chunk in chunks] == [100, 50]
+
+
 @pytest.mark.parametrize("layout", ["transpose", "slice", "fortran"])
 def test_strided_inputs_are_bounded_and_ordered(layout):
     x = np.arange(120.0).reshape(4, 5, 6)
