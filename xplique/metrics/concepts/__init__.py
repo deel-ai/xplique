@@ -12,6 +12,7 @@ from .matching import (
     MatchedCodeConsistency,
     compare_concept_banks,
 )
+from .prediction_fidelity import ClassificationPredictionFidelity
 from .reconstruction import ReconstructionError, ReconstructionR2
 from .usage import ConceptSparsity, ConceptUsage, HoyerSparsity
 
@@ -21,6 +22,7 @@ __all__ = [
     "ConceptUsage",
     "ConceptSparsity",
     "HoyerSparsity",
+    "ClassificationPredictionFidelity",
     "ConceptAlignment",
     "MatchedCodeConsistency",
     "CoactiveSupportCoherence",

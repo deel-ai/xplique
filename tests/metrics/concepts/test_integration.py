@@ -7,6 +7,7 @@ import numpy as np
 import pytest
 
 from xplique.metrics.concepts import (
+    ClassificationPredictionFidelity,
     CoactiveSupportCoherence,
     ConceptAlignment,
     ConceptSparsity,
@@ -34,6 +35,9 @@ from ._utils import assert_report_equal
         HoyerSparsity,
         MatchedCodeConsistency,
         CoactiveSupportCoherence,
+        lambda batch_size: ClassificationPredictionFidelity(
+            prediction_format="logits", batch_size=batch_size
+        ),
     ],
 )
 @pytest.mark.parametrize("bad", [0, -1, 1.2, True, np.bool_(False), "3"])
@@ -294,6 +298,7 @@ import numpy as np
 from xplique.metrics.concepts import (
     ReconstructionR2, ReconstructionError, ConceptUsage, ConceptSparsity,
     HoyerSparsity, ConceptAlignment, MatchedCodeConsistency, CoactiveSupportCoherence,
+    ClassificationPredictionFidelity,
     concept_bank_geometry_metrics, concept_bank_babel_score, concept_bank_babel_curve,
     compare_concept_banks,
 )
@@ -307,6 +312,8 @@ assert ConceptAlignment()(bank, bank) == 1
 matching = ConceptAlignment().detailed_evaluate(bank, bank)
 assert np.isclose(MatchedCodeConsistency()(bank, bank, matching=matching), 1)
 assert CoactiveSupportCoherence()(bank, bank) == 0
+clf = ClassificationPredictionFidelity(prediction_format='logits')
+assert clf(bank, bank)['top1_agreement'] == 1
 assert concept_bank_geometry_metrics(bank)['stable_rank'] == 2
 assert concept_bank_babel_score(bank, order=1) == 0
 assert concept_bank_babel_curve(bank)['babel_score'] == 0
