@@ -57,8 +57,8 @@ def observation_chunks(values, batch_size):
         yield chunk
 
 
-def concept_bank_input(concept_bank, nonzero=False):
-    """Return a validated bank, scale-safe row norms, and unit rows."""
+def _concept_bank_row_parts(concept_bank, nonzero=False):
+    """Return the row scales and scaled rows used to compute bank norms."""
     bank = array_input(concept_bank, "concept_bank", bank=True).astype(np.float64)
     if not np.isfinite(bank).all():
         raise ValueError("concept_bank must be finite.")
@@ -68,6 +68,12 @@ def concept_bank_input(concept_bank, nonzero=False):
     safe_scale = np.where(scale == 0, 1.0, scale)
     scaled = bank / safe_scale[:, None]
     length = np.sqrt(np.sum(scaled * scaled, axis=1))
+    return bank, scale, scaled, length
+
+
+def concept_bank_input(concept_bank, nonzero=False):
+    """Return a validated bank, scale-safe row norms, and unit rows."""
+    bank, scale, scaled, length = _concept_bank_row_parts(concept_bank, nonzero)
     unit = scaled / np.where(length == 0, 1.0, length)[:, None]
     return bank, scale * length, unit
 

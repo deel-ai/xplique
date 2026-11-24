@@ -13,13 +13,14 @@ from .matching import (
     compare_concept_banks,
 )
 from .reconstruction import ReconstructionError, ReconstructionR2
-from .usage import ConceptSparsity, ConceptUsage
+from .usage import ConceptSparsity, ConceptUsage, HoyerSparsity
 
 __all__ = [
     "ReconstructionR2",
     "ReconstructionError",
     "ConceptUsage",
     "ConceptSparsity",
+    "HoyerSparsity",
     "ConceptAlignment",
     "MatchedCodeConsistency",
     "CoactiveSupportCoherence",

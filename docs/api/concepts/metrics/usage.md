@@ -12,6 +12,8 @@ dead concepts, heavily dominant concepts, and how sparsely concepts fire per obs
   component energies, firing rates, and overall sparsity.
 - **`ConceptSparsity`**: Scalar inactive fraction with optional observation support sizes
   via `detailed_evaluate`.
+- **`HoyerSparsity`**: Mean concentration of component magnitudes per observation,
+  including when codes are dense and a support count cannot distinguish them.
 
 ## Definitions
 
@@ -85,6 +87,32 @@ print(f"Observation support sizes: {sparsity_details['observation_support_sizes'
 
 ## API Reference
 
+### Hoyer sparsity
+
+For each observation, [Hoyer sparsity](https://www.jmlr.org/papers/v5/hoyer04a.html)
+applies $(\sqrt{K} - \|a\|_1/\|a\|_2)/(\sqrt{K}-1)$ to
+$a_k = |u_k| \|d_k\|_2$. It needs no activity threshold and uses all $K$ concept slots.
+An equally weighted nonzero row scores zero; a one-component row scores one.
+Zero-contribution rows and rows with $K=1$ are undefined and excluded from the mean.
+Report mean active count and reconstruction quality alongside concentration.
+
+```python
+import numpy as np
+from xplique.metrics.concepts import ConceptSparsity, HoyerSparsity, ReconstructionR2
+
+bank = np.eye(2)
+codes = np.array([[1.0, 1.0], [1.0, 0.001], [0.0, 0.0]])
+original = np.array([[1.1, 1.0], [1.0, 0.0], [0.0, 0.0]])
+support = ConceptSparsity().detailed_evaluate(codes, bank)["observation_support_sizes"]
+print("Mean active count:", support.mean())
+print("Per-observation Hoyer:", HoyerSparsity().detailed_evaluate(codes, bank)[
+    "observation_hoyer_sparsity"
+])
+print("Reconstruction R²:", ReconstructionR2()(original, codes @ bank))
+```
+
 {{xplique.metrics.concepts.usage.ConceptUsage}}
 
 {{xplique.metrics.concepts.usage.ConceptSparsity}}
+
+{{xplique.metrics.concepts.usage.HoyerSparsity}}

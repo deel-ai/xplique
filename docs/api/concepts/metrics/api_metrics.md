@@ -34,7 +34,7 @@ answering five complementary questions:
 | Family | Entry points | Headline output | Detailed output | Documentation |
 | --- | --- | --- | --- | --- |
 | **Reconstruction** | `ReconstructionR2`, `ReconstructionError` | Pooled $R^2$ or selected error (`float`) | Global/feature sums or per-observation error vectors | [Reconstruction](reconstruction.md) |
-| **Usage & Sparsity** | `ConceptUsage`, `ConceptSparsity` | Multivariate report (`dict`) or inactive fraction (`float`) | Per-concept firing rates & observation support sizes | [Usage & Sparsity](usage.md) |
+| **Usage & Sparsity** | `ConceptUsage`, `ConceptSparsity`, `HoyerSparsity` | Usage report, inactive fraction, or mean Hoyer sparsity | Firing rates, support sizes, or per-observation Hoyer scores | [Usage & Sparsity](usage.md) |
 | **Bank Alignment & Code Consistency** | `ConceptAlignment`, `compare_concept_banks`, `MatchedCodeConsistency` | Coverage-weighted similarity or mean matched code correlation | Assignment, per-pair similarities, polarities, and correlations | [Alignment](alignment.md) |
 | **Geometry & Coherence** | `concept_bank_geometry_metrics`, `concept_bank_babel_score`, `concept_bank_babel_curve`, `CoactiveSupportCoherence` | Geometry dict, Babel score/curve, or mean support coherence (`float`) | Observation support scores, quantiles & support counts | [Geometry & Coherence](geometry_coherence.md) |
 
@@ -126,7 +126,7 @@ mathematical result (up to `float64` roundoff). Contiguous arrays are sliced as 
 strided arrays gather only the current chunk rather than copying the full array.
 
 `ReconstructionR2`, `ReconstructionError`, `ConceptUsage`, `ConceptSparsity`,
-`MatchedCodeConsistency`, and `CoactiveSupportCoherence` provide
+`HoyerSparsity`, `MatchedCodeConsistency`, and `CoactiveSupportCoherence` provide
 single-pass `evaluate_batches(...)` using evaluation-local running statistics:
 
 ```python

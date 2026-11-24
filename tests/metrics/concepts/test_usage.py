@@ -3,7 +3,7 @@
 import numpy as np
 import pytest
 
-from xplique.metrics.concepts import ConceptSparsity, ConceptUsage
+from xplique.metrics.concepts import ConceptSparsity, ConceptUsage, HoyerSparsity
 
 from ._utils import assert_report_equal
 
@@ -79,3 +79,40 @@ def test_usage_stable_moments_and_exact_threshold_boundary():
     )
     large_energy = ConceptUsage()(np.array([[1e154, 1e154]]), np.eye(2))
     np.testing.assert_allclose(large_energy["component_energy_share"], [0.5, 0.5])
+
+
+@pytest.mark.parametrize("batch_size", [None, 1, 3, 100])
+def test_hoyer_exact_rows_streaming_and_invariance(batch_size):
+    u = np.array([[1.0, -1.0], [1.0, 0.0], [1.0, 0.001], [0.0, 0.0]])
+    bank = np.eye(2)
+    metric = HoyerSparsity(batch_size=batch_size)
+    report = metric.detailed_evaluate(u, bank)
+    rows = report["observation_hoyer_sparsity"]
+    np.testing.assert_allclose(rows[[0, 1, 3]], [0, 1, np.nan], atol=1e-15)
+    assert 0.99 < rows[2] < 1
+    assert report["n_zero_contribution_observations"] == 1
+    assert report["n_scorable_observations"] == 3
+    assert report["hoyer_sparsity"] == pytest.approx(rows[:3].mean())
+    assert metric.evaluate_batches(iter([u[:1], u[1:]]), concept_bank=bank) == pytest.approx(
+        report["hoyer_sparsity"]
+    )
+    rescale = np.array([-4.0, 1e-100])
+    scaled = metric.detailed_evaluate(u / rescale, bank * rescale[:, None])
+    np.testing.assert_allclose(scaled["observation_hoyer_sparsity"], rows, atol=1e-15)
+    assert metric(u[::-1], bank) == pytest.approx(report["hoyer_sparsity"])
+
+
+def test_hoyer_degenerate_banks_and_numeric_range():
+    metric = HoyerSparsity()
+    one = metric.detailed_evaluate(np.array([[1.0], [0.0]]), np.ones((1, 2)))
+    assert np.isnan(one["hoyer_sparsity"])
+    assert one["n_scorable_observations"] == 0
+    assert one["n_zero_contribution_observations"] == 1
+    assert np.isnan(metric(np.ones((1, 2)), np.zeros((2, 1))))
+    assert metric(np.ones((1, 2)), np.array([[0.0], [2.0]])) == 1
+    assert metric(np.full((1, 2), 1e308), np.full((2, 4), 1e308)) == pytest.approx(0)
+    assert metric(np.full((1, 2), 1e-310), np.full((2, 4), 1e-310)) == pytest.approx(0)
+    with pytest.raises(ValueError, match="counts"):
+        metric(np.ones((1, 3)), np.eye(2))
+    with pytest.raises(ValueError, match="observations"):
+        metric.evaluate_batches(iter(()), concept_bank=np.eye(2))

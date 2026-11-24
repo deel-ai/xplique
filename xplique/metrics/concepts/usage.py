@@ -6,6 +6,7 @@ import numpy as np
 
 from ...types import Any, Dict, Optional
 from ._utils import (
+    _concept_bank_row_parts,
     _Moments,
     activity_config,
     array_input,
@@ -356,3 +357,141 @@ class ConceptSparsity:
             "active_threshold",
         )
         return {key: report[key] for key in keys}
+
+
+def _hoyer_rows(chunk, norm_mantissa, norm_exponent):
+    """Normalize contributions by a shared power of two before taking norms."""
+    mantissa, exponent = np.frexp(np.abs(chunk))
+    mantissa *= norm_mantissa
+    exponent += norm_exponent
+    nonzero = mantissa != 0
+    # Zero entries must not set the row exponent, including for subnormal inputs.
+    row_exponent = np.max(np.where(nonzero, exponent, -4096), axis=1, keepdims=True)
+    scaled = np.ldexp(mantissa, np.where(nonzero, exponent - row_exponent, 0))
+    n_concepts = chunk.shape[1]
+    defined = nonzero.any(axis=1)
+    scores = np.full(len(chunk), np.nan)
+    if n_concepts > 1:
+        root_k = np.sqrt(n_concepts)
+        l1 = scaled.sum(axis=1)
+        l2 = np.sqrt(np.square(scaled).sum(axis=1))
+        scores[defined] = (root_k - l1[defined] / l2[defined]) / (root_k - 1)
+        np.clip(scores, 0.0, 1.0, out=scores)
+    return scores, int(np.count_nonzero(~defined))
+
+
+def _bank_norm_factors(concept_bank):
+    """Represent the bank row norms without forming a potentially overflowing norm."""
+    _, scale, _, length = _concept_bank_row_parts(concept_bank)
+    scale_mantissa, scale_exponent = np.frexp(scale)
+    mantissa, exponent = np.frexp(scale_mantissa * length)
+    return mantissa, exponent + scale_exponent
+
+
+class HoyerSparsity:
+    """Measure per-observation sparsity of linear component magnitudes.
+
+    For each observation, apply Hoyer's normalized L1/L2 measure to
+    ``abs(U) * norm(D)`` over all concept slots, without thresholding.
+    Equal nonzero magnitudes give 0 and a single nonzero magnitude gives 1.
+    Reciprocal rescaling of coefficients and atoms does not change the score.
+
+    Parameters
+    ----------
+    batch_size : int or None
+        Maximum flattened observations processed per chunk. ``None`` processes
+        each supplied array at once.
+
+    References
+    ----------
+    Hoyer, P. O. (2004). Non-negative matrix factorization with sparseness
+    constraints. Journal of Machine Learning Research, 5, 1457-1469.
+    """
+
+    def __init__(self, *, batch_size: Optional[int] = None):
+        self.batch_size = validate_batch_size(batch_size)
+
+    def _evaluate(self, batches, concept_bank, *, details=False):
+        norm_mantissa, norm_exponent = _bank_norm_factors(concept_bank)
+        n_observations = n_scorable = n_zero = 0
+        total = 0.0
+        rows = []
+        for coefficients in batches:
+            values = array_input(coefficients, "coefficients")
+            if values.shape[-1] != len(norm_mantissa):
+                raise ValueError("Coefficient and concept-bank concept counts must agree.")
+            for chunk in observation_chunks(values, self.batch_size):
+                scores, n_zero_chunk = _hoyer_rows(chunk, norm_mantissa, norm_exponent)
+                defined = np.isfinite(scores)
+                total += float(scores[defined].sum())
+                n_observations += len(scores)
+                n_scorable += int(defined.sum())
+                n_zero += n_zero_chunk
+                if details:
+                    rows.append(scores)
+        if not n_observations:
+            raise ValueError("An evaluation must contain observations.")
+        report = {
+            "hoyer_sparsity": total / n_scorable if n_scorable else np.nan,
+            "n_observations": n_observations,
+            "n_scorable_observations": n_scorable,
+            "n_zero_contribution_observations": n_zero,
+        }
+        if details:
+            report["observation_hoyer_sparsity"] = np.concatenate(rows)
+        return report
+
+    def evaluate(self, coefficients: np.ndarray, concept_bank: np.ndarray) -> float:
+        """Return the mean over observations with defined Hoyer sparsity.
+
+        Parameters
+        ----------
+        coefficients : np.ndarray
+            Finite array of shape ``(..., K)`` with at least two axes. Leading
+            axes are flattened into equally weighted observations.
+        concept_bank : np.ndarray
+            Finite array of shape ``(K, F)``. Zero concept rows are allowed.
+
+        Returns
+        -------
+        float
+            Mean in ``[0, 1]``, or ``NaN`` if no row is scorable. All-zero
+            contribution rows and all rows with ``K == 1`` are undefined.
+        """
+        return self.evaluate_batches((coefficients,), concept_bank=concept_bank)
+
+    __call__ = evaluate
+
+    def evaluate_batches(self, batches: Iterable[np.ndarray], *, concept_bank: np.ndarray) -> float:
+        """Return the pooled observation mean from a one-pass stream.
+
+        Parameters
+        ----------
+        batches : iterable of np.ndarray
+            Coefficient arrays as in ``evaluate``, with the same concept width.
+        concept_bank : np.ndarray
+            Fixed concept bank for all batches.
+
+        Returns
+        -------
+        float
+            Mean over scorable observations, or ``NaN`` if none are scorable.
+        """
+        return self._evaluate(batches, concept_bank)["hoyer_sparsity"]
+
+    def detailed_evaluate(self, coefficients: np.ndarray, concept_bank: np.ndarray) -> dict:
+        """Return Hoyer sparsity, counts, and individual observation scores.
+
+        Parameters
+        ----------
+        coefficients, concept_bank : np.ndarray
+            Inputs as in ``evaluate``.
+
+        Returns
+        -------
+        dict
+            ``hoyer_sparsity``, ``n_observations``, ``n_scorable_observations``,
+            ``n_zero_contribution_observations``, and ``observation_hoyer_sparsity``
+            in flattened observation order. Undefined rows are ``NaN``.
+        """
+        return self._evaluate((coefficients,), concept_bank, details=True)
