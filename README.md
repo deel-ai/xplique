@@ -407,6 +407,10 @@ TF : Tensorflow compatible
 | `concept_bank_geometry_metrics` | Angular redundancy, norms & spectral geometry | [Geometry & Coherence](https://deel-ai.github.io/xplique/latest/api/concepts/metrics/geometry_coherence/) |
 | `concept_bank_babel_score` / `concept_bank_babel_curve` | Bank-wide Babel cumulative coherence | [Geometry & Coherence](https://deel-ai.github.io/xplique/latest/api/concepts/metrics/geometry_coherence/) |
 | `CoactiveSupportCoherence` | Observed co-activation coherence | [Geometry & Coherence](https://deel-ai.github.io/xplique/latest/api/concepts/metrics/geometry_coherence/) |
+| `ClassificationPredictionFidelity` | Top-1 agreement & directional KL after reconstruction | [Prediction Fidelity](https://deel-ai.github.io/xplique/latest/api/concepts/metrics/prediction_fidelity/) |
+| `DetectionPredictionFidelity` | Same-class IoU matching precision/recall/F1 after reconstruction | [Prediction Fidelity](https://deel-ai.github.io/xplique/latest/api/concepts/metrics/prediction_fidelity/) |
+| `PosePredictionFidelity` | OKS keypoint matching precision/recall/F1 after reconstruction | [Prediction Fidelity](https://deel-ai.github.io/xplique/latest/api/concepts/metrics/prediction_fidelity/) |
+| `SemanticSegmentationPredictionFidelity` | Pooled pixel agreement & macro IoU after reconstruction | [Prediction Fidelity](https://deel-ai.github.io/xplique/latest/api/concepts/metrics/prediction_fidelity/) |
 
 </details>
 

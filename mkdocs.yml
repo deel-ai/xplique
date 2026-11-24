@@ -5,7 +5,7 @@ nav:
   - Home: index.md
   - Attributions methods:
       - API Description: api/attributions/api_attributions.md
-      - Methods: 
+      - Methods:
         - DeconvNet: api/attributions/methods/deconvnet.md
         - FEM: api/attributions/methods/fem.md
         - ForGRad: api/attributions/methods/forgrad.md
@@ -54,6 +54,7 @@ nav:
         - Usage & Sparsity: api/concepts/metrics/usage.md
         - Alignment: api/concepts/metrics/alignment.md
         - Geometry & Coherence: api/concepts/metrics/geometry_coherence.md
+        - Prediction Fidelity: api/concepts/metrics/prediction_fidelity.md
   - Example based:
       - API Description: api/example_based/api_example_based.md
       - Similar Examples:
@@ -64,9 +65,9 @@ nav:
         - NaiveCounterFactuals: api/example_based/counterfactuals/naive_counter_factuals.md
       - Semifactuals:
         - Kleor: api/example_based/semifactuals/kleor.md
-      - Prototypes: 
+      - Prototypes:
         - API Description: api/example_based/prototypes/api_prototypes.md
-        - ProtoGreedy: api/example_based/prototypes/proto_greedy.md 
+        - ProtoGreedy: api/example_based/prototypes/proto_greedy.md
         - ProtoDash: api/example_based/prototypes/proto_dash.md
         - MMDCritic: api/example_based/prototypes/mmd_critic.md
       - Projections: api/example_based/projections.md

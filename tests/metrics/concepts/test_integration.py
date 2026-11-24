@@ -299,7 +299,7 @@ from xplique.metrics.concepts import (
     ReconstructionR2, ReconstructionError, ConceptUsage, ConceptSparsity,
     HoyerSparsity, ConceptAlignment, MatchedCodeConsistency, CoactiveSupportCoherence,
     ClassificationPredictionFidelity, DetectionPredictionFidelity,
-    PosePredictionFidelity,
+    PosePredictionFidelity, SemanticSegmentationPredictionFidelity,
     BoxPredictions, PosePredictions,
     concept_bank_geometry_metrics, concept_bank_babel_score, concept_bank_babel_curve,
     compare_concept_banks,
@@ -322,6 +322,8 @@ pose = PosePredictions(
     np.array([[[0.0, 0.0]]]), np.array([1.0]), np.array([4.0]), np.array([[True]])
 )
 assert PosePredictionFidelity(sigmas=[0.1])([pose], [pose])['f1'] == 1
+seg = np.array([[0, 1], [1, 0]])
+assert SemanticSegmentationPredictionFidelity(n_classes=2)(seg, seg)['mean_iou'] == 1
 assert concept_bank_geometry_metrics(bank)['stable_rank'] == 2
 assert concept_bank_babel_score(bank, order=1) == 0
 assert concept_bank_babel_curve(bank)['babel_score'] == 0

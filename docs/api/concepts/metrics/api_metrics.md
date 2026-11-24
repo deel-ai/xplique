@@ -24,6 +24,10 @@ answering five complementary questions:
 4. **Bank geometry:** Is the concept bank redundant, near-duplicate, or rank-deficient?
 5. **Coactive coherence:** Do correlated concepts actually activate *together* on real observations?
 
+To check whether a factorizer preserves model outputs, see
+[Prediction Fidelity](prediction_fidelity.md). Those scorers compare decoded task
+predictions rather than operating on the activations or concept bank.
+
 !!! info
     These metrics evaluate complementary geometric and statistical properties of concept
     representations. They do **not** define a single composite quality score or prove human
@@ -38,6 +42,7 @@ answering five complementary questions:
 | **Usage & Sparsity** | `ConceptUsage`, `ConceptSparsity`, `HoyerSparsity` | Usage report, inactive fraction, or mean Hoyer sparsity | Firing rates, support sizes, or per-observation Hoyer scores | [Usage & Sparsity](usage.md) |
 | **Bank Alignment & Code Consistency** | `ConceptAlignment`, `compare_concept_banks`, `MatchedCodeConsistency` | Coverage-weighted similarity or mean matched code correlation | Assignment, per-pair similarities, polarities, and correlations | [Alignment](alignment.md) |
 | **Geometry & Coherence** | `concept_bank_geometry_metrics`, `concept_bank_babel_score`, `concept_bank_babel_curve`, `CoactiveSupportCoherence` | Geometry dict, Babel score/curve, or mean support coherence (`float`) | Observation support scores, quantiles & support counts | [Geometry & Coherence](geometry_coherence.md) |
+| **Prediction Fidelity** | `ClassificationPredictionFidelity`, `DetectionPredictionFidelity`, `PosePredictionFidelity`, `SemanticSegmentationPredictionFidelity` | Multivariate agreement report (`dict`) with explicit denominators | Complete report returned directly by `evaluate` | [Prediction Fidelity](prediction_fidelity.md) |
 
 ## Quick Start with a Concept Factorizer
 
@@ -91,10 +96,12 @@ data on each call:
 
 - `metric.evaluate(...)` — computes the headline result (and `metric(...)` is an alias).
 - `metric.detailed_evaluate(...)` — returns structured scientific intermediates from which
-  the headline scalar can be recovered. `ConceptUsage` already returns its complete
-  multivariate report in `evaluate(...)`, so it has no separate `detailed_evaluate`.
+  the headline scalar can be recovered. `ConceptUsage` and the prediction fidelity scorers
+  already return their complete multivariate reports in `evaluate(...)`, so they have no
+  separate `detailed_evaluate`.
 - `metric.evaluate_batches(...)` — available on reconstruction, usage/sparsity,
-  matched-code consistency, and coactive coherence metrics for single-pass streaming.
+  matched-code consistency, coactive coherence, and prediction fidelity metrics for
+  single-pass streaming.
 
 Each call is completely independent (including after an exception): inputs are never
 mutated, no global random state is touched, and no data is cached between calls.
@@ -127,8 +134,11 @@ mathematical result (up to `float64` roundoff). Contiguous arrays are sliced as 
 strided arrays gather only the current chunk rather than copying the full array.
 
 `ReconstructionR2`, `ReconstructionError`, `ConceptUsage`, `ConceptSparsity`,
-`HoyerSparsity`, `MatchedCodeConsistency`, and `CoactiveSupportCoherence` provide
-single-pass `evaluate_batches(...)` using evaluation-local running statistics:
+`HoyerSparsity`, `MatchedCodeConsistency`, `CoactiveSupportCoherence`, and all four
+prediction fidelity scorers (`ClassificationPredictionFidelity`,
+`DetectionPredictionFidelity`, `PosePredictionFidelity`,
+`SemanticSegmentationPredictionFidelity`) provide single-pass `evaluate_batches(...)`
+using evaluation-local running statistics:
 
 ```python
 import numpy as np

@@ -9,7 +9,13 @@ from scipy.optimize import linear_sum_assignment
 from scipy.special import rel_entr
 
 from ...types import Any, Dict, Optional, Tuple, Union
-from ._utils import array_input, is_real_scalar, observation_chunks, validate_batch_size
+from ._utils import (
+    array_input,
+    is_real_scalar,
+    observation_chunks,
+    validate_batch_size,
+    validate_positive_int,
+)
 
 
 def _prediction_pair(batch):
@@ -20,6 +26,18 @@ def _prediction_pair(batch):
             "not a bare (original, reconstructed) pair."
         )
     return batch
+
+
+def _segmentation_batch(batch):
+    """Unpack a streamed (original, reconstructed[, valid_mask]) segmentation item."""
+    if not isinstance(batch, (tuple, list)) or len(batch) not in (2, 3):
+        raise ValueError(
+            "Each streamed item must be a (original, reconstructed) pair or "
+            "(original, reconstructed, valid_mask) triple."
+        )
+    if len(batch) == 2:
+        return batch[0], batch[1], None
+    return batch[0], batch[1], batch[2]
 
 
 def _mean(total, count):
@@ -574,3 +592,148 @@ class PosePredictionFidelity:
             differ between sides, or any image violates ``evaluate`` rules.
         """
         return _instance_report(batches, self._score_image, "mean_matched_oks")
+
+
+def _pixel_confusion(original, reconstructed, valid_mask, n_classes):
+    original = array_input(original, "original")
+    reconstructed = array_input(reconstructed, "reconstructed")
+    if original.shape != reconstructed.shape or original.ndim not in (2, 3):
+        raise ValueError("Label maps must have the same shape (H, W) or (N, H, W).")
+    if original.dtype.kind not in "iu" or reconstructed.dtype.kind not in "iu":
+        raise ValueError("Label maps must contain integer class IDs.")
+    n_pixels = original.size
+    if valid_mask is not None:
+        mask = np.asarray(valid_mask)
+        if mask.shape != original.shape or mask.dtype.kind != "b":
+            raise ValueError("valid_mask must be boolean and have the same shape as the labels.")
+        original, reconstructed = original[mask], reconstructed[mask]
+    for labels in (original, reconstructed):
+        if np.any((labels < 0) | (labels >= n_classes)):
+            raise ValueError("Valid pixels must have class IDs in [0, n_classes).")
+    indices = original.astype(np.int64, copy=False) * n_classes
+    indices += reconstructed.astype(np.int64, copy=False)
+    counts = np.bincount(indices.ravel(), minlength=n_classes**2)
+    return counts.reshape(n_classes, n_classes), n_pixels
+
+
+class SemanticSegmentationPredictionFidelity:
+    """Compare decoded semantic label maps by pixel agreement and class overlap.
+
+    Parameters
+    ----------
+    n_classes : int
+        Positive number of classes. Include background if it is evaluated.
+        Class indices must have the same meaning in both outputs.
+
+    Notes
+    -----
+    Macro IoU excludes classes absent from both outputs. Absent classes on
+    only one side count as zero IoU. This metric does not resize predictions.
+    """
+
+    def __init__(self, *, n_classes: int):
+        self.n_classes = validate_positive_int(n_classes, "n_classes")
+
+    def evaluate(
+        self,
+        original: np.ndarray,
+        reconstructed: np.ndarray,
+        *,
+        valid_mask: Optional[np.ndarray] = None,
+    ) -> Dict[str, Any]:
+        """Compare labels pixel by pixel on aligned image grids.
+
+        Parameters
+        ----------
+        original : np.ndarray
+            Integer label map with shape ``(H, W)`` or ``(N, H, W)``.
+        reconstructed : np.ndarray
+            Integer label map with the exact same shape as ``original``.
+        valid_mask : np.ndarray or None
+            Optional boolean mask of the same shape; ``True`` includes a pixel.
+            Class IDs at excluded pixels are not checked.
+
+        Returns
+        -------
+        report : dict
+            Dictionary containing ``pixel_agreement`` (float), ``class_iou``
+            (np.ndarray of shape ``(n_classes,)``), ``mean_iou`` (float),
+            ``n_valid_pixels`` (int), ``n_ignored_pixels`` (int),
+            ``n_agreeing_pixels`` (int), and ``confusion_matrix`` (np.ndarray of
+            shape ``(n_classes, n_classes)``, rows original, columns reconstructed).
+            Undefined IoUs and scores with no valid pixels are ``NaN``.
+
+        Raises
+        ------
+        ValueError
+            If arrays differ in shape, are not 2-D or 3-D integer arrays, are empty,
+            ``valid_mask`` is not a matching boolean array, or any valid pixel falls
+            outside ``[0, n_classes)``.
+        """
+        return self.evaluate_batches(((original, reconstructed, valid_mask),))
+
+    def __call__(
+        self,
+        original: np.ndarray,
+        reconstructed: np.ndarray,
+        *,
+        valid_mask: Optional[np.ndarray] = None,
+    ) -> Dict[str, Any]:
+        """Alias for ``evaluate``."""
+        return self.evaluate(original, reconstructed, valid_mask=valid_mask)
+
+    def evaluate_batches(
+        self,
+        batches: Iterable[
+            Union[
+                Tuple[np.ndarray, np.ndarray],
+                Tuple[np.ndarray, np.ndarray, Optional[np.ndarray]],
+            ]
+        ],
+    ) -> Dict[str, Any]:
+        """Pool the confusion matrix over streamed pairs or masked triples.
+
+        Parameters
+        ----------
+        batches : iterable of (original, reconstructed) or (original, reconstructed, valid_mask)
+            One-pass iterable of length-2 or length-3 tuple/list items; pairs and
+            triples may be mixed across batches. Pass ``[(original, reconstructed)]``,
+            not a bare ``(original, reconstructed)`` pair.
+
+        Returns
+        -------
+        report : dict
+            Dataset-pooled segmentation agreement report with the same keys and
+            semantics as ``evaluate``, without averaging per-image or per-batch IoU.
+
+        Raises
+        ------
+        ValueError
+            If any item is not a length-2 or length-3 tuple/list, the stream is empty,
+            or any batch violates ``evaluate`` rules.
+        """
+        confusion = np.zeros((self.n_classes, self.n_classes), dtype=np.int64)
+        n_pixels = 0
+        for batch in batches:
+            original, reconstructed, mask = _segmentation_batch(batch)
+            counts, size = _pixel_confusion(original, reconstructed, mask, self.n_classes)
+            confusion += counts
+            n_pixels += size
+        if not n_pixels:
+            raise ValueError("An evaluation must contain at least one pixel.")
+        correct = confusion.diagonal()
+        union = confusion.sum(axis=0) + confusion.sum(axis=1) - correct
+        scored = union > 0
+        class_iou = np.full(self.n_classes, np.nan)
+        np.divide(correct, union, out=class_iou, where=scored)
+        n_agreeing = int(correct.sum())
+        n_valid = int(confusion.sum())
+        return {
+            "pixel_agreement": _mean(n_agreeing, n_valid),
+            "class_iou": class_iou,
+            "mean_iou": _mean(class_iou[scored].sum(), int(scored.sum())),
+            "n_valid_pixels": n_valid,
+            "n_ignored_pixels": n_pixels - n_valid,
+            "n_agreeing_pixels": n_agreeing,
+            "confusion_matrix": confusion,
+        }

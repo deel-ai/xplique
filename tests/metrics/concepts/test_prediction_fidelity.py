@@ -13,6 +13,7 @@ from xplique.metrics.concepts import (
     PosePredictionFidelity,
     PosePredictions,
     ReconstructionR2,
+    SemanticSegmentationPredictionFidelity,
 )
 from xplique.metrics.concepts.prediction_fidelity import _eligible_matches
 
@@ -146,6 +147,48 @@ def test_pose_reordering_empty_and_streaming():
     assert np.isnan(metric([empty], [empty])["f1"])
     streamed = metric.evaluate_batches([([empty], [empty]), ([original], [reconstructed])])
     assert streamed == pytest.approx(metric([empty, original], [empty, reconstructed]))
+
+
+def test_segmentation_pools_confusion_and_penalizes_one_sided_classes():
+    metric = SemanticSegmentationPredictionFidelity(n_classes=4)
+    left = np.array([[0, 0, 1, 1, -1]])
+    right = np.array([[0, 1, 1, 2, 255]])
+    mask = left != -1
+    report = metric(left, right, valid_mask=mask)
+    assert report["pixel_agreement"] == 0.5
+    assert report["mean_iou"] == pytest.approx(5 / 18)
+    np.testing.assert_allclose(report["class_iou"], [0.5, 1 / 3, 0.0, np.nan])
+    np.testing.assert_array_equal(
+        report["confusion_matrix"], [[1, 1, 0, 0], [0, 1, 1, 0], [0, 0, 0, 0], [0, 0, 0, 0]]
+    )
+    assert report["n_valid_pixels"] == 4
+    assert report["n_ignored_pixels"] == 1
+    assert np.isnan(metric(left, right, valid_mask=np.zeros_like(mask))["mean_iou"])
+    with pytest.raises(ValueError, match="Valid pixels"):
+        metric(left, right)
+    with pytest.raises(ValueError, match="same shape"):
+        metric(left, right.T)
+    with pytest.raises(ValueError, match="integer"):
+        metric(left.astype(float), right)
+
+
+def test_segmentation_streaming_uses_dataset_not_image_iou():
+    metric = SemanticSegmentationPredictionFidelity(n_classes=2)
+    original = np.array([[[0, 0]], [[0, 0]], [[1, 1]]], dtype=np.uint64)
+    reconstructed = np.array([[[0, 0]], [[0, 1]], [[0, 1]]], dtype=np.uint64)
+    full = metric(original, reconstructed)
+    streamed = metric.evaluate_batches(
+        iter(
+            [
+                (original[0], reconstructed[0]),
+                (original[1:], reconstructed[1:], np.ones_like(original[1:], dtype=bool)),
+            ]
+        )
+    )
+    np.testing.assert_array_equal(streamed["confusion_matrix"], [[3, 1], [1, 1]])
+    np.testing.assert_allclose(streamed["class_iou"], [0.6, 1 / 3])
+    assert streamed["mean_iou"] == pytest.approx(full["mean_iou"])
+    assert full["pixel_agreement"] == pytest.approx(2 / 3)
 
 
 class _AffineFactorizer:
@@ -289,3 +332,27 @@ def test_pose_validation_recovery_and_confidence_filtering():
     assert filtered["n_reconstructed"] == 0
     assert filtered["n_matched"] == 0
     assert pose([valid_pose], [recon_pose])["f1"] == 1.0
+
+
+@pytest.mark.parametrize("bad", [0, -1, 1.5, True, np.bool_(False)])
+def test_segmentation_constructor_validation(bad):
+    with pytest.raises(ValueError, match="n_classes"):
+        SemanticSegmentationPredictionFidelity(n_classes=bad)
+
+
+def test_segmentation_validation_recovery_and_non_mutation():
+    seg = SemanticSegmentationPredictionFidelity(n_classes=2)
+    labels = np.array([[0, 1], [1, 0]], dtype=np.int32)
+    labels_copy = labels.copy()
+    with pytest.raises(ValueError, match="valid_mask"):
+        seg(labels, labels, valid_mask=np.ones((2, 2), dtype=int))
+    with pytest.raises(ValueError, match="valid_mask"):
+        seg(labels, labels, valid_mask=np.ones((1, 2), dtype=bool))
+    with pytest.raises(ValueError, match="pair or .* triple"):
+        seg.evaluate_batches([(labels,)])
+    with pytest.raises(ValueError, match="pair or .* triple"):
+        seg.evaluate_batches((labels, labels))
+    with pytest.raises(ValueError, match="at least one pixel"):
+        seg.evaluate_batches(iter(()))
+    assert seg(labels, labels)["mean_iou"] == 1.0
+    np.testing.assert_array_equal(labels, labels_copy)

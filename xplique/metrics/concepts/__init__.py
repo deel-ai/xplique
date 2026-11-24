@@ -18,6 +18,7 @@ from .prediction_fidelity import (
     DetectionPredictionFidelity,
     PosePredictionFidelity,
     PosePredictions,
+    SemanticSegmentationPredictionFidelity,
 )
 from .reconstruction import ReconstructionError, ReconstructionR2
 from .usage import ConceptSparsity, ConceptUsage, HoyerSparsity
@@ -31,6 +32,7 @@ __all__ = [
     "ClassificationPredictionFidelity",
     "DetectionPredictionFidelity",
     "PosePredictionFidelity",
+    "SemanticSegmentationPredictionFidelity",
     "BoxPredictions",
     "PosePredictions",
     "ConceptAlignment",
