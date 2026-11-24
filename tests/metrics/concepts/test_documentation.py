@@ -35,4 +35,4 @@ def test_api_examples_present():
         "alignment.md",
         "geometry_coherence.md",
     }
-    assert len(EXAMPLES) == 6
+    assert len(EXAMPLES) == 7

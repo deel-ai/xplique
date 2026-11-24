@@ -1,6 +1,6 @@
 """One-shot matching of complete concept banks in shared feature coordinates."""
 
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from itertools import combinations
 
@@ -8,7 +8,7 @@ import numpy as np
 from scipy.optimize import linear_sum_assignment
 
 from ...types import Any, Dict, Optional, Tuple
-from ._utils import concept_bank_input
+from ._utils import array_input, concept_bank_input, observation_chunks, validate_batch_size
 
 
 @dataclass(eq=False)
@@ -309,3 +309,196 @@ def compare_concept_banks(
         pair: _detailed_from_prepared(prepared[pair[0]], prepared[pair[1]], metric.similarity)
         for pair in pairs
     }
+
+
+def _matching_columns(matching):
+    """Read the parts of a matching result needed to compare columns safely."""
+    if not isinstance(matching, HungarianMatchingResult):
+        raise ValueError("matching must be a HungarianMatchingResult.")
+    widths = (matching.n_reference_concepts, matching.n_compared_concepts)
+    counts = (*widths, matching.n_matched_pairs)
+    if any(
+        not isinstance(count, (int, np.integer)) or isinstance(count, (bool, np.bool_)) or count < 1
+        for count in counts
+    ) or matching.n_matched_pairs != min(widths):
+        raise ValueError("matching has inconsistent concept and pair counts.")
+    columns = tuple(
+        np.asarray(indices)
+        for indices in (matching.assignment_reference_indices, matching.assignment_compared_indices)
+    )
+    shape = (matching.n_matched_pairs,)
+    for indices, width in zip(columns, widths):
+        if (
+            indices.shape != shape
+            or indices.dtype.kind not in "iu"
+            or np.any(indices < 0)
+            or np.any(indices >= width)
+            or len(np.unique(indices)) != shape[0]
+        ):
+            raise ValueError("matching must contain unique, in-range integer indices.")
+    polarity = np.asarray(matching.matched_polarities)
+    if (
+        polarity.shape != shape
+        or polarity.dtype.kind not in "iuf"
+        or not np.isin(polarity, (-1, 1)).all()
+    ):
+        raise ValueError("matching must contain one polarity (+1 or -1) per pair.")
+    if matching.similarity not in ("cosine", "absolute_cosine", "dot"):
+        raise ValueError("Unknown matching similarity mode.")
+    return columns, widths, polarity if matching.similarity == "absolute_cosine" else 1
+
+
+class _PairedMoments:
+    """Merge centered moments for corresponding columns, not all column pairs."""
+
+    def __init__(self, n_pairs):
+        self.count = 0
+        self.exponent = np.full((2, n_pairs), -1073, dtype=np.int32)
+        self.origin = np.zeros((2, n_pairs))
+        self.mean = np.zeros((2, n_pairs))
+        self.variance_sum = np.zeros((2, n_pairs))
+        self.covariance_sum = np.zeros(n_pairs)
+
+    def merge(self, paired):
+        """Accumulate a chunk with a fixed origin and adaptive power-of-two scales."""
+        size = paired.shape[1]
+        mantissa, exponent = np.frexp(np.max(np.abs(paired), axis=1))
+        exponent = np.maximum(self.exponent, np.where(mantissa == 0, self.exponent, exponent))
+        shift = self.exponent - exponent
+        if self.count:
+            self.origin = np.ldexp(self.origin, shift)
+            self.mean = np.ldexp(self.mean, shift)
+            self.variance_sum = np.ldexp(self.variance_sum, 2 * shift)
+            self.covariance_sum = np.ldexp(self.covariance_sum, shift.sum(axis=0))
+        self.exponent = exponent
+        scaled = np.ldexp(paired, -exponent[:, None, :])
+        if not self.count:
+            self.origin = scaled[:, 0, :].copy()
+        shifted = scaled - self.origin[:, None, :]
+        mean = shifted.mean(axis=1)
+        centered = shifted - mean[:, None, :]
+        total = self.count + size
+        weight = self.count * size / total
+        delta = mean - self.mean
+        self.variance_sum += np.square(centered).sum(axis=1) + weight * np.square(delta)
+        cross = (centered[0] * centered[1]).sum(axis=0)
+        self.covariance_sum += cross + weight * delta[0] * delta[1]
+        self.mean += delta * (size / total)
+        self.count = total
+
+    def correlations(self):
+        """Return per-pair Pearson coefficients, with NaN for constant columns."""
+        std = np.sqrt(self.variance_sum)
+        denominator = std[0] * std[1]
+        correlations = np.full_like(denominator, np.nan)
+        np.divide(self.covariance_sum, denominator, out=correlations, where=denominator > 0)
+        return np.clip(correlations, -1.0, 1.0)
+
+
+class MatchedCodeConsistency:
+    """Measure code agreement on common observations after decoder-bank matching.
+
+    Parameters
+    ----------
+    batch_size : int or None
+        Maximum flattened observations processed per chunk. ``None`` processes
+        each supplied coefficient array at once.
+
+    Notes
+    -----
+    Pearson correlation measures co-variation, not agreement in offsets or firing
+    supports. The mean weights scorable pairs equally and does not penalize bank
+    coverage. Inspect both coverage and the number of scorable pairs.
+    """
+
+    def __init__(self, *, batch_size: Optional[int] = None):
+        self.batch_size = validate_batch_size(batch_size)
+
+    def _evaluate(self, batches, matching):
+        (rows, columns), widths, polarity = _matching_columns(matching)
+        moments = _PairedMoments(len(rows))
+        for batch in batches:
+            if not isinstance(batch, (tuple, list)) or len(batch) != 2:
+                raise ValueError("Each batch must be a pair of coefficient arrays.")
+            reference = array_input(batch[0], "reference_coefficients")
+            compared = array_input(batch[1], "compared_coefficients")
+            if reference.shape[:-1] != compared.shape[:-1]:
+                raise ValueError("Coefficient arrays must have identical observation shapes.")
+            if (reference.shape[-1], compared.shape[-1]) != widths:
+                raise ValueError("Coefficient widths must match the assignment's concept counts.")
+            for left, right in zip(
+                observation_chunks(reference, self.batch_size),
+                observation_chunks(compared, self.batch_size),
+            ):
+                moments.merge(np.stack((left[:, rows], right[:, columns])))
+        if not moments.count:
+            raise ValueError("An evaluation must contain observations.")
+        correlations = moments.correlations() * polarity
+        scorable = np.isfinite(correlations)
+        return {
+            "mean_correlation": float(correlations[scorable].mean()) if scorable.any() else np.nan,
+            "matched_correlations": correlations,
+            "n_matched_pairs": len(rows),
+            "n_scorable_pairs": int(scorable.sum()),
+            "coverage": len(rows) / max(widths),
+            "n_observations": moments.count,
+        }
+
+    def evaluate(self, reference_coefficients, compared_coefficients, *, matching) -> float:
+        """Return mean signed Pearson correlation over scorable matched pairs.
+
+        Parameters
+        ----------
+        reference_coefficients, compared_coefficients : np.ndarray
+            Finite arrays of shape ``(..., K_ref)`` and ``(..., K_cmp)``. Their
+            leading dimensions and observation order must match exactly.
+        matching : HungarianMatchingResult
+            Decoder-bank assignment from ``ConceptAlignment.detailed_evaluate``.
+            Matched polarity is applied only for an ``absolute_cosine`` assignment.
+
+        Returns
+        -------
+        float
+            Mean correlation in ``[-1, 1]``, or ``NaN`` if no pair is scorable.
+        """
+        return self.evaluate_batches(
+            ((reference_coefficients, compared_coefficients),), matching=matching
+        )
+
+    __call__ = evaluate
+
+    def evaluate_batches(self, batches: Iterable, *, matching: HungarianMatchingResult) -> float:
+        """Return the same score from a one-pass iterable of aligned coefficient pairs.
+
+        Parameters
+        ----------
+        batches : iterable of pairs of np.ndarray
+            Each pair follows the shape and order contract of ``evaluate``.
+        matching : HungarianMatchingResult
+            Fixed decoder-bank assignment for all batches.
+
+        Returns
+        -------
+        float
+            Pooled mean of per-pair correlations, not a mean of batch correlations.
+        """
+        return self._evaluate(batches, matching)["mean_correlation"]
+
+    def detailed_evaluate(self, reference_coefficients, compared_coefficients, *, matching) -> dict:
+        """Report correlations in assignment order and the score's denominators.
+
+        Parameters
+        ----------
+        reference_coefficients, compared_coefficients : np.ndarray
+            Aligned coefficient arrays as in ``evaluate``.
+        matching : HungarianMatchingResult
+            Decoder-bank assignment for the supplied coefficients.
+
+        Returns
+        -------
+        dict
+            ``mean_correlation``, ``matched_correlations``, ``n_matched_pairs``,
+            ``n_scorable_pairs``, ``coverage``, and ``n_observations``. A pair with
+            a constant column or fewer than two observations has correlation ``NaN``.
+        """
+        return self._evaluate(((reference_coefficients, compared_coefficients),), matching)

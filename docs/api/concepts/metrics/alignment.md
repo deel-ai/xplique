@@ -90,7 +90,44 @@ print(f"Compared pairs: {list(pairs.keys())}")
 
 ## API Reference
 
+### Matched-code consistency
+
+Bank alignment compares decoder directions, not which inputs activate them. After
+fitting two factorizers, encode **the same held-out observations in the same order**
+with both, then pass their codes and a decoder-bank assignment to
+`MatchedCodeConsistency`. The example below uses fixed nonnegative dictionaries and
+NNLS encoding to illustrate the evaluation independently of model training.
+
+```python
+import numpy as np
+from scipy.optimize import nnls
+from xplique.metrics.concepts import ConceptAlignment, MatchedCodeConsistency
+
+reference = np.eye(2)
+compared = np.array([[0.1, 1.0], [1.0, 0.1]])
+held_out = np.array([[1.0, 0.5], [0.5, 2.0], [2.0, 0.0], [0.0, 1.0]])
+reference_codes = np.stack([nnls(reference.T, row)[0] for row in held_out])
+compared_codes = np.stack([nnls(compared.T, row)[0] for row in held_out])
+
+matching = ConceptAlignment().detailed_evaluate(reference, compared)
+report = MatchedCodeConsistency().detailed_evaluate(
+    reference_codes, compared_codes, matching=matching
+)
+print(matching.coverage_weighted_similarity, report["mean_correlation"])
+print(report["n_scorable_pairs"], report["n_matched_pairs"], report["coverage"])
+```
+
+Each score is a signed Pearson correlation across observations. In `absolute_cosine`
+mode only, the matched polarity is applied to the compared code column. Constant
+columns and single-observation evaluations give undefined (`NaN`) correlations;
+only defined pairs enter the mean. Interpret the mean alongside the number of scorable
+pairs and bank coverage. Pearson measures co-variation, not equality or support
+overlap. For streams, pass aligned `(reference_codes, compared_codes)` pairs with a
+fixed `matching`; do not average correlations computed per batch.
+
 {{xplique.metrics.concepts.matching.ConceptAlignment}}
+
+{{xplique.metrics.concepts.matching.MatchedCodeConsistency}}
 
 {{xplique.metrics.concepts.matching.HungarianMatchingResult}}
 

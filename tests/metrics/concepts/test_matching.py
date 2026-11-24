@@ -1,9 +1,11 @@
 """Concept alignment objectives, assignments and comparison helpers."""
 
+from dataclasses import replace
+
 import numpy as np
 import pytest
 
-from xplique.metrics.concepts import ConceptAlignment, compare_concept_banks
+from xplique.metrics.concepts import ConceptAlignment, MatchedCodeConsistency, compare_concept_banks
 
 
 @pytest.mark.parametrize("mode", ["cosine", "absolute_cosine", "dot"])
@@ -102,3 +104,69 @@ def test_matching_result_identity_equality():
     second = metric.detailed_evaluate(np.eye(2), np.eye(2))
     assert first == first
     assert first != second
+
+
+def test_matched_code_correlations_are_distinct_from_bank_alignment():
+    bank = np.eye(4)
+    matching = ConceptAlignment().detailed_evaluate(bank, bank)
+    left = np.tile(np.array([-1, -1, 1, 1])[:, None], (1, 4))
+    right = np.column_stack((left[:, 0], -left[:, 1], [-1, 1, -1, 1], np.zeros(4)))
+    metric = MatchedCodeConsistency()
+    report = metric.detailed_evaluate(left, right, matching=matching)
+    np.testing.assert_allclose(report["matched_correlations"], [1, -1, 0, np.nan])
+    assert report["n_scorable_pairs"] == 3
+    assert report["n_matched_pairs"] == 4
+    assert matching.coverage_weighted_similarity == 1
+    assert metric(left, right, matching=matching) == pytest.approx(0)
+    assert np.isnan(metric(left[:1], right[:1], matching=matching))
+    assert np.isnan(metric(np.zeros_like(left), right, matching=matching))
+
+
+def test_matched_code_polarity_and_rectangular_coverage():
+    reference = np.eye(3)[:2]
+    compared = np.eye(3)[[1, 0, 2]] * np.array([[-2], [3], [1]])
+    matching = ConceptAlignment(similarity="absolute_cosine").detailed_evaluate(reference, compared)
+    u = np.array([[0.0, 1.0], [1.0, 3.0], [3.0, 0.0]])
+    v = np.column_stack((-u[:, 1] / 2, u[:, 0] / 3, np.zeros(len(u))))
+    report = MatchedCodeConsistency().detailed_evaluate(u, v, matching=matching)
+    assert report["mean_correlation"] == pytest.approx(1)
+    assert report["coverage"] == pytest.approx(2 / 3)
+
+
+@pytest.mark.parametrize("mode", ["cosine", "dot"])
+def test_matched_code_signed_modes_do_not_correct_polarity(mode):
+    matching = ConceptAlignment(similarity=mode).detailed_evaluate([[1.0]], [[-2.0]])
+    u = np.arange(3.0)[:, None]
+    assert MatchedCodeConsistency()(u, -u / 2, matching=matching) == pytest.approx(-1)
+
+
+def test_matched_code_streaming_offsets_strides_and_validation():
+    matching = ConceptAlignment().detailed_evaluate(np.eye(2), np.eye(2))
+    pattern = np.arange(60.0, dtype=np.float64).reshape(5, 6, 2)[::2, ::2]
+    u = float(2**53) + 2 * pattern
+    v = np.stack((pattern[..., 0] / 4, -pattern[..., 1] * 3), axis=-1)
+    ordinary = MatchedCodeConsistency().detailed_evaluate(u, v, matching=matching)
+    np.testing.assert_allclose(ordinary["matched_correlations"], [1, -1], atol=1e-14)
+    for size in (1, 4, 100):
+        metric = MatchedCodeConsistency(batch_size=size)
+        details = metric.detailed_evaluate(u[:, ::-1], v[:, ::-1], matching=matching)
+        np.testing.assert_allclose(details["matched_correlations"], [1, -1], atol=1e-14)
+        assert metric.evaluate_batches(
+            iter([(u[:2], v[:2]), (u[2:], v[2:])]), matching=matching
+        ) == pytest.approx(ordinary["mean_correlation"], abs=1e-14)
+    with pytest.raises(ValueError, match="observation shapes"):
+        metric(u, v.reshape(-1, 2), matching=matching)
+    with pytest.raises(ValueError, match="widths"):
+        metric(u[..., :1], v, matching=matching)
+    with pytest.raises(ValueError, match="indices"):
+        metric(u, v, matching=replace(matching, assignment_compared_indices=[0, 0]))
+    with pytest.raises(ValueError, match="polarity"):
+        metric(u, v, matching=replace(matching, matched_polarities=[1, 0]))
+    with pytest.raises(ValueError, match="pair"):
+        metric.evaluate_batches((u, v), matching=matching)
+    with pytest.raises(ValueError, match="observations"):
+        metric.evaluate_batches(iter(()), matching=matching)
+    large = np.array([[0.0, 1e-310], [1e308, 2e-310], [-1e308, 3e-310]])
+    np.testing.assert_allclose(
+        metric.detailed_evaluate(large, large, matching=matching)["matched_correlations"], [1, 1]
+    )

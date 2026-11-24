@@ -19,7 +19,7 @@ answering five complementary questions:
 
 1. **Reconstruction:** How faithfully do the concepts reconstruct the original activations?
 2. **Usage & sparsity:** Which concepts actually fire, how much energy do they carry, and how sparse are their activations?
-3. **Bank alignment:** How closely do two concept banks agree across seeds, hyperparameters, or bank sizes?
+3. **Bank alignment and code consistency:** Do two runs learn similar directions and use them on the same observations?
 4. **Bank geometry:** Is the concept bank redundant, near-duplicate, or rank-deficient?
 5. **Coactive coherence:** Do correlated concepts actually activate *together* on real observations?
 
@@ -35,7 +35,7 @@ answering five complementary questions:
 | --- | --- | --- | --- | --- |
 | **Reconstruction** | `ReconstructionR2`, `ReconstructionError` | Pooled $R^2$ or selected error (`float`) | Global/feature sums or per-observation error vectors | [Reconstruction](reconstruction.md) |
 | **Usage & Sparsity** | `ConceptUsage`, `ConceptSparsity` | Multivariate report (`dict`) or inactive fraction (`float`) | Per-concept firing rates & observation support sizes | [Usage & Sparsity](usage.md) |
-| **Bank Alignment** | `ConceptAlignment`, `compare_concept_banks` | Coverage-weighted similarity (`float`) | `HungarianMatchingResult` (pairs, similarities, polarities) | [Alignment](alignment.md) |
+| **Bank Alignment & Code Consistency** | `ConceptAlignment`, `compare_concept_banks`, `MatchedCodeConsistency` | Coverage-weighted similarity or mean matched code correlation | Assignment, per-pair similarities, polarities, and correlations | [Alignment](alignment.md) |
 | **Geometry & Coherence** | `concept_bank_geometry_metrics`, `concept_bank_babel_score`, `concept_bank_babel_curve`, `CoactiveSupportCoherence` | Geometry dict, Babel score/curve, or mean support coherence (`float`) | Observation support scores, quantiles & support counts | [Geometry & Coherence](geometry_coherence.md) |
 
 ## Quick Start with a Concept Factorizer
@@ -92,8 +92,8 @@ data on each call:
 - `metric.detailed_evaluate(...)` — returns structured scientific intermediates from which
   the headline scalar can be recovered. `ConceptUsage` already returns its complete
   multivariate report in `evaluate(...)`, so it has no separate `detailed_evaluate`.
-- `metric.evaluate_batches(...)` — available on reconstruction, usage/sparsity, and
-  coactive coherence metrics for exact single-pass streaming over large datasets.
+- `metric.evaluate_batches(...)` — available on reconstruction, usage/sparsity,
+  matched-code consistency, and coactive coherence metrics for single-pass streaming.
 
 Each call is completely independent (including after an exception): inputs are never
 mutated, no global random state is touched, and no data is cached between calls.
@@ -125,9 +125,9 @@ For large activation sets, set `batch_size` to chunk observations without changi
 mathematical result (up to `float64` roundoff). Contiguous arrays are sliced as views;
 strided arrays gather only the current chunk rather than copying the full array.
 
-`ReconstructionR2`, `ReconstructionError`, `ConceptUsage`, `ConceptSparsity`, and
-`CoactiveSupportCoherence` also provide single-pass `evaluate_batches(...)` using
-evaluation-local running statistics:
+`ReconstructionR2`, `ReconstructionError`, `ConceptUsage`, `ConceptSparsity`,
+`MatchedCodeConsistency`, and `CoactiveSupportCoherence` provide
+single-pass `evaluate_batches(...)` using evaluation-local running statistics:
 
 ```python
 import numpy as np
