@@ -298,7 +298,9 @@ import numpy as np
 from xplique.metrics.concepts import (
     ReconstructionR2, ReconstructionError, ConceptUsage, ConceptSparsity,
     HoyerSparsity, ConceptAlignment, MatchedCodeConsistency, CoactiveSupportCoherence,
-    ClassificationPredictionFidelity,
+    ClassificationPredictionFidelity, DetectionPredictionFidelity,
+    PosePredictionFidelity,
+    BoxPredictions, PosePredictions,
     concept_bank_geometry_metrics, concept_bank_babel_score, concept_bank_babel_curve,
     compare_concept_banks,
 )
@@ -314,6 +316,12 @@ assert np.isclose(MatchedCodeConsistency()(bank, bank, matching=matching), 1)
 assert CoactiveSupportCoherence()(bank, bank) == 0
 clf = ClassificationPredictionFidelity(prediction_format='logits')
 assert clf(bank, bank)['top1_agreement'] == 1
+box = BoxPredictions(np.array([[0.0, 0.0, 2.0, 2.0]]), np.array([0]), np.array([1.0]))
+assert DetectionPredictionFidelity()([box], [box])['f1'] == 1
+pose = PosePredictions(
+    np.array([[[0.0, 0.0]]]), np.array([1.0]), np.array([4.0]), np.array([[True]])
+)
+assert PosePredictionFidelity(sigmas=[0.1])([pose], [pose])['f1'] == 1
 assert concept_bank_geometry_metrics(bank)['stable_rank'] == 2
 assert concept_bank_babel_score(bank, order=1) == 0
 assert concept_bank_babel_curve(bank)['babel_score'] == 0

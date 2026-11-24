@@ -3,11 +3,14 @@
 import numpy as np
 
 
-def _is_real_scalar(value):
+def is_real_scalar(value):
     """Accept integer/floating scalars, but not boolean settings."""
     return not isinstance(value, (bool, np.bool_)) and isinstance(
         value, (int, float, np.integer, np.floating)
     )
+
+
+_is_real_scalar = is_real_scalar
 
 
 def validate_batch_size(batch_size):
