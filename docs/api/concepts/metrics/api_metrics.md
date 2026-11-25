@@ -3,6 +3,7 @@
 <sub>
     <img src="https://upload.wikimedia.org/wikipedia/commons/9/91/Octicons-mark-github.svg" width="20">
 </sub>[View source](https://github.com/deel-ai/xplique/tree/master/xplique/metrics/concepts) |
+📰 [Hoyer (2004)](https://www.jmlr.org/papers/v5/hoyer04a.html) |
 📰 [Tropp (2004)](https://doi.org/10.1109/TIT.2004.834793) |
 📰 [Welch (1974)](https://doi.org/10.1109/TIT.1974.1055219)
 

@@ -378,7 +378,9 @@ There are 4 modules in Xplique, [Attribution methods](api/attributions/api_attri
     | `ReconstructionError` | Reconstruction error (MSE, RMSE, MAE, Relative L2) | [Reconstruction](api/concepts/metrics/reconstruction.md) |
     | `ConceptUsage` | Coefficient moments, usage & component energy | [Usage & Sparsity](api/concepts/metrics/usage.md) |
     | `ConceptSparsity` | Global inactive fraction & support sizes | [Usage & Sparsity](api/concepts/metrics/usage.md) |
+    | `HoyerSparsity` | Threshold-free per-observation concentration | [Usage & Sparsity](api/concepts/metrics/usage.md) |
     | `ConceptAlignment` / `compare_concept_banks` | Bank-to-bank Hungarian alignment | [Alignment](api/concepts/metrics/alignment.md) |
+    | `MatchedCodeConsistency` | Held-out code correlation for matched pairs | [Alignment](api/concepts/metrics/alignment.md) |
     | `concept_bank_geometry_metrics` | Angular redundancy, norms & spectral geometry | [Geometry & Coherence](api/concepts/metrics/geometry_coherence.md) |
     | `concept_bank_babel_score` / `concept_bank_babel_curve` | Bank-wide Babel cumulative coherence | [Geometry & Coherence](api/concepts/metrics/geometry_coherence.md) |
     | `CoactiveSupportCoherence` | Observed co-activation coherence | [Geometry & Coherence](api/concepts/metrics/geometry_coherence.md) |

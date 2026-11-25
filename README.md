@@ -401,7 +401,9 @@ TF : Tensorflow compatible
 | `ReconstructionError` | Reconstruction error (MSE, RMSE, MAE, Relative L2) | [Reconstruction](https://deel-ai.github.io/xplique/latest/api/concepts/metrics/reconstruction/) |
 | `ConceptUsage` | Coefficient moments, usage & component energy | [Usage & Sparsity](https://deel-ai.github.io/xplique/latest/api/concepts/metrics/usage/) |
 | `ConceptSparsity` | Global inactive fraction & support sizes | [Usage & Sparsity](https://deel-ai.github.io/xplique/latest/api/concepts/metrics/usage/) |
+| `HoyerSparsity` | Threshold-free per-observation concentration | [Usage & Sparsity](https://deel-ai.github.io/xplique/latest/api/concepts/metrics/usage/) |
 | `ConceptAlignment` / `compare_concept_banks` | Bank-to-bank Hungarian alignment | [Alignment](https://deel-ai.github.io/xplique/latest/api/concepts/metrics/alignment/) |
+| `MatchedCodeConsistency` | Held-out code correlation for matched pairs | [Alignment](https://deel-ai.github.io/xplique/latest/api/concepts/metrics/alignment/) |
 | `concept_bank_geometry_metrics` | Angular redundancy, norms & spectral geometry | [Geometry & Coherence](https://deel-ai.github.io/xplique/latest/api/concepts/metrics/geometry_coherence/) |
 | `concept_bank_babel_score` / `concept_bank_babel_curve` | Bank-wide Babel cumulative coherence | [Geometry & Coherence](https://deel-ai.github.io/xplique/latest/api/concepts/metrics/geometry_coherence/) |
 | `CoactiveSupportCoherence` | Observed co-activation coherence | [Geometry & Coherence](https://deel-ai.github.io/xplique/latest/api/concepts/metrics/geometry_coherence/) |
