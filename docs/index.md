@@ -384,6 +384,10 @@ There are 4 modules in Xplique, [Attribution methods](api/attributions/api_attri
     | `concept_bank_geometry_metrics` | Angular redundancy, norms & spectral geometry | [Geometry & Coherence](api/concepts/metrics/geometry_coherence.md) |
     | `concept_bank_babel_score` / `concept_bank_babel_curve` | Bank-wide Babel cumulative coherence | [Geometry & Coherence](api/concepts/metrics/geometry_coherence.md) |
     | `CoactiveSupportCoherence` | Observed co-activation coherence | [Geometry & Coherence](api/concepts/metrics/geometry_coherence.md) |
+    | `ClassificationPredictionFidelity` | Top-1 agreement & directional KL after reconstruction | [Prediction Fidelity](api/concepts/metrics/prediction_fidelity.md) |
+    | `DetectionPredictionFidelity` | Same-class IoU matching precision/recall/F1 after reconstruction | [Prediction Fidelity](api/concepts/metrics/prediction_fidelity.md) |
+    | `PosePredictionFidelity` | OKS keypoint matching precision/recall/F1 after reconstruction | [Prediction Fidelity](api/concepts/metrics/prediction_fidelity.md) |
+    | `SemanticSegmentationPredictionFidelity` | Pooled pixel agreement & macro IoU after reconstruction | [Prediction Fidelity](api/concepts/metrics/prediction_fidelity.md) |
 
 ??? abstract "Table of Feature Visualization methods available"
 

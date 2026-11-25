@@ -3,25 +3,38 @@
 import numpy as np
 
 
-def _is_real_scalar(value):
+def is_real_scalar(value):
     """Accept integer/floating scalars, but not boolean settings."""
     return not isinstance(value, (bool, np.bool_)) and isinstance(
         value, (int, float, np.integer, np.floating)
     )
 
 
+_is_real_scalar = is_real_scalar
+
+
+def validate_positive_int(value, name):
+    """Validate a non-boolean positive integer and return a Python int."""
+    if (
+        isinstance(value, (bool, np.bool_))
+        or not isinstance(value, (int, np.integer))
+        or value <= 0
+    ):
+        raise ValueError(f"{name} must be a positive integer.")
+    return int(value)
+
+
 def validate_batch_size(batch_size):
     """Validate an optional observation chunk size."""
-    if batch_size is not None and (
-        isinstance(batch_size, (bool, np.bool_))
-        or not isinstance(batch_size, (int, np.integer))
-        or batch_size <= 0
-    ):
-        raise ValueError("batch_size must be a positive integer or None.")
-    # Convert narrow NumPy integers (e.g. np.int8) to Python int so
-    # `start + step` in observation_chunks cannot overflow under NumPy 2
-    # scalar promotion and silently drop trailing observations.
-    return None if batch_size is None else int(batch_size)
+    if batch_size is None:
+        return None
+    try:
+        # Convert narrow NumPy integers (e.g. np.int8) to Python int so
+        # `start + step` in observation_chunks cannot overflow under NumPy 2
+        # scalar promotion and silently drop trailing observations.
+        return validate_positive_int(batch_size, "batch_size")
+    except ValueError as exc:
+        raise ValueError("batch_size must be a positive integer or None.") from exc
 
 
 def array_input(values, name, bank=False):

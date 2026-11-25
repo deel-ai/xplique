@@ -34,5 +34,6 @@ def test_api_examples_present():
         "usage.md",
         "alignment.md",
         "geometry_coherence.md",
+        "prediction_fidelity.md",
     }
-    assert len(EXAMPLES) == 8
+    assert len(EXAMPLES) == 12
