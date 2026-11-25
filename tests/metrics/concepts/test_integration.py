@@ -11,6 +11,7 @@ from xplique.metrics.concepts import (
     ConceptAlignment,
     ConceptSparsity,
     ConceptUsage,
+    MatchedCodeConsistency,
     ReconstructionError,
     ReconstructionR2,
     concept_bank_babel_curve,
@@ -29,6 +30,7 @@ from ._utils import assert_report_equal
         ReconstructionError,
         ConceptUsage,
         ConceptSparsity,
+        MatchedCodeConsistency,
         CoactiveSupportCoherence,
     ],
 )
@@ -75,6 +77,11 @@ def test_strided_inputs_are_bounded_and_ordered(layout):
             assert_report_equal(
                 metric.detailed_evaluate(x, bank), reference.detailed_evaluate(x.copy(), bank)
             )
+    matching = ConceptAlignment().detailed_evaluate(bank, bank)
+    assert_report_equal(
+        MatchedCodeConsistency(batch_size=3).detailed_evaluate(x, x + 1, matching=matching),
+        MatchedCodeConsistency().detailed_evaluate(x.copy(), x.copy() + 1, matching=matching),
+    )
 
 
 @pytest.mark.parametrize("batch_size", [None, 1, 2, 100])
@@ -141,9 +148,13 @@ def test_factorizer_integration():
     alignment = ConceptAlignment().detailed_evaluate(bank, bank)
     assert alignment.coverage == 1
     assert alignment.mean_similarity == pytest.approx(1, abs=1e-14)
+    assert MatchedCodeConsistency()(u, u, matching=alignment) == pytest.approx(1)
     second = TfSklearnNMFFactorizer(n_components=3, max_iter=30, random_state=4, init="random")
     other, _ = second.fit(x)
-    assert ConceptAlignment().detailed_evaluate(bank, other).n_matched_pairs == 3
+    other_u = second.encode(x)
+    other_alignment = ConceptAlignment().detailed_evaluate(bank, other)
+    assert other_alignment.n_matched_pairs == 3
+    assert np.isfinite(MatchedCodeConsistency()(u, other_u, matching=other_alignment))
     assert concept_bank_geometry_metrics(bank)["n_features"] == 6
     assert concept_bank_babel_curve(bank)["n_concepts"] == 3
     assert np.isfinite(concept_bank_babel_score(bank, order=2))
@@ -182,6 +193,30 @@ def test_coefficient_validation_and_independent_evaluations(factory):
         assert again == result
     with pytest.raises(ValueError):
         metric.evaluate_batches(iter([]), concept_bank=bank)
+
+
+def test_matched_code_validation_and_independent_evaluations():
+    metric = MatchedCodeConsistency(batch_size=2)
+    matching = ConceptAlignment().detailed_evaluate(np.eye(3), np.eye(3))
+    values = np.arange(15.0).reshape(5, 3)
+    for bad in [
+        np.empty((0, 3)),
+        np.empty((2, 0)),
+        np.ones(3),
+        np.full((5, 3), np.nan),
+        np.ones((5, 3), dtype=complex),
+        np.ones((5, 3), dtype=object),
+        np.ones((5, 3), dtype=bool),
+    ]:
+        with pytest.raises(ValueError):
+            metric(bad, values, matching=matching)
+    before = dict(vars(metric))
+    result = metric(values, values, matching=matching)
+    assert vars(metric) == before
+    small_matching = ConceptAlignment().detailed_evaluate(np.eye(2), np.eye(2))
+    small = np.arange(6.0).reshape(3, 2)
+    assert metric(small, small, matching=small_matching) == pytest.approx(1)
+    assert metric(values, values, matching=matching) == result
 
 
 @pytest.mark.parametrize("factory", [ConceptUsage, ConceptSparsity, CoactiveSupportCoherence])
@@ -253,8 +288,9 @@ builtins.__import__ = guarded
 import numpy as np
 from xplique.metrics.concepts import (
     ReconstructionR2, ReconstructionError, ConceptUsage, ConceptSparsity,
-    ConceptAlignment, CoactiveSupportCoherence, concept_bank_geometry_metrics,
-    concept_bank_babel_score, concept_bank_babel_curve, compare_concept_banks,
+    ConceptAlignment, MatchedCodeConsistency, CoactiveSupportCoherence,
+    concept_bank_geometry_metrics, concept_bank_babel_score, concept_bank_babel_curve,
+    compare_concept_banks,
 )
 bank = np.eye(2)
 assert ReconstructionR2()(bank, bank) == 1
@@ -262,6 +298,8 @@ assert ReconstructionError()(bank, bank) == 0
 assert ConceptUsage()(bank, bank)['n_concepts'] == 2
 assert ConceptSparsity()(bank, bank) == .5
 assert ConceptAlignment()(bank, bank) == 1
+matching = ConceptAlignment().detailed_evaluate(bank, bank)
+assert np.isclose(MatchedCodeConsistency()(bank, bank, matching=matching), 1)
 assert CoactiveSupportCoherence()(bank, bank) == 0
 assert concept_bank_geometry_metrics(bank)['stable_rank'] == 2
 assert concept_bank_babel_score(bank, order=1) == 0
@@ -288,6 +326,7 @@ def test_hand_computable_errors_and_no_scalar_detail_collection(monkeypatch):
     assert details["relative_l2_error"] != np.mean(details["observation_relative_l2_error"])
     zero_rows = ReconstructionError().detailed_evaluate(np.zeros((2, 2)), np.eye(2))
     assert np.isinf(zero_rows["observation_relative_l2_error"]).all()
+    matching = ConceptAlignment().detailed_evaluate(np.eye(2), np.eye(2))
 
     def no_concatenate(*args, **kwargs):
         raise AssertionError("Scalar evaluation must not collect observation details")
@@ -297,4 +336,5 @@ def test_hand_computable_errors_and_no_scalar_detail_collection(monkeypatch):
     ReconstructionR2(batch_size=1)(x, y)
     ConceptUsage(batch_size=1)(x, np.eye(2))
     ConceptSparsity(batch_size=1)(x, np.eye(2))
+    MatchedCodeConsistency(batch_size=1)(x, y, matching=matching)
     CoactiveSupportCoherence(batch_size=1)(x, np.eye(2))

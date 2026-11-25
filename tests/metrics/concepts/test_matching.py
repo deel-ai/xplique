@@ -148,25 +148,92 @@ def test_matched_code_streaming_offsets_strides_and_validation():
     ordinary = MatchedCodeConsistency().detailed_evaluate(u, v, matching=matching)
     np.testing.assert_allclose(ordinary["matched_correlations"], [1, -1], atol=1e-14)
     for size in (1, 4, 100):
-        metric = MatchedCodeConsistency(batch_size=size)
-        details = metric.detailed_evaluate(u[:, ::-1], v[:, ::-1], matching=matching)
+        chunked = MatchedCodeConsistency(batch_size=size)
+        details = chunked.detailed_evaluate(u[:, ::-1], v[:, ::-1], matching=matching)
         np.testing.assert_allclose(details["matched_correlations"], [1, -1], atol=1e-14)
-        assert metric.evaluate_batches(
+        assert chunked.evaluate_batches(
             iter([(u[:2], v[:2]), (u[2:], v[2:])]), matching=matching
         ) == pytest.approx(ordinary["mean_correlation"], abs=1e-14)
+
+    large = np.array([[0.0, 1e-310], [1e308, 2e-310], [-1e308, 3e-310]])
+    for size in (None, 1):
+        np.testing.assert_allclose(
+            MatchedCodeConsistency(batch_size=size).detailed_evaluate(
+                large, large, matching=matching
+            )["matched_correlations"],
+            [1, 1],
+        )
+
+    metric = MatchedCodeConsistency(batch_size=2)
     with pytest.raises(ValueError, match="observation shapes"):
         metric(u, v.reshape(-1, 2), matching=matching)
     with pytest.raises(ValueError, match="widths"):
         metric(u[..., :1], v, matching=matching)
-    with pytest.raises(ValueError, match="indices"):
-        metric(u, v, matching=replace(matching, assignment_compared_indices=[0, 0]))
+    with pytest.raises(ValueError, match="HungarianMatchingResult"):
+        metric(u, v, matching="not-a-matching")  # type: ignore[arg-type]
+    with pytest.raises(ValueError, match="counts"):
+        metric(u, v, matching=replace(matching, n_matched_pairs=1))
+    with pytest.raises(ValueError, match="counts"):
+        metric(u, v, matching=replace(matching, n_reference_concepts=True))
+    for bad_indices in ([0, 0], [-1, 0], [0, 2], np.array([0.0, 1.0])):
+        with pytest.raises(ValueError, match="indices"):
+            metric(u, v, matching=replace(matching, assignment_compared_indices=bad_indices))
     with pytest.raises(ValueError, match="polarity"):
         metric(u, v, matching=replace(matching, matched_polarities=[1, 0]))
+    with pytest.raises(ValueError, match="similarity"):
+        metric(u, v, matching=replace(matching, similarity="unknown"))
     with pytest.raises(ValueError, match="pair"):
         metric.evaluate_batches((u, v), matching=matching)
     with pytest.raises(ValueError, match="observations"):
         metric.evaluate_batches(iter(()), matching=matching)
-    large = np.array([[0.0, 1e-310], [1e308, 2e-310], [-1e308, 3e-310]])
-    np.testing.assert_allclose(
-        metric.detailed_evaluate(large, large, matching=matching)["matched_correlations"], [1, 1]
+
+    # NaN in an unmatched column must still be rejected.
+    rect_matching = ConceptAlignment().detailed_evaluate(np.eye(3)[:2], np.eye(3))
+    v_with_nan = np.zeros((3, 3))
+    v_with_nan[0, 2] = np.nan
+    with pytest.raises(ValueError, match="finite"):
+        metric(np.ones((3, 2)), v_with_nan, matching=rect_matching)
+
+    # NumPy integer counts in matching still yield a Python float coverage.
+    np_count_matching = replace(
+        rect_matching,
+        n_reference_concepts=np.int64(2),
+        n_compared_concepts=np.int64(3),
+        n_matched_pairs=np.int64(2),
     )
+    rep = metric.detailed_evaluate(np.ones((3, 2)), np.ones((3, 3)), matching=np_count_matching)
+    assert type(rep["coverage"]) is float
+    assert rep["coverage"] == pytest.approx(2 / 3)
+
+
+def test_matched_code_nondegenerate_oracle_and_cross_chunk_scale_jumps():
+    rng = np.random.default_rng(7)
+    scales = np.array([1.0, 1e10, 1e-10, 1e200, 1e-200])
+    u = rng.normal(size=(30, 5)) * scales + np.array([0.0, 1e12, 0.0, 0.0, 0.0])
+    v = 0.65 * u + 0.35 * rng.normal(size=(30, 5)) * scales
+    # Force a 400-order-of-magnitude scale jump between early and late chunks on column 3.
+    u[:6, 3] = rng.normal(size=6) * 1e-200
+    v[:6, 3] = rng.normal(size=6) * 1e-200
+    matching = ConceptAlignment().detailed_evaluate(np.eye(5), np.eye(5))
+
+    expected = np.array(
+        [
+            np.corrcoef(
+                u[:, k] / np.max(np.abs(u[:, k])),
+                v[:, k] / np.max(np.abs(v[:, k])),
+            )[0, 1]
+            for k in range(5)
+        ]
+    )
+    assert np.all((np.abs(expected) > 0.1) & (np.abs(expected) < 0.99))
+
+    for size in (None, 1, 4, 13):
+        details = MatchedCodeConsistency(batch_size=size).detailed_evaluate(u, v, matching=matching)
+        np.testing.assert_allclose(details["matched_correlations"], expected, atol=1e-12)
+        assert details["mean_correlation"] == pytest.approx(expected.mean(), abs=1e-12)
+
+    streamed = MatchedCodeConsistency(batch_size=3).evaluate_batches(
+        iter([(u[:4], v[:4]), (u[4:11], v[4:11]), (u[11:], v[11:])]),
+        matching=matching,
+    )
+    assert streamed == pytest.approx(expected.mean(), abs=1e-12)
