@@ -11,6 +11,7 @@ from xplique.metrics.concepts import (
     ConceptAlignment,
     ConceptSparsity,
     ConceptUsage,
+    HoyerSparsity,
     MatchedCodeConsistency,
     ReconstructionError,
     ReconstructionR2,
@@ -30,6 +31,7 @@ from ._utils import assert_report_equal
         ReconstructionError,
         ConceptUsage,
         ConceptSparsity,
+        HoyerSparsity,
         MatchedCodeConsistency,
         CoactiveSupportCoherence,
     ],
@@ -68,7 +70,7 @@ def test_strided_inputs_are_bounded_and_ordered(layout):
             factory().detailed_evaluate(x.copy(), x.copy() + 1),
         )
     bank = np.eye(x.shape[-1])
-    for factory in [ConceptUsage, ConceptSparsity, CoactiveSupportCoherence]:
+    for factory in [ConceptUsage, ConceptSparsity, HoyerSparsity, CoactiveSupportCoherence]:
         metric = factory(batch_size=3)
         reference = factory()
         if factory is ConceptUsage:
@@ -143,6 +145,7 @@ def test_factorizer_integration():
     )
     assert ReconstructionError()(x, y) == pytest.approx(sse / x.size)
     assert ConceptSparsity().detailed_evaluate(u, bank)["n_concepts"] == 3
+    assert HoyerSparsity().detailed_evaluate(u, bank)["n_concepts"] == 3
     assert CoactiveSupportCoherence().detailed_evaluate(u, bank)["n_concepts"] == 3
     assert ConceptAlignment()(bank, bank) == pytest.approx(1)
     alignment = ConceptAlignment().detailed_evaluate(bank, bank)
@@ -162,7 +165,9 @@ def test_factorizer_integration():
         np.testing.assert_array_equal(value, snapshot)
 
 
-@pytest.mark.parametrize("factory", [ConceptUsage, ConceptSparsity, CoactiveSupportCoherence])
+@pytest.mark.parametrize(
+    "factory", [ConceptUsage, ConceptSparsity, HoyerSparsity, CoactiveSupportCoherence]
+)
 def test_coefficient_validation_and_independent_evaluations(factory):
     metric = factory(batch_size=2)
     bank = np.eye(3)
@@ -288,7 +293,7 @@ builtins.__import__ = guarded
 import numpy as np
 from xplique.metrics.concepts import (
     ReconstructionR2, ReconstructionError, ConceptUsage, ConceptSparsity,
-    ConceptAlignment, MatchedCodeConsistency, CoactiveSupportCoherence,
+    HoyerSparsity, ConceptAlignment, MatchedCodeConsistency, CoactiveSupportCoherence,
     concept_bank_geometry_metrics, concept_bank_babel_score, concept_bank_babel_curve,
     compare_concept_banks,
 )
@@ -297,6 +302,7 @@ assert ReconstructionR2()(bank, bank) == 1
 assert ReconstructionError()(bank, bank) == 0
 assert ConceptUsage()(bank, bank)['n_concepts'] == 2
 assert ConceptSparsity()(bank, bank) == .5
+assert HoyerSparsity()(bank, bank) == 1
 assert ConceptAlignment()(bank, bank) == 1
 matching = ConceptAlignment().detailed_evaluate(bank, bank)
 assert np.isclose(MatchedCodeConsistency()(bank, bank, matching=matching), 1)
@@ -336,5 +342,6 @@ def test_hand_computable_errors_and_no_scalar_detail_collection(monkeypatch):
     ReconstructionR2(batch_size=1)(x, y)
     ConceptUsage(batch_size=1)(x, np.eye(2))
     ConceptSparsity(batch_size=1)(x, np.eye(2))
+    HoyerSparsity(batch_size=1)(x, np.eye(2))
     MatchedCodeConsistency(batch_size=1)(x, y, matching=matching)
     CoactiveSupportCoherence(batch_size=1)(x, np.eye(2))

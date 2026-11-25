@@ -106,6 +106,7 @@ def test_hoyer_degenerate_banks_and_numeric_range():
     metric = HoyerSparsity()
     one = metric.detailed_evaluate(np.array([[1.0], [0.0]]), np.ones((1, 2)))
     assert np.isnan(one["hoyer_sparsity"])
+    assert one["n_concepts"] == 1
     assert one["n_scorable_observations"] == 0
     assert one["n_zero_contribution_observations"] == 1
     assert np.isnan(metric(np.ones((1, 2)), np.zeros((2, 1))))
@@ -116,3 +117,26 @@ def test_hoyer_degenerate_banks_and_numeric_range():
         metric(np.ones((1, 3)), np.eye(2))
     with pytest.raises(ValueError, match="observations"):
         metric.evaluate_batches(iter(()), concept_bank=np.eye(2))
+
+
+def test_hoyer_multi_concept_analytical_oracle_and_support_contrast():
+    # K = 4 with non-unit atom norms so contribution magnitudes are explicitly tested.
+    bank = np.diag([1.0, 2.0, 3.0, 4.0])
+    codes = np.array(
+        [
+            [1.0, 0.5, 0.0, 0.0],  # contributions [1, 1, 0, 0] -> (2 - sqrt(2)) / (2 - 1)
+            [1.0, 0.5, 1.0 / 3.0, 0.25],  # contributions [1, 1, 1, 1] -> 0
+            [4.0, 0.5, 1.0 / 3.0, 0.25],  # contributions [4, 1, 1, 1], same full support
+        ]
+    )
+    support_sizes = ConceptSparsity().detailed_evaluate(codes, bank)["observation_support_sizes"]
+    assert support_sizes.tolist() == [2, 4, 4]
+
+    report = HoyerSparsity(batch_size=2).detailed_evaluate(codes, bank)
+    expected_row2 = (2.0 - 7.0 / np.sqrt(19.0)) / (2.0 - 1.0)
+    expected = np.array([2.0 - np.sqrt(2.0), 0.0, expected_row2])
+    assert report["n_concepts"] == 4
+    np.testing.assert_allclose(report["observation_hoyer_sparsity"], expected, atol=1e-14)
+    assert report["hoyer_sparsity"] == pytest.approx(expected.mean(), abs=1e-14)
+    # Rows 1 and 2 have identical full support (4), but Hoyer distinguishes concentration.
+    assert report["observation_hoyer_sparsity"][2] > report["observation_hoyer_sparsity"][1]

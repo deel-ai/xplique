@@ -2,7 +2,8 @@
 
 <sub>
     <img src="https://upload.wikimedia.org/wikipedia/commons/9/91/Octicons-mark-github.svg" width="20">
-</sub>[View source](https://github.com/deel-ai/xplique/blob/master/xplique/metrics/concepts/usage.py)
+</sub>[View source](https://github.com/deel-ai/xplique/blob/master/xplique/metrics/concepts/usage.py) |
+📰 [Hoyer (2004)](https://www.jmlr.org/papers/v5/hoyer04a.html)
 
 Usage and sparsity metrics diagnose how concept coefficients $U \in \mathbb{R}^{N \times K}$
 and concept vectors $D \in \mathbb{R}^{K \times F}$ behave across a dataset—identifying
@@ -35,20 +36,33 @@ From $U$, $D$, and $A$, the key reported quantities are:
   with share $E_k / \sum_j E_j$ (`NaN` when total energy is zero).
 - **Active fraction (per concept):** $\frac{1}{N}\sum_{n=1}^{N} A_{n,k} \in [0, 1]$.
 - **Sparsity (global):** $1 - \frac{1}{NK}\sum_{n,k} A_{n,k} \in [0, 1]$.
+- **Hoyer sparsity (per observation):** for linear component magnitudes
+  $a_{n,k} = |U_{n,k}| \|d_k\|_2$ over all $K$ concept slots (no threshold),
+  [Hoyer (2004)](https://www.jmlr.org/papers/v5/hoyer04a.html) defines:
+
+$$
+H(a_n) = \frac{\sqrt{K} - \|a_n\|_1 / \|a_n\|_2}{\sqrt{K} - 1} \in [0, 1] \quad (K > 1,\; \|a_n\|_2 > 0)
+$$
+
+Zero-contribution observations ($\|a_n\|_2 = 0$) and all observations when $K = 1$ are
+undefined (`NaN`) and excluded from the mean (returning `NaN` if no observation is scorable).
 
 ## Score Interpretation
 
 - **Contribution basis is scale-invariant:** Factorizations are often invariant to
   rescaling $U_{\cdot,k} \leftarrow \alpha U_{\cdot,k}$ and $d_k \leftarrow \alpha^{-1} d_k$
-  for $\alpha > 0$. `activity_basis="contribution"` (along with `effective_usage` and
-  `component_energy`) is invariant to this rescaling, whereas `activity_basis="coefficient"`
-  is not.
+  for $\alpha \neq 0$. `activity_basis="contribution"` (along with `effective_usage`,
+  `component_energy`, and `HoyerSparsity`) is invariant to this rescaling, whereas
+  `activity_basis="coefficient"` is not.
 - **Threshold units:** `active_threshold` uses strict inequality (`>`) with no implicit
   epsilon—choose it in activation units for `"contribution"` or raw coefficient units for
   `"coefficient"`.
-- **Dead concepts & sparsity:** Compare `n_active_concepts` against `n_concepts` to spot
-  unused concepts. Higher `sparsity` means fewer concepts fire per observation, which is
-  often desirable as long as reconstruction fidelity remains acceptable.
+- **Support sparsity vs. Hoyer concentration:** Compare `n_active_concepts` against
+  `n_concepts` to spot unused concepts, and inspect `HoyerSparsity` alongside mean active
+  count (`observation_support_sizes.mean()`) and reconstruction quality. On dense codes,
+  `ConceptSparsity` can report identical support counts for an equally weighted row
+  ($H = 0$) and a nearly one-hot row ($H \approx 1$). Higher sparsity is not automatically
+  better if reconstruction fidelity degrades.
 - **Zero concept vectors:** Allowed in usage and sparsity metrics (giving zero
   contribution), unlike angular geometry and alignment metrics which reject zero rows.
 
@@ -58,7 +72,9 @@ From $U$, $D$, and $A$, the key reported quantities are:
     energy, **not** additive explained variance. Norm-weighted quantities also exclude
     any affine decoder bias.
 
-## Example
+## Examples
+
+### Concept usage and support sparsity
 
 ```python
 import numpy as np
@@ -85,16 +101,7 @@ print(f"Global sparsity: {sparsity_score:.3f}")
 print(f"Observation support sizes: {sparsity_details['observation_support_sizes']}")
 ```
 
-## API Reference
-
-### Hoyer sparsity
-
-For each observation, [Hoyer sparsity](https://www.jmlr.org/papers/v5/hoyer04a.html)
-applies $(\sqrt{K} - \|a\|_1/\|a\|_2)/(\sqrt{K}-1)$ to
-$a_k = |u_k| \|d_k\|_2$. It needs no activity threshold and uses all $K$ concept slots.
-An equally weighted nonzero row scores zero; a one-component row scores one.
-Zero-contribution rows and rows with $K=1$ are undefined and excluded from the mean.
-Report mean active count and reconstruction quality alongside concentration.
+### Hoyer concentration alongside support size and reconstruction
 
 ```python
 import numpy as np
@@ -110,6 +117,8 @@ print("Per-observation Hoyer:", HoyerSparsity().detailed_evaluate(codes, bank)[
 ])
 print("Reconstruction R²:", ReconstructionR2()(original, codes @ bank))
 ```
+
+## API Reference
 
 {{xplique.metrics.concepts.usage.ConceptUsage}}
 
