@@ -53,7 +53,7 @@
 
 The library is composed of several modules, the _Attributions Methods_ module implements various methods (e.g Saliency, Grad-CAM, FEM, Integrated-Gradients...), with explanations, examples and links to official papers.
 The _Feature Visualization_ module allows to see how neural networks build their understanding of images by finding inputs that maximize neurons, channels, layers or compositions of these elements.
-The _Concepts_ module allows you to extract human concepts from a model and to test their usefulness with respect to a class.
+The _Concepts_ module allows you to extract human concepts from a model and to test their usefulness with respect to a class, and includes [Concept-space metrics](api/concepts/metrics/api_metrics.md) to evaluate activation reconstructions, concept usage, bank alignment, and geometry.
 Finally, the _Metrics_ module covers the current metrics used in explainability. Used in conjunction with the _Attribution Methods_ module, it allows you to test the different methods or evaluate the explanations of a model.
 
 <p align="center" width="100%">
@@ -229,6 +229,25 @@ Now that Xplique is installed, here are some basic examples of what you can do w
     More information in the [CRAFT documentation](api/concepts/craft.md).
 
 
+??? example "Concept-space Metrics"
+
+    Once you have extracted a concept bank and coefficients, you can evaluate reconstruction fidelity, concept usage, bank geometry, and run-to-run alignment with `xplique.metrics.concepts`:
+
+    ```python
+    from xplique.metrics.concepts import (
+        ReconstructionR2,
+        ConceptUsage,
+        concept_bank_geometry_metrics,
+    )
+
+    r2 = ReconstructionR2()(activations, reconstructed)
+    usage = ConceptUsage()(coefficients, concept_bank)
+    geometry = concept_bank_geometry_metrics(concept_bank)
+    ```
+
+    More information in the [Concept-space Metrics documentation](api/concepts/metrics/api_metrics.md).
+
+
 ??? example "Feature Visualization"
 
     Finally, in order to find an image that maximizes a neuron and at the same time a layer, we build two objectives that we combine together. We then call the optimizer which returns our images
@@ -350,6 +369,21 @@ There are 4 modules in Xplique, [Attribution methods](api/attributions/api_attri
     TF : Tensorflow compatible
 
     ** : See the [Xplique for Pytorch documentation](api/attributions/pytorch.md), and the [**PyTorch's model**: Getting started](https://colab.research.google.com/drive/1bMlO29_0K3YnTQBbbyKQyRfo8YjvDbhe)<sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1bMlO29_0K3YnTQBbbyKQyRfo8YjvDbhe) </sub> notebook
+
+??? abstract "Table of concept-space metrics available"
+
+    | **Concept Metric** | Property | Documentation |
+    | :----------------- | :------- | :------------ |
+    | `ReconstructionR2` | Reconstruction fidelity | [Reconstruction](api/concepts/metrics/reconstruction.md) |
+    | `ReconstructionError` | Reconstruction error (MSE, RMSE, MAE, Relative L2) | [Reconstruction](api/concepts/metrics/reconstruction.md) |
+    | `ConceptUsage` | Coefficient moments, usage & component energy | [Usage & Sparsity](api/concepts/metrics/usage.md) |
+    | `ConceptSparsity` | Global inactive fraction & support sizes | [Usage & Sparsity](api/concepts/metrics/usage.md) |
+    | `HoyerSparsity` | Threshold-free per-observation concentration | [Usage & Sparsity](api/concepts/metrics/usage.md) |
+    | `ConceptAlignment` / `compare_concept_banks` | Bank-to-bank Hungarian alignment | [Alignment](api/concepts/metrics/alignment.md) |
+    | `MatchedCodeConsistency` | Held-out code correlation for matched pairs | [Alignment](api/concepts/metrics/alignment.md) |
+    | `concept_bank_geometry_metrics` | Angular redundancy, norms & spectral geometry | [Geometry & Coherence](api/concepts/metrics/geometry_coherence.md) |
+    | `concept_bank_babel_score` / `concept_bank_babel_curve` | Bank-wide Babel cumulative coherence | [Geometry & Coherence](api/concepts/metrics/geometry_coherence.md) |
+    | `CoactiveSupportCoherence` | Observed co-activation coherence | [Geometry & Coherence](api/concepts/metrics/geometry_coherence.md) |
 
 ??? abstract "Table of Feature Visualization methods available"
 

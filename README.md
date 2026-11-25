@@ -56,6 +56,8 @@ The _Feature Visualization_ module allows to see how neural networks build their
 The _Concepts_ module allows you to extract human concepts from a model and to test their usefulness with respect to a class.
 Finally, the _Metrics_ module covers the current metrics used in explainability. Used in conjunction with the _Attribution Methods_ module, it allows you to test the different methods or evaluate the explanations of a model.
 
+[Concept-space metrics](https://deel-ai.github.io/xplique/latest/api/concepts/metrics/api_metrics/) evaluate activation reconstructions, concept usage, bank alignment, and geometry.
+
 <p align="center" width="100%">
     <img width="95%" src="./docs/assets/modules.png">
 </p>
@@ -233,6 +235,27 @@ More information in the [CRAFT documentation](https://deel-ai.github.io/xplique/
 </details>
 
 <details>
+<summary><b>Concept-space Metrics</b></summary>
+
+Once you have extracted a concept bank and coefficients, you can evaluate reconstruction fidelity, concept usage, bank geometry, and run-to-run alignment with `xplique.metrics.concepts`:
+
+```python
+from xplique.metrics.concepts import (
+    ReconstructionR2,
+    ConceptUsage,
+    concept_bank_geometry_metrics,
+)
+
+r2 = ReconstructionR2()(activations, reconstructed)
+usage = ConceptUsage()(coefficients, concept_bank)
+geometry = concept_bank_geometry_metrics(concept_bank)
+```
+
+More information in the [Concept-space Metrics documentation](https://deel-ai.github.io/xplique/latest/api/concepts/metrics/api_metrics/).
+
+</details>
+
+<details>
 <summary><b>Feature Visualization</b></summary>
 
 Finally, in order to find an image that maximizes a neuron and at the same time a layer, we build two objectives that we combine together. We then call the optimizer which returns our images
@@ -366,6 +389,24 @@ TF : Tensorflow compatible
 TF : Tensorflow compatible
 
 ** : See the [Xplique for Pytorch documentation](https://deel-ai.github.io/xplique/latest/pytorch/), and the [**PyTorch's model**: Getting started](https://colab.research.google.com/drive/1bMlO29_0K3YnTQBbbyKQyRfo8YjvDbhe)<sub> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1bMlO29_0K3YnTQBbbyKQyRfo8YjvDbhe) </sub> notebook
+
+</details>
+
+<details>
+<summary><b>Table of concept-space metrics available</b></summary>
+
+| **Concept Metric** | Property | Documentation |
+| :----------------- | :------- | :------------ |
+| `ReconstructionR2` | Reconstruction fidelity | [Reconstruction](https://deel-ai.github.io/xplique/latest/api/concepts/metrics/reconstruction/) |
+| `ReconstructionError` | Reconstruction error (MSE, RMSE, MAE, Relative L2) | [Reconstruction](https://deel-ai.github.io/xplique/latest/api/concepts/metrics/reconstruction/) |
+| `ConceptUsage` | Coefficient moments, usage & component energy | [Usage & Sparsity](https://deel-ai.github.io/xplique/latest/api/concepts/metrics/usage/) |
+| `ConceptSparsity` | Global inactive fraction & support sizes | [Usage & Sparsity](https://deel-ai.github.io/xplique/latest/api/concepts/metrics/usage/) |
+| `HoyerSparsity` | Threshold-free per-observation concentration | [Usage & Sparsity](https://deel-ai.github.io/xplique/latest/api/concepts/metrics/usage/) |
+| `ConceptAlignment` / `compare_concept_banks` | Bank-to-bank Hungarian alignment | [Alignment](https://deel-ai.github.io/xplique/latest/api/concepts/metrics/alignment/) |
+| `MatchedCodeConsistency` | Held-out code correlation for matched pairs | [Alignment](https://deel-ai.github.io/xplique/latest/api/concepts/metrics/alignment/) |
+| `concept_bank_geometry_metrics` | Angular redundancy, norms & spectral geometry | [Geometry & Coherence](https://deel-ai.github.io/xplique/latest/api/concepts/metrics/geometry_coherence/) |
+| `concept_bank_babel_score` / `concept_bank_babel_curve` | Bank-wide Babel cumulative coherence | [Geometry & Coherence](https://deel-ai.github.io/xplique/latest/api/concepts/metrics/geometry_coherence/) |
+| `CoactiveSupportCoherence` | Observed co-activation coherence | [Geometry & Coherence](https://deel-ai.github.io/xplique/latest/api/concepts/metrics/geometry_coherence/) |
 
 </details>
 

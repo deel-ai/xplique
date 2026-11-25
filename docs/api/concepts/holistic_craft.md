@@ -91,6 +91,11 @@ craft.display_images_per_concept(images, coeffs_u=coeffs_u)
 concept_maps = craft.attribute_concepts_to_inputs(images, partial_explainer)
 ```
 
+!!!tip "Evaluating learned concepts"
+    To assess reconstruction fidelity, concept usage and sparsity, bank geometry, or
+    run-to-run stability of the extracted concept bank, see the
+    [Concept-Space Metrics](metrics/api_metrics.md) module (`xplique.metrics.concepts`).
+
 Like regular CRAFT, Holistic CRAFT splits the model into $(g, h)$ such that
 $f(x) = h(g(x))$. The encoder $g$ maps an input to latent activations, and $h$ maps those
 activations to predictions. Concepts are extracted in this latent space.

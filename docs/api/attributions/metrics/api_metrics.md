@@ -27,6 +27,8 @@ As pointed out by [Petsiuk et al.](http://arxiv.org/abs/1806.07421), most explai
 !!!info
     Metrics described on this page are metrics for attribution methods and explanations. Therefore, the user should first get familiar with the [attributions methods API](../api_attributions.md) as many parameters are common between both API. For instance, `model`, `inputs`, `targets`, and `operator` should match for methods and their metrics.
 
+    For evaluating concept representations (activation reconstruction, concept usage/sparsity, bank alignment, and geometry), see [Concept-Space Metrics](../../concepts/metrics/api_metrics.md).
+
 All metrics inherit from the base class `BaseAttributionMetric` which has the following `__init__` arguments:
 
 - `model`: The model from which we want to obtain explanations

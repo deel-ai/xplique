@@ -102,6 +102,11 @@ cm.plot_concepts_crops(class_id=0, nb_crops=10)
 
 ```
 
+!!!tip "Evaluating learned concepts"
+    To evaluate activation reconstruction, concept usage/sparsity, bank geometry, or
+    alignment across runs, see the [Concept-Space Metrics](metrics/api_metrics.md) module
+    (`xplique.metrics.concepts`).
+
 
 {{xplique.concepts.craft_tf.CraftTf}}
 
